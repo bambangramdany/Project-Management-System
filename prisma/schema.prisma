@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id             String         @id @default(cuid())
+  name           String
+  email          String         @unique
+  hashedPassword String
+  role           UserRole       @default(MEMBER)
+  jobTitle       String?
+  divisi         Divisi?
+  employeeStatus EmployeeStatus @default(ACTIVE)
+  phone          String?
+  createdAt      DateTime       @default(now())
+
+  picProjects    Project[]       @relation("PICRelation")
+  memberships    ProjectMember[]
+  assignedTasks  Task[]
+}
+
+enum UserRole {
+  OWNER
+  PROJECT_MANAGER
+  PRODUCTION
+  PROJECT_OFFICER
+  CREATIVE_LEAD
+  GRAPHIC_DESIGNER
+  STAGE_DESIGNER
+  CONTENT_CREATOR
+  INTERNSHIP
+  MEMBER
+}
+
+enum Divisi {
+  EVENT
+  CREATIVE
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  NOT_ACTIVE
+}
+
+model Client {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  industry  String?
+  contact   String?
+  notes     String?
+  createdAt DateTime  @default(now())
+
+  projects  Project[]
+}
+
+model Project {
+  id              String          @id @default(cuid())
+  code            String          @unique
+  name            String
+  clientId        String?
+  category        ProjectCategory
+  budgetTier      BudgetTier?
+  eventComplexity EventComplexity?
+  recommendation  Recommendation?
+  picId           String?
+  briefDate       DateTime?
+  submitDate      DateTime?
+  pitchDuration   Int?
+  startDate       DateTime?
+  endDate         DateTime?
+  projectDuration Int?
+  status          ProjectStatus   @default(HOLD)
+  pitchStatus     PitchStatus?
+  pitchResult     PitchResult?
+  wonLossReason   String?
+  vendorWinner    String?
+  projectValue    Float?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  client    Client?         @relation(fields: [clientId], references: [id])
+  pic       User?           @relation("PICRelation", fields: [picId], references: [id])
+  members   ProjectMember[]
+  tasks     Task[]
+}
+
+enum ProjectStatus {
+  HOLD
+  PITCHING
+  WAITING_PITCH_RESULT
+  PREPARATION
+  EVENT_DAY
+  REPORTING
+  INVOICING
+  DONE
+  FAILED
+  CANCELED
+}
+
+enum PitchStatus {
+  PITCH
+  PITCH_PLUS
+  AUTO_WIN
+  CANCEL_PROJECT
+}
+
+enum PitchResult {
+  WIN
+  LOSE
+  NOT_FINAL
+}
+
+enum ProjectCategory {
+  MEETING_CONFERENCE
+  ACTIVATION
+  LAUNCHING
+  EXHIBITION
+  INCENTIVE_GATHERING
+  SPONSORSHIP
+}
+
+enum BudgetTier {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum EventComplexity {
+  SIMPLE
+  MEDIUM
+  COMPLEX
+  HIGH
+}
+
+enum Recommendation {
+  MAINTAIN
+  PRIORITIZE
+  EVALUATE
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  joinedAt  DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  assigneeId  String?
+  status      TaskStatus @default(TODO)
+  priority    Priority   @default(MEDIUM)
+  startDate   DateTime?
+  dueDate     DateTime?
+  openEnded   Boolean    @default(false)
+  order       Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee     User?            @relation(fields: [assigneeId], references: [id])
+  dependencies TaskDependency[] @relation("DependentTask")
+  dependents   TaskDependency[] @relation("RequiredTask")
+}
+
+enum TaskStatus {
+  TODO
+  BLOCKED
+  IN_PROGRESS
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model TaskDependency {
+  id              String @id @default(cuid())
+  dependentTaskId String
+  requiredTaskId  String
+
+  dependentTask Task @relation("DependentTask", fields: [dependentTaskId], references: [id], onDelete: Cascade)
+  requiredTask  Task @relation("RequiredTask", fields: [requiredTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([dependentTaskId, requiredTaskId])
+}
