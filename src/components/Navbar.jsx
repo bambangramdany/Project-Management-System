@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: '/scores', label: 'Nilai Saya' },
   { href: '/finance', label: 'Finance', roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'PRODUCTION'] },
   { href: '/kpi', label: 'KPI', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
+  { href: '/targets', label: 'Target', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/team', label: 'Tim' },
   { href: '/audit', label: 'Audit Log', auditOnly: true },
 ]

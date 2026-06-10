@@ -57,6 +57,20 @@ model AuditLog {
   @@index([createdAt])
 }
 
+// Annual revenue/project-count targets per division, set by the Owner for
+// tracking organizational direction and progress.
+model DivisionTarget {
+  id               String   @id @default(cuid())
+  year             Int
+  division         Divisi
+  revenueTarget    Float    @default(0)
+  projectCountTarget Int    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([year, division])
+}
+
 // Anonymous note from a team member to a director. The author is hidden from the
 // director — only OWNER and HR (Finance/HRGA director) can see who wrote it.
 model DirectorNote {
