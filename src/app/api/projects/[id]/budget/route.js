@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canViewBudget, canEditBudget, canViewMargin, canEditProjectValue, canLockBudget } from '@/lib/rbac'
+import { logAudit } from '@/lib/audit'
 import { NextResponse } from 'next/server'
 
 export async function GET(req, { params }) {
@@ -78,6 +79,12 @@ export async function PUT(req, { params }) {
         ? { budgetLockedAt: new Date(), budgetLockedById: session.user.id }
         : { budgetLockedAt: null, budgetLockedById: null },
     })
+    await logAudit({
+      userId: session.user.id,
+      action: body.lockAction === 'lock' ? 'BUDGET_LOCK' : 'BUDGET_UNLOCK',
+      entity: 'Project', entityId: project.id,
+      summary: `${session.user.name} ${body.lockAction === 'lock' ? 'mengunci' : 'membuka kunci'} forecast budget project ${project.name}`,
+    })
   }
 
   const isLocked = !!project.budgetLockedAt && body.lockAction !== 'unlock'
@@ -109,11 +116,23 @@ export async function PUT(req, { params }) {
     }))
 
     if (body.projectValue !== undefined && canEditProjectValue(session.user, project)) {
-      await prisma.project.update({
-        where: { id: params.id },
-        data: { projectValue: body.projectValue === '' || body.projectValue === null ? null : parseFloat(body.projectValue) || 0 },
-      })
+      const newValue = body.projectValue === '' || body.projectValue === null ? null : parseFloat(body.projectValue) || 0
+      if (newValue !== project.projectValue) {
+        await prisma.project.update({
+          where: { id: params.id },
+          data: { projectValue: newValue },
+        })
+        await logAudit({
+          userId: session.user.id, action: 'PROJECT_VALUE_CHANGE', entity: 'Project', entityId: project.id,
+          summary: `${session.user.name} mengubah nilai project ${project.name} dari ${project.projectValue ?? '-'} ke ${newValue ?? '-'}`,
+          meta: { from: project.projectValue, to: newValue },
+        })
+      }
     }
+    await logAudit({
+      userId: session.user.id, action: 'BUDGET_FORECAST_UPDATE', entity: 'Project', entityId: project.id,
+      summary: `${session.user.name} memperbarui forecast budget project ${project.name} (${items.length} item)`,
+    })
   } else if (canEdit && isLocked && Array.isArray(body.items)) {
     // Forecast is locked: only actualAmount and note can still be updated on existing rows
     await Promise.all(body.items.filter(i => i.id).map(item => {

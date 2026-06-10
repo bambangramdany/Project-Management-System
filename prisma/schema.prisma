@@ -36,6 +36,25 @@ model User {
   projectScoresGiven    ProjectScore[] @relation("ProjectScoreEvaluator")
   directorNotesReceived DirectorNote[] @relation("DirectorNoteTarget")
   directorNotesSent     DirectorNote[] @relation("DirectorNoteAuthor")
+  auditLogs             AuditLog[]
+}
+
+// Global audit trail of important changes across the system, for Direksi/Owner
+// and Finance Director oversight.
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   // e.g. PROJECT_STATUS_CHANGE, BUDGET_LOCK, BUDGET_ITEM_UPDATE, MEMBER_CHANGE
+  entity    String   // e.g. Project, ProjectBudgetItem, PaymentRequest
+  entityId  String?
+  summary   String   // human-readable description
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([createdAt])
 }
 
 // Anonymous note from a team member to a director. The author is hidden from the

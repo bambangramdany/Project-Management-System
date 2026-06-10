@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
 import { useState } from 'react'
 import NotificationBell from './NotificationBell'
+import { isFinanceDirector } from '@/lib/rbac'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -15,12 +16,18 @@ const NAV_ITEMS = [
   { href: '/finance', label: 'Finance', roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'PRODUCTION'] },
   { href: '/kpi', label: 'KPI', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/team', label: 'Tim' },
+  { href: '/audit', label: 'Audit Log', auditOnly: true },
 ]
 
 export default function Navbar() {
   const { data: session } = useSession()
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
+  const canSeeAudit = session?.user.role === 'OWNER' || isFinanceDirector(session?.user)
+  const visibleItems = NAV_ITEMS.filter(item => {
+    if (item.auditOnly) return canSeeAudit
+    return !item.roles || item.roles.includes(session?.user.role)
+  })
 
   return (
     <nav className="bg-ink-800 sticky top-0 z-50 shadow-sm">
@@ -34,7 +41,7 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-1">
-            {NAV_ITEMS.filter(item => !item.roles || item.roles.includes(session?.user.role)).map(item => (
+            {visibleItems.map(item => (
               <Link
                 key={item.href}
                 href={item.href}

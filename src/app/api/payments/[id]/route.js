@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canApproveAsDirector, canApproveAsOwner, canApproveAsFinanceDirector, canProcessPayment } from '@/lib/rbac'
 import { notifyUser } from '@/lib/notify'
+import { logAudit } from '@/lib/audit'
 import { NextResponse } from 'next/server'
 
 const fmtRupiah = (n) => `Rp ${Math.round(n || 0).toLocaleString('id-ID')}`
@@ -75,6 +76,11 @@ export async function PATCH(req, { params }) {
         link: '/finance',
       })
     }
+    await logAudit({
+      userId: session.user.id, action: action === 'approve' ? 'PAYMENT_APPROVE_OWNER' : 'PAYMENT_REJECT_OWNER',
+      entity: 'PaymentRequest', entityId: payment.id,
+      summary: `${session.user.name} (Direktur Utama) ${action === 'approve' ? 'menyetujui' : 'menolak'} pengajuan ${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'})`,
+    })
     return NextResponse.json(updated)
   }
 
@@ -108,6 +114,11 @@ export async function PATCH(req, { params }) {
         link: '/finance',
       })
     }
+    await logAudit({
+      userId: session.user.id, action: action === 'approve' ? 'PAYMENT_APPROVE_DIRECTOR' : 'PAYMENT_REJECT_DIRECTOR',
+      entity: 'PaymentRequest', entityId: payment.id,
+      summary: `${session.user.name} (Direktur Divisi) ${action === 'approve' ? 'menyetujui' : 'menolak'} pengajuan ${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'})`,
+    })
     return NextResponse.json(updated)
   }
 
@@ -141,6 +152,11 @@ export async function PATCH(req, { params }) {
         link: '/finance',
       })
     }
+    await logAudit({
+      userId: session.user.id, action: action === 'approve' ? 'PAYMENT_APPROVE_FINANCE_DIRECTOR' : 'PAYMENT_REJECT_FINANCE_DIRECTOR',
+      entity: 'PaymentRequest', entityId: payment.id,
+      summary: `${session.user.name} (Direktur Finance) ${action === 'approve' ? 'menyetujui' : 'menolak'} pengajuan ${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'})`,
+    })
     return NextResponse.json(updated)
   }
 
@@ -169,6 +185,10 @@ export async function PATCH(req, { params }) {
       title: 'Pembayaran Telah Dibayarkan',
       message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) telah dibayarkan.`,
       link: '/finance',
+    })
+    await logAudit({
+      userId: session.user.id, action: 'PAYMENT_PAID', entity: 'PaymentRequest', entityId: payment.id,
+      summary: `${session.user.name} menandai pembayaran ${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) sebagai dibayar`,
     })
     return NextResponse.json(updated)
   }

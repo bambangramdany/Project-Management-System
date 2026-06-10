@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canEditProject, canDeleteProject } from '@/lib/rbac'
+import { logAudit } from '@/lib/audit'
 import { NextResponse } from 'next/server'
 
 export async function GET(req, { params }) {
@@ -69,6 +70,34 @@ export async function PATCH(req, { params }) {
         skipDuplicates: true,
       })
     }
+    await logAudit({
+      userId: session.user.id, action: 'PROJECT_MEMBERS_CHANGE', entity: 'Project', entityId: project.id,
+      summary: `${session.user.name} mengubah anggota project ${project.name}`,
+      meta: { memberIds },
+    })
+  }
+
+  // Log notable field changes
+  if (data.status && data.status !== existingProject.status) {
+    await logAudit({
+      userId: session.user.id, action: 'PROJECT_STATUS_CHANGE', entity: 'Project', entityId: project.id,
+      summary: `${session.user.name} mengubah status project ${project.name} dari ${existingProject.status} ke ${data.status}`,
+      meta: { from: existingProject.status, to: data.status },
+    })
+  }
+  if ('projectValue' in data && data.projectValue !== existingProject.projectValue) {
+    await logAudit({
+      userId: session.user.id, action: 'PROJECT_VALUE_CHANGE', entity: 'Project', entityId: project.id,
+      summary: `${session.user.name} mengubah nilai project ${project.name} dari ${existingProject.projectValue ?? '-'} ke ${data.projectValue ?? '-'}`,
+      meta: { from: existingProject.projectValue, to: data.projectValue },
+    })
+  }
+  if ('picId' in data && data.picId !== existingProject.picId) {
+    await logAudit({
+      userId: session.user.id, action: 'PROJECT_PIC_CHANGE', entity: 'Project', entityId: project.id,
+      summary: `${session.user.name} mengubah PIC project ${project.name}`,
+      meta: { from: existingProject.picId, to: data.picId },
+    })
   }
 
   return NextResponse.json(project)
