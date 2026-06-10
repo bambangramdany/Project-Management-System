@@ -109,7 +109,7 @@ function DivisionSection({ title, projects, session, onChanged }) {
           {PIPELINE_STAGES.map((stage, i) => (
             <Link key={stage.key} href={`/projects?status=${stage.key}`} className="group text-center">
               <div className="relative">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-50 border-2 border-orange-200 flex items-center justify-center mx-auto text-lg font-bold text-orange-600 group-hover:bg-orange-100 transition-colors">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-50 border-2 border-orange-200 flex items-center justify-center mx-auto text-lg font-bold text-orange-600 group-hover:bg-orange-100 group-hover:scale-110 group-hover:border-orange-300 transition-all duration-200">
                   {countByStatus[stage.key]}
                 </div>
                 {i < PIPELINE_STAGES.length - 1 && (
@@ -223,7 +223,7 @@ function ProjectRow({ project: p, canEdit, onChanged }) {
 
 function StatCard({ label, value, sub, color }) {
   return (
-    <div className="card p-4">
+    <div className="card p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <p className="text-xs text-gray-500">{label}</p>
       <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
       <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
