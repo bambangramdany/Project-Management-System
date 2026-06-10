@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { href: '/workload', label: 'Workload Tim' },
   { href: '/calendar', label: 'Kalender' },
   { href: '/scores', label: 'Nilai Saya' },
-  { href: '/finance', label: 'Finance', roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE'] },
+  { href: '/finance', label: 'Finance', roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'PRODUCTION'] },
   { href: '/kpi', label: 'KPI', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/team', label: 'Tim' },
 ]

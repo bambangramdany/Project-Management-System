@@ -80,12 +80,19 @@ export async function GET(req) {
       byStatus[p.status] = (byStatus[p.status] || 0) + 1
     }
 
+    // Roles other than PM/Director/Finance are not involved in reporting/invoicing —
+    // their workload ends at EVENT_DAY, so those stages don't count as active for them.
+    const involvedThroughClosing = ['PROJECT_MANAGER', 'DIRECTOR', 'FINANCE'].includes(user.role)
+    const userActiveStatuses = involvedThroughClosing
+      ? ACTIVE_STATUSES
+      : ACTIVE_STATUSES.filter(s => !['REPORTING', 'INVOICING'].includes(s))
+
     return {
       user,
       totalProjects: allProjects.length,
       picCount: picProjects.length,
       memberCount: memberProjects.length,
-      activeCount: allProjects.filter(p => ACTIVE_STATUSES.includes(p.status)).length,
+      activeCount: allProjects.filter(p => userActiveStatuses.includes(p.status)).length,
       byStatus,
       projects: allProjects.map(p => ({
         id: p.id, code: p.code, name: p.name,
@@ -93,7 +100,10 @@ export async function GET(req) {
         startDate: p.startDate, endDate: p.endDate,
         isPic: p.picId === user.id,
       })),
-      tasks: tasks.filter(t => t.assigneeId === user.id).map(t => ({
+      tasks: tasks.filter(t => t.assigneeId === user.id && (
+        involvedThroughClosing ||
+        !['REPORTING', 'INVOICING'].includes(projects.find(p => p.id === t.projectId)?.status)
+      )).map(t => ({
         id: t.id, title: t.title, status: t.status, priority: t.priority, dueDate: t.dueDate,
         project: projectInfo[t.projectId] || null,
         projectId: t.projectId,

@@ -302,6 +302,7 @@ model ProjectBudget {
   projectId String
   category  ExpenseCategory
   amount    Float
+  neededDate DateTime?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 

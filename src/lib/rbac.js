@@ -53,6 +53,26 @@ export function canEditBudget(user, project) {
   if (!user || !project) return false
   if (user.role === 'OWNER' || user.role === 'FINANCE') return true
   if (user.role === 'DIRECTOR' && user.divisi === project.division) return true
+  if (project.picId === user.id) return true
+  if (user.role === 'PRODUCTION') return true
+  return false
+}
+
+// Margin / project-value forecast: visible only to PM (PIC), Finance team, and Direksi/Owner.
+export function canViewMargin(user, project) {
+  if (!user || !project) return false
+  if (user.role === 'OWNER' || user.role === 'FINANCE') return true
+  if (user.role === 'DIRECTOR') return true
+  if (project.picId === user.id) return true
+  return false
+}
+
+// Editing project value (contract value): PM (PIC) and Production roles, plus Finance/Owner.
+export function canEditProjectValue(user, project) {
+  if (!user || !project) return false
+  if (user.role === 'OWNER' || user.role === 'FINANCE') return true
+  if (project.picId === user.id) return true
+  if (user.role === 'PRODUCTION') return true
   return false
 }
 

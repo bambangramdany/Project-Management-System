@@ -8,7 +8,7 @@ import {
   PAYMENT_STATUS_LABEL, PAYMENT_STATUS_COLOR, PAYMENT_TERM_LABEL,
 } from '@/lib/constants'
 
-const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE']
+const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'PRODUCTION']
 
 function formatRupiah(n) {
   if (n === null || n === undefined) return '-'
@@ -26,8 +26,11 @@ export default function FinancePage() {
   const [loading, setLoading] = useState(true)
   const [budgetProjectId, setBudgetProjectId] = useState('')
   const [budgetItems, setBudgetItems] = useState({})
+  const [budgetDates, setBudgetDates] = useState({})
   const [budgetLoading, setBudgetLoading] = useState(false)
   const [savingBudget, setSavingBudget] = useState(false)
+  const [projectValue, setProjectValue] = useState('')
+  const [budgetMeta, setBudgetMeta] = useState({ canViewMargin: false, canEditProjectValue: false })
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -84,25 +87,30 @@ export default function FinancePage() {
   async function loadBudget(projectId) {
     setBudgetProjectId(projectId)
     setBudgetItems({})
+    setBudgetDates({})
+    setProjectValue('')
     if (!projectId) return
     setBudgetLoading(true)
     const res = await fetch(`/api/projects/${projectId}/budget`)
     if (res.ok) {
       const data = await res.json()
-      const map = {}
-      data.forEach(b => { map[b.category] = b.amount })
+      const map = {}, dates = {}
+      ;(data.budgets || []).forEach(b => { map[b.category] = b.amount; dates[b.category] = b.neededDate ? b.neededDate.slice(0, 10) : '' })
       setBudgetItems(map)
+      setBudgetDates(dates)
+      setProjectValue(data.projectValue ?? '')
+      setBudgetMeta({ canViewMargin: !!data.canViewMargin, canEditProjectValue: !!data.canEditProjectValue })
     }
     setBudgetLoading(false)
   }
 
   async function saveBudget() {
     setSavingBudget(true)
-    const items = EXPENSE_CATEGORIES.map(category => ({ category, amount: budgetItems[category] || 0 }))
+    const items = EXPENSE_CATEGORIES.map(category => ({ category, amount: budgetItems[category] || 0, neededDate: budgetDates[category] || null }))
     const res = await fetch(`/api/projects/${budgetProjectId}/budget`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ items, projectValue: budgetMeta.canEditProjectValue ? (projectValue === '' ? null : projectValue) : undefined }),
     })
     setSavingBudget(false)
     if (!res.ok) {
@@ -117,8 +125,8 @@ export default function FinancePage() {
   const canCreate = role === 'OWNER' || role === 'PROJECT_MANAGER'
   const canSeeBudgetEdit = role !== 'PROJECT_MANAGER' || true // PM can view own; edit gated server-side
 
-  const myProjects = role === 'PROJECT_MANAGER'
-    ? projects.filter(p => p.pic?.id === session.user.id || p.picId === session.user.id)
+  const myProjects = (role === 'PROJECT_MANAGER' || role === 'PRODUCTION')
+    ? projects.filter(p => p.pic?.id === session.user.id || p.picId === session.user.id || p.members?.some(m => (m.user?.id || m.userId) === session.user.id))
     : projects
 
   return (
@@ -209,17 +217,34 @@ export default function FinancePage() {
 
           {budgetProjectId && !budgetLoading && (
             <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3 pb-2 border-b border-gray-100">
+                <label className="text-sm font-semibold text-gray-700 flex-1">Nilai Project (Rp)</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="input w-40"
+                  value={projectValue}
+                  onChange={e => setProjectValue(e.target.value)}
+                  disabled={!budgetMeta.canEditProjectValue}
+                  placeholder="0"
+                />
+              </div>
               {EXPENSE_CATEGORIES.map(cat => (
                 <div key={cat} className="flex items-center justify-between gap-3">
                   <label className="text-sm text-gray-600 flex-1">{EXPENSE_CATEGORY_LABEL[cat]}</label>
                   <input
                     type="number"
                     min="0"
-                    className="input w-40"
+                    className="input w-32"
                     value={budgetItems[cat] || ''}
                     onChange={e => setBudgetItems(b => ({ ...b, [cat]: e.target.value }))}
-                    disabled={role === 'PROJECT_MANAGER'}
                     placeholder="0"
+                  />
+                  <input
+                    type="date"
+                    className="input w-36"
+                    value={budgetDates[cat] || ''}
+                    onChange={e => setBudgetDates(d => ({ ...d, [cat]: e.target.value }))}
                   />
                 </div>
               ))}
@@ -229,11 +254,17 @@ export default function FinancePage() {
                   {formatRupiah(EXPENSE_CATEGORIES.reduce((sum, c) => sum + (parseFloat(budgetItems[c]) || 0), 0))}
                 </span>
               </div>
-              {role !== 'PROJECT_MANAGER' && (
-                <button onClick={saveBudget} disabled={savingBudget} className="btn-primary">
-                  {savingBudget ? 'Menyimpan...' : 'Simpan Budget'}
-                </button>
+              {budgetMeta.canViewMargin && (
+                <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-emerald-700">Estimasi Margin</span>
+                  <span className="text-sm font-bold text-emerald-700">
+                    {formatRupiah((parseFloat(projectValue) || 0) - EXPENSE_CATEGORIES.reduce((sum, c) => sum + (parseFloat(budgetItems[c]) || 0), 0))}
+                  </span>
+                </div>
               )}
+              <button onClick={saveBudget} disabled={savingBudget} className="btn-primary">
+                {savingBudget ? 'Menyimpan...' : 'Simpan Budget'}
+              </button>
             </div>
           )}
         </div>
