@@ -16,6 +16,7 @@ export default function NewProjectPage() {
     name: '', clientId: '', category: 'MEETING_CONFERENCE', budgetTier: 'MEDIUM',
     eventComplexity: 'MEDIUM', recommendation: 'MAINTAIN', picId: '', division: 'EVENT',
     briefDate: '', startDate: '', endDate: '', loadInDays: '', status: 'HOLD', pitchStatus: 'PITCH', notes: '',
+    applySopTemplate: true,
   })
   const [multiDay, setMultiDay] = useState(false)
 
@@ -92,6 +93,10 @@ export default function NewProjectPage() {
               <select className="select" value={form.category} onChange={e => set('category', e.target.value)} required>
                 {Object.entries(CATEGORY_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
+              <label className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                <input type="checkbox" checked={form.applySopTemplate} onChange={e => set('applySopTemplate', e.target.checked)} />
+                Terapkan SOP checklist standar untuk kategori ini
+              </label>
             </div>
             <div>
               <label className="label">Budget Tier</label>

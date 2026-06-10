@@ -44,6 +44,54 @@ export const CATEGORY_LABEL = {
   SPONSORSHIP: 'Sponsorship',
 }
 
+// SOP checklist templates — auto-generated as tasks when a project of the
+// matching category is created, so no standard step gets skipped.
+// `priority` defaults to MEDIUM if omitted.
+const GENERAL_SOP_TASKS = [
+  { title: 'Brief & kebutuhan klien dikonfirmasi', priority: 'HIGH' },
+  { title: 'Susun proposal & RAB awal', priority: 'HIGH' },
+  { title: 'Survey lokasi / venue', priority: 'MEDIUM' },
+  { title: 'Konfirmasi vendor utama', priority: 'MEDIUM' },
+  { title: 'Susun rundown acara', priority: 'MEDIUM' },
+  { title: 'Briefing tim & vendor H-1', priority: 'HIGH' },
+  { title: 'Pelaksanaan event', priority: 'HIGH' },
+  { title: 'Dokumentasi & laporan akhir', priority: 'MEDIUM' },
+  { title: 'Invoice & penagihan ke klien', priority: 'MEDIUM' },
+]
+
+export const SOP_TEMPLATES = {
+  MEETING_CONFERENCE: [
+    ...GENERAL_SOP_TASKS,
+    { title: 'Setup ruang meeting & perlengkapan AV', priority: 'MEDIUM' },
+    { title: 'Konfirmasi daftar peserta & undangan', priority: 'MEDIUM' },
+  ],
+  ACTIVATION: [
+    ...GENERAL_SOP_TASKS,
+    { title: 'Desain & produksi materi aktivasi (booth/branding)', priority: 'HIGH' },
+    { title: 'Rekrutmen & briefing SPG/SPB/talent', priority: 'MEDIUM' },
+  ],
+  LAUNCHING: [
+    ...GENERAL_SOP_TASKS,
+    { title: 'Konsep kreatif & desain panggung disetujui klien', priority: 'HIGH' },
+    { title: 'Koordinasi media & undangan press', priority: 'MEDIUM' },
+  ],
+  EXHIBITION: [
+    ...GENERAL_SOP_TASKS,
+    { title: 'Desain & produksi booth pameran', priority: 'HIGH' },
+    { title: 'Koordinasi dengan penyelenggara pameran', priority: 'MEDIUM' },
+  ],
+  INCENTIVE_GATHERING: [
+    ...GENERAL_SOP_TASKS,
+    { title: 'Booking akomodasi & transportasi peserta', priority: 'HIGH' },
+    { title: 'Susun itinerary acara/perjalanan', priority: 'MEDIUM' },
+  ],
+  SPONSORSHIP: [
+    ...GENERAL_SOP_TASKS,
+    { title: 'Finalisasi perjanjian sponsorship & deliverables', priority: 'HIGH' },
+    { title: 'Laporan exposure/deliverables ke sponsor', priority: 'MEDIUM' },
+  ],
+}
+
 export const BUDGET_TIER_LABEL = {
   LOW: 'Low',
   MEDIUM: 'Medium',
