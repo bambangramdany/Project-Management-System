@@ -20,6 +20,8 @@ export default function ProjectDetailPage() {
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [taskForm, setTaskForm] = useState({ title: '', assigneeId: '', priority: 'MEDIUM', openEnded: false, dueDate: '' })
   const [saving, setSaving] = useState(false)
+  const [activity, setActivity] = useState([])
+  const [activityLoaded, setActivityLoaded] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -200,15 +202,23 @@ export default function ProjectDetailPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-gray-200">
-          {['tasks', 'team', 'info', ...(canScoreProject(session?.user, project) ? ['bonus'] : [])].map(tab => (
+          {['tasks', 'team', 'activity', 'info', ...(canScoreProject(session?.user, project) ? ['bonus'] : [])].map(tab => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => {
+                setActiveTab(tab)
+                if (tab === 'activity' && !activityLoaded) {
+                  fetch(`/api/projects/${id}/activity`).then(r => r.ok ? r.json() : []).then(data => {
+                    setActivity(Array.isArray(data) ? data : [])
+                    setActivityLoaded(true)
+                  })
+                }
+              }}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-all ${
                 activeTab === tab ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
               }`}
             >
-              {tab === 'tasks' ? `Tasks (${totalTasks})` : tab === 'team' ? `Tim (${(project.members?.length || 0) + (project.pic ? 1 : 0)})` : tab === 'bonus' ? 'Penilaian Bonus' : 'Info'}
+              {tab === 'tasks' ? `Tasks (${totalTasks})` : tab === 'team' ? `Tim (${(project.members?.length || 0) + (project.pic ? 1 : 0)})` : tab === 'bonus' ? 'Penilaian Bonus' : tab === 'activity' ? 'Aktivitas' : 'Info'}
             </button>
           ))}
         </div>
@@ -362,6 +372,24 @@ export default function ProjectDetailPage() {
                 </select>
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB: Activity feed */}
+        {activeTab === 'activity' && (
+          <div className="card divide-y divide-gray-50">
+            {!activityLoaded && <p className="text-sm text-gray-400 text-center py-8">Memuat...</p>}
+            {activityLoaded && activity.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-8">Belum ada aktivitas tercatat</p>
+            )}
+            {activity.map(log => (
+              <div key={log.id} className="px-4 py-3">
+                <p className="text-sm text-gray-800">{log.summary}</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {new Date(log.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                </p>
+              </div>
+            ))}
           </div>
         )}
 
