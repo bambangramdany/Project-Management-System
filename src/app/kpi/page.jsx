@@ -96,7 +96,7 @@ export default function KpiSummaryPage() {
             const kpiDefs = KPI_BY_ROLE[user.role] || []
             const isOpen = expanded === user.id
             return (
-              <div key={user.id} className="card p-4">
+              <div key={user.id} className="card p-4 hover:shadow-md transition-all duration-200">
                 <button onClick={() => setExpanded(isOpen ? null : user.id)} className="w-full flex items-center justify-between gap-3 text-left">
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{user.name}</p>

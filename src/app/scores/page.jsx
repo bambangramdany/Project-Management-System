@@ -88,7 +88,7 @@ export default function ScoresPage() {
             <>
               <div className="grid sm:grid-cols-3 gap-3 mb-2">
                 {PROJECT_SCORE_CRITERIA.map(c => (
-                  <div key={c.key} className="bg-brand-50 rounded-lg p-3">
+                  <div key={c.key} className="bg-brand-50 rounded-lg p-3 hover:shadow-sm transition-all duration-200">
                     <p className="text-xs text-gray-500 mb-1">{c.label}</p>
                     <p className="text-lg font-bold text-brand-700">{fmt(data.mine.byCriteria[c.key])}</p>
                   </div>
@@ -183,7 +183,7 @@ export default function ScoresPage() {
                 {directors.map(d => <option key={d.id} value={d.id}>{d.name} — {d.jobTitle || d.role}</option>)}
               </select>
               <textarea className="input" rows={3} placeholder="Tulis catatan Anda..." value={noteForm.message} onChange={e => setNoteForm(f => ({ ...f, message: e.target.value }))} required />
-              <button type="submit" className="btn-primary">Kirim Catatan</button>
+              <button type="submit" className="btn-primary transition-all active:scale-95">Kirim Catatan</button>
               {noteSent && <span className="ml-2 text-xs text-green-600">Catatan terkirim.</span>}
             </form>
           </div>

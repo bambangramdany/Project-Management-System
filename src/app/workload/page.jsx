@@ -108,7 +108,7 @@ export default function WorkloadPage() {
                     key={w.user.id}
                     onClick={() => setSelectedUser(selectedUser?.user.id === w.user.id ? null : w)}
                     className={clsx(
-                      'rounded-xl p-3 text-left transition-all border-2',
+                      'rounded-xl p-3 text-left transition-all duration-200 border-2 hover:shadow-md hover:-translate-y-0.5',
                       selectedUser?.user.id === w.user.id ? 'border-orange-400 shadow-md' : 'border-transparent',
                       LOAD_COLOR(w.activeCount)
                     )}
@@ -378,7 +378,7 @@ function UserDetail({ data, session, teamList = [], canReassign = false }) {
         ) : (
           <div className="space-y-2">
             {tasks.map(t => (
-              <div key={t.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-100">
+              <div key={t.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-100 hover:shadow-sm hover:border-gray-200 transition-all duration-200">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     {t.project && <span className="text-xs text-gray-400 font-mono">{t.project.code}</span>}
@@ -421,7 +421,7 @@ function UserDetail({ data, session, teamList = [], canReassign = false }) {
 
       <div className="space-y-2">
         {displayed.map(p => (
-          <Link key={p.id} href={`/projects/${p.id}`} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+          <Link key={p.id} href={`/projects/${p.id}`} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 hover:shadow-sm transition-all duration-200">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400 font-mono">{p.code}</span>

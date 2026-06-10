@@ -82,7 +82,7 @@ function DivisiSection({ title, members }) {
       <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">{title}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {members.map(u => (
-          <div key={u.id} className="card p-4 flex items-center gap-3">
+          <div key={u.id} className="card p-4 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white font-bold shrink-0">
               {u.name[0]}
             </div>

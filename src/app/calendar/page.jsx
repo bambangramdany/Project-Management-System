@@ -114,9 +114,9 @@ export default function CalendarPage() {
             <p className="text-sm text-gray-500">Visualisasi jadwal & tren project per bulan</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={goPrev} className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm hover:bg-gray-50">‹</button>
-            <button onClick={goToday} className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm hover:bg-gray-50">Hari ini</button>
-            <button onClick={goNext} className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm hover:bg-gray-50">›</button>
+            <button onClick={goPrev} className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm hover:bg-gray-50 transition-all active:scale-95">‹</button>
+            <button onClick={goToday} className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm hover:bg-gray-50 transition-all active:scale-95">Hari ini</button>
+            <button onClick={goNext} className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm hover:bg-gray-50 transition-all active:scale-95">›</button>
             <span className="text-sm font-semibold text-ink-800 ml-2">{MONTH_NAMES[month]} {year}</span>
           </div>
         </div>
@@ -161,10 +161,10 @@ export default function CalendarPage() {
                       key={i}
                       disabled={!date}
                       onClick={() => setSelectedDay(date)}
-                      className={`min-h-[72px] rounded-lg border p-1 text-left align-top flex flex-col gap-0.5 transition-colors ${
+                      className={`min-h-[72px] rounded-lg border p-1 text-left align-top flex flex-col gap-0.5 transition-all duration-200 ${
                         !date ? 'border-transparent' :
-                        isSelected ? 'border-brand-500 bg-brand-50' :
-                        isToday ? 'border-brand-300 bg-white' : 'border-gray-100 bg-white hover:bg-gray-50'
+                        isSelected ? 'border-brand-500 bg-brand-50 shadow-sm' :
+                        isToday ? 'border-brand-300 bg-white' : 'border-gray-100 bg-white hover:bg-gray-50 hover:shadow-sm'
                       }`}
                     >
                       {date && (
@@ -206,7 +206,7 @@ export default function CalendarPage() {
                   <div
                     key={p.id}
                     onClick={() => router.push(`/projects/${p.id}`)}
-                    className="p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer"
+                    className="p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50 hover:shadow-sm hover:-translate-y-0.5 cursor-pointer transition-all duration-200"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-medium text-ink-800">{p.name}</p>
