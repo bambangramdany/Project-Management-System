@@ -27,6 +27,7 @@ model User {
   directorApprovals PaymentRequest[] @relation("PaymentDirector")
   financeDirectorApprovals PaymentRequest[] @relation("PaymentFinanceDirector")
   financeProcessed  PaymentRequest[] @relation("PaymentFinanceBy")
+  budgetLockedProjects Project[]    @relation("BudgetLockedBy")
   notifications  Notification[]
   kpiReceived    KpiAssessment[] @relation("KpiUser")
   kpiGiven       KpiAssessment[] @relation("KpiEvaluator")
@@ -160,12 +161,15 @@ model Project {
   wonLossReason   String?
   vendorWinner    String?
   projectValue    Float?
+  budgetLockedAt  DateTime?
+  budgetLockedById String?
   notes           String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
   client    Client?         @relation(fields: [clientId], references: [id])
   pic       User?           @relation("PICRelation", fields: [picId], references: [id])
+  budgetLockedBy User?       @relation("BudgetLockedBy", fields: [budgetLockedById], references: [id])
   members   ProjectMember[]
   tasks     Task[]
   budgets   ProjectBudget[]

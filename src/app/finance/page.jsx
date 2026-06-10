@@ -138,6 +138,9 @@ export default function FinancePage() {
         canEditProjectValue: !!data.canEditProjectValue,
         canEditBudget: !!data.canEditBudget,
         canNote: !!data.canNote,
+        canLockBudget: !!data.canLockBudget,
+        budgetLockedAt: data.budgetLockedAt || null,
+        budgetLockedBy: data.budgetLockedBy || null,
       })
     }
     setBudgetLoading(false)
@@ -172,6 +175,23 @@ export default function FinancePage() {
     } else {
       const err = await res.json()
       alert(err.error || 'Gagal menyimpan')
+    }
+  }
+
+  async function toggleLockBudget(lock) {
+    if (lock && !confirm('Kunci forecast budget ini? Setelah dikunci, hanya nilai aktual & catatan yang bisa diubah sampai dibuka kembali.')) return
+    setSavingBudget(true)
+    const res = await fetch(`/api/projects/${budgetProjectId}/budget`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: budgetItems, lockAction: lock ? 'lock' : 'unlock' }),
+    })
+    setSavingBudget(false)
+    if (res.ok) {
+      await loadBudget(budgetProjectId)
+    } else {
+      const err = await res.json()
+      alert(err.error || 'Gagal')
     }
   }
 
@@ -366,6 +386,24 @@ export default function FinancePage() {
 
           {budgetProjectId && !budgetLoading && (
             <div className="space-y-2">
+              {budgetMeta.budgetLockedAt ? (
+                <div className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+                  <span>
+                    🔒 Forecast dikunci oleh <strong>{budgetMeta.budgetLockedBy?.name || '-'}</strong> pada{' '}
+                    {new Date(budgetMeta.budgetLockedAt).toLocaleDateString('id-ID')}. Hanya nilai aktual & catatan yang bisa diubah.
+                  </span>
+                  {budgetMeta.canLockBudget && (
+                    <button onClick={() => toggleLockBudget(false)} className="btn-secondary text-xs shrink-0">Buka Kunci</button>
+                  )}
+                </div>
+              ) : (
+                budgetMeta.canLockBudget && budgetItems.length > 0 && (
+                  <div className="flex items-center justify-between gap-3 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-gray-600">
+                    <span>Forecast belum dikunci — masih bisa diubah bebas.</span>
+                    <button onClick={() => toggleLockBudget(true)} className="btn-secondary text-xs shrink-0">🔒 Kunci Forecast</button>
+                  </div>
+                )
+              )}
               <div className="flex items-center justify-between gap-3 pb-2 border-b border-gray-100">
                 <label className="text-sm font-semibold text-gray-700 flex-1">Nilai Project (Rp)</label>
                 <input
@@ -393,7 +431,7 @@ export default function FinancePage() {
                     value={item.label}
                     onChange={e => updateBudgetRow(idx, { label: e.target.value })}
                     placeholder="cth. Sewa Venue"
-                    disabled={!budgetMeta.canEditBudget}
+                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt}
                   />
                   <input
                     type="number" min="0"
@@ -401,7 +439,7 @@ export default function FinancePage() {
                     value={item.quotedAmount || ''}
                     onChange={e => updateBudgetRow(idx, { quotedAmount: e.target.value })}
                     placeholder="0"
-                    disabled={!budgetMeta.canEditBudget}
+                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt}
                   />
                   <input
                     type="number" min="0"
@@ -416,7 +454,7 @@ export default function FinancePage() {
                     className="input col-span-2"
                     value={item.neededDate || ''}
                     onChange={e => updateBudgetRow(idx, { neededDate: e.target.value })}
-                    disabled={!budgetMeta.canEditBudget}
+                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt}
                   />
                   <input
                     className="input col-span-2"
@@ -425,7 +463,7 @@ export default function FinancePage() {
                     placeholder="cth. selisih melebihi forecast"
                     disabled={!budgetMeta.canNote}
                   />
-                  {budgetMeta.canEditBudget && (
+                  {budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && (
                     <button onClick={() => removeBudgetRow(idx)} className="col-span-1 text-red-500 text-xs hover:underline">Hapus</button>
                   )}
                   {item.id && (
@@ -440,7 +478,7 @@ export default function FinancePage() {
                   )}
                 </div>
               ))}
-              {budgetMeta.canEditBudget && (
+              {budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && (
                 <button onClick={addBudgetRow} className="btn-secondary text-xs">+ Tambah Komponen</button>
               )}
 

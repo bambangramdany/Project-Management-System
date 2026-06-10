@@ -1,14 +1,17 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { canViewBudget, canEditBudget, canViewMargin, canEditProjectValue } from '@/lib/rbac'
+import { canViewBudget, canEditBudget, canViewMargin, canEditProjectValue, canLockBudget } from '@/lib/rbac'
 import { NextResponse } from 'next/server'
 
 export async function GET(req, { params }) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const project = await prisma.project.findUnique({ where: { id: params.id } })
+  const project = await prisma.project.findUnique({
+    where: { id: params.id },
+    include: { budgetLockedBy: { select: { id: true, name: true } } },
+  })
   if (!project) return NextResponse.json({ error: 'Tidak ditemukan' }, { status: 404 })
 
   if (!canViewBudget(session.user, project)) {
@@ -43,6 +46,9 @@ export async function GET(req, { params }) {
     canEditProjectValue: canEditProjectValue(session.user, project),
     canEditBudget: canEditBudget(session.user, project),
     canNote,
+    canLockBudget: canLockBudget(session.user, project),
+    budgetLockedAt: project.budgetLockedAt,
+    budgetLockedBy: project.budgetLockedBy,
   })
 }
 
@@ -59,9 +65,24 @@ export async function PUT(req, { params }) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = await req.json() // { items: [{ id?, label, quotedAmount, actualAmount, neededDate, note }], projectValue }
+  const body = await req.json() // { items: [{ id?, label, quotedAmount, actualAmount, neededDate, note }], projectValue, lockAction }
 
-  if (canEdit) {
+  // Lock/unlock the baseline forecast
+  if (body.lockAction === 'lock' || body.lockAction === 'unlock') {
+    if (!canLockBudget(session.user, project)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    await prisma.project.update({
+      where: { id: params.id },
+      data: body.lockAction === 'lock'
+        ? { budgetLockedAt: new Date(), budgetLockedById: session.user.id }
+        : { budgetLockedAt: null, budgetLockedById: null },
+    })
+  }
+
+  const isLocked = !!project.budgetLockedAt && body.lockAction !== 'unlock'
+
+  if (canEdit && !isLocked) {
     const items = Array.isArray(body.items) ? body.items : []
 
     // Replace-all: delete removed rows, upsert the rest
@@ -93,6 +114,15 @@ export async function PUT(req, { params }) {
         data: { projectValue: body.projectValue === '' || body.projectValue === null ? null : parseFloat(body.projectValue) || 0 },
       })
     }
+  } else if (canEdit && isLocked && Array.isArray(body.items)) {
+    // Forecast is locked: only actualAmount and note can still be updated on existing rows
+    await Promise.all(body.items.filter(i => i.id).map(item => {
+      const data = {
+        actualAmount: item.actualAmount === '' || item.actualAmount === null || item.actualAmount === undefined ? null : (parseFloat(item.actualAmount) || 0),
+      }
+      if (canNote) data.note = item.note || null
+      return prisma.projectBudgetItem.update({ where: { id: item.id }, data })
+    }))
   } else if (canNote && Array.isArray(body.items)) {
     // Finance/Director-only: update notes without touching amounts
     await Promise.all(body.items.filter(i => i.id).map(item =>

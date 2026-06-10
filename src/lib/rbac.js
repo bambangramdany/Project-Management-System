@@ -83,6 +83,15 @@ export function canEditProjectValue(user, project) {
   return false
 }
 
+// Lock/unlock the baseline forecast (quotedAmount/label/rows) once quotation is final.
+// Once locked, only actual amounts and notes can still be edited (until unlocked).
+export function canLockBudget(user, project) {
+  if (!user || !project) return false
+  if (user.role === 'OWNER' || user.role === 'FINANCE') return true
+  if (user.role === 'DIRECTOR' && user.divisi === project.division) return true
+  return false
+}
+
 // ── KPI RBAC ─────────────────────────────────────────────────────────────
 
 // Wulan has cross-team scoring privilege (can score other PMs and any team member)
