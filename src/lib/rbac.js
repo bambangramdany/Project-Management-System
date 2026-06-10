@@ -55,3 +55,20 @@ export function canEditBudget(user, project) {
   if (user.role === 'DIRECTOR' && user.divisi === project.division) return true
   return false
 }
+
+// ── KPI RBAC ─────────────────────────────────────────────────────────────
+
+// Roles that may act as evaluator (superior / task giver)
+export function canScoreKpi(evaluator, target) {
+  if (!evaluator || !target) return false
+  if (evaluator.id === target.id) return false
+  if (evaluator.role === 'OWNER') return true
+  if (evaluator.role === 'DIRECTOR') return evaluator.divisi === target.divisi
+  if (['PROJECT_MANAGER', 'CREATIVE_LEAD', 'FINANCE'].includes(evaluator.role)) return true
+  return false
+}
+
+// Roles that can view the KPI summary (HR / management)
+export function canViewKpiSummary(user) {
+  return ['OWNER', 'DIRECTOR', 'FINANCE'].includes(user?.role)
+}

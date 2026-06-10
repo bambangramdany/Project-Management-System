@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notifyUser } from '@/lib/notify'
 import { NextResponse } from 'next/server'
 
 export async function POST(req) {
@@ -35,6 +36,18 @@ export async function POST(req) {
     await prisma.taskDependency.createMany({
       data: body.dependsOn.map(reqId => ({ dependentTaskId: task.id, requiredTaskId: reqId })),
       skipDuplicates: true,
+    })
+  }
+
+  // Notify assignee of new task
+  if (task.assigneeId && task.assigneeId !== session.user.id) {
+    const project = await prisma.project.findUnique({ where: { id: body.projectId }, select: { code: true, name: true } })
+    await notifyUser({
+      userId: task.assigneeId,
+      type: 'TASK_ASSIGNED',
+      title: 'Task baru ditugaskan untukmu',
+      message: `${task.title} — ${project?.code} ${project?.name}`,
+      link: `/projects/${body.projectId}`,
     })
   }
 

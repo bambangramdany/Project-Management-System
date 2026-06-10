@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar'
 import { StatusBadge } from '@/components/StatusBadge'
 import Link from 'next/link'
 import clsx from 'clsx'
+import { KPI_BY_ROLE, KPI_SCORE_LABEL } from '@/lib/constants'
 
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
 
@@ -15,58 +16,6 @@ const LOAD_COLOR = (count) => {
   if (count <= 4) return 'bg-yellow-100 text-yellow-700'
   if (count <= 6) return 'bg-orange-100 text-orange-700'
   return 'bg-red-100 text-red-700'
-}
-
-// General KPI per role — placeholder for further discussion with each director
-const KPI_BY_ROLE = {
-  PROJECT_MANAGER: [
-    'Win rate pitching ≥ 60%',
-    'Project selesai sesuai timeline & budget',
-    'Kepuasan klien (feedback / repeat order)',
-    'Laporan progress & invoicing tepat waktu',
-  ],
-  PROJECT_OFFICER: [
-    'Eksekusi lapangan sesuai brief & SOP',
-    'Ketepatan waktu persiapan & event day',
-    'Dokumentasi & laporan event lengkap',
-  ],
-  PRODUCTION: [
-    'Kelengkapan & kesiapan alat/produksi',
-    'Zero technical issue saat event/shooting',
-    'Efisiensi penggunaan budget produksi',
-  ],
-  CREATIVE_LEAD: [
-    'Konsep kreatif disetujui klien di percobaan pertama',
-    'Ketepatan waktu deliverable tim creative',
-    'Konsistensi kualitas & branding',
-  ],
-  GRAPHIC_DESIGNER: [
-    'Ketepatan waktu desain sesuai deadline',
-    'Revisi minimal (≤2x per deliverable)',
-    'Kesesuaian dengan brand guideline',
-  ],
-  STAGE_DESIGNER: [
-    'Desain panggung/3D sesuai brief & budget',
-    'Ketepatan waktu delivery file produksi',
-  ],
-  CONTENT_CREATOR: [
-    'Output konten sesuai kalender konten',
-    'Engagement / kualitas konten',
-    'Ketepatan waktu editing & publish',
-  ],
-  FINANCE: [
-    'Proses pembayaran tepat waktu (sesuai SLA)',
-    'Akurasi laporan budget vs realisasi',
-    'Kepatuhan dokumen & approval',
-  ],
-  MEMBER: [
-    'Penyelesaian task sesuai deadline',
-    'Kelengkapan administrasi & dokumentasi',
-  ],
-  DIRECTOR: [
-    'Approval pengajuan tepat waktu',
-    'Kesehatan pipeline & utilisasi tim divisi',
-  ],
 }
 
 const LOAD_LABEL = (count) => {
@@ -210,10 +159,113 @@ export default function WorkloadPage() {
 
         {/* Detail panel — selected user or self */}
         {(selectedUser || (!isManager && workload.length > 0)) && (
-          <UserDetail data={selectedUser || workload[0]} />
+          <UserDetail data={selectedUser || workload[0]} session={session} />
         )}
 
       </main>
+    </div>
+  )
+}
+
+function currentPeriod() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function canScoreKpiClient(evaluator, target) {
+  if (!evaluator || !target) return false
+  if (evaluator.id === target.id) return false
+  if (evaluator.role === 'OWNER') return true
+  if (evaluator.role === 'DIRECTOR') return evaluator.divisi === target.divisi
+  return ['PROJECT_MANAGER', 'CREATIVE_LEAD', 'FINANCE'].includes(evaluator.role)
+}
+
+function KpiPanel({ user, session }) {
+  const items = KPI_BY_ROLE[user.role] || []
+  const [period] = useState(currentPeriod())
+  const [scores, setScores] = useState({})
+  const [comments, setComments] = useState({})
+  const [existing, setExisting] = useState([])
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  const canScore = canScoreKpiClient(session?.user, user)
+
+  useEffect(() => {
+    fetch(`/api/kpi?userId=${user.id}&period=${period}`).then(r => r.ok ? r.json() : []).then(data => {
+      setExisting(Array.isArray(data) ? data : [])
+      const mine = (Array.isArray(data) ? data : []).filter(a => a.evaluatorId === session?.user.id)
+      const sc = {}, cm = {}
+      mine.forEach(a => { sc[a.kpiKey] = a.score; cm[a.kpiKey] = a.comment || '' })
+      setScores(sc); setComments(cm)
+    })
+  }, [user.id, period])
+
+  async function save() {
+    setSaving(true); setSaved(false)
+    const payload = items.map(it => ({ kpiKey: it.key, score: scores[it.key] || 3, comment: comments[it.key] || '' }))
+    const res = await fetch('/api/kpi', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id, period, items: payload }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      setSaved(true)
+      fetch(`/api/kpi?userId=${user.id}&period=${period}`).then(r => r.ok ? r.json() : []).then(data => setExisting(Array.isArray(data) ? data : []))
+    }
+  }
+
+  // Average across all evaluators per kpiKey
+  const avgByKey = {}
+  items.forEach(it => {
+    const vals = existing.filter(a => a.kpiKey === it.key)
+    avgByKey[it.key] = vals.length ? (vals.reduce((s, a) => s + a.score, 0) / vals.length) : null
+  })
+
+  return (
+    <div className="mb-4 p-3 rounded-lg bg-brand-50 border border-brand-100">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-semibold text-brand-700 uppercase tracking-wide">KPI — {user.jobTitle || user.role} · {period}</p>
+        {!canScore && <span className="text-xs text-gray-400">Hanya superior/pemberi task yang bisa menilai</span>}
+      </div>
+      <div className="space-y-2">
+        {items.map(it => (
+          <div key={it.key} className="bg-white rounded-lg p-2.5 border border-brand-100">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-xs text-gray-700 flex-1">{it.label}</p>
+              {avgByKey[it.key] != null && (
+                <span className="text-xs font-semibold text-brand-700 shrink-0">Rata-rata: {avgByKey[it.key].toFixed(1)}</span>
+              )}
+            </div>
+            {canScore && (
+              <div className="flex items-center gap-2 mt-1.5">
+                <select
+                  className="select w-auto text-xs py-1"
+                  value={scores[it.key] || 3}
+                  onChange={e => setScores(s => ({ ...s, [it.key]: parseInt(e.target.value) }))}
+                >
+                  {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} — {KPI_SCORE_LABEL[n]}</option>)}
+                </select>
+                <input
+                  className="input text-xs py-1 flex-1"
+                  placeholder="Catatan (opsional)"
+                  value={comments[it.key] || ''}
+                  onChange={e => setComments(c => ({ ...c, [it.key]: e.target.value }))}
+                />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      {canScore && (
+        <div className="flex items-center gap-2 mt-2">
+          <button onClick={save} disabled={saving} className="btn-primary text-xs px-3 py-1.5">
+            {saving ? 'Menyimpan...' : 'Simpan Penilaian'}
+          </button>
+          {saved && <span className="text-xs text-green-600">Tersimpan ✓</span>}
+        </div>
+      )}
     </div>
   )
 }
@@ -257,7 +309,7 @@ function TeamColumn({ title, members, onSelect, selectedId }) {
   )
 }
 
-function UserDetail({ data }) {
+function UserDetail({ data, session }) {
   const [showAll, setShowAll] = useState(false)
   const activeProjects = data.projects.filter(p => ['HOLD','PITCHING','WAITING_PITCH_RESULT','PREPARATION','EVENT_DAY','REPORTING','INVOICING'].includes(p.status))
   const closedProjects = data.projects.filter(p => ['DONE','FAILED','CANCELED'].includes(p.status))
@@ -290,12 +342,7 @@ function UserDetail({ data }) {
       </div>
 
       {KPI_BY_ROLE[data.user.role] && (
-        <div className="mb-4 p-3 rounded-lg bg-orange-50 border border-orange-100">
-          <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide mb-1.5">KPI Umum — {data.user.jobTitle || data.user.role}</p>
-          <ul className="text-xs text-orange-800 space-y-0.5 list-disc pl-4">
-            {KPI_BY_ROLE[data.user.role].map((k, i) => <li key={i}>{k}</li>)}
-          </ul>
-        </div>
+        <KpiPanel user={data.user} session={session} />
       )}
 
       <div className="flex items-center justify-between mb-3">

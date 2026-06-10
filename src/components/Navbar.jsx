@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
 import { useState } from 'react'
+import NotificationBell from './NotificationBell'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -11,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/workload', label: 'Workload Tim' },
   { href: '/team', label: 'Tim' },
   { href: '/finance', label: 'Finance', roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE'] },
+  { href: '/kpi', label: 'KPI', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
 ]
 
 export default function Navbar() {
@@ -48,6 +50,7 @@ export default function Navbar() {
 
           {/* User + mobile menu */}
           <div className="flex items-center gap-3">
+            {session && <NotificationBell />}
             {session && (
               <div className="hidden sm:flex items-center gap-2">
                 <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 text-xs font-bold">

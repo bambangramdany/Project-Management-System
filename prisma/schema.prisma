@@ -26,6 +26,39 @@ model User {
   budgetRequests PaymentRequest[] @relation("PaymentRequestedBy")
   directorApprovals PaymentRequest[] @relation("PaymentDirector")
   financeProcessed  PaymentRequest[] @relation("PaymentFinanceBy")
+  notifications  Notification[]
+  kpiReceived    KpiAssessment[] @relation("KpiUser")
+  kpiGiven       KpiAssessment[] @relation("KpiEvaluator")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String?
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model KpiAssessment {
+  id          String   @id @default(cuid())
+  userId      String
+  evaluatorId String
+  period      String
+  kpiKey      String
+  score       Int
+  comment     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User @relation("KpiUser", fields: [userId], references: [id], onDelete: Cascade)
+  evaluator User @relation("KpiEvaluator", fields: [evaluatorId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, evaluatorId, period, kpiKey])
 }
 
 enum UserRole {

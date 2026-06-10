@@ -92,6 +92,62 @@ export const PAYMENT_STATUS_LABEL = {
   PAID: 'Sudah Dibayar',
 }
 
+// ── KPI ──────────────────────────────────────────────────────────────────
+
+// General KPI per role — placeholder for further discussion with each director
+export const KPI_BY_ROLE = {
+  PROJECT_MANAGER: [
+    { key: 'win_rate', label: 'Win rate pitching ≥ 60%' },
+    { key: 'on_time_budget', label: 'Project selesai sesuai timeline & budget' },
+    { key: 'client_satisfaction', label: 'Kepuasan klien (feedback / repeat order)' },
+    { key: 'reporting', label: 'Laporan progress & invoicing tepat waktu' },
+  ],
+  PROJECT_OFFICER: [
+    { key: 'execution_sop', label: 'Eksekusi lapangan sesuai brief & SOP' },
+    { key: 'on_time_event', label: 'Ketepatan waktu persiapan & event day' },
+    { key: 'documentation', label: 'Dokumentasi & laporan event lengkap' },
+  ],
+  PRODUCTION: [
+    { key: 'equipment_ready', label: 'Kelengkapan & kesiapan alat/produksi' },
+    { key: 'zero_issue', label: 'Zero technical issue saat event/shooting' },
+    { key: 'budget_efficiency', label: 'Efisiensi penggunaan budget produksi' },
+  ],
+  CREATIVE_LEAD: [
+    { key: 'concept_approved', label: 'Konsep kreatif disetujui klien di percobaan pertama' },
+    { key: 'on_time_deliverable', label: 'Ketepatan waktu deliverable tim creative' },
+    { key: 'quality_consistency', label: 'Konsistensi kualitas & branding' },
+  ],
+  GRAPHIC_DESIGNER: [
+    { key: 'on_time_design', label: 'Ketepatan waktu desain sesuai deadline' },
+    { key: 'minimal_revision', label: 'Revisi minimal (≤2x per deliverable)' },
+    { key: 'brand_guideline', label: 'Kesesuaian dengan brand guideline' },
+  ],
+  STAGE_DESIGNER: [
+    { key: 'design_brief_budget', label: 'Desain panggung/3D sesuai brief & budget' },
+    { key: 'on_time_file', label: 'Ketepatan waktu delivery file produksi' },
+  ],
+  CONTENT_CREATOR: [
+    { key: 'content_calendar', label: 'Output konten sesuai kalender konten' },
+    { key: 'engagement', label: 'Engagement / kualitas konten' },
+    { key: 'on_time_publish', label: 'Ketepatan waktu editing & publish' },
+  ],
+  FINANCE: [
+    { key: 'payment_sla', label: 'Proses pembayaran tepat waktu (sesuai SLA)' },
+    { key: 'budget_accuracy', label: 'Akurasi laporan budget vs realisasi' },
+    { key: 'compliance', label: 'Kepatuhan dokumen & approval' },
+  ],
+  MEMBER: [
+    { key: 'task_on_time', label: 'Penyelesaian task sesuai deadline' },
+    { key: 'admin_complete', label: 'Kelengkapan administrasi & dokumentasi' },
+  ],
+  DIRECTOR: [
+    { key: 'approval_speed', label: 'Approval pengajuan tepat waktu' },
+    { key: 'team_health', label: 'Kesehatan pipeline & utilisasi tim divisi' },
+  ],
+}
+
+export const KPI_SCORE_LABEL = { 1: 'Kurang', 2: 'Cukup', 3: 'Baik', 4: 'Sangat Baik', 5: 'Istimewa' }
+
 export const PAYMENT_STATUS_COLOR = {
   PENDING_DIRECTOR: 'bg-yellow-100 text-yellow-700',
   APPROVED_BY_DIRECTOR: 'bg-blue-100 text-blue-700',

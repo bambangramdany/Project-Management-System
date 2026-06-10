@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notifyUser } from '@/lib/notify'
 import { NextResponse } from 'next/server'
 
 export async function PATCH(req, { params }) {
@@ -9,6 +10,8 @@ export async function PATCH(req, { params }) {
 
   const body = await req.json()
   const { status } = body
+
+  const existing = await prisma.task.findUnique({ where: { id: params.id }, select: { assigneeId: true, projectId: true, title: true } })
 
   // Enforce dependency lock: cannot complete task if required tasks are not done
   if (status === 'DONE') {
@@ -38,6 +41,18 @@ export async function PATCH(req, { params }) {
     },
     include: { assignee: { select: { id: true, name: true } } },
   })
+
+  // Notify newly assigned person
+  if (body.assigneeId !== undefined && body.assigneeId && body.assigneeId !== existing?.assigneeId && body.assigneeId !== session.user.id) {
+    const project = await prisma.project.findUnique({ where: { id: existing.projectId }, select: { code: true, name: true } })
+    await notifyUser({
+      userId: body.assigneeId,
+      type: 'TASK_ASSIGNED',
+      title: 'Task baru ditugaskan untukmu',
+      message: `${task.title} — ${project?.code} ${project?.name}`,
+      link: `/projects/${existing.projectId}`,
+    })
+  }
 
   // When task is done, unblock dependents that now have all requirements met
   if (status === 'DONE') {
