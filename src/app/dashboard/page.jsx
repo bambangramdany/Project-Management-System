@@ -17,6 +17,9 @@ const PIPELINE_STAGES = [
   { key: 'INVOICING', label: 'Invoicing' },
 ]
 
+// Order for the morning briefing list — pitching through invoicing
+const BRIEFING_ORDER = ['PITCHING', 'WAITING_PITCH_RESULT', 'PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING']
+
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -27,13 +30,15 @@ export default function DashboardPage() {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
 
+  const fetchProjects = () => {
+    fetch('/api/projects').then(r => r.json()).then(data => {
+      setProjects(Array.isArray(data) ? data : [])
+      setLoading(false)
+    })
+  }
+
   useEffect(() => {
-    if (status === 'authenticated') {
-      fetch('/api/projects').then(r => r.json()).then(data => {
-        setProjects(Array.isArray(data) ? data : [])
-        setLoading(false)
-      })
-    }
+    if (status === 'authenticated') fetchProjects()
   }, [status])
 
   if (status === 'loading' || loading) return <LoadingScreen />
@@ -72,21 +77,23 @@ export default function DashboardPage() {
         </div>
 
         {/* EO / Event division */}
-        <DivisionSection title="Event Organizer (EO)" projects={eoProjects} />
+        <DivisionSection title="Event Organizer (EO)" projects={eoProjects} session={session} onChanged={fetchProjects} />
 
         {/* Production House division */}
-        <DivisionSection title="Production House (PH)" projects={phProjects} />
+        <DivisionSection title="Production House (PH)" projects={phProjects} session={session} onChanged={fetchProjects} />
 
       </main>
     </div>
   )
 }
 
-function DivisionSection({ title, projects }) {
+function DivisionSection({ title, projects, session, onChanged }) {
   const active = projects.filter(p => ACTIVE_STATUSES.includes(p.status))
   const countByStatus = {}
   PIPELINE_STAGES.forEach(s => { countByStatus[s.key] = projects.filter(p => p.status === s.key).length })
-  const recentActive = active.slice(0, 8)
+  // Sort for morning briefing: Pitching -> Waiting Result -> Preparation -> Event Day -> Reporting -> Invoicing
+  const briefingActive = [...active].sort((a, b) => BRIEFING_ORDER.indexOf(a.status) - BRIEFING_ORDER.indexOf(b.status))
+  const canEdit = ['OWNER', 'PROJECT_MANAGER'].includes(session?.user?.role)
 
   return (
     <div className="space-y-4">
@@ -115,33 +122,101 @@ function DivisionSection({ title, projects }) {
         </div>
       </div>
 
-      {/* Active projects list */}
+      {/* Active projects list — ordered for morning briefing */}
       <div className="card">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700">Project Aktif</h3>
+          <h3 className="text-sm font-semibold text-gray-700">Project Aktif (urutan briefing)</h3>
           <Link href="/projects" className="text-xs text-orange-500 hover:text-orange-600">Lihat semua →</Link>
         </div>
         <div className="divide-y divide-gray-50">
-          {recentActive.length === 0 && (
+          {briefingActive.length === 0 && (
             <p className="text-sm text-gray-400 text-center py-8">Tidak ada project aktif</p>
           )}
-          {recentActive.map(p => (
-            <Link key={p.id} href={`/projects/${p.id}`} className="flex items-start gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-gray-400 font-mono">{p.code}</span>
-                  <CategoryBadge category={p.category} />
-                </div>
-                <p className="text-sm font-medium text-gray-900 mt-0.5 truncate">{p.name}</p>
-                <p className="text-xs text-gray-500">{p.client?.name} · PIC: {p.pic?.name || '—'}</p>
-              </div>
-              <div className="shrink-0 mt-0.5">
-                <StatusBadge status={p.status} />
-              </div>
-            </Link>
+          {briefingActive.map(p => (
+            <ProjectRow key={p.id} project={p} canEdit={canEdit} onChanged={onChanged} />
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+function ProjectRow({ project: p, canEdit, onChanged }) {
+  const [open, setOpen] = useState(false)
+  const [statusVal, setStatusVal] = useState(p.status)
+  const [dateVal, setDateVal] = useState(p.startDate ? p.startDate.slice(0, 10) : '')
+  const [note, setNote] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function save() {
+    setSaving(true)
+    const data = { status: statusVal, startDate: dateVal || null }
+    if (note.trim()) data.notes = p.notes ? `${p.notes}\n[${new Date().toLocaleDateString('id-ID')}] ${note.trim()}` : note.trim()
+    const res = await fetch(`/api/projects/${p.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    setSaving(false)
+    if (res.ok) {
+      setOpen(false)
+      setNote('')
+      onChanged?.()
+    } else {
+      alert('Gagal menyimpan perubahan')
+    }
+  }
+
+  return (
+    <div className="px-5 py-3.5 hover:bg-gray-50 transition-colors">
+      <div className="flex items-start gap-3">
+        <Link href={`/projects/${p.id}`} className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-gray-400 font-mono">{p.code}</span>
+            <CategoryBadge category={p.category} />
+          </div>
+          <p className="text-sm font-medium text-gray-900 mt-0.5 truncate">{p.name}</p>
+          <p className="text-xs text-gray-500">{p.client?.name} · PIC: {p.pic?.name || '—'}</p>
+        </Link>
+        <div className="shrink-0 mt-0.5 flex items-center gap-2">
+          <StatusBadge status={p.status} />
+          {canEdit && (
+            <button onClick={() => setOpen(v => !v)} className="text-xs text-gray-400 hover:text-orange-500 border border-gray-200 rounded px-1.5 py-0.5">
+              {open ? 'Tutup' : 'Update'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {open && (
+        <div className="mt-3 ml-0 sm:ml-0 p-3 rounded-lg bg-gray-50 border border-gray-100 space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label className="label">Pindah Stage</label>
+              <select className="select" value={statusVal} onChange={e => setStatusVal(e.target.value)}>
+                {PIPELINE_STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                <option value="DONE">Done</option>
+                <option value="FAILED">Failed</option>
+                <option value="CANCELED">Canceled</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Tanggal Pelaksanaan</label>
+              <input type="date" className="input" value={dateVal} onChange={e => setDateVal(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label className="label">Catatan Tambahan</label>
+            <textarea className="input" rows={2} value={note} onChange={e => setNote(e.target.value)} placeholder="Catatan untuk update ini (opsional)" />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={save} disabled={saving} className="btn-primary text-xs px-3 py-1.5">
+              {saving ? 'Menyimpan...' : 'Simpan'}
+            </button>
+            <button onClick={() => setOpen(false)} className="btn-secondary text-xs px-3 py-1.5">Batal</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
