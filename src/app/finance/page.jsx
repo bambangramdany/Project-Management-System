@@ -6,7 +6,7 @@ import Navbar from '@/components/Navbar'
 import clsx from 'clsx'
 import {
   EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABEL,
-  PAYMENT_STATUS_LABEL, PAYMENT_STATUS_COLOR, PAYMENT_TERM_LABEL,
+  PAYMENT_STATUS_LABEL, PAYMENT_STATUS_COLOR, PAYMENT_TERM_LABEL, PAYMENT_STAGES,
 } from '@/lib/constants'
 
 const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'PRODUCTION']
@@ -451,46 +451,92 @@ export default function FinancePage() {
           {!loading && payments.length === 0 && <p className="text-sm text-gray-400 text-center py-8">Belum ada pengajuan</p>}
 
           <div className="space-y-2">
-            {payments.map(p => (
-              <div key={p.id} className="border border-gray-100 rounded-lg p-3 space-y-2">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{p.project?.code} — {p.project?.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{EXPENSE_CATEGORY_LABEL[p.category]} · {p.vendor || '—'}</p>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${PAYMENT_STATUS_COLOR[p.status]}`}>
-                    {PAYMENT_STATUS_LABEL[p.status]}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                  <span>Nominal: <strong className="text-gray-800">{formatRupiah(p.amount)}</strong></span>
-                  <span>Termin: {PAYMENT_TERM_LABEL[p.paymentTerm] || PAYMENT_TERM_LABEL.FULL}</span>
-                  <span>Diajukan: {p.requestedBy?.name}</span>
-                  {p.neededDate && <span>Dibutuhkan: {new Date(p.neededDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
-                </div>
-                {(p.recipientName || p.recipientAccount) && (
-                  <p className="text-xs text-gray-500">Penerima: {p.recipientName || '—'}{p.recipientAccount ? ` · ${p.recipientAccount}` : ''}</p>
-                )}
-                {p.description && <p className="text-xs text-gray-600">{p.description}</p>}
-                {p.directorNote && <p className="text-xs text-amber-600">Catatan Direktur: {p.directorNote}</p>}
+            {payments.map(p => {
+              const canActDivision = p.status === 'PENDING_DIRECTOR' &&
+                (role === 'OWNER' || (role === 'DIRECTOR' && session.user.divisi === p.project?.division))
+              const canActFinanceDirector = p.status === 'PENDING_FINANCE_DIRECTOR' &&
+                (role === 'OWNER' || (role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA'))
+              const canActPay = p.status === 'APPROVED_BY_DIRECTOR' && (role === 'FINANCE' || role === 'OWNER')
 
-                {/* Actions */}
-                {p.status === 'PENDING_DIRECTOR' && (role === 'DIRECTOR' || role === 'OWNER') && (
-                  <div className="flex gap-2 pt-1">
-                    <button onClick={() => doAction(p.id, 'approve')} className="text-xs px-3 py-1 rounded-full bg-green-50 text-green-600 hover:bg-green-100 font-medium">Setujui</button>
-                    <button onClick={() => doAction(p.id, 'reject')} className="text-xs px-3 py-1 rounded-full bg-red-50 text-red-500 hover:bg-red-100 font-medium">Tolak</button>
+              return (
+                <div key={p.id} className="border border-gray-100 rounded-lg p-3 space-y-2 hover:shadow-sm hover:border-brand-200 transition-all">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{p.project?.code} — {p.project?.name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{EXPENSE_CATEGORY_LABEL[p.category]} · {p.vendor || '—'}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${PAYMENT_STATUS_COLOR[p.status]}`}>
+                      {PAYMENT_STATUS_LABEL[p.status]}
+                    </span>
                   </div>
-                )}
-                {p.status === 'APPROVED_BY_DIRECTOR' && (role === 'FINANCE' || role === 'OWNER') && (
-                  <div className="flex gap-2 pt-1">
-                    <button onClick={() => doAction(p.id, 'mark_paid')} className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium">Tandai Sudah Dibayar</button>
+
+                  {p.status !== 'REJECTED' && <PaymentStepper status={p.status} />}
+
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                    <span>Nominal: <strong className="text-gray-800">{formatRupiah(p.amount)}</strong></span>
+                    <span>Termin: {PAYMENT_TERM_LABEL[p.paymentTerm] || PAYMENT_TERM_LABEL.FULL}</span>
+                    <span>Diajukan: {p.requestedBy?.name}</span>
+                    {p.neededDate && <span>Dibutuhkan: {new Date(p.neededDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
                   </div>
-                )}
-              </div>
-            ))}
+                  {(p.recipientName || p.recipientAccount) && (
+                    <p className="text-xs text-gray-500">Penerima: {p.recipientName || '—'}{p.recipientAccount ? ` · ${p.recipientAccount}` : ''}</p>
+                  )}
+                  {p.description && <p className="text-xs text-gray-600">{p.description}</p>}
+                  {p.directorNote && <p className="text-xs text-amber-600">Catatan Direktur Divisi{p.director ? ` (${p.director.name})` : ''}: {p.directorNote}</p>}
+                  {p.financeDirectorNote && <p className="text-xs text-amber-600">Catatan Direktur Finance{p.financeDirector ? ` (${p.financeDirector.name})` : ''}: {p.financeDirectorNote}</p>}
+                  {p.financeNote && <p className="text-xs text-amber-600">Catatan Finance{p.financeBy ? ` (${p.financeBy.name})` : ''}: {p.financeNote}</p>}
+
+                  {/* Actions */}
+                  {(canActDivision || canActFinanceDirector) && (
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={() => doAction(p.id, 'approve')} className="text-xs px-3 py-1 rounded-full bg-green-50 text-green-600 hover:bg-green-100 active:scale-95 font-medium transition-all">Setujui</button>
+                      <button onClick={() => doAction(p.id, 'reject')} className="text-xs px-3 py-1 rounded-full bg-red-50 text-red-500 hover:bg-red-100 active:scale-95 font-medium transition-all">Tolak</button>
+                    </div>
+                  )}
+                  {canActPay && (
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={() => doAction(p.id, 'mark_paid')} className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 active:scale-95 font-medium transition-all">Tandai Sudah Dibayar</button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       </main>
+    </div>
+  )
+}
+
+function PaymentStepper({ status }) {
+  const currentIdx = status === 'PAID'
+    ? PAYMENT_STAGES.length - 1
+    : PAYMENT_STAGES.findIndex(s => s.key === status)
+
+  return (
+    <div className="flex items-center gap-1 py-1">
+      {PAYMENT_STAGES.map((stage, idx) => {
+        const done = idx < currentIdx || status === 'PAID'
+        const active = idx === currentIdx && status !== 'PAID'
+        return (
+          <div key={stage.key} className="flex items-center flex-1 last:flex-none">
+            <div className="flex flex-col items-center gap-1 shrink-0">
+              <div className={clsx(
+                'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors',
+                done ? 'bg-emerald-500 text-white' : active ? 'bg-brand-500 text-white animate-pulse' : 'bg-gray-200 text-gray-400'
+              )}>
+                {done ? '✓' : idx + 1}
+              </div>
+              <span className={clsx('text-[10px] whitespace-nowrap', active ? 'text-brand-700 font-semibold' : 'text-gray-400')}>
+                {stage.label}
+              </span>
+            </div>
+            {idx < PAYMENT_STAGES.length - 1 && (
+              <div className={clsx('h-0.5 flex-1 mx-1 rounded transition-colors', done ? 'bg-emerald-400' : 'bg-gray-200')} />
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

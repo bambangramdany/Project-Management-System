@@ -39,6 +39,7 @@ export async function GET(req) {
       project: { select: { id: true, code: true, name: true, division: true, picId: true } },
       requestedBy: { select: { id: true, name: true } },
       director: { select: { id: true, name: true } },
+      financeDirector: { select: { id: true, name: true } },
       financeBy: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: 'desc' },

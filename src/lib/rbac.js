@@ -36,14 +36,21 @@ export function canRequestPayment(user, project) {
   return false
 }
 
-// Can approve/reject as the division Director
+// Stage 1: Can approve/reject as the project's division Director (Event/PH/Creative)
 export function canApproveAsDirector(user, project) {
   if (!user || !project) return false
   if (user.role === 'OWNER') return true
   return user.role === 'DIRECTOR' && user.divisi === project.division
 }
 
-// Can mark a payment as PAID (Finance team / Owner)
+// Stage 2: Finance & HRGA Director (Anung) approval
+export function canApproveAsFinanceDirector(user) {
+  if (!user) return false
+  if (user.role === 'OWNER') return true
+  return user.role === 'DIRECTOR' && user.divisi === 'FINANCE_HRGA'
+}
+
+// Stage 3: Can mark a payment as PAID (Finance team / Owner)
 export function canProcessPayment(user) {
   return user?.role === 'FINANCE' || user?.role === 'OWNER'
 }

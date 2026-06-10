@@ -25,6 +25,7 @@ model User {
   assignedTasks  Task[]
   budgetRequests PaymentRequest[] @relation("PaymentRequestedBy")
   directorApprovals PaymentRequest[] @relation("PaymentDirector")
+  financeDirectorApprovals PaymentRequest[] @relation("PaymentFinanceDirector")
   financeProcessed  PaymentRequest[] @relation("PaymentFinanceBy")
   notifications  Notification[]
   kpiReceived    KpiAssessment[] @relation("KpiUser")
@@ -286,8 +287,9 @@ enum ExpenseCategory {
 }
 
 enum PaymentStatus {
-  PENDING_DIRECTOR
-  APPROVED_BY_DIRECTOR
+  PENDING_DIRECTOR        // 1. Awaiting division director (Event/PH/Creative) approval
+  PENDING_FINANCE_DIRECTOR // 2. Awaiting Finance & HRGA Director (Anung) approval
+  APPROVED_BY_DIRECTOR    // 3. Approved, awaiting payment execution (Antoni/Finance)
   REJECTED
   PAID
 }
@@ -349,6 +351,9 @@ model PaymentRequest {
   directorId      String?
   directorNote    String?
   approvedAt      DateTime?
+  financeDirectorId   String?
+  financeDirectorNote String?
+  financeApprovedAt   DateTime?
   financeById     String?
   financeNote     String?
   paidAt          DateTime?
@@ -358,6 +363,7 @@ model PaymentRequest {
   project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   requestedBy User               @relation("PaymentRequestedBy", fields: [requestedById], references: [id])
   director    User?              @relation("PaymentDirector", fields: [directorId], references: [id])
+  financeDirector User?          @relation("PaymentFinanceDirector", fields: [financeDirectorId], references: [id])
   financeBy   User?              @relation("PaymentFinanceBy", fields: [financeById], references: [id])
   budgetItem  ProjectBudgetItem? @relation(fields: [budgetItemId], references: [id])
 }

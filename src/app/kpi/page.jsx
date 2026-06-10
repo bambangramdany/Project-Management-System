@@ -43,9 +43,10 @@ export default function KpiSummaryPage() {
     )
   }
 
-  // Group by user
+  // Group by user — Direksi/Owner are excluded from the KPI summary entirely
   const byUser = {}
   assessments.forEach(a => {
+    if (['OWNER', 'DIRECTOR'].includes(a.user.role)) return
     if (!byUser[a.userId]) byUser[a.userId] = { user: a.user, items: [] }
     byUser[a.userId].items.push(a)
   })

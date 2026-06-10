@@ -86,11 +86,20 @@ export const EXPENSE_CATEGORY_LABEL = {
 }
 
 export const PAYMENT_STATUS_LABEL = {
-  PENDING_DIRECTOR: 'Menunggu Approval Direktur',
-  APPROVED_BY_DIRECTOR: 'Disetujui, Menunggu Finance',
+  PENDING_DIRECTOR: 'Menunggu Approval Direktur Divisi',
+  PENDING_FINANCE_DIRECTOR: 'Menunggu Approval Direktur Finance',
+  APPROVED_BY_DIRECTOR: 'Disetujui, Menunggu Pembayaran',
   REJECTED: 'Ditolak',
   PAID: 'Sudah Dibayar',
 }
+
+// Ordered approval pipeline, used to render a progress stepper
+export const PAYMENT_STAGES = [
+  { key: 'PENDING_DIRECTOR', label: 'Direktur Divisi' },
+  { key: 'PENDING_FINANCE_DIRECTOR', label: 'Direktur Finance' },
+  { key: 'APPROVED_BY_DIRECTOR', label: 'Pembayaran' },
+  { key: 'PAID', label: 'Selesai' },
+]
 
 // ── KPI ──────────────────────────────────────────────────────────────────
 
@@ -179,6 +188,7 @@ export const PAYMENT_TERM_LABEL = {
 
 export const PAYMENT_STATUS_COLOR = {
   PENDING_DIRECTOR: 'bg-yellow-100 text-yellow-700',
+  PENDING_FINANCE_DIRECTOR: 'bg-orange-100 text-orange-700',
   APPROVED_BY_DIRECTOR: 'bg-blue-100 text-blue-700',
   REJECTED: 'bg-red-100 text-red-700',
   PAID: 'bg-green-100 text-green-700',
