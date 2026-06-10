@@ -60,6 +60,8 @@ export async function PUT(req, { params }) {
         order: idx,
       }
       if (canNote) data.note = item.note || null
+      // Reset reminder flag whenever the row is edited so date changes get a fresh reminder
+      data.reminderSentAt = null
       if (item.id) {
         return prisma.projectBudgetItem.update({ where: { id: item.id }, data })
       }
