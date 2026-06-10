@@ -32,6 +32,24 @@ function formatRupiah(n) {
   return 'Rp ' + Number(n).toLocaleString('id-ID')
 }
 
+// Build and trigger a CSV download from an array of row objects
+function exportCsv(filename, rows) {
+  if (!rows || rows.length === 0) return
+  const headers = Object.keys(rows[0])
+  const escape = (v) => {
+    const s = v === null || v === undefined ? '' : String(v)
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  }
+  const csv = [headers.join(','), ...rows.map(r => headers.map(h => escape(r[h])).join(','))].join('\n')
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function FinancePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -221,9 +239,22 @@ export default function FinancePage() {
         {/* Cashflow forecast (Owner/Finance/Direksi only) */}
         {cashflow && (
           <div className="card p-4 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-bold text-gray-900">Forecast Kebutuhan Dana Vendor</h2>
-              <span className="text-sm font-bold text-gray-900">Total: {formatRupiah(cashflow.grandTotal)}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-gray-900">Total: {formatRupiah(cashflow.grandTotal)}</span>
+                <button
+                  onClick={() => exportCsv('cashflow-forecast.csv', cashflow.months.flatMap(m => m.items.map(it => ({
+                    Bulan: m.month,
+                    Tanggal: it.neededDate?.slice(0, 10),
+                    Project: it.project.code,
+                    Komponen: it.label,
+                    Jumlah: it.amount,
+                    Status: it.isActual ? 'Aktual' : 'Forecast',
+                  }))))}
+                  className="text-xs text-brand-600 hover:text-brand-700 font-medium underline-offset-2 hover:underline"
+                >Export CSV</button>
+              </div>
             </div>
             {cashflow.months.length === 0 && (
               <p className="text-sm text-gray-400">Belum ada jadwal kebutuhan dana.</p>
@@ -255,7 +286,23 @@ export default function FinancePage() {
         {/* Margin report (Owner/Finance/Direksi only) */}
         {marginReport && marginReport.divisions.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-sm font-bold text-gray-900">Laporan Margin per Divisi</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-bold text-gray-900">Laporan Margin per Divisi</h2>
+              <button
+                onClick={() => exportCsv('laporan-margin.csv', marginReport.divisions.flatMap(d => d.projects.map(p => ({
+                  Divisi: DIVISION_LABEL[d.division] || d.division,
+                  Kode: p.code,
+                  Project: p.name,
+                  Status: p.status,
+                  NilaiProject: p.projectValue,
+                  ForecastBiaya: p.forecastCost,
+                  AktualBiaya: p.actualCost,
+                  MarginForecast: p.marginForecast,
+                  MarginAktual: p.marginActual,
+                }))))}
+                className="text-xs text-brand-600 hover:text-brand-700 font-medium underline-offset-2 hover:underline"
+              >Export CSV</button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {marginReport.divisions.map(d => (
                 <div key={d.division} className="rounded-2xl bg-gradient-to-br from-brand-50 to-orange-50 border border-brand-100 p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow">
@@ -374,7 +421,25 @@ export default function FinancePage() {
 
         {/* Budget forecast section */}
         <div className="card p-4 space-y-3">
-          <h2 className="text-sm font-bold text-gray-900">Forecast Budget per Project</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-bold text-gray-900">Forecast Budget per Project</h2>
+            {budgetProjectId && budgetItems.length > 0 && (
+              <button
+                onClick={() => exportCsv(`budget-${budgetProjectId}.csv`, budgetItems.map(b => ({
+                  Komponen: b.label,
+                  Forecast: b.quotedAmount,
+                  Aktual: b.actualAmount ?? '',
+                  TanggalDibutuhkan: b.neededDate || '',
+                  Status: BUDGET_ITEM_STATUS_LABEL[b.paymentStatus] || b.paymentStatus,
+                  Diajukan: b.requestedTotal,
+                  Dibayar: b.paidTotal,
+                  Sisa: b.remaining,
+                  Catatan: b.note || '',
+                })))}
+                className="text-xs text-brand-600 hover:text-brand-700 font-medium underline-offset-2 hover:underline"
+              >Export CSV</button>
+            )}
+          </div>
           <select className="select" value={budgetProjectId} onChange={e => loadBudget(e.target.value)}>
             <option value="">Pilih project...</option>
             {myProjects.map(p => (
