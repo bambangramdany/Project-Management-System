@@ -180,9 +180,9 @@ export default function ProjectDetailPage() {
                     key={s}
                     onClick={() => updateStatus(s)}
                     disabled={saving || s === project.status}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-all active:scale-95 ${
                       s === project.status
-                        ? 'bg-orange-500 text-white'
+                        ? 'bg-orange-500 text-white shadow-sm'
                         : i < currentStageIndex
                         ? 'bg-green-50 text-green-600 hover:bg-green-100'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -204,8 +204,8 @@ export default function ProjectDetailPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-all ${
+                activeTab === tab ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
               }`}
             >
               {tab === 'tasks' ? `Tasks (${totalTasks})` : tab === 'team' ? `Tim (${(project.members?.length || 0) + (project.pic ? 1 : 0)})` : tab === 'bonus' ? 'Penilaian Bonus' : 'Info'}
@@ -217,10 +217,10 @@ export default function ProjectDetailPage() {
         {activeTab === 'tasks' && (
           <div className="space-y-2">
             {project.tasks?.map(task => (
-              <div key={task.id} className={`card px-4 py-3 flex items-start gap-3 ${task.status === 'BLOCKED' ? 'opacity-60' : ''}`}>
+              <div key={task.id} className={`card px-4 py-3 flex items-start gap-3 hover:shadow-sm transition-all duration-200 ${task.status === 'BLOCKED' ? 'opacity-60' : ''}`}>
                 <button
                   onClick={() => toggleTask(task.id, task.status)}
-                  className={`mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
+                  className={`mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all active:scale-90 ${
                     task.status === 'DONE' ? 'bg-green-500 border-green-500' :
                     task.status === 'IN_PROGRESS' ? 'border-orange-500' :
                     task.status === 'BLOCKED' ? 'border-gray-300 cursor-not-allowed' :
