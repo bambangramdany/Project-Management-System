@@ -22,8 +22,8 @@ export async function GET(req) {
   const divisi = session.user.divisi
 
   // Scope visibility based on role
-  if (role === 'OWNER' || role === 'FINANCE') {
-    // see all
+  if (role === 'OWNER' || role === 'FINANCE' || (role === 'DIRECTOR' && divisi === 'FINANCE_HRGA')) {
+    // Finance & HRGA Director (Anung) approves/pays everything, so sees all — same as Owner/Finance
   } else if (role === 'DIRECTOR') {
     where.project = { division: divisi }
   } else {
