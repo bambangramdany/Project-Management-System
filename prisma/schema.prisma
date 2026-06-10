@@ -57,6 +57,13 @@ model AuditLog {
   @@index([createdAt])
 }
 
+// Simple key-value store for app-wide configurable settings (e.g. approval thresholds)
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 // Annual revenue/project-count targets per division, set by the Owner for
 // tracking organizational direction and progress.
 model DivisionTarget {

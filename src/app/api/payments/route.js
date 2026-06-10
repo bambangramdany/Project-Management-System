@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canRequestPayment, canViewBudget } from '@/lib/rbac'
+import { getOwnerApprovalThreshold } from '@/lib/settings'
 import { notifyUser } from '@/lib/notify'
 import { NextResponse } from 'next/server'
 
@@ -85,8 +86,12 @@ export async function POST(req) {
   }
 
   // Requests submitted by a division director (Event/PH/Creative) need an extra
-  // Owner approval step first; everything else goes straight to the Finance Director.
-  const initialStatus = session.user.role === 'DIRECTOR' && session.user.divisi !== 'FINANCE_HRGA'
+  // Owner approval step first — unless the amount is at/below the configured
+  // threshold, in which case it goes straight to the Finance Director (who must
+  // still approve all expenses regardless of amount).
+  const amount = parseFloat(body.amount)
+  const ownerThreshold = await getOwnerApprovalThreshold()
+  const initialStatus = session.user.role === 'DIRECTOR' && session.user.divisi !== 'FINANCE_HRGA' && amount > ownerThreshold
     ? 'PENDING_OWNER'
     : 'PENDING_FINANCE_DIRECTOR'
 
@@ -96,7 +101,7 @@ export async function POST(req) {
       requestedById: session.user.id,
       category: body.category,
       budgetItemId,
-      amount: parseFloat(body.amount),
+      amount,
       vendor: body.vendor || null,
       recipientName: body.recipientName || null,
       recipientAccount: body.recipientAccount || null,

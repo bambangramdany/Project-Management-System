@@ -20,6 +20,8 @@ const ACTION_LABEL = {
   PAYMENT_APPROVE_FINANCE_DIRECTOR: 'Approval Direktur Finance',
   PAYMENT_REJECT_FINANCE_DIRECTOR: 'Penolakan Direktur Finance',
   PAYMENT_PAID: 'Pembayaran Dieksekusi',
+  SETTING_UPDATE: 'Pengaturan Sistem',
+  TARGET_UPDATE: 'Target Tahunan',
 }
 
 const ACTION_COLOR = {
@@ -37,6 +39,8 @@ const ACTION_COLOR = {
   PAYMENT_REJECT_DIRECTOR: 'bg-red-100 text-red-700',
   PAYMENT_REJECT_FINANCE_DIRECTOR: 'bg-red-100 text-red-700',
   PAYMENT_PAID: 'bg-emerald-100 text-emerald-700',
+  SETTING_UPDATE: 'bg-indigo-100 text-indigo-700',
+  TARGET_UPDATE: 'bg-indigo-100 text-indigo-700',
 }
 
 export default function AuditPage() {
@@ -45,6 +49,9 @@ export default function AuditPage() {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
+  const [threshold, setThreshold] = useState(null)
+  const [thresholdInput, setThresholdInput] = useState('')
+  const [savingThreshold, setSavingThreshold] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -61,7 +68,24 @@ export default function AuditPage() {
       setLogs(Array.isArray(data) ? data : [])
       setLoading(false)
     })
+    fetch('/api/settings/approval-threshold').then(r => r.ok ? r.json() : null).then(data => {
+      if (data) { setThreshold(data); setThresholdInput(String(data.threshold)) }
+    })
   }, [status, session])
+
+  const saveThreshold = async () => {
+    setSavingThreshold(true)
+    const res = await fetch('/api/settings/approval-threshold', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ threshold: thresholdInput }),
+    })
+    setSavingThreshold(false)
+    if (res.ok) {
+      const data = await res.json()
+      setThreshold(t => ({ ...t, threshold: data.threshold }))
+    }
+  }
 
   if (status !== 'authenticated' || (session.user.role !== 'OWNER' && !isFinanceDirector(session.user))) {
     return (
@@ -93,6 +117,28 @@ export default function AuditPage() {
             <h1 className="text-xl font-bold text-gray-900">Audit Log</h1>
             <p className="text-sm text-gray-500">Riwayat perubahan penting di seluruh sistem</p>
           </div>
+        </div>
+
+        {threshold && (
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-1">Batas Approval Direktur Utama</h3>
+            <p className="text-xs text-gray-500 mb-3">
+              Pengajuan pembayaran dari Direktur Divisi (Event/PH/Creative) di bawah atau sama dengan nominal ini akan langsung ke Direktur Finance tanpa perlu approval Direktur Utama terlebih dahulu. Direktur Finance tetap wajib menyetujui semua pengeluaran.
+            </p>
+            {threshold.canEdit ? (
+              <div className="flex items-center gap-2">
+                <input type="number" className="input w-auto" value={thresholdInput} onChange={e => setThresholdInput(e.target.value)} />
+                <button onClick={saveThreshold} disabled={savingThreshold} className="btn-primary text-sm">
+                  {savingThreshold ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm font-semibold text-gray-800">Rp {Math.round(threshold.threshold).toLocaleString('id-ID')}</p>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3">
           <select className="select sm:w-56" value={filter} onChange={e => setFilter(e.target.value)}>
             {Object.entries(categories).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
