@@ -29,6 +29,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [cashPosition, setCashPosition] = useState(null)
   const [debtSummary, setDebtSummary] = useState(null)
+  const [cashSummary, setCashSummary] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -50,6 +51,8 @@ export default function DashboardPage() {
     const role = session.user.role
     if (role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) {
       fetch('/api/cashflow/position').then(r => r.ok ? r.json() : null).then(setCashPosition)
+    } else if (role === 'DIRECTOR') {
+      fetch('/api/cashflow/summary').then(r => r.ok ? r.json() : null).then(setCashSummary)
     }
     if (role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)) {
       fetch('/api/debts/summary').then(r => r.ok ? r.json() : null).then(setDebtSummary)
@@ -95,6 +98,9 @@ export default function DashboardPage() {
 
         {/* Cash position — Owner / Finance / Finance Director only */}
         {cashPosition && <CashPositionCard data={cashPosition} />}
+
+        {/* Simplified read-only cash condition — division Directors */}
+        {cashSummary && <CashConditionCard data={cashSummary} />}
 
         {/* Debt obligations — Owner / Finance / Directors */}
         {debtSummary && debtSummary.activeDebtCount > 0 && <DebtSummaryCard data={debtSummary} />}
@@ -334,6 +340,25 @@ function StatCard({ label, value, sub, color }) {
       <p className="text-xs text-gray-500">{label}</p>
       <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
       <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+    </div>
+  )
+}
+
+function CashConditionCard({ data }) {
+  return (
+    <div className="card p-5">
+      <h3 className="text-sm font-semibold text-gray-700 mb-4">Kondisi Keuangan Watermark</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
+          <p className="text-xs text-gray-500">Saldo Kas Saat Ini</p>
+          <p className={`text-2xl font-bold ${data.cashBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>{formatRupiah(data.cashBalance)}</p>
+        </div>
+        <div className="p-3 rounded-lg bg-orange-50">
+          <p className="text-xs text-gray-500">Kebutuhan Dana Menunggu Cair</p>
+          <p className="text-2xl font-bold text-orange-600">{formatRupiah(data.pendingDisbursement)}</p>
+          <p className="text-xs text-gray-400 mt-0.5">Pengajuan yang sudah disetujui/dalam proses approval</p>
+        </div>
+      </div>
     </div>
   )
 }
