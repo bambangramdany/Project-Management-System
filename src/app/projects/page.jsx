@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { Suspense, useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
@@ -8,6 +8,14 @@ import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL } from '@/lib/constants'
 import Link from 'next/link'
 
 export default function ProjectsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProjectsContent />
+    </Suspense>
+  )
+}
+
+function ProjectsContent() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
