@@ -80,12 +80,15 @@ export async function GET(req) {
       byStatus[p.status] = (byStatus[p.status] || 0) + 1
     }
 
+    // HOLD and WAITING_PITCH_RESULT projects don't carry meaningful workload yet.
+    const baseActiveStatuses = ACTIVE_STATUSES.filter(s => !['HOLD', 'WAITING_PITCH_RESULT'].includes(s))
+
     // Roles other than PM/Director/Finance are not involved in reporting/invoicing —
     // their workload ends at EVENT_DAY, so those stages don't count as active for them.
     const involvedThroughClosing = ['PROJECT_MANAGER', 'DIRECTOR', 'FINANCE'].includes(user.role)
     const userActiveStatuses = involvedThroughClosing
-      ? ACTIVE_STATUSES
-      : ACTIVE_STATUSES.filter(s => !['REPORTING', 'INVOICING'].includes(s))
+      ? baseActiveStatuses
+      : baseActiveStatuses.filter(s => !['REPORTING', 'INVOICING'].includes(s))
 
     return {
       user,

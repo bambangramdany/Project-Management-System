@@ -26,7 +26,6 @@ export default function FinancePage() {
   const [loading, setLoading] = useState(true)
   const [budgetProjectId, setBudgetProjectId] = useState('')
   const [budgetItems, setBudgetItems] = useState({})
-  const [budgetDates, setBudgetDates] = useState({})
   const [budgetLoading, setBudgetLoading] = useState(false)
   const [savingBudget, setSavingBudget] = useState(false)
   const [projectValue, setProjectValue] = useState('')
@@ -86,34 +85,52 @@ export default function FinancePage() {
 
   async function loadBudget(projectId) {
     setBudgetProjectId(projectId)
-    setBudgetItems({})
-    setBudgetDates({})
+    setBudgetItems([])
     setProjectValue('')
     if (!projectId) return
     setBudgetLoading(true)
     const res = await fetch(`/api/projects/${projectId}/budget`)
     if (res.ok) {
       const data = await res.json()
-      const map = {}, dates = {}
-      ;(data.budgets || []).forEach(b => { map[b.category] = b.amount; dates[b.category] = b.neededDate ? b.neededDate.slice(0, 10) : '' })
-      setBudgetItems(map)
-      setBudgetDates(dates)
+      setBudgetItems((data.budgetItems || []).map(b => ({ ...b, neededDate: b.neededDate ? b.neededDate.slice(0, 10) : '' })))
       setProjectValue(data.projectValue ?? '')
-      setBudgetMeta({ canViewMargin: !!data.canViewMargin, canEditProjectValue: !!data.canEditProjectValue })
+      setBudgetMeta({
+        canViewMargin: !!data.canViewMargin,
+        canEditProjectValue: !!data.canEditProjectValue,
+        canEditBudget: !!data.canEditBudget,
+        canNote: !!data.canNote,
+      })
     }
     setBudgetLoading(false)
   }
 
+  function addBudgetRow() {
+    setBudgetItems(items => [...items, { label: '', quotedAmount: 0, actualAmount: '', neededDate: '', note: '' }])
+  }
+
+  function updateBudgetRow(idx, patch) {
+    setBudgetItems(items => items.map((it, i) => i === idx ? { ...it, ...patch } : it))
+  }
+
+  function removeBudgetRow(idx) {
+    setBudgetItems(items => items.filter((_, i) => i !== idx))
+  }
+
   async function saveBudget() {
     setSavingBudget(true)
-    const items = EXPENSE_CATEGORIES.map(category => ({ category, amount: budgetItems[category] || 0, neededDate: budgetDates[category] || null }))
     const res = await fetch(`/api/projects/${budgetProjectId}/budget`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items, projectValue: budgetMeta.canEditProjectValue ? (projectValue === '' ? null : projectValue) : undefined }),
+      body: JSON.stringify({
+        items: budgetItems,
+        projectValue: budgetMeta.canEditProjectValue ? (projectValue === '' ? null : projectValue) : undefined,
+      }),
     })
     setSavingBudget(false)
-    if (!res.ok) {
+    if (res.ok) {
+      const data = await res.json()
+      setBudgetItems((data.budgetItems || []).map(b => ({ ...b, neededDate: b.neededDate ? b.neededDate.slice(0, 10) : '' })))
+    } else {
       const err = await res.json()
       alert(err.error || 'Gagal menyimpan')
     }
@@ -229,42 +246,98 @@ export default function FinancePage() {
                   placeholder="0"
                 />
               </div>
-              {EXPENSE_CATEGORIES.map(cat => (
-                <div key={cat} className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-gray-600 flex-1">{EXPENSE_CATEGORY_LABEL[cat]}</label>
+              <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-gray-500 px-1">
+                <span className="col-span-3">Komponen (sesuai quotation)</span>
+                <span className="col-span-2">Forecast / Quotation (Rp)</span>
+                <span className="col-span-2">Aktual Modal (Rp)</span>
+                <span className="col-span-2">Tgl Dibutuhkan</span>
+                <span className="col-span-2">Catatan Finance/Direksi</span>
+                <span className="col-span-1"></span>
+              </div>
+              {budgetItems.map((item, idx) => (
+                <div key={item.id || idx} className="grid grid-cols-12 gap-2 items-center">
                   <input
-                    type="number"
-                    min="0"
-                    className="input w-32"
-                    value={budgetItems[cat] || ''}
-                    onChange={e => setBudgetItems(b => ({ ...b, [cat]: e.target.value }))}
+                    className="input col-span-3"
+                    value={item.label}
+                    onChange={e => updateBudgetRow(idx, { label: e.target.value })}
+                    placeholder="cth. Sewa Venue"
+                    disabled={!budgetMeta.canEditBudget}
+                  />
+                  <input
+                    type="number" min="0"
+                    className="input col-span-2"
+                    value={item.quotedAmount || ''}
+                    onChange={e => updateBudgetRow(idx, { quotedAmount: e.target.value })}
                     placeholder="0"
+                    disabled={!budgetMeta.canEditBudget}
+                  />
+                  <input
+                    type="number" min="0"
+                    className="input col-span-2"
+                    value={item.actualAmount ?? ''}
+                    onChange={e => updateBudgetRow(idx, { actualAmount: e.target.value })}
+                    placeholder="0"
+                    disabled={!budgetMeta.canEditBudget}
                   />
                   <input
                     type="date"
-                    className="input w-36"
-                    value={budgetDates[cat] || ''}
-                    onChange={e => setBudgetDates(d => ({ ...d, [cat]: e.target.value }))}
+                    className="input col-span-2"
+                    value={item.neededDate || ''}
+                    onChange={e => updateBudgetRow(idx, { neededDate: e.target.value })}
+                    disabled={!budgetMeta.canEditBudget}
                   />
+                  <input
+                    className="input col-span-2"
+                    value={item.note || ''}
+                    onChange={e => updateBudgetRow(idx, { note: e.target.value })}
+                    placeholder="cth. selisih melebihi forecast"
+                    disabled={!budgetMeta.canNote}
+                  />
+                  {budgetMeta.canEditBudget && (
+                    <button onClick={() => removeBudgetRow(idx)} className="col-span-1 text-red-500 text-xs hover:underline">Hapus</button>
+                  )}
                 </div>
               ))}
-              <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-900">Total Forecast</span>
-                <span className="text-sm font-bold text-gray-900">
-                  {formatRupiah(EXPENSE_CATEGORIES.reduce((sum, c) => sum + (parseFloat(budgetItems[c]) || 0), 0))}
+              {budgetMeta.canEditBudget && (
+                <button onClick={addBudgetRow} className="btn-secondary text-xs">+ Tambah Komponen</button>
+              )}
+
+              <div className="pt-2 border-t border-gray-100 grid grid-cols-2 gap-y-1 text-sm">
+                <span className="font-semibold text-gray-900">Total Forecast (Quotation)</span>
+                <span className="font-bold text-gray-900 text-right">
+                  {formatRupiah(budgetItems.reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0))}
+                </span>
+                <span className="font-semibold text-gray-900">Total Aktual Modal</span>
+                <span className="font-bold text-gray-900 text-right">
+                  {formatRupiah(budgetItems.reduce((sum, b) => sum + (parseFloat(b.actualAmount) || 0), 0))}
+                </span>
+                <span className="font-semibold text-amber-700">Selisih Forecast vs Aktual</span>
+                <span className="font-bold text-amber-700 text-right">
+                  {formatRupiah(
+                    budgetItems.reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0) -
+                    budgetItems.reduce((sum, b) => sum + (parseFloat(b.actualAmount) || 0), 0)
+                  )}
                 </span>
               </div>
+
               {budgetMeta.canViewMargin && (
-                <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-emerald-700">Estimasi Margin</span>
-                  <span className="text-sm font-bold text-emerald-700">
-                    {formatRupiah((parseFloat(projectValue) || 0) - EXPENSE_CATEGORIES.reduce((sum, c) => sum + (parseFloat(budgetItems[c]) || 0), 0))}
+                <div className="pt-2 border-t border-gray-100 grid grid-cols-2 gap-y-1 text-sm">
+                  <span className="font-semibold text-emerald-700">Estimasi Margin (vs Forecast)</span>
+                  <span className="font-bold text-emerald-700 text-right">
+                    {formatRupiah((parseFloat(projectValue) || 0) - budgetItems.reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0))}
+                  </span>
+                  <span className="font-semibold text-emerald-700">Estimasi Margin (vs Aktual)</span>
+                  <span className="font-bold text-emerald-700 text-right">
+                    {formatRupiah((parseFloat(projectValue) || 0) - budgetItems.reduce((sum, b) => sum + (parseFloat(b.actualAmount) || 0), 0))}
                   </span>
                 </div>
               )}
-              <button onClick={saveBudget} disabled={savingBudget} className="btn-primary">
-                {savingBudget ? 'Menyimpan...' : 'Simpan Budget'}
-              </button>
+
+              {(budgetMeta.canEditBudget || budgetMeta.canNote) && (
+                <button onClick={saveBudget} disabled={savingBudget} className="btn-primary">
+                  {savingBudget ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -168,6 +168,7 @@ model Project {
   members   ProjectMember[]
   tasks     Task[]
   budgets   ProjectBudget[]
+  budgetItems ProjectBudgetItem[]
   payments  PaymentRequest[]
   scores    ProjectScore[]
 }
@@ -309,6 +310,24 @@ model ProjectBudget {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, category])
+}
+
+// Custom, free-form budget line items (matched to client quotation lines), each with
+// a quoted (forecast) amount vs. the actual capital needed in the field, plus its
+// timing — gives Finance a forecast and surfaces forecast-vs-actual variance for the PM.
+model ProjectBudgetItem {
+  id            String    @id @default(cuid())
+  projectId     String
+  label         String
+  quotedAmount  Float     @default(0)
+  actualAmount  Float?
+  neededDate    DateTime?
+  note          String?
+  order         Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model PaymentRequest {
