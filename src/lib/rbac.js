@@ -58,13 +58,19 @@ export function canEditBudget(user, project) {
 
 // ── KPI RBAC ─────────────────────────────────────────────────────────────
 
+// Wulan has cross-team scoring privilege (can score other PMs and any team member)
+export const CROSS_TEAM_PM_EMAIL = 'wulan@watermark.co.id'
+
 // Roles that may act as evaluator (superior / task giver)
 export function canScoreKpi(evaluator, target) {
   if (!evaluator || !target) return false
   if (evaluator.id === target.id) return false
   if (evaluator.role === 'OWNER') return true
+  if (['OWNER', 'DIRECTOR'].includes(target.role)) return false
   if (evaluator.role === 'DIRECTOR') return evaluator.divisi === target.divisi
-  if (['PROJECT_MANAGER', 'CREATIVE_LEAD', 'FINANCE'].includes(evaluator.role)) return true
+  if (evaluator.email === CROSS_TEAM_PM_EMAIL) return true
+  if (evaluator.role === 'PROJECT_MANAGER') return target.role !== 'PROJECT_MANAGER'
+  if (['CREATIVE_LEAD', 'FINANCE'].includes(evaluator.role)) return true
   return false
 }
 
@@ -74,9 +80,6 @@ export function canViewKpiSummary(user) {
 }
 
 // ── Project bonus scoring RBAC ──────────────────────────────────────────
-
-// Wulan has cross-team scoring privilege (can score other PMs and any team member)
-export const CROSS_TEAM_PM_EMAIL = 'wulan@watermark.co.id'
 
 // Can the user open the bonus-scoring tab at all for this project?
 export function canScoreProject(user, project) {

@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { PROJECT_SCORE_CRITERIA } from '@/lib/constants'
+import ProjectBonusTab from '@/components/ProjectBonusTab'
 
 function fmt(v) {
   return v == null ? '-' : v.toFixed(1)
@@ -18,6 +19,9 @@ export default function ScoresPage() {
   const [directors, setDirectors] = useState([])
   const [noteForm, setNoteForm] = useState({ directorId: '', message: '' })
   const [noteSent, setNoteSent] = useState(false)
+  const [myProjects, setMyProjects] = useState([])
+  const [scoreProjectId, setScoreProjectId] = useState('')
+  const [scoreProject, setScoreProject] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -27,12 +31,20 @@ export default function ScoresPage() {
     if (status !== 'authenticated') return
     fetch('/api/scores/summary').then(r => r.json()).then(d => { setData(d); setLoading(false) })
     fetch('/api/team').then(r => r.json()).then(members => {
-      setDirectors((Array.isArray(members) ? members : []).filter(m => m.role === 'DIRECTOR'))
+      setDirectors((Array.isArray(members) ? members : []).filter(m => ['DIRECTOR', 'OWNER'].includes(m.role) && m.id !== session.user.id))
     })
     if (session.user.role === 'OWNER' || (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA')) {
       fetch('/api/director-notes').then(r => r.json()).then(setAllNotes)
     }
+    fetch('/api/projects').then(r => r.json()).then(data => {
+      setMyProjects(Array.isArray(data) ? data : [])
+    })
   }, [status, session])
+
+  useEffect(() => {
+    if (!scoreProjectId) { setScoreProject(null); return }
+    fetch(`/api/projects/${scoreProjectId}`).then(r => r.json()).then(setScoreProject)
+  }, [scoreProjectId])
 
   if (status !== 'authenticated' || loading || !data) {
     return (
@@ -62,7 +74,7 @@ export default function ScoresPage() {
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Penilaian Bonus</h1>
+          <h1 className="text-xl font-bold text-gray-900">Nilai Saya</h1>
           <p className="text-sm text-gray-500">Ringkasan penilaian per project sebagai dasar skema bonus</p>
         </div>
 
@@ -86,8 +98,27 @@ export default function ScoresPage() {
           )}
         </div>
 
-        {/* Anonymous notes addressed to me (director) */}
-        {session.user.role === 'DIRECTOR' && (
+        {/* Berikan penilaian — pilih project */}
+        {myProjects.length > 0 && (
+          <div className="card p-4">
+            <p className="text-sm font-semibold text-ink-800 mb-1">Berikan Penilaian</p>
+            <p className="text-xs text-gray-500 mb-3">Pilih project untuk menilai anggota tim yang terlibat di dalamnya.</p>
+            <select className="select" value={scoreProjectId} onChange={e => setScoreProjectId(e.target.value)}>
+              <option value="">Pilih project...</option>
+              {myProjects.map(p => (
+                <option key={p.id} value={p.id}>{p.code} — {p.name}</option>
+              ))}
+            </select>
+            {scoreProject && (
+              <div className="mt-3">
+                <ProjectBonusTab project={scoreProject} session={session} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Anonymous notes addressed to me (director / owner) */}
+        {['DIRECTOR', 'OWNER'].includes(session.user.role) && (
           <div className="card p-4">
             <p className="text-sm font-semibold text-ink-800 mb-2">Catatan dari Tim (Anonim)</p>
             {(!data.myNotes || data.myNotes.length === 0) ? (

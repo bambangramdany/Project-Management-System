@@ -38,7 +38,7 @@ export async function GET() {
 
   // 2. Anonymous notes addressed to me (if I'm a director)
   let myNotes = []
-  if (me.role === 'DIRECTOR') {
+  if (me.role === 'DIRECTOR' || me.role === 'OWNER') {
     const notes = await prisma.directorNote.findMany({
       where: { directorId: me.id },
       orderBy: { createdAt: 'desc' },

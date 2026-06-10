@@ -58,8 +58,8 @@ export async function POST(req) {
   }
 
   const director = await prisma.user.findUnique({ where: { id: body.directorId } })
-  if (!director || director.role !== 'DIRECTOR') {
-    return NextResponse.json({ error: 'Direktur tidak ditemukan' }, { status: 404 })
+  if (!director || !['DIRECTOR', 'OWNER'].includes(director.role)) {
+    return NextResponse.json({ error: 'Penerima tidak ditemukan' }, { status: 404 })
   }
 
   const note = await prisma.directorNote.create({

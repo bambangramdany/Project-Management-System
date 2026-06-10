@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import Link from 'next/link'
 import clsx from 'clsx'
 import { KPI_BY_ROLE, KPI_SCORE_LABEL, KPI_DEADLINE_DAY, resolveKpiPeriod } from '@/lib/constants'
+import { CROSS_TEAM_PM_EMAIL } from '@/lib/rbac'
 
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
 
@@ -176,8 +177,11 @@ function canScoreKpiClient(evaluator, target) {
   if (!evaluator || !target) return false
   if (evaluator.id === target.id) return false
   if (evaluator.role === 'OWNER') return true
+  if (['OWNER', 'DIRECTOR'].includes(target.role)) return false
   if (evaluator.role === 'DIRECTOR') return evaluator.divisi === target.divisi
-  return ['PROJECT_MANAGER', 'CREATIVE_LEAD', 'FINANCE'].includes(evaluator.role)
+  if (evaluator.email === CROSS_TEAM_PM_EMAIL) return true
+  if (evaluator.role === 'PROJECT_MANAGER') return target.role !== 'PROJECT_MANAGER'
+  return ['CREATIVE_LEAD', 'FINANCE'].includes(evaluator.role)
 }
 
 function KpiPanel({ user, session }) {
