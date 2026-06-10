@@ -30,6 +30,7 @@ export default function FinancePage() {
   const [savingBudget, setSavingBudget] = useState(false)
   const [projectValue, setProjectValue] = useState('')
   const [budgetMeta, setBudgetMeta] = useState({ canViewMargin: false, canEditProjectValue: false })
+  const [cashflow, setCashflow] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -49,6 +50,9 @@ export default function FinancePage() {
     if (status === 'authenticated' && FINANCE_ROLES.includes(session.user.role)) {
       fetch('/api/projects').then(r => r.json()).then(data => setProjects(Array.isArray(data) ? data : []))
       fetchPayments()
+    }
+    if (status === 'authenticated' && ['OWNER', 'FINANCE', 'DIRECTOR'].includes(session.user.role)) {
+      fetch('/api/finance/cashflow').then(r => r.json()).then(data => setCashflow(data))
     }
   }, [status, session, fetchPayments])
 
@@ -158,6 +162,40 @@ export default function FinancePage() {
             </button>
           )}
         </div>
+
+        {/* Cashflow forecast (Owner/Finance/Direksi only) */}
+        {cashflow && (
+          <div className="card p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-gray-900">Forecast Kebutuhan Dana Vendor</h2>
+              <span className="text-sm font-bold text-gray-900">Total: {formatRupiah(cashflow.grandTotal)}</span>
+            </div>
+            {cashflow.months.length === 0 && (
+              <p className="text-sm text-gray-400">Belum ada jadwal kebutuhan dana.</p>
+            )}
+            {cashflow.months.map(m => (
+              <div key={m.month} className="border border-gray-100 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700">
+                    {new Date(m.month + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                  </span>
+                  <span className="text-sm font-bold text-brand-700">{formatRupiah(m.total)}</span>
+                </div>
+                <div className="space-y-1">
+                  {m.items.map(it => (
+                    <div key={it.id} className="flex items-center justify-between text-xs text-gray-600">
+                      <span>
+                        {new Date(it.neededDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} · {it.project.code} — {it.label}
+                        {it.isActual && <span className="ml-1 text-emerald-600">(aktual)</span>}
+                      </span>
+                      <span className="font-medium text-gray-800">{formatRupiah(it.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Create payment request form */}
         {showForm && canCreate && (
