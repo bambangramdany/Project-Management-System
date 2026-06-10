@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 
 const ROLE_LABEL = {
-  OWNER: 'Owner', PROJECT_MANAGER: 'Project Manager', PRODUCTION: 'Production',
+  OWNER: 'Direktur Utama', PROJECT_MANAGER: 'Project Manager', PRODUCTION: 'Production',
   PROJECT_OFFICER: 'Project Officer', CREATIVE_LEAD: 'Creative Lead',
   GRAPHIC_DESIGNER: 'Graphic Designer', STAGE_DESIGNER: 'Stage Designer',
   CONTENT_CREATOR: 'Content Creator', INTERNSHIP: 'Internship', MEMBER: 'Member',

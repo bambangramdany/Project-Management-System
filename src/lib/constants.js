@@ -87,7 +87,7 @@ export const EXPENSE_CATEGORY_LABEL = {
 
 export const PAYMENT_STATUS_LABEL = {
   PENDING_DIRECTOR: 'Menunggu Approval Direktur Divisi',
-  PENDING_OWNER: 'Menunggu Approval Owner',
+  PENDING_OWNER: 'Menunggu Approval Direktur Utama',
   PENDING_FINANCE_DIRECTOR: 'Menunggu Approval Direktur Finance',
   APPROVED_BY_DIRECTOR: 'Disetujui, Menunggu Pembayaran',
   REJECTED: 'Ditolak',
@@ -104,7 +104,7 @@ export const PAYMENT_STAGES = [
 ]
 
 export const PAYMENT_STAGES_WITH_OWNER = [
-  { key: 'PENDING_OWNER', label: 'Owner' },
+  { key: 'PENDING_OWNER', label: 'Direktur Utama' },
   { key: 'PENDING_FINANCE_DIRECTOR', label: 'Direktur Finance' },
   { key: 'APPROVED_BY_DIRECTOR', label: 'Pembayaran' },
   { key: 'PAID', label: 'Selesai' },

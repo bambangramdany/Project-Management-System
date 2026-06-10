@@ -64,14 +64,14 @@ export async function PATCH(req, { params }) {
       await Promise.all(approvers.map(u => notifyUser({
         userId: u.id, type: 'PAYMENT_APPROVAL',
         title: 'Pengajuan Pembayaran Menunggu Approval Anda',
-        message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) telah disetujui Owner.`,
+        message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) telah disetujui Direktur Utama.`,
         link: '/finance',
       })))
     } else {
       await notifyUser({
         userId: payment.requestedById, type: 'PAYMENT_REJECTED',
         title: 'Pengajuan Pembayaran Ditolak',
-        message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) ditolak oleh Owner.${body.note ? ` Catatan: ${body.note}` : ''}`,
+        message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) ditolak oleh Direktur Utama.${body.note ? ` Catatan: ${body.note}` : ''}`,
         link: '/finance',
       })
     }
