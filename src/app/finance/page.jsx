@@ -591,12 +591,33 @@ export default function FinancePage() {
         <div className="card p-4 space-y-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <h2 className="text-sm font-bold text-gray-900">Pengajuan Pembayaran</h2>
-            <select className="select w-56" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-              <option value="">Semua Status</option>
-              {Object.entries(PAYMENT_STATUS_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </select>
+            <div className="flex items-center gap-3">
+              <select className="select w-56" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                <option value="">Semua Status</option>
+                {Object.entries(PAYMENT_STATUS_LABEL).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+              {payments.length > 0 && (
+                <button
+                  onClick={() => exportCsv('riwayat-pembayaran.csv', payments.map(p => ({
+                    Project: `${p.project?.code} - ${p.project?.name}`,
+                    Kategori: EXPENSE_CATEGORY_LABEL[p.category],
+                    Vendor: p.vendor || '',
+                    Nominal: p.amount,
+                    Status: PAYMENT_STATUS_LABEL[p.status],
+                    Diajukan: `${p.requestedBy?.name || ''} (${p.createdAt ? new Date(p.createdAt).toLocaleString('id-ID') : ''})`,
+                    DirekturDivisi: p.director ? `${p.director.name} (${p.approvedAt ? new Date(p.approvedAt).toLocaleString('id-ID') : ''})` : '',
+                    DirekturFinance: p.financeDirector ? `${p.financeDirector.name} (${p.financeApprovedAt ? new Date(p.financeApprovedAt).toLocaleString('id-ID') : ''})` : '',
+                    Dibayar: p.financeBy ? `${p.financeBy.name} (${p.paidAt ? new Date(p.paidAt).toLocaleString('id-ID') : ''})` : '',
+                    CatatanDirekturDivisi: p.directorNote || '',
+                    CatatanDirekturFinance: p.financeDirectorNote || '',
+                    CatatanFinance: p.financeNote || '',
+                  })))}
+                  className="text-xs text-brand-600 hover:text-brand-700 font-medium underline-offset-2 hover:underline"
+                >Export CSV</button>
+              )}
+            </div>
           </div>
 
           {loading && <p className="text-sm text-gray-400 text-center py-8">Memuat...</p>}
@@ -634,6 +655,12 @@ export default function FinancePage() {
                     <p className="text-xs text-gray-500">Penerima: {p.recipientName || '—'}{p.recipientAccount ? ` · ${p.recipientAccount}` : ''}</p>
                   )}
                   {p.description && <p className="text-xs text-gray-600">{p.description}</p>}
+                  {/* Audit trail */}
+                  <div className="text-[11px] text-gray-400 space-y-0.5">
+                    {p.director && <p>✓ Direktur Divisi: {p.director.name} · {new Date(p.approvedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
+                    {p.financeDirector && <p>✓ Direktur Finance: {p.financeDirector.name} · {new Date(p.financeApprovedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
+                    {p.financeBy && <p>✓ Dibayar oleh: {p.financeBy.name} · {new Date(p.paidAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
+                  </div>
                   {p.directorNote && <p className="text-xs text-amber-600">Catatan Direktur Divisi{p.director ? ` (${p.director.name})` : ''}: {p.directorNote}</p>}
                   {p.financeDirectorNote && <p className="text-xs text-amber-600">Catatan Direktur Finance{p.financeDirector ? ` (${p.financeDirector.name})` : ''}: {p.financeDirectorNote}</p>}
                   {p.financeNote && <p className="text-xs text-amber-600">Catatan Finance{p.financeBy ? ` (${p.financeBy.name})` : ''}: {p.financeNote}</p>}
