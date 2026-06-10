@@ -2,7 +2,7 @@
 export const MANAGER_ROLES = ['OWNER', 'PROJECT_MANAGER']
 
 export function canViewAllProjects(role) {
-  return MANAGER_ROLES.includes(role)
+  return MANAGER_ROLES.includes(role) || ['DIRECTOR', 'FINANCE'].includes(role)
 }
 
 export function canEditProject(role) {
