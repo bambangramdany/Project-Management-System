@@ -37,6 +37,7 @@ model User {
   directorNotesReceived DirectorNote[] @relation("DirectorNoteTarget")
   directorNotesSent     DirectorNote[] @relation("DirectorNoteAuthor")
   auditLogs             AuditLog[]
+  cashTransactions      CashTransaction[]
 }
 
 // Global audit trail of important changes across the system, for Direksi/Owner
@@ -62,6 +63,30 @@ model AppSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+enum CashTransactionType {
+  IN
+  OUT
+}
+
+// Manual cash ledger entries (e.g. client payments received, bank transfers,
+// petty cash) recorded by Finance, plus automatic OUT entries created when a
+// payment request is marked as paid. Running balance = sum(IN) - sum(OUT).
+model CashTransaction {
+  id          String              @id @default(cuid())
+  type        CashTransactionType
+  amount      Float
+  description String
+  date        DateTime            @default(now())
+  recordedById String?
+  paymentRequestId String?        @unique
+  createdAt   DateTime            @default(now())
+
+  recordedBy     User?           @relation(fields: [recordedById], references: [id], onDelete: SetNull)
+  paymentRequest PaymentRequest? @relation(fields: [paymentRequestId], references: [id], onDelete: SetNull)
+
+  @@index([date])
 }
 
 // Annual revenue/project-count targets per division, set by the Owner for
@@ -416,6 +441,7 @@ model PaymentRequest {
   financeDirector User?          @relation("PaymentFinanceDirector", fields: [financeDirectorId], references: [id])
   financeBy   User?              @relation("PaymentFinanceBy", fields: [financeById], references: [id])
   budgetItem  ProjectBudgetItem? @relation(fields: [budgetItemId], references: [id])
+  cashTransaction CashTransaction?
 }
 
 model TaskDependency {

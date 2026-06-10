@@ -18,7 +18,7 @@ export async function GET() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
 
-  const [pendingOwner, pendingFinanceDirector, readyToPay, paidThisMonthAgg] = await Promise.all([
+  const [pendingOwner, pendingFinanceDirector, readyToPay, paidThisMonthAgg, cashAgg] = await Promise.all([
     prisma.paymentRequest.aggregate({ where: { status: 'PENDING_OWNER' }, _sum: { amount: true }, _count: true }),
     prisma.paymentRequest.aggregate({ where: { status: 'PENDING_FINANCE_DIRECTOR' }, _sum: { amount: true }, _count: true }),
     prisma.paymentRequest.aggregate({ where: { status: 'APPROVED_BY_DIRECTOR' }, _sum: { amount: true }, _count: true }),
@@ -26,7 +26,12 @@ export async function GET() {
       where: { status: 'PAID', paidAt: { gte: startOfMonth, lt: endOfMonth } },
       _sum: { amount: true }, _count: true,
     }),
+    prisma.cashTransaction.groupBy({ by: ['type'], _sum: { amount: true } }),
   ])
+
+  const totalIn = cashAgg.find(a => a.type === 'IN')?._sum.amount || 0
+  const totalOut = cashAgg.find(a => a.type === 'OUT')?._sum.amount || 0
+  const cashBalance = totalIn - totalOut
 
   // Upcoming budget items due within 14 days that haven't been paid yet
   const horizon = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
@@ -53,6 +58,7 @@ export async function GET() {
     }))
 
   return NextResponse.json({
+    cashBalance,
     pendingApproval: {
       amount: (pendingOwner._sum.amount || 0) + (pendingFinanceDirector._sum.amount || 0),
       count: pendingOwner._count + pendingFinanceDirector._count,

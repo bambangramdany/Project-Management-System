@@ -268,7 +268,14 @@ function formatRupiah(n) {
 function CashPositionCard({ data }) {
   return (
     <div className="card p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4">Posisi Kas</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-gray-700">Posisi Kas</h3>
+        <Link href="/cashflow" className="text-xs font-medium text-brand hover:underline">Kelola Kas →</Link>
+      </div>
+      <div className="mb-4 p-3 rounded-lg bg-gray-50 border border-gray-100">
+        <p className="text-xs text-gray-500">Saldo Kas Saat Ini</p>
+        <p className={`text-2xl font-bold ${data.cashBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>{formatRupiah(data.cashBalance)}</p>
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
         <div className="p-3 rounded-lg bg-orange-50">
           <p className="text-xs text-gray-500">Menunggu Approval</p>

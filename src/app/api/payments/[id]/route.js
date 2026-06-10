@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { canApproveAsDirector, canApproveAsOwner, canApproveAsFinanceDirector, canProcessPayment } from '@/lib/rbac'
 import { notifyUser } from '@/lib/notify'
 import { logAudit } from '@/lib/audit'
+import { EXPENSE_CATEGORY_LABEL } from '@/lib/constants'
 import { NextResponse } from 'next/server'
 
 const fmtRupiah = (n) => `Rp ${Math.round(n || 0).toLocaleString('id-ID')}`
@@ -189,6 +190,16 @@ export async function PATCH(req, { params }) {
     await logAudit({
       userId: session.user.id, action: 'PAYMENT_PAID', entity: 'PaymentRequest', entityId: payment.id,
       summary: `${session.user.name} menandai pembayaran ${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) sebagai dibayar`,
+    })
+    // Auto-record this as a cash-out transaction so the cash ledger stays in sync
+    await prisma.cashTransaction.create({
+      data: {
+        type: 'OUT',
+        amount: payment.amount,
+        description: `${payment.project.name}: ${payment.vendor || payment.category} (${EXPENSE_CATEGORY_LABEL[payment.category] || payment.category})`,
+        recordedById: session.user.id,
+        paymentRequestId: payment.id,
+      },
     })
     return NextResponse.json(updated)
   }

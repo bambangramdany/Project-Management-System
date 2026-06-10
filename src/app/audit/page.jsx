@@ -22,6 +22,8 @@ const ACTION_LABEL = {
   PAYMENT_PAID: 'Pembayaran Dieksekusi',
   SETTING_UPDATE: 'Pengaturan Sistem',
   TARGET_UPDATE: 'Target Tahunan',
+  CASH_TRANSACTION: 'Catatan Kas',
+  CASH_TRANSACTION_DELETE: 'Hapus Catatan Kas',
 }
 
 const ACTION_COLOR = {
@@ -41,6 +43,8 @@ const ACTION_COLOR = {
   PAYMENT_PAID: 'bg-emerald-100 text-emerald-700',
   SETTING_UPDATE: 'bg-indigo-100 text-indigo-700',
   TARGET_UPDATE: 'bg-indigo-100 text-indigo-700',
+  CASH_TRANSACTION: 'bg-teal-100 text-teal-700',
+  CASH_TRANSACTION_DELETE: 'bg-red-100 text-red-700',
 }
 
 export default function AuditPage() {

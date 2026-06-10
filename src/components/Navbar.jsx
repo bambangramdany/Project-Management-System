@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { href: '/kpi', label: 'KPI', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/targets', label: 'Target', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/team', label: 'Tim' },
+  { href: '/cashflow', label: 'Kas', cashOnly: true },
   { href: '/audit', label: 'Audit Log', auditOnly: true },
 ]
 
@@ -25,8 +26,10 @@ export default function Navbar() {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
   const canSeeAudit = session?.user.role === 'OWNER' || isFinanceDirector(session?.user)
+  const canSeeCash = session?.user.role === 'OWNER' || session?.user.role === 'FINANCE' || isFinanceDirector(session?.user)
   const visibleItems = NAV_ITEMS.filter(item => {
     if (item.auditOnly) return canSeeAudit
+    if (item.cashOnly) return canSeeCash
     return !item.roles || item.roles.includes(session?.user.role)
   })
 
@@ -84,7 +87,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden border-t border-ink-700 bg-ink-800 px-4 py-3 space-y-1">
-          {NAV_ITEMS.filter(item => !item.roles || item.roles.includes(session?.user.role)).map(item => (
+          {visibleItems.map(item => (
             <Link
               key={item.href}
               href={item.href}
