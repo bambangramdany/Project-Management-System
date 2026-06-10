@@ -92,8 +92,28 @@ async function main() {
     }),
     prisma.user.upsert({
       where: { email: 'david@watermark.co.id' },
+      update: { role: 'DIRECTOR', jobTitle: 'Event Director' },
+      create: { name: 'David', email: 'david@watermark.co.id', hashedPassword: passwordHash, role: 'DIRECTOR', jobTitle: 'Event Director', divisi: 'EVENT', employeeStatus: 'ACTIVE' },
+    }),
+    prisma.user.upsert({
+      where: { email: 'fakhril@watermark.co.id' },
       update: {},
-      create: { name: 'David', email: 'david@watermark.co.id', hashedPassword: passwordHash, role: 'MEMBER', divisi: 'EVENT', employeeStatus: 'ACTIVE' },
+      create: { name: 'Fakhril', email: 'fakhril@watermark.co.id', hashedPassword: passwordHash, role: 'DIRECTOR', jobTitle: 'Creative Director', divisi: 'CREATIVE', employeeStatus: 'ACTIVE' },
+    }),
+    prisma.user.upsert({
+      where: { email: 'gunadarma@watermark.co.id' },
+      update: {},
+      create: { name: 'Gunadarma', email: 'gunadarma@watermark.co.id', hashedPassword: passwordHash, role: 'DIRECTOR', jobTitle: 'PH Director', divisi: 'PH', employeeStatus: 'ACTIVE' },
+    }),
+    prisma.user.upsert({
+      where: { email: 'anung@watermark.co.id' },
+      update: {},
+      create: { name: 'Anung', email: 'anung@watermark.co.id', hashedPassword: passwordHash, role: 'DIRECTOR', jobTitle: 'Finance & HRGA Director', divisi: 'FINANCE_HRGA', employeeStatus: 'ACTIVE' },
+    }),
+    prisma.user.upsert({
+      where: { email: 'antoni@watermark.co.id' },
+      update: {},
+      create: { name: 'Antoni', email: 'antoni@watermark.co.id', hashedPassword: passwordHash, role: 'FINANCE', jobTitle: 'Finance & HRD', divisi: 'FINANCE_HRGA', employeeStatus: 'ACTIVE' },
     }),
   ])
 

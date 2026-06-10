@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: '/projects', label: 'Projects' },
   { href: '/workload', label: 'Workload Tim' },
   { href: '/team', label: 'Tim' },
+  { href: '/finance', label: 'Finance', roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE'] },
 ]
 
 export default function Navbar() {
@@ -29,7 +30,7 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-1">
-            {NAV_ITEMS.map(item => (
+            {NAV_ITEMS.filter(item => !item.roles || item.roles.includes(session?.user.role)).map(item => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -70,7 +71,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-1">
-          {NAV_ITEMS.map(item => (
+          {NAV_ITEMS.filter(item => !item.roles || item.roles.includes(session?.user.role)).map(item => (
             <Link
               key={item.href}
               href={item.href}
