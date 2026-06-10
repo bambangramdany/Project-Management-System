@@ -15,7 +15,26 @@ export async function GET(req, { params }) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const budgetItems = await prisma.projectBudgetItem.findMany({ where: { projectId: params.id }, orderBy: { order: 'asc' } })
+  const items = await prisma.projectBudgetItem.findMany({
+    where: { projectId: params.id },
+    orderBy: { order: 'asc' },
+    include: { payments: { select: { id: true, amount: true, status: true, vendor: true, createdAt: true } } },
+  })
+  // Status of each forecast item is derived from its linked payment requests
+  const budgetItems = items.map(item => {
+    const active = item.payments.filter(p => p.status !== 'REJECTED')
+    const requested = active.reduce((sum, p) => sum + p.amount, 0)
+    const paid = active.filter(p => p.status === 'PAID').reduce((sum, p) => sum + p.amount, 0)
+    let paymentStatus = 'BELUM_DIAJUKAN'
+    if (active.length > 0) {
+      if (active.every(p => p.status === 'PAID')) paymentStatus = 'LUNAS'
+      else if (active.some(p => p.status === 'PAID')) paymentStatus = 'SEBAGIAN'
+      else if (active.some(p => p.status === 'APPROVED_BY_DIRECTOR')) paymentStatus = 'DISETUJUI'
+      else paymentStatus = 'DIAJUKAN'
+    }
+    const base = item.actualAmount ?? item.quotedAmount
+    return { ...item, requestedTotal: requested, paidTotal: paid, remaining: base - paid, paymentStatus }
+  })
   const canNote = ['OWNER', 'FINANCE', 'DIRECTOR'].includes(session.user.role)
   return NextResponse.json({
     budgetItems,

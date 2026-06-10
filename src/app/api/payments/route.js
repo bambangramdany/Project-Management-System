@@ -63,11 +63,30 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // Match/create a forecast line item by label so this request shows up against
+  // the project's budget forecast and reduces the remaining "sisa" amount there.
+  let budgetItemId = body.budgetItemId || null
+  const label = (body.budgetItemLabel || '').trim()
+  if (!budgetItemId && label) {
+    const existing = await prisma.projectBudgetItem.findFirst({
+      where: { projectId: body.projectId, label: { equals: label, mode: 'insensitive' } },
+    })
+    if (existing) {
+      budgetItemId = existing.id
+    } else {
+      const created = await prisma.projectBudgetItem.create({
+        data: { projectId: body.projectId, label, quotedAmount: 0 },
+      })
+      budgetItemId = created.id
+    }
+  }
+
   const payment = await prisma.paymentRequest.create({
     data: {
       projectId: body.projectId,
       requestedById: session.user.id,
       category: body.category,
+      budgetItemId,
       amount: parseFloat(body.amount),
       vendor: body.vendor || null,
       recipientName: body.recipientName || null,

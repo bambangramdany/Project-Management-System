@@ -328,7 +328,8 @@ model ProjectBudgetItem {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project  Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  payments PaymentRequest[]
 }
 
 model PaymentRequest {
@@ -336,6 +337,7 @@ model PaymentRequest {
   projectId       String
   requestedById   String
   category        ExpenseCategory
+  budgetItemId    String?
   amount          Float
   vendor          String?
   recipientName    String?
@@ -353,10 +355,11 @@ model PaymentRequest {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
-  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  requestedBy User    @relation("PaymentRequestedBy", fields: [requestedById], references: [id])
-  director    User?   @relation("PaymentDirector", fields: [directorId], references: [id])
-  financeBy   User?   @relation("PaymentFinanceBy", fields: [financeById], references: [id])
+  project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requestedBy User               @relation("PaymentRequestedBy", fields: [requestedById], references: [id])
+  director    User?              @relation("PaymentDirector", fields: [directorId], references: [id])
+  financeBy   User?              @relation("PaymentFinanceBy", fields: [financeById], references: [id])
+  budgetItem  ProjectBudgetItem? @relation(fields: [budgetItemId], references: [id])
 }
 
 model TaskDependency {

@@ -3,12 +3,28 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import clsx from 'clsx'
 import {
   EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABEL,
   PAYMENT_STATUS_LABEL, PAYMENT_STATUS_COLOR, PAYMENT_TERM_LABEL,
 } from '@/lib/constants'
 
 const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'PRODUCTION']
+
+const BUDGET_ITEM_STATUS_LABEL = {
+  BELUM_DIAJUKAN: 'Belum Diajukan',
+  DIAJUKAN: 'Diajukan',
+  DISETUJUI: 'Disetujui Direktur',
+  SEBAGIAN: 'Dibayar Sebagian',
+  LUNAS: 'Lunas',
+}
+const BUDGET_ITEM_STATUS_COLOR = {
+  BELUM_DIAJUKAN: 'bg-gray-100 text-gray-500',
+  DIAJUKAN: 'bg-yellow-100 text-yellow-700',
+  DISETUJUI: 'bg-blue-100 text-blue-700',
+  SEBAGIAN: 'bg-amber-100 text-amber-700',
+  LUNAS: 'bg-emerald-100 text-emerald-700',
+}
 
 function formatRupiah(n) {
   if (n === null || n === undefined) return '-'
@@ -22,7 +38,8 @@ export default function FinancePage() {
   const [payments, setPayments] = useState([])
   const [filterStatus, setFilterStatus] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ projectId: '', category: 'TICKET_TRANSPORT', amount: '', vendor: '', recipientName: '', recipientAccount: '', paymentTerm: 'FULL', description: '', neededDate: '' })
+  const [form, setForm] = useState({ projectId: '', category: 'TICKET_TRANSPORT', budgetItemLabel: '', amount: '', vendor: '', recipientName: '', recipientAccount: '', paymentTerm: 'FULL', description: '', neededDate: '' })
+  const [formBudgetItems, setFormBudgetItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [budgetProjectId, setBudgetProjectId] = useState('')
   const [budgetItems, setBudgetItems] = useState({})
@@ -64,12 +81,27 @@ export default function FinancePage() {
       body: JSON.stringify(form),
     })
     if (res.ok) {
-      setForm({ projectId: '', category: 'TICKET_TRANSPORT', amount: '', vendor: '', recipientName: '', recipientAccount: '', paymentTerm: 'FULL', description: '', neededDate: '' })
+      setForm({ projectId: '', category: 'TICKET_TRANSPORT', budgetItemLabel: '', amount: '', vendor: '', recipientName: '', recipientAccount: '', paymentTerm: 'FULL', description: '', neededDate: '' })
+      setFormBudgetItems([])
       setShowForm(false)
       fetchPayments()
+      if (budgetProjectId) loadBudget(budgetProjectId)
     } else {
       const err = await res.json()
       alert(err.error || 'Gagal mengajukan')
+    }
+  }
+
+  // Load this project's existing forecast components, so the requester can pick
+  // an existing component (or type a new one which becomes a new forecast line).
+  async function onFormProjectChange(projectId) {
+    setForm(f => ({ ...f, projectId, budgetItemLabel: '' }))
+    setFormBudgetItems([])
+    if (!projectId) return
+    const res = await fetch(`/api/projects/${projectId}/budget`)
+    if (res.ok) {
+      const data = await res.json()
+      setFormBudgetItems((data.budgetItems || []).map(b => b.label).filter(Boolean))
     }
   }
 
@@ -203,7 +235,7 @@ export default function FinancePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="label">Project *</label>
-                <select className="select" value={form.projectId} onChange={e => setForm(f => ({ ...f, projectId: e.target.value }))} required>
+                <select className="select" value={form.projectId} onChange={e => onFormProjectChange(e.target.value)} required>
                   <option value="">Pilih project</option>
                   {myProjects.map(p => (
                     <option key={p.id} value={p.id}>{p.code} — {p.name}</option>
@@ -217,6 +249,19 @@ export default function FinancePage() {
                     <option key={c} value={c}>{EXPENSE_CATEGORY_LABEL[c]}</option>
                   ))}
                 </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label">Komponen Forecast (sesuai quotation)</label>
+                <input
+                  className="input" list="budget-item-options"
+                  value={form.budgetItemLabel}
+                  onChange={e => setForm(f => ({ ...f, budgetItemLabel: e.target.value }))}
+                  placeholder="Pilih komponen forecast yang sudah ada, atau ketik nama baru"
+                />
+                <datalist id="budget-item-options">
+                  {formBudgetItems.map(label => <option key={label} value={label} />)}
+                </datalist>
+                <p className="text-xs text-gray-400 mt-1">Pengajuan ini akan disandingkan dengan forecast project — jika nama komponen baru, akan otomatis ditambahkan ke forecast.</p>
               </div>
               <div>
                 <label className="label">Nominal (Rp) *</label>
@@ -333,6 +378,16 @@ export default function FinancePage() {
                   />
                   {budgetMeta.canEditBudget && (
                     <button onClick={() => removeBudgetRow(idx)} className="col-span-1 text-red-500 text-xs hover:underline">Hapus</button>
+                  )}
+                  {item.id && (
+                    <div className="col-span-12 -mt-1 flex items-center gap-2 flex-wrap text-xs text-gray-500">
+                      <span className={clsx('px-2 py-0.5 rounded-full font-medium', BUDGET_ITEM_STATUS_COLOR[item.paymentStatus] || 'bg-gray-100 text-gray-600')}>
+                        {BUDGET_ITEM_STATUS_LABEL[item.paymentStatus] || item.paymentStatus}
+                      </span>
+                      <span>Diajukan: {formatRupiah(item.requestedTotal || 0)}</span>
+                      <span>Dibayar: {formatRupiah(item.paidTotal || 0)}</span>
+                      <span>Sisa: {formatRupiah(item.remaining)}</span>
+                    </div>
                   )}
                 </div>
               ))}
