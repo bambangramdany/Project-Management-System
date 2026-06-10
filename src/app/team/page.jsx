@@ -31,11 +31,23 @@ export default function TeamPage() {
     }
   }, [status])
 
-  const eventTeam = team.filter(u => u.divisi === 'EVENT')
-  const creativeTeam = team.filter(u => u.divisi === 'CREATIVE')
-  const phTeam = team.filter(u => u.divisi === 'PH')
-  const financeTeam = team.filter(u => u.divisi === 'FINANCE_HRGA')
-  const others = team.filter(u => !u.divisi)
+  // Org-hierarchy order: top management down to support staff
+  const ROLE_ORDER = [
+    'OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'CREATIVE_LEAD', 'FINANCE',
+    'PROJECT_OFFICER', 'PRODUCTION', 'GRAPHIC_DESIGNER', 'STAGE_DESIGNER',
+    'CONTENT_CREATOR', 'MEMBER', 'INTERNSHIP',
+  ]
+  const byHierarchy = (a, b) => {
+    const ai = ROLE_ORDER.indexOf(a.role), bi = ROLE_ORDER.indexOf(b.role)
+    if (ai !== bi) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
+    return a.name.localeCompare(b.name)
+  }
+
+  const eventTeam = team.filter(u => u.divisi === 'EVENT').sort(byHierarchy)
+  const creativeTeam = team.filter(u => u.divisi === 'CREATIVE').sort(byHierarchy)
+  const phTeam = team.filter(u => u.divisi === 'PH').sort(byHierarchy)
+  const financeTeam = team.filter(u => u.divisi === 'FINANCE_HRGA').sort(byHierarchy)
+  const others = team.filter(u => !u.divisi).sort(byHierarchy)
 
   return (
     <div className="min-h-screen bg-gray-50">

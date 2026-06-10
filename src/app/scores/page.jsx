@@ -79,6 +79,7 @@ export default function ScoresPage() {
         </div>
 
         {/* My summary */}
+        {session.user.role !== 'OWNER' && (
         <div className="card p-4">
           <p className="text-sm font-semibold text-ink-800 mb-3">Penilaian Saya</p>
           {data.mine.count === 0 ? (
@@ -97,6 +98,7 @@ export default function ScoresPage() {
             </>
           )}
         </div>
+        )}
 
         {/* Berikan penilaian — pilih project */}
         {myProjects.length > 0 && (

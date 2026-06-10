@@ -52,6 +52,21 @@ export async function GET(req) {
     },
   })
 
+  // Open (not-done) tasks assigned to anyone, scoped to projects in view
+  const tasks = await prisma.task.findMany({
+    where: {
+      projectId: { in: projects.map(p => p.id) },
+      status: { not: 'DONE' },
+      assigneeId: { not: null },
+    },
+    select: {
+      id: true, title: true, status: true, priority: true, dueDate: true,
+      assigneeId: true, projectId: true,
+    },
+  })
+  const projectInfo = {}
+  projects.forEach(p => { projectInfo[p.id] = { code: p.code, name: p.name } })
+
   // Build workload map per user
   const workload = users.map(user => {
     const picProjects = projects.filter(p => p.picId === user.id)
@@ -77,6 +92,11 @@ export async function GET(req) {
         status: p.status, category: p.category,
         startDate: p.startDate, endDate: p.endDate,
         isPic: p.picId === user.id,
+      })),
+      tasks: tasks.filter(t => t.assigneeId === user.id).map(t => ({
+        id: t.id, title: t.title, status: t.status, priority: t.priority, dueDate: t.dueDate,
+        project: projectInfo[t.projectId] || null,
+        projectId: t.projectId,
       })),
     }
   })

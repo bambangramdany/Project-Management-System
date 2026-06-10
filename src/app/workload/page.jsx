@@ -34,6 +34,7 @@ export default function WorkloadPage() {
   const [loading, setLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState(null)
   const [filterDivisi, setFilterDivisi] = useState('')
+  const [teamList, setTeamList] = useState([])
   const now = new Date()
   const [filterMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
 
@@ -43,7 +44,8 @@ export default function WorkloadPage() {
 
   useEffect(() => {
     if (status !== 'authenticated') return
-    const isManager = ['OWNER', 'PROJECT_MANAGER'].includes(session.user.role)
+    fetch('/api/team').then(r => r.json()).then(data => setTeamList(Array.isArray(data) ? data : []))
+    const isManager = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR'].includes(session.user.role)
 
     if (isManager) {
       fetch(`/api/workload?year=${now.getFullYear()}`).then(r => r.json()).then(data => {
@@ -64,13 +66,11 @@ export default function WorkloadPage() {
     }
   }, [status])
 
-  const isManager = ['OWNER', 'PROJECT_MANAGER'].includes(session?.user.role)
+  const isManager = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR'].includes(session?.user.role)
 
   const filtered = workload.filter(w => !filterDivisi || w.user.divisi === filterDivisi)
   const eventTeam = workload.filter(w => w.user.divisi === 'EVENT')
   const creativeTeam = workload.filter(w => w.user.divisi === 'CREATIVE')
-  const phTeam = workload.filter(w => w.user.divisi === 'PH')
-  const financeTeam = workload.filter(w => w.user.divisi === 'FINANCE_HRGA')
 
   const totalActive = workload.reduce((sum, w) => sum + w.activeCount, 0)
 
@@ -152,15 +152,13 @@ export default function WorkloadPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <TeamColumn title="Divisi Event" members={eventTeam} onSelect={setSelectedUser} selectedId={selectedUser?.user.id} />
               <TeamColumn title="Divisi Creative" members={creativeTeam} onSelect={setSelectedUser} selectedId={selectedUser?.user.id} />
-              <TeamColumn title="Production House" members={phTeam} onSelect={setSelectedUser} selectedId={selectedUser?.user.id} />
-              <TeamColumn title="Finance / HR / GA" members={financeTeam} onSelect={setSelectedUser} selectedId={selectedUser?.user.id} />
             </div>
           </>
         )}
 
         {/* Detail panel — selected user or self */}
         {(selectedUser || (!isManager && workload.length > 0)) && (
-          <UserDetail data={selectedUser || workload[0]} session={session} />
+          <UserDetail data={selectedUser || workload[0]} session={session} teamList={teamList} canReassign={isManager} />
         )}
 
       </main>
@@ -320,8 +318,24 @@ function TeamColumn({ title, members, onSelect, selectedId }) {
   )
 }
 
-function UserDetail({ data, session }) {
+function UserDetail({ data, session, teamList = [], canReassign = false }) {
   const [showAll, setShowAll] = useState(false)
+  const [tasks, setTasks] = useState(data.tasks || [])
+  const [reassigning, setReassigning] = useState(null)
+
+  useEffect(() => { setTasks(data.tasks || []) }, [data])
+
+  const handleReassign = async (taskId, assigneeId) => {
+    setReassigning(taskId)
+    await fetch(`/api/tasks/${taskId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assigneeId }),
+    })
+    setTasks(t => t.filter(x => x.id !== taskId))
+    setReassigning(null)
+  }
+
   const activeProjects = data.projects.filter(p => ['HOLD','PITCHING','WAITING_PITCH_RESULT','PREPARATION','EVENT_DAY','REPORTING','INVOICING'].includes(p.status))
   const closedProjects = data.projects.filter(p => ['DONE','FAILED','CANCELED'].includes(p.status))
   const displayed = showAll ? data.projects : activeProjects
@@ -355,6 +369,46 @@ function UserDetail({ data, session }) {
       {KPI_BY_ROLE[data.user.role] && (
         <KpiPanel user={data.user} session={session} />
       )}
+
+      {/* Active task list — for delegation/reassignment */}
+      <div className="mb-4">
+        <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Tugas Berjalan ({tasks.length})</h3>
+        {tasks.length === 0 ? (
+          <p className="text-sm text-gray-400">Tidak ada tugas berjalan.</p>
+        ) : (
+          <div className="space-y-2">
+            {tasks.map(t => (
+              <div key={t.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-100">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {t.project && <span className="text-xs text-gray-400 font-mono">{t.project.code}</span>}
+                    <span className={clsx('text-xs px-1.5 py-0.5 rounded font-medium',
+                      t.priority === 'HIGH' ? 'bg-red-100 text-red-600' : t.priority === 'LOW' ? 'bg-gray-100 text-gray-500' : 'bg-yellow-100 text-yellow-700')}>
+                      {t.priority}
+                    </span>
+                    <span className="text-xs text-gray-400">{t.status}</span>
+                  </div>
+                  <p className="text-sm text-gray-800 truncate">{t.title}</p>
+                  {t.project && <p className="text-xs text-gray-400 truncate">{t.project.name}</p>}
+                </div>
+                {canReassign && (
+                  <select
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 shrink-0"
+                    value=""
+                    disabled={reassigning === t.id}
+                    onChange={e => e.target.value && handleReassign(t.id, e.target.value)}
+                  >
+                    <option value="">Delegasikan ke...</option>
+                    {teamList.filter(u => u.id !== data.user.id).map(u => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
