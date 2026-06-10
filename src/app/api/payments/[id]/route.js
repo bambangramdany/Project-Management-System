@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { canApproveAsDirector, canApproveAsFinanceDirector, canProcessPayment } from '@/lib/rbac'
+import { canApproveAsDirector, canApproveAsOwner, canApproveAsFinanceDirector, canProcessPayment } from '@/lib/rbac'
 import { notifyUser } from '@/lib/notify'
 import { NextResponse } from 'next/server'
 
@@ -24,6 +24,9 @@ async function findApprovers(stage, project) {
       select: { id: true },
     })
   }
+  if (stage === 'PENDING_OWNER') {
+    return prisma.user.findMany({ where: { role: 'OWNER' }, select: { id: true } })
+  }
   return []
 }
 
@@ -42,7 +45,40 @@ export async function PATCH(req, { params }) {
 
   const action = body.action // 'approve' | 'reject' | 'mark_paid'
 
-  // Stage 1: division director (Event/PH/Creative) approval
+  // Stage 0: Owner approval — only when the request was submitted by a division director
+  if ((action === 'approve' || action === 'reject') && payment.status === 'PENDING_OWNER') {
+    if (!canApproveAsOwner(session.user)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    const updated = await prisma.paymentRequest.update({
+      where: { id },
+      data: {
+        status: action === 'approve' ? 'PENDING_FINANCE_DIRECTOR' : 'REJECTED',
+        ownerId: session.user.id,
+        ownerNote: body.note || null,
+        ownerApprovedAt: new Date(),
+      },
+    })
+    if (action === 'approve') {
+      const approvers = await findApprovers('PENDING_FINANCE_DIRECTOR', payment.project)
+      await Promise.all(approvers.map(u => notifyUser({
+        userId: u.id, type: 'PAYMENT_APPROVAL',
+        title: 'Pengajuan Pembayaran Menunggu Approval Anda',
+        message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) telah disetujui Owner.`,
+        link: '/finance',
+      })))
+    } else {
+      await notifyUser({
+        userId: payment.requestedById, type: 'PAYMENT_REJECTED',
+        title: 'Pengajuan Pembayaran Ditolak',
+        message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) ditolak oleh Owner.${body.note ? ` Catatan: ${body.note}` : ''}`,
+        link: '/finance',
+      })
+    }
+    return NextResponse.json(updated)
+  }
+
+  // Legacy stage: division director (Event/PH/Creative) approval
   if ((action === 'approve' || action === 'reject') && payment.status === 'PENDING_DIRECTOR') {
     if (!canApproveAsDirector(session.user, payment.project)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

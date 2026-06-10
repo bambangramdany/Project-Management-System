@@ -39,6 +39,7 @@ export async function GET(req) {
     include: {
       project: { select: { id: true, code: true, name: true, division: true, picId: true } },
       requestedBy: { select: { id: true, name: true } },
+      owner: { select: { id: true, name: true } },
       director: { select: { id: true, name: true } },
       financeDirector: { select: { id: true, name: true } },
       financeBy: { select: { id: true, name: true } },
@@ -83,6 +84,12 @@ export async function POST(req) {
     }
   }
 
+  // Requests submitted by a division director (Event/PH/Creative) need an extra
+  // Owner approval step first; everything else goes straight to the Finance Director.
+  const initialStatus = session.user.role === 'DIRECTOR' && session.user.divisi !== 'FINANCE_HRGA'
+    ? 'PENDING_OWNER'
+    : 'PENDING_FINANCE_DIRECTOR'
+
   const payment = await prisma.paymentRequest.create({
     data: {
       projectId: body.projectId,
@@ -96,6 +103,7 @@ export async function POST(req) {
       paymentTerm: body.paymentTerm || 'FULL',
       description: body.description || null,
       neededDate: body.neededDate ? new Date(body.neededDate) : null,
+      status: initialStatus,
     },
     include: {
       project: { select: { id: true, code: true, name: true, division: true } },
@@ -103,11 +111,13 @@ export async function POST(req) {
     },
   })
 
-  // Notify the division director (or Owner) who needs to approve this first
-  const approvers = await prisma.user.findMany({
-    where: { OR: [{ role: 'OWNER' }, { role: 'DIRECTOR', divisi: project.division }] },
-    select: { id: true },
-  })
+  // Notify whoever needs to approve this first
+  const approvers = initialStatus === 'PENDING_OWNER'
+    ? await prisma.user.findMany({ where: { role: 'OWNER' }, select: { id: true } })
+    : await prisma.user.findMany({
+        where: { OR: [{ role: 'OWNER' }, { role: 'DIRECTOR', divisi: 'FINANCE_HRGA' }] },
+        select: { id: true },
+      })
   await Promise.all(approvers.map(u => notifyUser({
     userId: u.id, type: 'PAYMENT_APPROVAL',
     title: 'Pengajuan Pembayaran Baru',

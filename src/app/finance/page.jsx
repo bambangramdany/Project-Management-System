@@ -6,7 +6,7 @@ import Navbar from '@/components/Navbar'
 import clsx from 'clsx'
 import {
   EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABEL,
-  PAYMENT_STATUS_LABEL, PAYMENT_STATUS_COLOR, PAYMENT_TERM_LABEL, PAYMENT_STAGES,
+  PAYMENT_STATUS_LABEL, PAYMENT_STATUS_COLOR, PAYMENT_TERM_LABEL, PAYMENT_STAGES, PAYMENT_STAGES_WITH_OWNER,
   DIVISION_LABEL,
 } from '@/lib/constants'
 
@@ -216,7 +216,7 @@ export default function FinancePage() {
   if (status !== 'authenticated' || !FINANCE_ROLES.includes(session?.user.role)) return <LoadingScreen />
 
   const role = session.user.role
-  const canCreate = role === 'OWNER' || role === 'PROJECT_MANAGER'
+  const canCreate = role === 'OWNER' || role === 'PROJECT_MANAGER' || role === 'DIRECTOR'
   const canSeeBudgetEdit = role !== 'PROJECT_MANAGER' || true // PM can view own; edit gated server-side
 
   const myProjects = (role === 'PROJECT_MANAGER' || role === 'PRODUCTION')
@@ -607,6 +607,7 @@ export default function FinancePage() {
                     Nominal: p.amount,
                     Status: PAYMENT_STATUS_LABEL[p.status],
                     Diajukan: `${p.requestedBy?.name || ''} (${p.createdAt ? new Date(p.createdAt).toLocaleString('id-ID') : ''})`,
+                    Owner: p.owner ? `${p.owner.name} (${p.ownerApprovedAt ? new Date(p.ownerApprovedAt).toLocaleString('id-ID') : ''})` : '',
                     DirekturDivisi: p.director ? `${p.director.name} (${p.approvedAt ? new Date(p.approvedAt).toLocaleString('id-ID') : ''})` : '',
                     DirekturFinance: p.financeDirector ? `${p.financeDirector.name} (${p.financeApprovedAt ? new Date(p.financeApprovedAt).toLocaleString('id-ID') : ''})` : '',
                     Dibayar: p.financeBy ? `${p.financeBy.name} (${p.paidAt ? new Date(p.paidAt).toLocaleString('id-ID') : ''})` : '',
@@ -625,11 +626,13 @@ export default function FinancePage() {
 
           <div className="space-y-2">
             {payments.map(p => {
+              const canActOwner = p.status === 'PENDING_OWNER' && role === 'OWNER'
               const canActDivision = p.status === 'PENDING_DIRECTOR' &&
                 (role === 'OWNER' || (role === 'DIRECTOR' && session.user.divisi === p.project?.division))
               const canActFinanceDirector = p.status === 'PENDING_FINANCE_DIRECTOR' &&
                 (role === 'OWNER' || (role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA'))
-              const canActPay = p.status === 'APPROVED_BY_DIRECTOR' && (role === 'FINANCE' || role === 'OWNER')
+              const canActPay = p.status === 'APPROVED_BY_DIRECTOR' &&
+                (role === 'FINANCE' || role === 'OWNER' || (role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA'))
 
               return (
                 <div key={p.id} className="border border-gray-100 rounded-lg p-3 space-y-2 hover:shadow-sm hover:border-brand-200 transition-all">
@@ -643,7 +646,7 @@ export default function FinancePage() {
                     </span>
                   </div>
 
-                  {p.status !== 'REJECTED' && <PaymentStepper status={p.status} />}
+                  {p.status !== 'REJECTED' && <PaymentStepper status={p.status} hasOwnerStage={!!p.owner || p.status === 'PENDING_OWNER'} />}
 
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
                     <span>Nominal: <strong className="text-gray-800">{formatRupiah(p.amount)}</strong></span>
@@ -657,16 +660,18 @@ export default function FinancePage() {
                   {p.description && <p className="text-xs text-gray-600">{p.description}</p>}
                   {/* Audit trail */}
                   <div className="text-[11px] text-gray-400 space-y-0.5">
+                    {p.owner && <p>✓ Owner: {p.owner.name} · {new Date(p.ownerApprovedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
                     {p.director && <p>✓ Direktur Divisi: {p.director.name} · {new Date(p.approvedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
                     {p.financeDirector && <p>✓ Direktur Finance: {p.financeDirector.name} · {new Date(p.financeApprovedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
                     {p.financeBy && <p>✓ Dibayar oleh: {p.financeBy.name} · {new Date(p.paidAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
                   </div>
+                  {p.ownerNote && <p className="text-xs text-amber-600">Catatan Owner: {p.ownerNote}</p>}
                   {p.directorNote && <p className="text-xs text-amber-600">Catatan Direktur Divisi{p.director ? ` (${p.director.name})` : ''}: {p.directorNote}</p>}
                   {p.financeDirectorNote && <p className="text-xs text-amber-600">Catatan Direktur Finance{p.financeDirector ? ` (${p.financeDirector.name})` : ''}: {p.financeDirectorNote}</p>}
                   {p.financeNote && <p className="text-xs text-amber-600">Catatan Finance{p.financeBy ? ` (${p.financeBy.name})` : ''}: {p.financeNote}</p>}
 
                   {/* Actions */}
-                  {(canActDivision || canActFinanceDirector) && (
+                  {(canActOwner || canActDivision || canActFinanceDirector) && (
                     <div className="flex gap-2 pt-1">
                       <button onClick={() => doAction(p.id, 'approve')} className="text-xs px-3 py-1 rounded-full bg-green-50 text-green-600 hover:bg-green-100 active:scale-95 font-medium transition-all">Setujui</button>
                       <button onClick={() => doAction(p.id, 'reject')} className="text-xs px-3 py-1 rounded-full bg-red-50 text-red-500 hover:bg-red-100 active:scale-95 font-medium transition-all">Tolak</button>
@@ -687,14 +692,15 @@ export default function FinancePage() {
   )
 }
 
-function PaymentStepper({ status }) {
+function PaymentStepper({ status, hasOwnerStage }) {
+  const stages = hasOwnerStage ? PAYMENT_STAGES_WITH_OWNER : PAYMENT_STAGES
   const currentIdx = status === 'PAID'
-    ? PAYMENT_STAGES.length - 1
-    : PAYMENT_STAGES.findIndex(s => s.key === status)
+    ? stages.length - 1
+    : stages.findIndex(s => s.key === status)
 
   return (
     <div className="flex items-center gap-1 py-1">
-      {PAYMENT_STAGES.map((stage, idx) => {
+      {stages.map((stage, idx) => {
         const done = idx < currentIdx || status === 'PAID'
         const active = idx === currentIdx && status !== 'PAID'
         return (
@@ -710,7 +716,7 @@ function PaymentStepper({ status }) {
                 {stage.label}
               </span>
             </div>
-            {idx < PAYMENT_STAGES.length - 1 && (
+            {idx < stages.length - 1 && (
               <div className={clsx('h-0.5 flex-1 mx-1 rounded transition-colors', done ? 'bg-emerald-400' : 'bg-gray-200')} />
             )}
           </div>

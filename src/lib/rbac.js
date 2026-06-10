@@ -23,46 +23,63 @@ export function canDeleteProject(role) {
 
 // ── Finance / Budget RBAC ────────────────────────────────────────────────
 
+// Anung — the Finance & HRGA Director — has full finance visibility/control
+// equivalent to the Owner, since he runs approval & payment execution.
+export function isFinanceDirector(user) {
+  return !!user && user.role === 'DIRECTOR' && user.divisi === 'FINANCE_HRGA'
+}
+
 // Can view a project's budget forecast & payment amounts
 export function canViewBudget(user, project) {
   if (!user || !project) return false
   if (user.role === 'OWNER' || user.role === 'FINANCE') return true
+  if (isFinanceDirector(user)) return true
   if (user.role === 'DIRECTOR' && user.divisi === project.division) return true
   if (project.picId === user.id) return true
   return false
 }
 
-// Can create a payment request (PM/PIC of the project, or Owner)
+// Can create a payment request (PM/PIC of the project, division director, or Owner)
 export function canRequestPayment(user, project) {
   if (!user || !project) return false
   if (user.role === 'OWNER') return true
   if (user.role === 'PROJECT_MANAGER' && project.picId === user.id) return true
+  if (user.role === 'DIRECTOR' && user.divisi === project.division) return true
   return false
 }
 
-// Stage 1: Can approve/reject as the project's division Director (Event/PH/Creative)
+// Legacy stage: division Director (Event/PH/Creative) approval — kept for any
+// payment requests still pending under the old single-track flow.
 export function canApproveAsDirector(user, project) {
   if (!user || !project) return false
   if (user.role === 'OWNER') return true
   return user.role === 'DIRECTOR' && user.divisi === project.division
 }
 
-// Stage 2: Finance & HRGA Director (Anung) approval
+// Stage 1 (only when the requester is a division Director): Owner approves first
+export function canApproveAsOwner(user) {
+  return user?.role === 'OWNER'
+}
+
+// Stage 1: Finance & HRGA Director (Anung) approval — required for ALL expenses
 export function canApproveAsFinanceDirector(user) {
   if (!user) return false
   if (user.role === 'OWNER') return true
-  return user.role === 'DIRECTOR' && user.divisi === 'FINANCE_HRGA'
+  return isFinanceDirector(user)
 }
 
-// Stage 3: Can mark a payment as PAID (Finance team / Owner)
+// Stage 2: Can mark a payment as PAID (Finance team / Anung as backup / Owner)
 export function canProcessPayment(user) {
-  return user?.role === 'FINANCE' || user?.role === 'OWNER'
+  if (!user) return false
+  if (user.role === 'FINANCE' || user.role === 'OWNER') return true
+  return isFinanceDirector(user)
 }
 
 // Can edit budget forecast figures
 export function canEditBudget(user, project) {
   if (!user || !project) return false
   if (user.role === 'OWNER' || user.role === 'FINANCE') return true
+  if (isFinanceDirector(user)) return true
   if (user.role === 'DIRECTOR' && user.divisi === project.division) return true
   if (project.picId === user.id) return true
   if (user.role === 'PRODUCTION') return true
@@ -82,6 +99,7 @@ export function canViewMargin(user, project) {
 export function canEditProjectValue(user, project) {
   if (!user || !project) return false
   if (user.role === 'OWNER' || user.role === 'FINANCE') return true
+  if (isFinanceDirector(user)) return true
   if (project.picId === user.id) return true
   if (user.role === 'PRODUCTION') return true
   return false
@@ -92,6 +110,7 @@ export function canEditProjectValue(user, project) {
 export function canLockBudget(user, project) {
   if (!user || !project) return false
   if (user.role === 'OWNER' || user.role === 'FINANCE') return true
+  if (isFinanceDirector(user)) return true
   if (user.role === 'DIRECTOR' && user.divisi === project.division) return true
   return false
 }
