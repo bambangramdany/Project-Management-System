@@ -7,6 +7,7 @@ import clsx from 'clsx'
 import {
   EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABEL,
   PAYMENT_STATUS_LABEL, PAYMENT_STATUS_COLOR, PAYMENT_TERM_LABEL, PAYMENT_STAGES,
+  DIVISION_LABEL,
 } from '@/lib/constants'
 
 const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'PRODUCTION']
@@ -48,6 +49,7 @@ export default function FinancePage() {
   const [projectValue, setProjectValue] = useState('')
   const [budgetMeta, setBudgetMeta] = useState({ canViewMargin: false, canEditProjectValue: false })
   const [cashflow, setCashflow] = useState(null)
+  const [marginReport, setMarginReport] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -70,6 +72,7 @@ export default function FinancePage() {
     }
     if (status === 'authenticated' && ['OWNER', 'FINANCE', 'DIRECTOR'].includes(session.user.role)) {
       fetch('/api/finance/cashflow').then(r => r.json()).then(data => setCashflow(data))
+      fetch('/api/finance/margin-report').then(r => r.json()).then(data => setMarginReport(data))
     }
   }, [status, session, fetchPayments])
 
@@ -226,6 +229,52 @@ export default function FinancePage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Margin report (Owner/Finance/Direksi only) */}
+        {marginReport && marginReport.divisions.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-bold text-gray-900">Laporan Margin per Divisi</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {marginReport.divisions.map(d => (
+                <div key={d.division} className="rounded-2xl bg-gradient-to-br from-brand-50 to-orange-50 border border-brand-100 p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-gray-900">{DIVISION_LABEL[d.division] || d.division}</h3>
+                    <span className="text-xs text-gray-500">{d.projects.length} project</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-gray-500">Total Nilai Project</p>
+                      <p className="font-bold text-gray-900">{formatRupiah(d.totalValue)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Total Biaya (Aktual)</p>
+                      <p className="font-bold text-gray-900">{formatRupiah(d.totalActualCost)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Margin (Forecast)</p>
+                      <p className={clsx('font-bold', d.totalMarginForecast >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(d.totalMarginForecast)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Margin (Aktual)</p>
+                      <p className={clsx('font-bold', d.totalMarginActual >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(d.totalMarginActual)}</p>
+                    </div>
+                  </div>
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-brand-700 font-medium hover:text-brand-800 select-none">Detail per project</summary>
+                    <div className="mt-2 space-y-1.5">
+                      {d.projects.map(p => (
+                        <div key={p.id} className="flex items-center justify-between bg-white/60 rounded-lg px-2 py-1.5">
+                          <span className="text-gray-700">{p.code} — {p.name}</span>
+                          <span className={clsx('font-semibold', p.marginActual >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(p.marginActual)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
