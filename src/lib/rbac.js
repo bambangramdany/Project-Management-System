@@ -5,8 +5,12 @@ export function canViewAllProjects(role) {
   return MANAGER_ROLES.includes(role) || ['DIRECTOR', 'FINANCE'].includes(role)
 }
 
-export function canEditProject(role) {
-  return ['OWNER', 'PROJECT_MANAGER'].includes(role)
+export function canEditProject(user, project) {
+  if (!user) return false
+  if (['OWNER', 'PROJECT_MANAGER'].includes(user.role)) return true
+  // Division directors (Event/PH/Creative) can edit projects in their own division
+  if (user.role === 'DIRECTOR' && project && user.divisi === project.division) return true
+  return false
 }
 
 export function canManageUsers(role) {

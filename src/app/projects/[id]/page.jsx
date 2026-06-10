@@ -40,6 +40,7 @@ export default function ProjectDetailPage() {
   }, [status, id])
 
   const isManager = ['OWNER', 'PROJECT_MANAGER'].includes(session?.user.role)
+    || (session?.user.role === 'DIRECTOR' && project?.division === session?.user.divisi)
 
   async function updateStatus(newStatus) {
     if (!isManager) return

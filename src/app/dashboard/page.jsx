@@ -93,7 +93,8 @@ function DivisionSection({ title, projects, session, onChanged }) {
   PIPELINE_STAGES.forEach(s => { countByStatus[s.key] = projects.filter(p => p.status === s.key).length })
   // Sort for morning briefing: Pitching -> Waiting Result -> Preparation -> Event Day -> Reporting -> Invoicing
   const briefingActive = [...active].sort((a, b) => BRIEFING_ORDER.indexOf(a.status) - BRIEFING_ORDER.indexOf(b.status))
-  const canEdit = ['OWNER', 'PROJECT_MANAGER'].includes(session?.user?.role)
+  const role = session?.user?.role
+  const canEditBase = ['OWNER', 'PROJECT_MANAGER'].includes(role)
 
   return (
     <div className="space-y-4">
@@ -133,7 +134,7 @@ function DivisionSection({ title, projects, session, onChanged }) {
             <p className="text-sm text-gray-400 text-center py-8">Tidak ada project aktif</p>
           )}
           {briefingActive.map(p => (
-            <ProjectRow key={p.id} project={p} canEdit={canEdit} onChanged={onChanged} />
+            <ProjectRow key={p.id} project={p} canEdit={canEditBase || (role === 'DIRECTOR' && p.division === session?.user?.divisi)} onChanged={onChanged} />
           ))}
         </div>
       </div>

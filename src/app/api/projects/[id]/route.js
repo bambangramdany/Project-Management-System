@@ -31,7 +31,10 @@ export async function GET(req, { params }) {
 export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!canEditProject(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const existingProject = await prisma.project.findUnique({ where: { id: params.id } })
+  if (!existingProject) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!canEditProject(session.user, existingProject)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
   const { memberIds, ...fields } = body
