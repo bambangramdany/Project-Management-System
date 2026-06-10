@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import {
   EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABEL,
-  PAYMENT_STATUS_LABEL, PAYMENT_STATUS_COLOR,
+  PAYMENT_STATUS_LABEL, PAYMENT_STATUS_COLOR, PAYMENT_TERM_LABEL,
 } from '@/lib/constants'
 
 const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE']
@@ -22,7 +22,7 @@ export default function FinancePage() {
   const [payments, setPayments] = useState([])
   const [filterStatus, setFilterStatus] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ projectId: '', category: 'TICKET_TRANSPORT', amount: '', vendor: '', description: '', neededDate: '' })
+  const [form, setForm] = useState({ projectId: '', category: 'TICKET_TRANSPORT', amount: '', vendor: '', recipientName: '', recipientAccount: '', paymentTerm: 'FULL', description: '', neededDate: '' })
   const [loading, setLoading] = useState(true)
   const [budgetProjectId, setBudgetProjectId] = useState('')
   const [budgetItems, setBudgetItems] = useState({})
@@ -58,7 +58,7 @@ export default function FinancePage() {
       body: JSON.stringify(form),
     })
     if (res.ok) {
-      setForm({ projectId: '', category: 'TICKET_TRANSPORT', amount: '', vendor: '', description: '', neededDate: '' })
+      setForm({ projectId: '', category: 'TICKET_TRANSPORT', amount: '', vendor: '', recipientName: '', recipientAccount: '', paymentTerm: 'FULL', description: '', neededDate: '' })
       setShowForm(false)
       fetchPayments()
     } else {
@@ -164,6 +164,22 @@ export default function FinancePage() {
                 <input className="input" value={form.vendor} onChange={e => setForm(f => ({ ...f, vendor: e.target.value }))} placeholder="Nama vendor / penerima" />
               </div>
               <div>
+                <label className="label">Termin Pembayaran</label>
+                <select className="select" value={form.paymentTerm} onChange={e => setForm(f => ({ ...f, paymentTerm: e.target.value }))}>
+                  {Object.entries(PAYMENT_TERM_LABEL).map(([k, l]) => (
+                    <option key={k} value={k}>{l}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Nama Penerima</label>
+                <input className="input" value={form.recipientName} onChange={e => setForm(f => ({ ...f, recipientName: e.target.value }))} placeholder="Nama pemilik rekening" />
+              </div>
+              <div>
+                <label className="label">No. Rekening Penerima</label>
+                <input className="input" value={form.recipientAccount} onChange={e => setForm(f => ({ ...f, recipientAccount: e.target.value }))} placeholder="Bank & nomor rekening" />
+              </div>
+              <div>
                 <label className="label">Tanggal Dibutuhkan</label>
                 <input type="date" className="input" value={form.neededDate} onChange={e => setForm(f => ({ ...f, neededDate: e.target.value }))} />
               </div>
@@ -251,9 +267,13 @@ export default function FinancePage() {
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
                   <span>Nominal: <strong className="text-gray-800">{formatRupiah(p.amount)}</strong></span>
+                  <span>Termin: {PAYMENT_TERM_LABEL[p.paymentTerm] || PAYMENT_TERM_LABEL.FULL}</span>
                   <span>Diajukan: {p.requestedBy?.name}</span>
                   {p.neededDate && <span>Dibutuhkan: {new Date(p.neededDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
                 </div>
+                {(p.recipientName || p.recipientAccount) && (
+                  <p className="text-xs text-gray-500">Penerima: {p.recipientName || '—'}{p.recipientAccount ? ` · ${p.recipientAccount}` : ''}</p>
+                )}
                 {p.description && <p className="text-xs text-gray-600">{p.description}</p>}
                 {p.directorNote && <p className="text-xs text-amber-600">Catatan Direktur: {p.directorNote}</p>}
 

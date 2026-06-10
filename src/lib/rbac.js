@@ -75,11 +75,63 @@ export function canViewKpiSummary(user) {
 
 // ── Project bonus scoring RBAC ──────────────────────────────────────────
 
-// PIC of the project (or Owner / division Director) can score members for bonus purposes
+// Wulan has cross-team scoring privilege (can score other PMs and any team member)
+export const CROSS_TEAM_PM_EMAIL = 'wulan@watermark.co.id'
+
+// Can the user open the bonus-scoring tab at all for this project?
 export function canScoreProject(user, project) {
   if (!user || !project) return false
   if (user.role === 'OWNER') return true
+  if (user.email === CROSS_TEAM_PM_EMAIL) return true
   if (project.picId === user.id) return true
   if (user.role === 'DIRECTOR' && user.divisi === project.division) return true
   return false
+}
+
+// Can `evaluator` score this specific `target` member for this `project`?
+// Rules:
+// - Nobody scores themselves
+// - Directors/Owner are not scored here (use canSubmitDirectorNote instead)
+// - OWNER and the special cross-team PM (Wulan) can score anyone, including other PMs
+// - A regular PM (PIC of the project) can score their team members, but NOT other PMs
+// - Below-PM members can peer-review each other within the same project
+export function canScoreProjectMember(evaluator, target, project) {
+  if (!evaluator || !target || !project) return false
+  if (evaluator.id === target.id) return false
+  if (['OWNER', 'DIRECTOR'].includes(target.role)) return false
+
+  if (evaluator.role === 'OWNER') return true
+  if (evaluator.email === CROSS_TEAM_PM_EMAIL) return true
+
+  if (evaluator.role === 'PROJECT_MANAGER') {
+    if (project.picId !== evaluator.id) return false
+    return target.role !== 'PROJECT_MANAGER'
+  }
+
+  if (evaluator.role === 'DIRECTOR' && evaluator.divisi === project.division) return true
+
+  // Peer review among non-PM/director/owner members of the same project
+  return target.role !== 'PROJECT_MANAGER'
+}
+
+// ── Anonymous notes to directors ────────────────────────────────────────
+
+// Anyone below Director/Owner can leave an anonymous note for a director
+export function canSubmitDirectorNote(user) {
+  if (!user) return false
+  return !['OWNER', 'DIRECTOR'].includes(user.role)
+}
+
+// Only Owner and the Finance/HRGA director (HR) can see who authored a note
+export function canViewDirectorNoteAuthors(user) {
+  if (!user) return false
+  if (user.role === 'OWNER') return true
+  return user.role === 'DIRECTOR' && user.divisi === 'FINANCE_HRGA'
+}
+
+// Roles that can see ALL bonus scores & notes across the company (Owner + HR)
+export function canViewAllScores(user) {
+  if (!user) return false
+  if (user.role === 'OWNER') return true
+  return user.role === 'DIRECTOR' && user.divisi === 'FINANCE_HRGA'
 }

@@ -171,6 +171,12 @@ export const PROJECT_SCORE_CRITERIA = [
   { key: 'teamwork', label: 'Kerjasama & komunikasi tim' },
 ]
 
+export const PAYMENT_TERM_LABEL = {
+  DP: 'DP (Uang Muka)',
+  PELUNASAN: 'Pelunasan',
+  FULL: 'Pelunasan Sekaligus',
+}
+
 export const PAYMENT_STATUS_COLOR = {
   PENDING_DIRECTOR: 'bg-yellow-100 text-yellow-700',
   APPROVED_BY_DIRECTOR: 'bg-blue-100 text-blue-700',

@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { canScoreProject } from '@/lib/rbac'
+import { canScoreProject, canScoreProjectMember, canViewAllScores } from '@/lib/rbac'
 import { NextResponse } from 'next/server'
 
 export async function GET(req, { params }) {
@@ -19,7 +19,12 @@ export async function GET(req, { params }) {
     },
   })
 
-  return NextResponse.json(scores)
+  // Only Owner/HR can see who gave a score; everyone else only sees their own submissions
+  const visible = canViewAllScores(session.user)
+    ? scores
+    : scores.filter(s => s.evaluatorId === session.user.id)
+
+  return NextResponse.json(visible)
 }
 
 export async function POST(req, { params }) {
@@ -36,6 +41,13 @@ export async function POST(req, { params }) {
   const body = await req.json() // { userId, items: [{ criteria, score, comment }] }
   if (!body.userId || !Array.isArray(body.items)) {
     return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
+  }
+
+  const target = await prisma.user.findUnique({ where: { id: body.userId }, select: { id: true, role: true, divisi: true } })
+  if (!target) return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 })
+
+  if (!canScoreProjectMember(session.user, target, project)) {
+    return NextResponse.json({ error: 'Anda tidak berhak menilai anggota ini' }, { status: 403 })
   }
 
   const results = await Promise.all(body.items.map(item =>

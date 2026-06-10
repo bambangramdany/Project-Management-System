@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { StatusBadge, CategoryBadge, PitchResultBadge } from '@/components/StatusBadge'
 import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, RECOMMENDATION_ICON, DIVISION_LABEL, PROJECT_SCORE_CRITERIA, KPI_SCORE_LABEL } from '@/lib/constants'
-import { canScoreProject } from '@/lib/rbac'
+import { canScoreProject, canScoreProjectMember } from '@/lib/rbac'
 import Link from 'next/link'
 
 export default function ProjectDetailPage() {
@@ -424,7 +424,7 @@ function ProjectBonusTab({ project, session }) {
   const members = [
     ...(project.pic ? [project.pic] : []),
     ...((project.members || []).map(m => m.user).filter(u => u && u.id !== project.pic?.id)),
-  ]
+  ].filter(u => canScoreProjectMember(session?.user, u, project))
 
   useEffect(() => {
     fetch(`/api/projects/${project.id}/scores`)

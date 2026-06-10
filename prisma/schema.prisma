@@ -31,6 +31,21 @@ model User {
   kpiGiven       KpiAssessment[] @relation("KpiEvaluator")
   projectScoresReceived ProjectScore[] @relation("ProjectScoreUser")
   projectScoresGiven    ProjectScore[] @relation("ProjectScoreEvaluator")
+  directorNotesReceived DirectorNote[] @relation("DirectorNoteTarget")
+  directorNotesSent     DirectorNote[] @relation("DirectorNoteAuthor")
+}
+
+// Anonymous note from a team member to a director. The author is hidden from the
+// director — only OWNER and HR (Finance/HRGA director) can see who wrote it.
+model DirectorNote {
+  id         String   @id @default(cuid())
+  directorId String
+  authorId   String
+  message    String
+  createdAt  DateTime @default(now())
+
+  director User @relation("DirectorNoteTarget", fields: [directorId], references: [id], onDelete: Cascade)
+  author   User @relation("DirectorNoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 }
 
 model ProjectScore {
@@ -276,6 +291,12 @@ enum PaymentStatus {
   PAID
 }
 
+enum PaymentTerm {
+  DP
+  PELUNASAN
+  FULL
+}
+
 model ProjectBudget {
   id        String          @id @default(cuid())
   projectId String
@@ -296,6 +317,9 @@ model PaymentRequest {
   category        ExpenseCategory
   amount          Float
   vendor          String?
+  recipientName    String?
+  recipientAccount String?
+  paymentTerm      PaymentTerm     @default(FULL)
   description     String?
   neededDate      DateTime?
   status          PaymentStatus   @default(PENDING_DIRECTOR)

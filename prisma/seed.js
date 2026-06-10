@@ -117,8 +117,8 @@ async function main() {
     }),
     prisma.user.upsert({
       where: { email: 'bambang@watermark.co.id' },
-      update: {},
-      create: { name: 'Bambang R.', email: 'bambang@watermark.co.id', hashedPassword: passwordHash, role: 'OWNER', jobTitle: 'President Director', divisi: 'EVENT', employeeStatus: 'ACTIVE' },
+      update: { jobTitle: 'Direktur Utama' },
+      create: { name: 'Bambang R.', email: 'bambang@watermark.co.id', hashedPassword: passwordHash, role: 'OWNER', jobTitle: 'Direktur Utama', divisi: 'EVENT', employeeStatus: 'ACTIVE' },
     }),
     prisma.user.upsert({
       where: { email: 'bagastya@watermark.co.id' },
