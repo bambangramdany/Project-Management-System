@@ -86,6 +86,28 @@ export default function ProjectDetailPage() {
     fetchProject()
   }
 
+  async function addMember(userId) {
+    if (!userId) return
+    const currentIds = (project.members || []).map(m => m.user.id)
+    if (currentIds.includes(userId)) return
+    await fetch(`/api/projects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memberIds: [...currentIds, userId] }),
+    })
+    fetchProject()
+  }
+
+  async function removeMember(userId) {
+    const currentIds = (project.members || []).map(m => m.user.id).filter(uid => uid !== userId)
+    await fetch(`/api/projects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memberIds: currentIds }),
+    })
+    fetchProject()
+  }
+
   if (loading || !project) return <LoadingScreen />
 
   const doneTasks = project.tasks?.filter(t => t.status === 'DONE').length || 0
@@ -310,15 +332,32 @@ export default function ProjectDetailPage() {
                 <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-sm shrink-0">
                   {user.name[0]}
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900">{user.name}</p>
                   <p className="text-xs text-gray-500">{user.jobTitle || user.role} · {user.divisi}</p>
                 </div>
+                {isManager && (
+                  <button onClick={() => removeMember(user.id)} className="text-gray-300 hover:text-red-400 text-xs shrink-0">✕</button>
+                )}
               </div>
             ))}
 
             {!project.pic && project.members?.length === 0 && (
               <p className="text-sm text-gray-400 text-center py-8">Belum ada anggota tim</p>
+            )}
+
+            {isManager && (
+              <div className="card p-3">
+                <label className="label">+ Tambah anggota (semua divisi)</label>
+                <select className="select" value="" onChange={e => addMember(e.target.value)}>
+                  <option value="">Pilih anggota...</option>
+                  {team
+                    .filter(u => u.id !== project.pic?.id && !project.members?.some(m => m.user.id === u.id))
+                    .map(u => (
+                      <option key={u.id} value={u.id}>{u.name} — {u.jobTitle || u.role} ({u.divisi})</option>
+                    ))}
+                </select>
+              </div>
             )}
           </div>
         )}

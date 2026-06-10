@@ -113,7 +113,47 @@ async function main() {
     prisma.user.upsert({
       where: { email: 'antoni@watermark.co.id' },
       update: {},
-      create: { name: 'Antoni', email: 'antoni@watermark.co.id', hashedPassword: passwordHash, role: 'FINANCE', jobTitle: 'Finance & HRD', divisi: 'FINANCE_HRGA', employeeStatus: 'ACTIVE' },
+      create: { name: 'Antoni', email: 'antoni@watermark.co.id', hashedPassword: passwordHash, role: 'FINANCE', jobTitle: 'Finance & HRGA', divisi: 'FINANCE_HRGA', employeeStatus: 'ACTIVE' },
+    }),
+    prisma.user.upsert({
+      where: { email: 'bambang@watermark.co.id' },
+      update: {},
+      create: { name: 'Bambang R.', email: 'bambang@watermark.co.id', hashedPassword: passwordHash, role: 'OWNER', jobTitle: 'President Director', divisi: 'EVENT', employeeStatus: 'ACTIVE' },
+    }),
+    prisma.user.upsert({
+      where: { email: 'bagastya@watermark.co.id' },
+      update: {},
+      create: { name: 'Bagastya', email: 'bagastya@watermark.co.id', hashedPassword: passwordHash, role: 'PROJECT_MANAGER', jobTitle: 'Account Exe / Project Mgr', divisi: 'EVENT', employeeStatus: 'ACTIVE' },
+    }),
+    prisma.user.upsert({
+      where: { email: 'syaifullah@watermark.co.id' },
+      update: {},
+      create: { name: 'Syaifullah', email: 'syaifullah@watermark.co.id', hashedPassword: passwordHash, role: 'GRAPHIC_DESIGNER', jobTitle: 'Design Graphic', divisi: 'CREATIVE', employeeStatus: 'ACTIVE' },
+    }),
+    prisma.user.upsert({
+      where: { email: 'noval@watermark.co.id' },
+      update: {},
+      create: { name: 'Noval', email: 'noval@watermark.co.id', hashedPassword: passwordHash, role: 'CONTENT_CREATOR', jobTitle: 'Motion Graphic', divisi: 'CREATIVE', employeeStatus: 'ACTIVE' },
+    }),
+    prisma.user.upsert({
+      where: { email: 'jamal@watermark.co.id' },
+      update: {},
+      create: { name: 'Jamal', email: 'jamal@watermark.co.id', hashedPassword: passwordHash, role: 'PRODUCTION', jobTitle: 'Video Production', divisi: 'PH', employeeStatus: 'ACTIVE' },
+    }),
+    prisma.user.upsert({
+      where: { email: 'henri@watermark.co.id' },
+      update: {},
+      create: { name: 'Henri', email: 'henri@watermark.co.id', hashedPassword: passwordHash, role: 'MEMBER', jobTitle: 'GA & Officer', divisi: 'FINANCE_HRGA', employeeStatus: 'ACTIVE' },
+    }),
+    prisma.user.upsert({
+      where: { email: 'sutrisna@watermark.co.id' },
+      update: {},
+      create: { name: 'Sutrisna', email: 'sutrisna@watermark.co.id', hashedPassword: passwordHash, role: 'MEMBER', jobTitle: 'GA & Officer', divisi: 'FINANCE_HRGA', employeeStatus: 'ACTIVE' },
+    }),
+    prisma.user.upsert({
+      where: { email: 'bima@watermark.co.id' },
+      update: {},
+      create: { name: 'Bima', email: 'bima@watermark.co.id', hashedPassword: passwordHash, role: 'FINANCE', jobTitle: 'Finance & HRD', divisi: 'FINANCE_HRGA', employeeStatus: 'ACTIVE' },
     }),
   ])
 
@@ -206,6 +246,10 @@ async function main() {
     { code: 'P-029', name: 'OLX GIIAS 2026', clientName: 'OLX', category: 'EXHIBITION', budgetTier: 'HIGH', eventComplexity: 'COMPLEX', recommendation: 'MAINTAIN', picName: 'Wulan', briefDate: new Date('2026-04-27'), submitDate: new Date('2026-05-10'), pitchDuration: 14, startDate: new Date('2026-07-30'), endDate: new Date('2026-08-09'), projectDuration: 11, status: 'FAILED', pitchStatus: 'PITCH', pitchResult: 'LOSE', members: ['Jennifer','Saip','Putra','Doddi','Wulan','Reghy','Eca','Boni','Kres'] },
     // Canceled
     { code: 'P-030', name: 'Indomobil PIK Showroom Event', clientName: 'Indomobil', category: 'MEETING_CONFERENCE', budgetTier: 'LOW', eventComplexity: 'SIMPLE', recommendation: 'MAINTAIN', picName: 'Bastya', briefDate: new Date('2026-05-29'), submitDate: new Date('2026-06-08'), pitchDuration: 11, startDate: new Date('2026-05-28'), endDate: new Date('2026-06-04'), projectDuration: 8, status: 'CANCELED', pitchStatus: 'CANCEL_PROJECT', pitchResult: 'NOT_FINAL', members: [] },
+    // PH (Production House) sample project
+    { code: 'P-031', name: 'Company Profile Video - Astra Daihatsu', clientName: 'Astra Daihatsu Motor', category: 'LAUNCHING', budgetTier: 'MEDIUM', eventComplexity: 'MEDIUM', recommendation: 'MAINTAIN', picName: 'Bagastya', briefDate: new Date('2026-06-01'), submitDate: new Date('2026-06-05'), pitchDuration: 4, startDate: new Date('2026-06-15'), endDate: new Date('2026-06-30'), projectDuration: 15, status: 'PREPARATION', pitchStatus: 'AUTO_WIN', pitchResult: 'WIN', division: 'PH', members: ['Jamal', 'Gunadarma', 'Noval'] },
+    // Creative division sample project
+    { code: 'P-032', name: 'Rebranding Campaign - Midea', clientName: 'Midea', category: 'LAUNCHING', budgetTier: 'MEDIUM', eventComplexity: 'MEDIUM', recommendation: 'PRIORITIZE', picName: 'Wulan', briefDate: new Date('2026-06-03'), submitDate: new Date('2026-06-08'), pitchDuration: 5, startDate: new Date('2026-06-20'), endDate: new Date('2026-07-10'), projectDuration: 20, status: 'PREPARATION', pitchStatus: 'PITCH_PLUS', pitchResult: 'WIN', division: 'CREATIVE', members: ['Jennifer', 'Saip', 'Syaifullah', 'Noval', 'Fakhril'] },
   ]
 
   let projectCount = 0
@@ -224,6 +268,7 @@ async function main() {
         budgetTier: p.budgetTier,
         eventComplexity: p.eventComplexity,
         recommendation: p.recommendation,
+        division: p.division || 'EVENT',
         picId: pic?.id,
         briefDate: p.briefDate,
         submitDate: p.submitDate,
