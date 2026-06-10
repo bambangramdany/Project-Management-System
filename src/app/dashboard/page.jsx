@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { StatusBadge, CategoryBadge } from '@/components/StatusBadge'
 import { STATUS_LABEL, ACTIVE_STATUSES, WON_STATUSES } from '@/lib/constants'
+import { HEALTH_LABEL, HEALTH_COLOR, HEALTH_DOT } from '@/lib/health'
+import { isFinanceDirector } from '@/lib/rbac'
 import Link from 'next/link'
 
 const PIPELINE_STAGES = [
@@ -25,6 +27,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
+  const [cashPosition, setCashPosition] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -41,6 +44,14 @@ export default function DashboardPage() {
     if (status === 'authenticated') fetchProjects()
   }, [status])
 
+  useEffect(() => {
+    if (status !== 'authenticated') return
+    const role = session.user.role
+    if (role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) {
+      fetch('/api/cashflow/position').then(r => r.ok ? r.json() : null).then(setCashPosition)
+    }
+  }, [status, session])
+
   if (status === 'loading' || loading) return <LoadingScreen />
 
   const activeProjects = projects.filter(p => ACTIVE_STATUSES.includes(p.status))
@@ -51,6 +62,8 @@ export default function DashboardPage() {
 
   const eoProjects = projects.filter(p => (p.division || 'EVENT') !== 'PH')
   const phProjects = projects.filter(p => p.division === 'PH')
+  const attentionProjects = projects.filter(p => p.health && ['red', 'yellow'].includes(p.health.level))
+    .sort((a, b) => (a.health.level === 'red' ? -1 : 1) - (b.health.level === 'red' ? -1 : 1))
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -75,6 +88,32 @@ export default function DashboardPage() {
           <StatCard label="Win Rate" value={`${winRate}%`} sub={`${wonProjects.length} menang dari ${pitchedTotal} pitch`} color="text-green-600" />
           <StatCard label="Project Selesai" value={projects.filter(p => p.status === 'DONE').length} sub="sudah lunas" color="text-blue-600" />
         </div>
+
+        {/* Cash position — Owner / Finance / Finance Director only */}
+        {cashPosition && <CashPositionCard data={cashPosition} />}
+
+        {/* Projects needing attention */}
+        {attentionProjects.length > 0 && (
+          <div className="card">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="text-sm font-semibold text-gray-700">⚠️ Project Perlu Perhatian ({attentionProjects.length})</h3>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {attentionProjects.map(p => (
+                <Link key={p.id} href={`/projects/${p.id}`} className="px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${HEALTH_DOT[p.health.level]}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{p.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{p.health.reasons.join(' · ')}</p>
+                  </div>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${HEALTH_COLOR[p.health.level]}`}>
+                    {HEALTH_LABEL[p.health.level]}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* EO / Event division */}
         <DivisionSection title="Event Organizer (EO)" projects={eoProjects} session={session} onChanged={fetchProjects} />
@@ -215,6 +254,59 @@ function ProjectRow({ project: p, canEdit, onChanged }) {
               {saving ? 'Menyimpan...' : 'Simpan'}
             </button>
             <button onClick={() => setOpen(false)} className="btn-secondary text-xs px-3 py-1.5">Batal</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function formatRupiah(n) {
+  return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID')
+}
+
+function CashPositionCard({ data }) {
+  return (
+    <div className="card p-5">
+      <h3 className="text-sm font-semibold text-gray-700 mb-4">Posisi Kas</h3>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+        <div className="p-3 rounded-lg bg-orange-50">
+          <p className="text-xs text-gray-500">Menunggu Approval</p>
+          <p className="text-lg font-bold text-orange-600">{formatRupiah(data.pendingApproval.amount)}</p>
+          <p className="text-xs text-gray-400">{data.pendingApproval.count} pengajuan</p>
+        </div>
+        <div className="p-3 rounded-lg bg-blue-50">
+          <p className="text-xs text-gray-500">Siap Dibayar</p>
+          <p className="text-lg font-bold text-blue-600">{formatRupiah(data.readyToPay.amount)}</p>
+          <p className="text-xs text-gray-400">{data.readyToPay.count} pengajuan</p>
+        </div>
+        <div className="p-3 rounded-lg bg-green-50">
+          <p className="text-xs text-gray-500">Sudah Dibayar Bulan Ini</p>
+          <p className="text-lg font-bold text-green-600">{formatRupiah(data.paidThisMonth.amount)}</p>
+          <p className="text-xs text-gray-400">{data.paidThisMonth.count} pembayaran</p>
+        </div>
+      </div>
+
+      {data.upcoming.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Jatuh Tempo 14 Hari ke Depan</p>
+          <div className="space-y-1.5">
+            {data.upcoming.map(item => (
+              <Link key={item.id} href={`/projects/${item.project.id}`} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-100 hover:bg-gray-50 hover:shadow-sm transition-all duration-200">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-800 truncate">{item.label} <span className="text-gray-400">— {item.project.name}</span></p>
+                  <p className="text-xs text-gray-400">{new Date(item.neededDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-semibold text-gray-800">{formatRupiah(item.amount)}</p>
+                  {item.hasPendingPayment ? (
+                    <p className="text-[10px] text-blue-500">Sudah diajukan</p>
+                  ) : (
+                    <p className="text-[10px] text-red-500">Belum diajukan</p>
+                  )}
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       )}

@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canViewAllProjects } from '@/lib/rbac'
+import { computeProjectHealth } from '@/lib/health'
 import { NextResponse } from 'next/server'
 
 export async function GET(req) {
@@ -33,11 +34,18 @@ export async function GET(req) {
       pic: { select: { id: true, name: true } },
       members: { include: { user: { select: { id: true, name: true, role: true } } } },
       _count: { select: { tasks: true } },
+      tasks: { select: { status: true, dueDate: true } },
+      budgetItems: { select: { quotedAmount: true, actualAmount: true } },
     },
     orderBy: { updatedAt: 'desc' },
   })
 
-  return NextResponse.json(projects)
+  const withHealth = projects.map(p => {
+    const { tasks, budgetItems, ...rest } = p
+    return { ...rest, health: computeProjectHealth(p) }
+  })
+
+  return NextResponse.json(withHealth)
 }
 
 export async function POST(req) {

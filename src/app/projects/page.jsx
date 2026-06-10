@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { StatusBadge, CategoryBadge, PitchResultBadge } from '@/components/StatusBadge'
 import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL } from '@/lib/constants'
+import { HEALTH_LABEL, HEALTH_DOT } from '@/lib/health'
 import Link from 'next/link'
 
 export default function ProjectsPage() {
@@ -98,6 +99,15 @@ function ProjectsContent() {
                   <CategoryBadge category={p.category} />
                   {p.recommendation === 'PRIORITIZE' && <span className="text-xs">🔥</span>}
                   {p.recommendation === 'EVALUATE' && <span className="text-xs">⚠️</span>}
+                  {p.health && p.health.level !== 'gray' && p.health.level !== 'green' && (
+                    <span
+                      className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${p.health.level === 'red' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}
+                      title={p.health.reasons.join(' · ')}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${HEALTH_DOT[p.health.level]}`} />
+                      {HEALTH_LABEL[p.health.level]}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm font-semibold text-gray-900 truncate">{p.name}</p>
                 <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
