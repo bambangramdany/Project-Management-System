@@ -24,6 +24,11 @@ const ACTION_LABEL = {
   TARGET_UPDATE: 'Target Tahunan',
   CASH_TRANSACTION: 'Catatan Kas',
   CASH_TRANSACTION_DELETE: 'Hapus Catatan Kas',
+  DEBT_CREATE: 'Tambah Hutang',
+  DEBT_STATUS_CHANGE: 'Status Hutang',
+  DEBT_DELETE: 'Hapus Hutang',
+  DEBT_PAYMENT_PAID: 'Pembayaran Cicilan Hutang',
+  DEBT_PAYMENT_UNPAID: 'Batal Pembayaran Cicilan',
 }
 
 const ACTION_COLOR = {
@@ -45,6 +50,11 @@ const ACTION_COLOR = {
   TARGET_UPDATE: 'bg-indigo-100 text-indigo-700',
   CASH_TRANSACTION: 'bg-teal-100 text-teal-700',
   CASH_TRANSACTION_DELETE: 'bg-red-100 text-red-700',
+  DEBT_CREATE: 'bg-amber-100 text-amber-700',
+  DEBT_STATUS_CHANGE: 'bg-amber-100 text-amber-700',
+  DEBT_DELETE: 'bg-red-100 text-red-700',
+  DEBT_PAYMENT_PAID: 'bg-emerald-100 text-emerald-700',
+  DEBT_PAYMENT_UNPAID: 'bg-red-100 text-red-700',
 }
 
 export default function AuditPage() {

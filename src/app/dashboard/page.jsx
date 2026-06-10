@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [cashPosition, setCashPosition] = useState(null)
+  const [debtSummary, setDebtSummary] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -49,6 +50,9 @@ export default function DashboardPage() {
     const role = session.user.role
     if (role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) {
       fetch('/api/cashflow/position').then(r => r.ok ? r.json() : null).then(setCashPosition)
+    }
+    if (role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)) {
+      fetch('/api/debts/summary').then(r => r.ok ? r.json() : null).then(setDebtSummary)
     }
   }, [status, session])
 
@@ -91,6 +95,9 @@ export default function DashboardPage() {
 
         {/* Cash position — Owner / Finance / Finance Director only */}
         {cashPosition && <CashPositionCard data={cashPosition} />}
+
+        {/* Debt obligations — Owner / Finance / Directors */}
+        {debtSummary && debtSummary.activeDebtCount > 0 && <DebtSummaryCard data={debtSummary} />}
 
         {/* Projects needing attention */}
         {attentionProjects.length > 0 && (
@@ -327,6 +334,54 @@ function StatCard({ label, value, sub, color }) {
       <p className="text-xs text-gray-500">{label}</p>
       <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
       <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+    </div>
+  )
+}
+
+function DebtSummaryCard({ data }) {
+  const dueItems = [...data.overdue, ...data.dueThisMonth]
+  return (
+    <div className="card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-gray-700">Kewajiban Hutang</h3>
+        <Link href="/debts" className="text-xs font-medium text-brand hover:underline">Kelola Hutang →</Link>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+        <div className="p-3 rounded-lg bg-gray-50">
+          <p className="text-xs text-gray-500">Sisa Pokok Hutang</p>
+          <p className="text-lg font-bold text-gray-900">{formatRupiah(data.outstandingPrincipal)}</p>
+          <p className="text-xs text-gray-400">{data.activeDebtCount} pinjaman aktif</p>
+        </div>
+        <div className="p-3 rounded-lg bg-orange-50">
+          <p className="text-xs text-gray-500">Wajib Dibayar Bulan Ini</p>
+          <p className="text-lg font-bold text-orange-600">{formatRupiah(data.monthlyObligation)}</p>
+          <p className="text-xs text-gray-400">{dueItems.length} cicilan</p>
+        </div>
+      </div>
+
+      {dueItems.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Cicilan Jatuh Tempo</p>
+          <div className="space-y-2">
+            {dueItems.map(item => {
+              const overdue = new Date(item.dueDate) < new Date()
+              const total = item.principalAmount + item.interestAmount
+              return (
+                <div key={item.id} className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-gray-50">
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-800 truncate">
+                      {item.lenderName} · cicilan ke-{item.installmentNo}
+                      {overdue && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">Lewat Tenggat</span>}
+                    </p>
+                    <p className="text-xs text-gray-400">Jatuh tempo {new Date(item.dueDate).toLocaleDateString('id-ID', { dateStyle: 'medium' })}</p>
+                  </div>
+                  <p className="text-sm font-semibold text-gray-800 shrink-0">{formatRupiah(total)}</p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

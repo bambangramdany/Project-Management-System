@@ -85,8 +85,57 @@ model CashTransaction {
 
   recordedBy     User?           @relation(fields: [recordedById], references: [id], onDelete: SetNull)
   paymentRequest PaymentRequest? @relation(fields: [paymentRequestId], references: [id], onDelete: SetNull)
+  debtPayment    DebtPayment?
 
   @@index([date])
+}
+
+enum DebtStatus {
+  ACTIVE
+  PAID_OFF
+}
+
+enum DebtPaymentStatus {
+  PENDING
+  PAID
+}
+
+// Company debt/loan obligations (e.g. from investors, banks, profit-sharing
+// arrangements) — tracked so Owner & Finance stay aware of monthly principal +
+// interest obligations and how they affect cash flow.
+model Debt {
+  id              String     @id @default(cuid())
+  lenderName      String
+  principal       Float
+  monthlyInterest Float      @default(0) // bunga / bagi hasil per bulan (nominal)
+  tenorMonths     Int
+  startDate       DateTime
+  notes           String?
+  status          DebtStatus @default(ACTIVE)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  payments DebtPayment[]
+}
+
+// One installment row per month of a Debt's tenor — generated automatically
+// when the debt is created.
+model DebtPayment {
+  id              String            @id @default(cuid())
+  debtId          String
+  installmentNo   Int
+  dueDate         DateTime
+  principalAmount Float
+  interestAmount  Float
+  status          DebtPaymentStatus @default(PENDING)
+  paidAt          DateTime?
+  cashTransactionId String?         @unique
+  createdAt       DateTime          @default(now())
+
+  debt           Debt             @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  cashTransaction CashTransaction? @relation(fields: [cashTransactionId], references: [id], onDelete: SetNull)
+
+  @@index([dueDate])
 }
 
 // Annual revenue/project-count targets per division, set by the Owner for
