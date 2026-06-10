@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canScoreKpi, canViewKpiSummary } from '@/lib/rbac'
+import { KPI_DEADLINE_DAY } from '@/lib/constants'
 import { NextResponse } from 'next/server'
 
 export async function GET(req) {
@@ -51,6 +52,11 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // If submitting for the current period after the deadline day, flag as late
+  const now = new Date()
+  const curPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const isLate = body.period === curPeriod && now.getDate() > KPI_DEADLINE_DAY
+
   const results = await Promise.all(body.items.map(item =>
     prisma.kpiAssessment.upsert({
       where: {
@@ -61,7 +67,7 @@ export async function POST(req) {
           kpiKey: item.kpiKey,
         },
       },
-      update: { score: item.score, comment: item.comment || null },
+      update: { score: item.score, comment: item.comment || null, late: isLate },
       create: {
         userId: body.userId,
         evaluatorId: session.user.id,
@@ -69,6 +75,7 @@ export async function POST(req) {
         kpiKey: item.kpiKey,
         score: item.score,
         comment: item.comment || null,
+        late: isLate,
       },
     })
   ))

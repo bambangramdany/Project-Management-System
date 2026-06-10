@@ -148,6 +148,29 @@ export const KPI_BY_ROLE = {
 
 export const KPI_SCORE_LABEL = { 1: 'Kurang', 2: 'Cukup', 3: 'Baik', 4: 'Sangat Baik', 5: 'Istimewa' }
 
+// Day of month by which the current month's KPI assessment must be submitted.
+// Submissions after this date are flagged "late" and the activity/project shifts to next period.
+export const KPI_DEADLINE_DAY = 23
+
+// Determine the KPI period (YYYY-MM) a date should be scored under, applying the deadline rule:
+// activities/evaluations occurring after the deadline day roll into the next month's period.
+export function resolveKpiPeriod(date = new Date()) {
+  let y = date.getFullYear()
+  let m = date.getMonth() // 0-indexed
+  if (date.getDate() > KPI_DEADLINE_DAY) {
+    m += 1
+    if (m > 11) { m = 0; y += 1 }
+  }
+  return `${y}-${String(m + 1).padStart(2, '0')}`
+}
+
+// ── Project bonus scoring (per-project, independent of monthly KPI cycle) ──
+export const PROJECT_SCORE_CRITERIA = [
+  { key: 'contribution', label: 'Kontribusi terhadap keberhasilan project' },
+  { key: 'quality', label: 'Kualitas eksekusi pekerjaan' },
+  { key: 'teamwork', label: 'Kerjasama & komunikasi tim' },
+]
+
 export const PAYMENT_STATUS_COLOR = {
   PENDING_DIRECTOR: 'bg-yellow-100 text-yellow-700',
   APPROVED_BY_DIRECTOR: 'bg-blue-100 text-blue-700',

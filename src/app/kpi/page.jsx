@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
-import { KPI_BY_ROLE } from '@/lib/constants'
+import { KPI_BY_ROLE, resolveKpiPeriod } from '@/lib/constants'
 
 const SUMMARY_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE']
 
@@ -15,7 +15,7 @@ function currentPeriod() {
 export default function KpiSummaryPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [period, setPeriod] = useState(currentPeriod())
+  const [period, setPeriod] = useState(resolveKpiPeriod())
   const [assessments, setAssessments] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
@@ -51,6 +51,15 @@ export default function KpiSummaryPage() {
   })
   const users = Object.values(byUser)
 
+  // Lateness summary per evaluator
+  const byEvaluator = {}
+  assessments.forEach(a => {
+    if (!byEvaluator[a.evaluatorId]) byEvaluator[a.evaluatorId] = { evaluator: a.evaluator, total: 0, late: 0 }
+    byEvaluator[a.evaluatorId].total += 1
+    if (a.late) byEvaluator[a.evaluatorId].late += 1
+  })
+  const evaluators = Object.values(byEvaluator).filter(e => e.late > 0)
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -62,6 +71,18 @@ export default function KpiSummaryPage() {
           </div>
           <input type="month" className="input w-auto" value={period} onChange={e => setPeriod(e.target.value)} />
         </div>
+
+        {evaluators.length > 0 && (
+          <div className="card p-4 border-l-4 border-red-400">
+            <p className="text-sm font-semibold text-red-600 mb-1">Ketepatan Pengisian KPI</p>
+            <p className="text-xs text-gray-500 mb-2">Penilai berikut mengisi setelah tanggal 23 (poin penilai dapat dikurangi):</p>
+            <ul className="text-sm text-gray-700 space-y-0.5">
+              {evaluators.map(e => (
+                <li key={e.evaluator?.id}>{e.evaluator?.name} — {e.late} dari {e.total} penilaian terlambat</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {loading && <p className="text-sm text-gray-400 text-center py-8">Memuat...</p>}
         {!loading && users.length === 0 && (
@@ -106,6 +127,7 @@ export default function KpiSummaryPage() {
                               <p key={r.id} className="text-xs text-gray-400 pl-3">
                                 {r.evaluator?.name} ({r.evaluator?.jobTitle || '-'}): <span className="font-medium text-gray-600">{r.score}</span>
                                 {r.comment && <> — {r.comment}</>}
+                                {r.late && <span className="ml-2 px-1.5 py-0.5 rounded bg-red-100 text-red-600 text-[10px] font-medium">Telat input</span>}
                               </p>
                             ))}
                           </div>

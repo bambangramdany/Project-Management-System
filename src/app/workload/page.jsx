@@ -6,7 +6,7 @@ import Navbar from '@/components/Navbar'
 import { StatusBadge } from '@/components/StatusBadge'
 import Link from 'next/link'
 import clsx from 'clsx'
-import { KPI_BY_ROLE, KPI_SCORE_LABEL } from '@/lib/constants'
+import { KPI_BY_ROLE, KPI_SCORE_LABEL, KPI_DEADLINE_DAY, resolveKpiPeriod } from '@/lib/constants'
 
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
 
@@ -182,7 +182,9 @@ function canScoreKpiClient(evaluator, target) {
 
 function KpiPanel({ user, session }) {
   const items = KPI_BY_ROLE[user.role] || []
-  const [period] = useState(currentPeriod())
+  const [period] = useState(resolveKpiPeriod())
+  const today = new Date()
+  const isPastDeadline = today.getDate() > KPI_DEADLINE_DAY
   const [scores, setScores] = useState({})
   const [comments, setComments] = useState({})
   const [existing, setExisting] = useState([])
@@ -229,6 +231,11 @@ function KpiPanel({ user, session }) {
         <p className="text-xs font-semibold text-brand-700 uppercase tracking-wide">KPI — {user.jobTitle || user.role} · {period}</p>
         {!canScore && <span className="text-xs text-gray-400">Hanya superior/pemberi task yang bisa menilai</span>}
       </div>
+      {canScore && isPastDeadline && (
+        <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-2 py-1.5 mb-2">
+          ⚠ Sudah lewat tanggal {KPI_DEADLINE_DAY}. Pengisian KPI bulan ini tercatat terlambat dan akan mengurangi poin Anda sebagai penilai. Periode penilaian saat ini: {period}.
+        </p>
+      )}
       <div className="space-y-2">
         {items.map(it => (
           <div key={it.key} className="bg-white rounded-lg p-2.5 border border-brand-100">

@@ -29,6 +29,26 @@ model User {
   notifications  Notification[]
   kpiReceived    KpiAssessment[] @relation("KpiUser")
   kpiGiven       KpiAssessment[] @relation("KpiEvaluator")
+  projectScoresReceived ProjectScore[] @relation("ProjectScoreUser")
+  projectScoresGiven    ProjectScore[] @relation("ProjectScoreEvaluator")
+}
+
+model ProjectScore {
+  id          String   @id @default(cuid())
+  projectId   String
+  userId      String
+  evaluatorId String
+  criteria    String
+  score       Int
+  comment     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User    @relation("ProjectScoreUser", fields: [userId], references: [id], onDelete: Cascade)
+  evaluator User    @relation("ProjectScoreEvaluator", fields: [evaluatorId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId, evaluatorId, criteria])
 }
 
 model Notification {
@@ -52,6 +72,7 @@ model KpiAssessment {
   kpiKey      String
   score       Int
   comment     String?
+  late        Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -133,6 +154,7 @@ model Project {
   tasks     Task[]
   budgets   ProjectBudget[]
   payments  PaymentRequest[]
+  scores    ProjectScore[]
 }
 
 enum ProjectStatus {

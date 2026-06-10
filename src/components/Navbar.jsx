@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/projects', label: 'Projects' },
   { href: '/workload', label: 'Workload Tim' },
   { href: '/team', label: 'Tim' },
+  { href: '/calendar', label: 'Kalender' },
   { href: '/finance', label: 'Finance', roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE'] },
   { href: '/kpi', label: 'KPI', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
 ]

@@ -72,3 +72,14 @@ export function canScoreKpi(evaluator, target) {
 export function canViewKpiSummary(user) {
   return ['OWNER', 'DIRECTOR', 'FINANCE'].includes(user?.role)
 }
+
+// ── Project bonus scoring RBAC ──────────────────────────────────────────
+
+// PIC of the project (or Owner / division Director) can score members for bonus purposes
+export function canScoreProject(user, project) {
+  if (!user || !project) return false
+  if (user.role === 'OWNER') return true
+  if (project.picId === user.id) return true
+  if (user.role === 'DIRECTOR' && user.divisi === project.division) return true
+  return false
+}
