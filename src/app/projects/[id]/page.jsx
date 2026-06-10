@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { StatusBadge, CategoryBadge, PitchResultBadge } from '@/components/StatusBadge'
-import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, RECOMMENDATION_ICON } from '@/lib/constants'
+import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, RECOMMENDATION_ICON, DIVISION_LABEL } from '@/lib/constants'
 import Link from 'next/link'
 
 export default function ProjectDetailPage() {
@@ -378,6 +378,8 @@ export default function ProjectDetailPage() {
               <InfoRow label="Tanggal Event" value={project.startDate ? new Date(project.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : null} />
               <InfoRow label="Tanggal Selesai" value={project.endDate ? new Date(project.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : null} />
               <InfoRow label="Durasi" value={project.projectDuration ? `${project.projectDuration} hari` : null} />
+              <InfoRow label="Hari Loading / GR" value={project.loadInDays ? `${project.loadInDays} hari` : null} />
+              <InfoRow label="Divisi" value={DIVISION_LABEL[project.division] || project.division} />
               <InfoRow label="Pitch Status" value={project.pitchStatus?.replace('_', ' ')} />
               <InfoRow label="Hasil Pitch" value={project.pitchResult?.replace('_', ' ')} />
               <InfoRow label="Alasan Menang/Kalah" value={project.wonLossReason} />

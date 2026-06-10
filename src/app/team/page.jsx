@@ -9,6 +9,7 @@ const ROLE_LABEL = {
   PROJECT_OFFICER: 'Project Officer', CREATIVE_LEAD: 'Creative Lead',
   GRAPHIC_DESIGNER: 'Graphic Designer', STAGE_DESIGNER: 'Stage Designer',
   CONTENT_CREATOR: 'Content Creator', INTERNSHIP: 'Internship', MEMBER: 'Member',
+  DIRECTOR: 'Director', FINANCE: 'Finance',
 }
 
 export default function TeamPage() {
@@ -32,6 +33,8 @@ export default function TeamPage() {
 
   const eventTeam = team.filter(u => u.divisi === 'EVENT')
   const creativeTeam = team.filter(u => u.divisi === 'CREATIVE')
+  const phTeam = team.filter(u => u.divisi === 'PH')
+  const financeTeam = team.filter(u => u.divisi === 'FINANCE_HRGA')
   const others = team.filter(u => !u.divisi)
 
   return (
@@ -50,6 +53,8 @@ export default function TeamPage() {
           <>
             <DivisiSection title="Divisi Event" members={eventTeam} />
             <DivisiSection title="Divisi Creative" members={creativeTeam} />
+            <DivisiSection title="Production House" members={phTeam} />
+            <DivisiSection title="Finance / HR / GA" members={financeTeam} />
             {others.length > 0 && <DivisiSection title="Lainnya" members={others} />}
           </>
         )}

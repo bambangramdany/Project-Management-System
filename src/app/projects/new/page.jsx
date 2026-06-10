@@ -14,9 +14,10 @@ export default function NewProjectPage() {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     name: '', clientId: '', category: 'MEETING_CONFERENCE', budgetTier: 'MEDIUM',
-    eventComplexity: 'MEDIUM', recommendation: 'MAINTAIN', picId: '',
-    briefDate: '', startDate: '', status: 'HOLD', pitchStatus: 'PITCH', notes: '',
+    eventComplexity: 'MEDIUM', recommendation: 'MAINTAIN', picId: '', division: 'EVENT',
+    briefDate: '', startDate: '', endDate: '', loadInDays: '', status: 'HOLD', pitchStatus: 'PITCH', notes: '',
   })
+  const [multiDay, setMultiDay] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -122,15 +123,44 @@ export default function NewProjectPage() {
             </div>
           </div>
 
+          <div>
+            <label className="label">Divisi</label>
+            <select className="select" value={form.division} onChange={e => set('division', e.target.value)}>
+              <option value="EVENT">Event (EO)</option>
+              <option value="PH">Production House</option>
+              <option value="CREATIVE">Creative</option>
+              <option value="FINANCE_HRGA">Finance / HR / GA</option>
+            </select>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="label">Tanggal Brief</label>
               <input type="date" className="input" value={form.briefDate} onChange={e => set('briefDate', e.target.value)} />
             </div>
             <div>
-              <label className="label">Tanggal Event</label>
+              <label className="label">{multiDay ? 'Tanggal Mulai' : 'Tanggal Event'}</label>
               <input type="date" className="input" value={form.startDate} onChange={e => set('startDate', e.target.value)} />
             </div>
+          </div>
+
+          <div className="border border-gray-100 rounded-lg p-3 space-y-3">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" checked={multiDay} onChange={e => { setMultiDay(e.target.checked); if (!e.target.checked) { set('endDate', ''); set('loadInDays', '') } }} />
+              Project / shooting berlangsung lebih dari 1 hari (termasuk loading & GR)
+            </label>
+            {multiDay && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Tanggal Selesai</label>
+                  <input type="date" className="input" value={form.endDate} onChange={e => set('endDate', e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">Jumlah Hari Loading / GR</label>
+                  <input type="number" min="0" className="input" value={form.loadInDays} onChange={e => set('loadInDays', e.target.value)} placeholder="0" />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

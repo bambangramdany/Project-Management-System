@@ -82,6 +82,7 @@ model Project {
   pitchDuration   Int?
   startDate       DateTime?
   endDate         DateTime?
+  loadInDays      Int?            @default(0)
   projectDuration Int?
   status          ProjectStatus   @default(HOLD)
   pitchStatus     PitchStatus?

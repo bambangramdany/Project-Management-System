@@ -17,6 +17,58 @@ const LOAD_COLOR = (count) => {
   return 'bg-red-100 text-red-700'
 }
 
+// General KPI per role — placeholder for further discussion with each director
+const KPI_BY_ROLE = {
+  PROJECT_MANAGER: [
+    'Win rate pitching ≥ 60%',
+    'Project selesai sesuai timeline & budget',
+    'Kepuasan klien (feedback / repeat order)',
+    'Laporan progress & invoicing tepat waktu',
+  ],
+  PROJECT_OFFICER: [
+    'Eksekusi lapangan sesuai brief & SOP',
+    'Ketepatan waktu persiapan & event day',
+    'Dokumentasi & laporan event lengkap',
+  ],
+  PRODUCTION: [
+    'Kelengkapan & kesiapan alat/produksi',
+    'Zero technical issue saat event/shooting',
+    'Efisiensi penggunaan budget produksi',
+  ],
+  CREATIVE_LEAD: [
+    'Konsep kreatif disetujui klien di percobaan pertama',
+    'Ketepatan waktu deliverable tim creative',
+    'Konsistensi kualitas & branding',
+  ],
+  GRAPHIC_DESIGNER: [
+    'Ketepatan waktu desain sesuai deadline',
+    'Revisi minimal (≤2x per deliverable)',
+    'Kesesuaian dengan brand guideline',
+  ],
+  STAGE_DESIGNER: [
+    'Desain panggung/3D sesuai brief & budget',
+    'Ketepatan waktu delivery file produksi',
+  ],
+  CONTENT_CREATOR: [
+    'Output konten sesuai kalender konten',
+    'Engagement / kualitas konten',
+    'Ketepatan waktu editing & publish',
+  ],
+  FINANCE: [
+    'Proses pembayaran tepat waktu (sesuai SLA)',
+    'Akurasi laporan budget vs realisasi',
+    'Kepatuhan dokumen & approval',
+  ],
+  MEMBER: [
+    'Penyelesaian task sesuai deadline',
+    'Kelengkapan administrasi & dokumentasi',
+  ],
+  DIRECTOR: [
+    'Approval pengajuan tepat waktu',
+    'Kesehatan pipeline & utilisasi tim divisi',
+  ],
+}
+
 const LOAD_LABEL = (count) => {
   if (count === 0) return 'Kosong'
   if (count <= 2) return 'Ringan'
@@ -45,7 +97,8 @@ export default function WorkloadPage() {
 
     if (isManager) {
       fetch(`/api/workload?year=${now.getFullYear()}`).then(r => r.json()).then(data => {
-        setWorkload(Array.isArray(data) ? data : [])
+        const list = Array.isArray(data) ? data.filter(w => w.user.id !== session.user.id) : []
+        setWorkload(list)
         setLoading(false)
       })
     } else {
@@ -66,6 +119,8 @@ export default function WorkloadPage() {
   const filtered = workload.filter(w => !filterDivisi || w.user.divisi === filterDivisi)
   const eventTeam = workload.filter(w => w.user.divisi === 'EVENT')
   const creativeTeam = workload.filter(w => w.user.divisi === 'CREATIVE')
+  const phTeam = workload.filter(w => w.user.divisi === 'PH')
+  const financeTeam = workload.filter(w => w.user.divisi === 'FINANCE_HRGA')
 
   const totalActive = workload.reduce((sum, w) => sum + w.activeCount, 0)
 
@@ -84,6 +139,8 @@ export default function WorkloadPage() {
               <option value="">Semua Divisi</option>
               <option value="EVENT">Event</option>
               <option value="CREATIVE">Creative</option>
+              <option value="PH">Production House</option>
+              <option value="FINANCE_HRGA">Finance / HR / GA</option>
             </select>
           )}
         </div>
@@ -145,6 +202,8 @@ export default function WorkloadPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <TeamColumn title="Divisi Event" members={eventTeam} onSelect={setSelectedUser} selectedId={selectedUser?.user.id} />
               <TeamColumn title="Divisi Creative" members={creativeTeam} onSelect={setSelectedUser} selectedId={selectedUser?.user.id} />
+              <TeamColumn title="Production House" members={phTeam} onSelect={setSelectedUser} selectedId={selectedUser?.user.id} />
+              <TeamColumn title="Finance / HR / GA" members={financeTeam} onSelect={setSelectedUser} selectedId={selectedUser?.user.id} />
             </div>
           </>
         )}
@@ -229,6 +288,15 @@ function UserDetail({ data }) {
           </div>
         </div>
       </div>
+
+      {KPI_BY_ROLE[data.user.role] && (
+        <div className="mb-4 p-3 rounded-lg bg-orange-50 border border-orange-100">
+          <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide mb-1.5">KPI Umum — {data.user.jobTitle || data.user.role}</p>
+          <ul className="text-xs text-orange-800 space-y-0.5 list-disc pl-4">
+            {KPI_BY_ROLE[data.user.role].map((k, i) => <li key={i}>{k}</li>)}
+          </ul>
+        </div>
+      )}
 
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
