@@ -7,7 +7,7 @@ import clsx from 'clsx'
 import {
   EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABEL,
   PAYMENT_STATUS_LABEL, PAYMENT_STATUS_COLOR, PAYMENT_TERM_LABEL, PAYMENT_STAGES, PAYMENT_STAGES_WITH_OWNER,
-  DIVISION_LABEL,
+  DIVISION_LABEL, CATEGORY_LABEL,
 } from '@/lib/constants'
 
 const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'PRODUCTION']
@@ -68,6 +68,7 @@ export default function FinancePage() {
   const [budgetMeta, setBudgetMeta] = useState({ canViewMargin: false, canEditProjectValue: false })
   const [cashflow, setCashflow] = useState(null)
   const [marginReport, setMarginReport] = useState(null)
+  const [profitability, setProfitability] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -91,6 +92,7 @@ export default function FinancePage() {
     if (status === 'authenticated' && ['OWNER', 'FINANCE', 'DIRECTOR'].includes(session.user.role)) {
       fetch('/api/finance/cashflow').then(r => r.json()).then(data => setCashflow(data))
       fetch('/api/finance/margin-report').then(r => r.json()).then(data => setMarginReport(data))
+      fetch('/api/finance/profitability').then(r => r.json()).then(data => setProfitability(data))
     }
   }, [status, session, fetchPayments])
 
@@ -342,6 +344,14 @@ export default function FinancePage() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Profitability analysis (Owner/Finance/Direksi only) */}
+        {profitability && (profitability.byClient.length > 0 || profitability.byCategory.length > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ProfitabilityCard title="Profitabilitas per Klien" rows={profitability.byClient} labelMap={null} />
+            <ProfitabilityCard title="Profitabilitas per Kategori" rows={profitability.byCategory} labelMap={CATEGORY_LABEL} />
           </div>
         )}
 
@@ -722,6 +732,33 @@ function PaymentStepper({ status, hasOwnerStage }) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+function ProfitabilityCard({ title, rows, labelMap }) {
+  const top = rows.slice(0, 5)
+  return (
+    <div className="card p-4">
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">{title}</h3>
+      {top.length === 0 ? (
+        <p className="text-sm text-gray-400">Belum ada data project menang.</p>
+      ) : (
+        <div className="space-y-2">
+          {top.map(r => (
+            <div key={r.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-100">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-800 truncate">{labelMap ? (labelMap[r.label] || r.label) : r.label}</p>
+                <p className="text-xs text-gray-400">{r.count} project · Nilai {formatRupiah(r.totalValue)}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className={clsx('text-sm font-bold', r.totalMargin >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(r.totalMargin)}</p>
+                <p className="text-xs text-gray-400">{r.marginPct.toFixed(1)}% margin</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
