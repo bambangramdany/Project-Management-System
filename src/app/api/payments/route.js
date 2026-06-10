@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canRequestPayment, canViewBudget } from '@/lib/rbac'
+import { notifyUser } from '@/lib/notify'
 import { NextResponse } from 'next/server'
 
 export async function GET(req) {
@@ -101,6 +102,18 @@ export async function POST(req) {
       requestedBy: { select: { id: true, name: true } },
     },
   })
+
+  // Notify the division director (or Owner) who needs to approve this first
+  const approvers = await prisma.user.findMany({
+    where: { OR: [{ role: 'OWNER' }, { role: 'DIRECTOR', divisi: project.division }] },
+    select: { id: true },
+  })
+  await Promise.all(approvers.map(u => notifyUser({
+    userId: u.id, type: 'PAYMENT_APPROVAL',
+    title: 'Pengajuan Pembayaran Baru',
+    message: `${project.name}: Rp ${Math.round(payment.amount).toLocaleString('id-ID')} (${payment.vendor || '-'}) menunggu approval Anda.`,
+    link: '/finance',
+  })))
 
   return NextResponse.json(payment, { status: 201 })
 }

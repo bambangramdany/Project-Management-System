@@ -2,7 +2,30 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canApproveAsDirector, canApproveAsFinanceDirector, canProcessPayment } from '@/lib/rbac'
+import { notifyUser } from '@/lib/notify'
 import { NextResponse } from 'next/server'
+
+const fmtRupiah = (n) => `Rp ${Math.round(n || 0).toLocaleString('id-ID')}`
+
+// Find users who should act on the next approval stage
+async function findApprovers(stage, project) {
+  if (stage === 'PENDING_FINANCE_DIRECTOR') {
+    return prisma.user.findMany({
+      where: { OR: [{ role: 'OWNER' }, { role: 'DIRECTOR', divisi: 'FINANCE_HRGA' }] },
+      select: { id: true },
+    })
+  }
+  if (stage === 'APPROVED_BY_DIRECTOR') {
+    return prisma.user.findMany({ where: { role: { in: ['OWNER', 'FINANCE'] } }, select: { id: true } })
+  }
+  if (stage === 'PENDING_DIRECTOR') {
+    return prisma.user.findMany({
+      where: { OR: [{ role: 'OWNER' }, { role: 'DIRECTOR', divisi: project.division }] },
+      select: { id: true },
+    })
+  }
+  return []
+}
 
 export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions)
@@ -33,6 +56,22 @@ export async function PATCH(req, { params }) {
         approvedAt: new Date(),
       },
     })
+    if (action === 'approve') {
+      const approvers = await findApprovers('PENDING_FINANCE_DIRECTOR', payment.project)
+      await Promise.all(approvers.map(u => notifyUser({
+        userId: u.id, type: 'PAYMENT_APPROVAL',
+        title: 'Pengajuan Pembayaran Menunggu Approval Anda',
+        message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) telah disetujui Direktur Divisi.`,
+        link: '/finance',
+      })))
+    } else {
+      await notifyUser({
+        userId: payment.requestedById, type: 'PAYMENT_REJECTED',
+        title: 'Pengajuan Pembayaran Ditolak',
+        message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) ditolak oleh Direktur Divisi.${body.note ? ` Catatan: ${body.note}` : ''}`,
+        link: '/finance',
+      })
+    }
     return NextResponse.json(updated)
   }
 
@@ -50,6 +89,22 @@ export async function PATCH(req, { params }) {
         financeApprovedAt: new Date(),
       },
     })
+    if (action === 'approve') {
+      const approvers = await findApprovers('APPROVED_BY_DIRECTOR', payment.project)
+      await Promise.all(approvers.map(u => notifyUser({
+        userId: u.id, type: 'PAYMENT_APPROVAL',
+        title: 'Pengajuan Siap Dibayarkan',
+        message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) telah disetujui Direktur Finance, siap dibayarkan.`,
+        link: '/finance',
+      })))
+    } else {
+      await notifyUser({
+        userId: payment.requestedById, type: 'PAYMENT_REJECTED',
+        title: 'Pengajuan Pembayaran Ditolak',
+        message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) ditolak oleh Direktur Finance.${body.note ? ` Catatan: ${body.note}` : ''}`,
+        link: '/finance',
+      })
+    }
     return NextResponse.json(updated)
   }
 
@@ -72,6 +127,12 @@ export async function PATCH(req, { params }) {
         financeNote: body.note || null,
         paidAt: new Date(),
       },
+    })
+    await notifyUser({
+      userId: payment.requestedById, type: 'PAYMENT_PAID',
+      title: 'Pembayaran Telah Dibayarkan',
+      message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) telah dibayarkan.`,
+      link: '/finance',
     })
     return NextResponse.json(updated)
   }
