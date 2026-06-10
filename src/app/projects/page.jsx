@@ -66,13 +66,13 @@ function ProjectsContent() {
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
-            <select className="select sm:w-44" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            <select className="select sm:w-44 transition-shadow focus:shadow-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
               <option value="">Semua Status</option>
               {STATUS_PIPELINE.map(s => (
                 <option key={s} value={s}>{STATUS_LABEL[s]}</option>
               ))}
             </select>
-            <select className="select sm:w-44" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+            <select className="select sm:w-44 transition-shadow focus:shadow-sm" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
               <option value="">Semua Kategori</option>
               {Object.entries(CATEGORY_LABEL).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
@@ -91,7 +91,7 @@ function ProjectsContent() {
             <div className="text-center py-12 text-gray-400 text-sm">Tidak ada project</div>
           )}
           {projects.map(p => (
-            <Link key={p.id} href={`/projects/${p.id}`} className="card flex flex-col sm:flex-row sm:items-center gap-3 p-4 hover:shadow-md transition-shadow block">
+            <Link key={p.id} href={`/projects/${p.id}`} className="card flex flex-col sm:flex-row sm:items-center gap-3 p-4 hover:shadow-md hover:border-brand-200 hover:-translate-y-0.5 transition-all duration-200 block">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <span className="text-xs text-gray-400 font-mono">{p.code}</span>
