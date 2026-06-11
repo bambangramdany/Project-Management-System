@@ -12,6 +12,18 @@ const ROLE_LABEL = {
   DIRECTOR: 'Director', FINANCE: 'Finance',
 }
 
+// Org-hierarchy order: top management down to support staff
+const ROLE_ORDER = [
+  'OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'CREATIVE_LEAD', 'FINANCE',
+  'PROJECT_OFFICER', 'PRODUCTION', 'GRAPHIC_DESIGNER', 'STAGE_DESIGNER',
+  'CONTENT_CREATOR', 'MEMBER', 'INTERNSHIP',
+]
+const byHierarchy = (a, b) => {
+  const ai = ROLE_ORDER.indexOf(a.role), bi = ROLE_ORDER.indexOf(b.role)
+  if (ai !== bi) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
+  return a.name.localeCompare(b.name)
+}
+
 export default function TeamPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -31,28 +43,27 @@ export default function TeamPage() {
     }
   }, [status])
 
-  // Org-hierarchy order: top management down to support staff
-  const ROLE_ORDER = [
-    'OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'CREATIVE_LEAD', 'FINANCE',
-    'PROJECT_OFFICER', 'PRODUCTION', 'GRAPHIC_DESIGNER', 'STAGE_DESIGNER',
-    'CONTENT_CREATOR', 'MEMBER', 'INTERNSHIP',
-  ]
-  const byHierarchy = (a, b) => {
-    const ai = ROLE_ORDER.indexOf(a.role), bi = ROLE_ORDER.indexOf(b.role)
-    if (ai !== bi) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
-    return a.name.localeCompare(b.name)
-  }
+  const owners = team.filter(u => u.role === 'OWNER').sort(byHierarchy)
 
-  const eventTeam = team.filter(u => u.divisi === 'EVENT').sort(byHierarchy)
-  const creativeTeam = team.filter(u => u.divisi === 'CREATIVE').sort(byHierarchy)
-  const phTeam = team.filter(u => u.divisi === 'PH').sort(byHierarchy)
-  const financeTeam = team.filter(u => u.divisi === 'FINANCE_HRGA').sort(byHierarchy)
-  const others = team.filter(u => !u.divisi).sort(byHierarchy)
+  const divisions = [
+    { key: 'EVENT', title: 'Divisi Event' },
+    { key: 'CREATIVE', title: 'Divisi Creative' },
+    { key: 'PH', title: 'Production House' },
+    { key: 'FINANCE_HRGA', title: 'Finance / HR / GA' },
+  ]
+
+  const divisionMembers = divisions.map(d => ({
+    ...d,
+    director: team.find(u => u.divisi === d.key && u.role === 'DIRECTOR'),
+    rest: team.filter(u => u.divisi === d.key && u.role !== 'OWNER' && u.role !== 'DIRECTOR').sort(byHierarchy),
+  })).filter(d => d.director || d.rest.length > 0)
+
+  const others = team.filter(u => !u.divisi && u.role !== 'OWNER').sort(byHierarchy)
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
 
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">Tim Watermark</h1>
@@ -63,11 +74,53 @@ export default function TeamPage() {
 
         {!loading && (
           <>
-            <DivisiSection title="Divisi Event" members={eventTeam} />
-            <DivisiSection title="Divisi Creative" members={creativeTeam} />
-            <DivisiSection title="Production House" members={phTeam} />
-            <DivisiSection title="Finance / HR / GA" members={financeTeam} />
-            {others.length > 0 && <DivisiSection title="Lainnya" members={others} />}
+            {/* Top: Direktur Utama */}
+            {owners.length > 0 && (
+              <div>
+                <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3 text-center">Direktur Utama</h2>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {owners.map(u => <PersonCard key={u.id} u={u} highlight />)}
+                </div>
+              </div>
+            )}
+
+            {/* Connector line */}
+            {owners.length > 0 && divisionMembers.length > 0 && (
+              <div className="flex justify-center">
+                <div className="w-px h-6 bg-gray-300" />
+              </div>
+            )}
+
+            {/* Director row + division columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {divisionMembers.map(d => (
+                <div key={d.key} className="space-y-3">
+                  <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide text-center">{d.title}</h2>
+                  {d.director && (
+                    <div className="flex justify-center">
+                      <PersonCard u={d.director} highlight />
+                    </div>
+                  )}
+                  {d.director && d.rest.length > 0 && (
+                    <div className="flex justify-center">
+                      <div className="w-px h-4 bg-gray-300" />
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    {d.rest.map(u => <PersonCard key={u.id} u={u} />)}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {others.length > 0 && (
+              <div>
+                <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">Lainnya</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {others.map(u => <PersonCard key={u.id} u={u} />)}
+                </div>
+              </div>
+            )}
           </>
         )}
       </main>
@@ -75,24 +128,16 @@ export default function TeamPage() {
   )
 }
 
-function DivisiSection({ title, members }) {
-  if (members.length === 0) return null
+function PersonCard({ u, highlight }) {
   return (
-    <div>
-      <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">{title}</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {members.map(u => (
-          <div key={u.id} className="card p-4 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white font-bold shrink-0">
-              {u.name[0]}
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-900">{u.name}</p>
-              <p className="text-xs text-gray-500">{u.jobTitle || ROLE_LABEL[u.role]}</p>
-              {u.email && <p className="text-xs text-gray-400 truncate">{u.email}</p>}
-            </div>
-          </div>
-        ))}
+    <div className={`card p-4 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 w-full ${highlight ? 'border-2 border-brand-200' : ''}`}>
+      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white font-bold shrink-0">
+        {u.name[0]}
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-gray-900">{u.name}</p>
+        <p className="text-xs text-gray-500">{u.jobTitle || ROLE_LABEL[u.role]}</p>
+        {u.email && <p className="text-xs text-gray-400 truncate">{u.email}</p>}
       </div>
     </div>
   )

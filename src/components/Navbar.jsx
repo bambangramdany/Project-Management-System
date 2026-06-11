@@ -20,8 +20,7 @@ const NAV_ITEMS = [
   { href: '/opex', label: 'Opex', cashOnly: true },
   { href: '/assets', label: 'Aset', cashOnly: true },
   { href: '/debts', label: 'Hutang', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
-  { href: '/admin/users', label: 'Setup Akun', roles: ['OWNER'] },
-  { href: '/audit', label: 'Audit Log', auditOnly: true },
+  { href: '/settings', label: 'Pengaturan', settingsOnly: true },
 ]
 
 export default function Navbar() {
@@ -31,7 +30,7 @@ export default function Navbar() {
   const canSeeAudit = session?.user.role === 'OWNER' || isFinanceDirector(session?.user)
   const canSeeCash = session?.user.role === 'OWNER' || session?.user.role === 'FINANCE' || isFinanceDirector(session?.user)
   const visibleItems = NAV_ITEMS.filter(item => {
-    if (item.auditOnly) return canSeeAudit
+    if (item.settingsOnly) return session?.user.role === 'OWNER' || canSeeAudit
     if (item.cashOnly) return canSeeCash
     return !item.roles || item.roles.includes(session?.user.role)
   })
