@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import { canViewAllProjects } from '@/lib/rbac'
 import { CATEGORY_LABEL } from '@/lib/constants'
 import Link from 'next/link'
 
@@ -22,7 +23,7 @@ export default function NewProjectPage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
-    if (status === 'authenticated' && !['OWNER', 'PROJECT_MANAGER'].includes(session.user.role)) {
+    if (status === 'authenticated' && !canViewAllProjects(session.user.role)) {
       router.push('/dashboard')
     }
   }, [status, session, router])

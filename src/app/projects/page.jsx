@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { StatusBadge, CategoryBadge, PitchResultBadge } from '@/components/StatusBadge'
 import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL } from '@/lib/constants'
+import { canViewAllProjects } from '@/lib/rbac'
 import { HEALTH_LABEL, HEALTH_DOT } from '@/lib/health'
 import Link from 'next/link'
 
@@ -47,7 +48,7 @@ function ProjectsContent() {
 
   useEffect(() => { if (status === 'authenticated') fetchProjects() }, [status, fetchProjects])
 
-  const isManager = ['OWNER', 'PROJECT_MANAGER'].includes(session?.user.role)
+  const isManager = canViewAllProjects(session?.user.role)
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0]
