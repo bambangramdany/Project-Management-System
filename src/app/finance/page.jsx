@@ -267,8 +267,6 @@ export default function FinancePage() {
 
   const myProjects = (role === 'PROJECT_MANAGER' || role === 'PRODUCTION')
     ? projects.filter(p => p.pic?.id === session.user.id || p.picId === session.user.id || p.members?.some(m => (m.user?.id || m.userId) === session.user.id))
-    : (role === 'DIRECTOR' && session.user.divisi && session.user.divisi !== 'FINANCE_HRGA')
-    ? projects.filter(p => p.division === session.user.divisi)
     : projects
 
   return (
