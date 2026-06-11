@@ -12,6 +12,7 @@ export default function ProjectBonusTab({ project, session }) {
   const [criteria, setCriteria] = useState(PROJECT_SCORE_CRITERIA)
   const [editing, setEditing] = useState({})
   const [confirming, setConfirming] = useState(null)
+  const [saved, setSaved] = useState({})
 
   const members = [
     ...(project.pic ? [project.pic] : []),
@@ -31,14 +32,19 @@ export default function ProjectBonusTab({ project, session }) {
 
   useEffect(() => {
     const d = {}
+    const sv = {}
     members.forEach(m => {
       d[m.id] = {}
+      let hasExisting = false
       criteria.forEach(c => {
         const existing = scores.find(s => s.userId === m.id && s.criteria === c.key && s.evaluatorId === session?.user?.id)
+        if (existing) hasExisting = true
         d[m.id][c.key] = { score: existing?.score || 0, comment: existing?.comment || '' }
       })
+      sv[m.id] = hasExisting
     })
     setDrafts(d)
+    setSaved(sv)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scores, criteria])
 
@@ -60,10 +66,10 @@ export default function ProjectBonusTab({ project, session }) {
     setSaving(null)
     setEditing(e => ({ ...e, [userId]: false }))
     setConfirming(null)
+    setSaved(s => ({ ...s, [userId]: true }))
   }
 
-  const isComplete = (userId) => criteria.every(c => (drafts[userId]?.[c.key]?.score || 0) > 0)
-  const isLocked = (userId) => isComplete(userId) && !editing[userId]
+  const isLocked = (userId) => saved[userId] && !editing[userId]
 
   return (
     <div className="space-y-4">
@@ -141,7 +147,6 @@ export default function ProjectBonusTab({ project, session }) {
                 ) : (
                   <button
                     onClick={() => setConfirming(m.id)}
-                    disabled={!isComplete(m.id)}
                     className="text-xs px-3 py-1.5 rounded-lg bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50"
                   >
                     Konfirmasi & Simpan
