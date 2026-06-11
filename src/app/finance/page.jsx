@@ -208,6 +208,65 @@ export default function FinancePage() {
     setBudgetItems(items => [...items, { label: '', quotedAmount: 0, actualAmount: '', neededDate: '', note: '' }])
   }
 
+  // Parse a CSV exported from the legacy quotation template (label, kategori, forecast,
+  // tgl dibutuhkan, catatan) and append rows to the current forecast budget.
+  function parseBudgetCsv(text) {
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+    if (lines.length < 2) return []
+    const labelToCategory = Object.fromEntries(
+      Object.entries(EXPENSE_CATEGORY_LABEL).map(([key, label]) => [label.toLowerCase(), key])
+    )
+    return lines.slice(1).map(line => {
+      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''))
+      const [label, categoryRaw, quotedAmountRaw, neededDate, note] = cols
+      const category = EXPENSE_CATEGORIES.includes(categoryRaw)
+        ? categoryRaw
+        : (labelToCategory[(categoryRaw || '').toLowerCase()] || 'OPERATIONAL_OTHER')
+      const quotedAmount = parseFloat((quotedAmountRaw || '').replace(/[^\d.-]/g, '')) || 0
+      return { label: label || '', category, quotedAmount, actualAmount: '', neededDate: neededDate || '', note: note || '' }
+    }).filter(r => r.label)
+  }
+
+  function handleBudgetCsvImport(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const rows = parseBudgetCsv(String(reader.result || ''))
+      if (rows.length === 0) {
+        alert('Tidak ada baris valid yang bisa diimpor dari file ini.')
+      } else {
+        setBudgetItems(items => [...items, ...rows])
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  function downloadBudgetCsvTemplate() {
+    const header = 'Komponen,Kategori,Forecast/Quotation (Rp),Tgl Dibutuhkan (YYYY-MM-DD),Catatan'
+    const example = [
+      ['LED Screen P3.9 6x2M (12m, 2 hari)', 'Operasional Lain', '18000000', '', 'Sewa LED screen utama'],
+      ['Stage Riser under LED Screen 80x60cm', 'Operasional Lain', '5000000', '', ''],
+      ['Lighting Set (Beam, Par, White Beam)', 'Operasional Lain', '19000000', '', ''],
+      ['Sound System 5000 Watt', 'DP Vendor', '9000000', '', 'DP ke vendor sound'],
+      ['Event Coordinator (2 hari)', 'Operasional Lain', '4000000', '', ''],
+      ['Crew Runner/Helper (Loading + Event Day)', 'Operasional Lain', '6000000', '', ''],
+      ['Photographer (2 pax x 2 hari)', 'Talent / Honor', '8000000', '', ''],
+      ['Videographer (2 pax x 2 hari)', 'Talent / Honor', '10000000', '', ''],
+      ['Meals & Drinks for Crew', 'Operasional Lain', '4050000', '', ''],
+      ['Transportation (Car Rental, Parkir, dll)', 'Tiket & Transport', '3000000', '', ''],
+    ]
+    const csv = [header, ...example.map(r => r.map(v => `"${v}"`).join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'template-forecast-budget.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   function updateBudgetRow(idx, patch) {
     setBudgetItems(items => items.map((it, i) => i === idx ? { ...it, ...patch } : it))
   }
@@ -635,7 +694,14 @@ export default function FinancePage() {
                 </div>
               ))}
               {budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && !forecastLocked && (
-                <button onClick={addBudgetRow} className="btn-secondary text-xs">+ Tambah Komponen</button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button onClick={addBudgetRow} className="btn-secondary text-xs">+ Tambah Komponen</button>
+                  <button type="button" onClick={downloadBudgetCsvTemplate} className="text-xs text-brand-600 hover:underline">Unduh Template CSV</button>
+                  <label className="text-xs text-brand-600 hover:underline cursor-pointer">
+                    Import dari CSV (quotation lama)
+                    <input type="file" accept=".csv" className="hidden" onChange={handleBudgetCsvImport} />
+                  </label>
+                </div>
               )}
 
               <div className="pt-2 border-t border-gray-100 grid grid-cols-2 gap-y-1 text-sm">
