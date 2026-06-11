@@ -11,6 +11,27 @@ const formatDate = (d) => new Date(d).toLocaleDateString('id-ID', { dateStyle: '
 
 const emptyForm = { lenderName: '', principal: '', interestRate: '', tenorMonths: '', startDate: '', notes: '' }
 
+function formatThousands(value) {
+  const digits = String(value ?? '').replace(/\D/g, '')
+  if (!digits) return ''
+  return Number(digits).toLocaleString('id-ID')
+}
+
+// Numeric input that displays thousand separators (titik) but reports a plain
+// digit string to onChange.
+function ThousandsInput({ value, onChange, className, placeholder }) {
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      className={className}
+      value={formatThousands(value)}
+      onChange={e => onChange(e.target.value.replace(/\D/g, ''))}
+      placeholder={placeholder}
+    />
+  )
+}
+
 // "3 hari lagi", "9 minggu lagi", "Lewat 2 hari", etc.
 function countdownLabel(dueDate, now) {
   const diffMs = new Date(dueDate) - now
@@ -236,7 +257,7 @@ export default function DebtsPage() {
                 </div>
                 <div>
                   <label className="label">Nilai Pokok Pinjaman *</label>
-                  <input type="number" className="input" value={form.principal} onChange={e => setForm(f => ({ ...f, principal: e.target.value }))} placeholder="0" />
+                  <ThousandsInput className="input" value={form.principal} onChange={v => setForm(f => ({ ...f, principal: v }))} placeholder="0" />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
