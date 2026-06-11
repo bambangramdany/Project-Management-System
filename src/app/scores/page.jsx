@@ -46,7 +46,8 @@ export default function ScoresPage() {
       fetch('/api/director-notes').then(r => r.json()).then(setAllNotes)
     }
     fetch('/api/projects').then(r => r.json()).then(data => {
-      setMyProjects(Array.isArray(data) ? data : [])
+      const projects = Array.isArray(data) ? data : []
+      setMyProjects(projects.filter(p => p.pitchResult === 'WIN' || p.status === 'DONE'))
     })
     if (!KPI_SUMMARY_ROLES.includes(session.user.role)) {
       fetch(`/api/kpi?userId=${session.user.id}`).then(r => r.json()).then(data => {
