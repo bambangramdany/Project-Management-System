@@ -427,9 +427,7 @@ export default function ProjectDetailPage() {
                 <p className="text-sm text-gray-700">{project.notes}</p>
               </div>
             )}
-            {['HOLD', 'FAILED', 'DONE', 'CANCELED'].includes(project.status) && (
-              <EvaluationNote project={project} setProject={setProject} />
-            )}
+            <EvaluationNote project={project} setProject={setProject} />
           </div>
         )}
 
@@ -449,6 +447,7 @@ function EvaluationNote({ project, setProject }) {
     HOLD: 'Catatan evaluasi project ini untuk referensi ke depan.',
     CANCELED: 'Catatan evaluasi mengapa project ini dibatalkan.',
   }
+  const hint = STATUS_HINT[project.status] || 'Catatan evaluasi project ini (kritik klien, performa vendor, alasan menang/kalah, dll) untuk referensi ke depan.'
 
   async function save() {
     setSaving(true)
@@ -474,10 +473,10 @@ function EvaluationNote({ project, setProject }) {
           </button>
         )}
       </div>
-      <p className="text-xs text-gray-400 mb-2">{STATUS_HINT[project.status]}</p>
+      <p className="text-xs text-gray-400 mb-2">{hint}</p>
       {editing ? (
         <div className="space-y-2">
-          <textarea className="input text-sm w-full" rows={4} value={value} onChange={e => setValue(e.target.value)} placeholder={STATUS_HINT[project.status]} />
+          <textarea className="input text-sm w-full" rows={4} value={value} onChange={e => setValue(e.target.value)} placeholder={hint} />
           <div className="flex items-center gap-2">
             <button onClick={save} disabled={saving} className="btn-primary text-xs px-3 py-1.5">{saving ? 'Menyimpan...' : 'Simpan'}</button>
             <button onClick={() => setEditing(false)} className="text-xs text-gray-500 hover:underline">Batal</button>

@@ -37,7 +37,7 @@ export default function Navbar() {
   return (
     <nav className="bg-ink-800 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-[auto_1fr_auto] items-center h-14 gap-2">
+        <div className="relative flex items-center h-14 gap-2">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2 font-bold text-white">
             <div className="w-7 h-7 bg-brand rounded-lg flex items-center justify-center text-white text-xs font-black">W</div>
@@ -45,7 +45,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center justify-center gap-1">
+          <div className="hidden md:flex items-center justify-center gap-1 absolute left-1/2 -translate-x-1/2">
             {visibleItems.map(item => (
               <Link
                 key={item.href}
@@ -63,7 +63,7 @@ export default function Navbar() {
           </div>
 
           {/* User + mobile menu */}
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center justify-end gap-3 ml-auto">
             {session && <NotificationBell />}
             {session && (
               <div className="hidden sm:flex items-center gap-2">
