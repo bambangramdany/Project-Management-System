@@ -96,6 +96,13 @@ export default function DashboardPage() {
           <StatCard label="Project Selesai" value={projects.filter(p => p.status === 'DONE').length} sub="sudah lunas" color="text-blue-600" />
         </div>
 
+        {/* Breakdown overall / EO / PH */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <DivisionSummaryCard title="Overall" projects={projects} />
+          <DivisionSummaryCard title="Event Organizer (EO)" projects={eoProjects} />
+          <DivisionSummaryCard title="Production House (PH)" projects={phProjects} />
+        </div>
+
         {/* Cash position — Owner / Finance / Finance Director only */}
         {cashPosition && <CashPositionCard data={cashPosition} />}
 
@@ -340,6 +347,40 @@ function StatCard({ label, value, sub, color }) {
       <p className="text-xs text-gray-500">{label}</p>
       <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
       <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+    </div>
+  )
+}
+
+function DivisionSummaryCard({ title, projects }) {
+  const active = projects.filter(p => ACTIVE_STATUSES.includes(p.status))
+  const won = projects.filter(p => p.pitchResult === 'WIN')
+  const lose = projects.filter(p => p.pitchResult === 'LOSE')
+  const pitchedTotal = won.length + lose.length
+  const winRate = pitchedTotal > 0 ? Math.round((won.length / pitchedTotal) * 100) : 0
+  const done = projects.filter(p => p.status === 'DONE')
+
+  return (
+    <div className="card p-4">
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">{title}</h3>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <p className="text-xs text-gray-500">Total Project</p>
+          <p className="text-xl font-bold text-gray-900">{projects.length}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500">Aktif</p>
+          <p className="text-xl font-bold text-orange-600">{active.length}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500">Win Rate</p>
+          <p className="text-xl font-bold text-green-600">{winRate}%</p>
+          <p className="text-[11px] text-gray-400">{won.length} dari {pitchedTotal} pitch</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500">Selesai</p>
+          <p className="text-xl font-bold text-blue-600">{done.length}</p>
+        </div>
+      </div>
     </div>
   )
 }
