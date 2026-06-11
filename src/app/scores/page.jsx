@@ -141,7 +141,8 @@ export default function ScoresPage() {
         {/* Team summary */}
         {data.team && data.team.length > 0 && (
           <div className="card p-4">
-            <p className="text-sm font-semibold text-ink-800 mb-3">Ringkasan Penilaian Tim</p>
+            <p className="text-sm font-semibold text-ink-800 mb-1">Ringkasan Penilaian Tim</p>
+            <p className="text-xs text-gray-500 mb-3">Rata-rata nilai dari seluruh project yang sudah dinilai sejak awal (akumulatif, bukan per bulan/per periode tertentu).</p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
