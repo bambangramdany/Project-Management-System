@@ -33,6 +33,29 @@ function formatRupiah(n) {
   return 'Rp ' + Number(n).toLocaleString('id-ID')
 }
 
+// Plain number string -> "1.000.000" for display, strips non-digits on input
+function formatThousands(value) {
+  const digits = String(value ?? '').replace(/\D/g, '')
+  if (!digits) return ''
+  return Number(digits).toLocaleString('id-ID')
+}
+
+// Numeric input that displays thousand separators (titik) but reports a plain
+// digit string to onChange, so values stay submit-ready (e.g. "5000000").
+function ThousandsInput({ value, onChange, className, placeholder, disabled }) {
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      className={className}
+      value={formatThousands(value)}
+      onChange={e => onChange(e.target.value.replace(/\D/g, ''))}
+      placeholder={placeholder}
+      disabled={disabled}
+    />
+  )
+}
+
 // Build and trigger a CSV download from an array of row objects
 function exportCsv(filename, rows) {
   if (!rows || rows.length === 0) return
@@ -424,7 +447,7 @@ export default function FinancePage() {
               </div>
               <div>
                 <label className="label">Nominal (Rp) *</label>
-                <input type="number" min="0" className="input" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required />
+                <ThousandsInput className="input" value={form.amount} onChange={v => setForm(f => ({ ...f, amount: v }))} placeholder="0" />
               </div>
               <div>
                 <label className="label">Vendor / Tujuan</label>
@@ -536,12 +559,10 @@ export default function FinancePage() {
               </div>
               <div className="flex items-center justify-between gap-3 pb-2 border-b border-gray-100">
                 <label className="text-sm font-semibold text-gray-700 flex-1">Nilai Project (Rp)</label>
-                <input
-                  type="number"
-                  min="0"
+                <ThousandsInput
                   className="input w-40"
                   value={projectValue}
-                  onChange={e => setProjectValue(e.target.value)}
+                  onChange={v => setProjectValue(v)}
                   disabled={!budgetMeta.canEditProjectValue || forecastLocked}
                   placeholder="0"
                 />
@@ -563,19 +584,17 @@ export default function FinancePage() {
                     placeholder="cth. Sewa Venue"
                     disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
                   />
-                  <input
-                    type="number" min="0"
+                  <ThousandsInput
                     className="input col-span-2"
                     value={item.quotedAmount || ''}
-                    onChange={e => updateBudgetRow(idx, { quotedAmount: e.target.value })}
+                    onChange={v => updateBudgetRow(idx, { quotedAmount: v })}
                     placeholder="0"
                     disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
                   />
-                  <input
-                    type="number" min="0"
+                  <ThousandsInput
                     className="input col-span-2"
                     value={item.actualAmount ?? ''}
-                    onChange={e => updateBudgetRow(idx, { actualAmount: e.target.value })}
+                    onChange={v => updateBudgetRow(idx, { actualAmount: v })}
                     placeholder="0"
                     disabled={!budgetMeta.canEditBudget}
                   />
