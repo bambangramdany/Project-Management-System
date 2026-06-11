@@ -350,7 +350,7 @@ export default function ProjectDetailPage() {
                   <p className="text-xs text-gray-500">{user.jobTitle || user.role} · {user.divisi}</p>
                 </div>
                 {isManager && (
-                  <button onClick={() => removeMember(user.id)} className="text-gray-300 hover:text-red-400 text-xs shrink-0">✕</button>
+                  <button onClick={() => { if (confirm(`Hapus ${user.name} dari project ini?`)) removeMember(user.id) }} className="text-gray-300 hover:text-red-400 text-xs shrink-0">✕</button>
                 )}
               </div>
             ))}

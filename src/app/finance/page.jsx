@@ -617,7 +617,7 @@ export default function FinancePage() {
                     disabled={!budgetMeta.canNote}
                   />
                   {budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && !forecastLocked && (
-                    <button onClick={() => removeBudgetRow(idx)} className="col-span-1 text-red-500 text-xs hover:underline">Hapus</button>
+                    <button onClick={() => { if (confirm('Hapus komponen forecast ini?')) removeBudgetRow(idx) }} className="col-span-1 text-red-500 text-xs hover:underline">Hapus</button>
                   )}
                   {item.id && (
                     <div className="col-span-12 -mt-1 flex items-center gap-2 flex-wrap text-xs text-gray-500">
