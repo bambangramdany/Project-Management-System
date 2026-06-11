@@ -19,6 +19,8 @@ const ROLE_ORDER = [
   'CONTENT_CREATOR', 'MEMBER', 'INTERNSHIP',
 ]
 const byHierarchy = (a, b) => {
+  const ao = a.teamOrder || 0, bo = b.teamOrder || 0
+  if (ao !== bo) return ao - bo
   const ai = ROLE_ORDER.indexOf(a.role), bi = ROLE_ORDER.indexOf(b.role)
   if (ai !== bi) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
   return a.name.localeCompare(b.name)

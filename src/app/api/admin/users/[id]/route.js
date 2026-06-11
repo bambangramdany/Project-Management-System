@@ -21,6 +21,7 @@ export async function PATCH(req, { params }) {
     if (key in body) data[key] = body[key] || null
   }
   if (data.name) data.name = data.name.trim()
+  if ('teamOrder' in body) data.teamOrder = Number(body.teamOrder) || 0
 
   if (body.password) {
     if (body.password.length < 6) return NextResponse.json({ error: 'Password minimal 6 karakter' }, { status: 400 })
@@ -32,7 +33,7 @@ export async function PATCH(req, { params }) {
     data,
     select: {
       id: true, name: true, email: true, role: true,
-      jobTitle: true, divisi: true, phone: true, employeeStatus: true, createdAt: true,
+      jobTitle: true, divisi: true, phone: true, employeeStatus: true, createdAt: true, teamOrder: true,
     },
   })
 

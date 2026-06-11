@@ -80,6 +80,25 @@ export default function AdminUsersPanel() {
     }
   }
 
+  const moveUser = async (u, direction) => {
+    const group = users.filter(x => x.divisi === u.divisi && x.employeeStatus === 'ACTIVE')
+    const idx = group.findIndex(x => x.id === u.id)
+    const swapIdx = idx + direction
+    if (swapIdx < 0 || swapIdx >= group.length) return
+    const a = group[idx], b = group[swapIdx]
+    await Promise.all([
+      fetch(`/api/admin/users/${a.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ teamOrder: swapIdx }) }),
+      fetch(`/api/admin/users/${b.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ teamOrder: idx }) }),
+    ])
+    // Make sure the rest of the group has sequential order values too
+    await Promise.all(group.map((x, i) => {
+      if (x.id === a.id || x.id === b.id) return null
+      if (x.teamOrder === i) return null
+      return fetch(`/api/admin/users/${x.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ teamOrder: i }) })
+    }))
+    load()
+  }
+
   const submitResetPassword = async (id) => {
     if (resetPassword.length < 6) { alert('Password minimal 6 karakter'); return }
     const res = await fetch(`/api/admin/users/${id}`, {
@@ -157,12 +176,13 @@ export default function AdminUsersPanel() {
               <th className="px-4 py-2.5">Jabatan</th>
               <th className="px-4 py-2.5">No. HP</th>
               <th className="px-4 py-2.5">Status</th>
+              <th className="px-4 py-2.5">Urutan</th>
               <th className="px-4 py-2.5"></th>
             </tr>
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={8} className="text-center py-12 text-gray-400 text-sm">Memuat...</td></tr>
+              <tr><td colSpan={9} className="text-center py-12 text-gray-400 text-sm">Memuat...</td></tr>
             )}
             {!loading && users.map(u => (
               <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50 align-top">
@@ -195,6 +215,7 @@ export default function AdminUsersPanel() {
                         <option value="NOT_ACTIVE">Non-aktif</option>
                       </select>
                     </td>
+                    <td className="px-4 py-3 text-gray-300 text-xs">-</td>
                     <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                       <button onClick={() => saveEdit(u.id)} className="text-xs text-brand-600 hover:underline">Simpan</button>
                       <button onClick={() => setEditId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
@@ -213,6 +234,14 @@ export default function AdminUsersPanel() {
                         {u.employeeStatus === 'ACTIVE' ? 'Aktif' : 'Non-aktif'}
                       </span>
                     </td>
+                    <td className="px-4 py-3">
+                      {u.divisi && u.employeeStatus === 'ACTIVE' && (
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => moveUser(u, -1)} title="Naikkan urutan" className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-brand-600 border border-gray-200 rounded">↑</button>
+                          <button onClick={() => moveUser(u, 1)} title="Turunkan urutan" className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-brand-600 border border-gray-200 rounded">↓</button>
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                       <button onClick={() => startEdit(u)} className="text-xs text-brand-600 hover:underline">Edit</button>
                       <button onClick={() => { setResetPasswordId(resetPasswordId === u.id ? null : u.id); setResetPassword('') }} className="text-xs text-gray-400 hover:underline">Reset Password</button>
@@ -223,7 +252,7 @@ export default function AdminUsersPanel() {
             ))}
             {!loading && users.map(u => resetPasswordId === u.id && (
               <tr key={u.id + '-reset'} className="bg-gray-50 border-b border-gray-100">
-                <td colSpan={8} className="px-4 py-3">
+                <td colSpan={9} className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">Reset password untuk {u.name}:</span>
                     <input type="text" className="input text-xs w-48" placeholder="password baru (min 6 karakter)" value={resetPassword} onChange={e => setResetPassword(e.target.value)} />
