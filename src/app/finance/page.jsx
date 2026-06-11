@@ -415,137 +415,13 @@ export default function FinancePage() {
           </form>
         )}
 
-        {/* Cashflow forecast (Owner/Finance/Direksi only) */}
-        {cashflow && (
-          <div className="card p-4 space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-bold text-gray-900">Forecast Kebutuhan Dana Vendor</h2>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-bold text-gray-900">Total: {formatRupiah(cashflow.grandTotal)}</span>
-                <button
-                  onClick={() => exportCsv('cashflow-forecast.csv', cashflow.months.flatMap(m => m.items.map(it => ({
-                    Bulan: m.month,
-                    Tanggal: it.neededDate?.slice(0, 10),
-                    Project: it.project.code,
-                    Komponen: it.label,
-                    Jumlah: it.amount,
-                    Status: it.isActual ? 'Aktual' : 'Forecast',
-                  }))))}
-                  className="text-xs text-brand-600 hover:text-brand-700 font-medium underline-offset-2 hover:underline"
-                >Export CSV</button>
-              </div>
-            </div>
-            {cashflow.months.length === 0 && (
-              <p className="text-sm text-gray-400">Belum ada jadwal kebutuhan dana.</p>
-            )}
-            {cashflow.months.map(m => (
-              <div key={m.month} className="border border-gray-100 rounded-lg p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-gray-700">
-                    {new Date(m.month + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
-                  </span>
-                  <span className="text-sm font-bold text-brand-700">{formatRupiah(m.total)}</span>
-                </div>
-                <div className="space-y-1">
-                  {m.items.map(it => (
-                    <div key={it.id} className="flex items-center justify-between text-xs text-gray-600">
-                      <span>
-                        {new Date(it.neededDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} · {it.project.code} — {it.label}
-                        {it.isActual && <span className="ml-1 text-emerald-600">(aktual)</span>}
-                      </span>
-                      <span className="font-medium text-gray-800">{formatRupiah(it.amount)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Margin report (Owner/Finance/Direksi only) */}
-        {marginReport && marginReport.divisions.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-bold text-gray-900">Laporan Margin per Divisi</h2>
-              <button
-                onClick={() => exportCsv('laporan-margin.csv', marginReport.divisions.flatMap(d => d.projects.map(p => ({
-                  Divisi: DIVISION_LABEL[d.division] || d.division,
-                  Kode: p.code,
-                  Project: p.name,
-                  Status: p.status,
-                  NilaiProject: p.projectValue,
-                  ForecastBiaya: p.forecastCost,
-                  AktualBiaya: p.actualCost,
-                  MarginForecast: p.marginForecast,
-                  MarginAktual: p.marginActual,
-                }))))}
-                className="text-xs text-brand-600 hover:text-brand-700 font-medium underline-offset-2 hover:underline"
-              >Export CSV</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {marginReport.divisions.map(d => (
-                <div key={d.division} className="rounded-2xl bg-gradient-to-br from-brand-50 to-orange-50 border border-brand-100 p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-gray-900">{DIVISION_LABEL[d.division] || d.division}</h3>
-                    <span className="text-xs text-gray-500">{d.projects.length} project</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-xs text-gray-500">Total Nilai Project</p>
-                      <p className="font-bold text-gray-900">{formatRupiah(d.totalValue)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Total Biaya (Aktual)</p>
-                      <p className="font-bold text-gray-900">{formatRupiah(d.totalActualCost)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Margin (Forecast)</p>
-                      <p className={clsx('font-bold', d.totalMarginForecast >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(d.totalMarginForecast)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Margin (Aktual)</p>
-                      <p className={clsx('font-bold', d.totalMarginActual >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(d.totalMarginActual)}</p>
-                    </div>
-                  </div>
-                  <details className="text-xs">
-                    <summary className="cursor-pointer text-brand-700 font-medium hover:text-brand-800 select-none">Detail per project</summary>
-                    <div className="mt-2 space-y-1.5">
-                      {d.projects.map(p => (
-                        <div key={p.id} className="flex items-center justify-between bg-white/60 rounded-lg px-2 py-1.5">
-                          <span className="text-gray-700">{p.code} — {p.name}</span>
-                          <span className={clsx('font-semibold', p.marginActual >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(p.marginActual)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Profitability analysis (Owner/Finance/Direksi only) */}
-        {profitability && (profitability.byClient.length > 0 || profitability.byCategory.length > 0) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ProfitabilityCard title="Profitabilitas per Klien" rows={profitability.byClient} labelMap={null} />
-            <ProfitabilityCard title="Profitabilitas per Kategori" rows={profitability.byCategory} labelMap={CATEGORY_LABEL} />
-          </div>
-        )}
-
-        {/* Revenue summary per client — total revenue across all won projects */}
-        {profitability && profitability.byClient.length > 0 && (
-          <RevenuePerClientCard rows={profitability.byClient} />
-        )}
-
-        {/* Profitability per project */}
-        {profitability && profitability.byProject?.length > 0 && (
-          <ProfitabilityByProjectCard rows={profitability.byProject} />
-        )}
-
         {/* Budget forecast section */}
-        <div className="card p-4 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-bold text-gray-900">Forecast Budget per Project</h2>
+        <div className="card p-4 space-y-3 border-t-4 border-blue-400">
+          <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-100">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xs">📋</span>
+              Forecast Budget per Project
+            </h2>
             {budgetProjectId && budgetItems.length > 0 && (
               <button
                 onClick={() => exportCsv(`budget-${budgetProjectId}.csv`, budgetItems.map(b => ({
@@ -759,11 +635,147 @@ export default function FinancePage() {
             </div>
           )}
         </div>
+        {/* Cashflow forecast (Owner/Finance/Direksi only) */}
+        {cashflow && (
+          <div className="card p-4 space-y-3 border-t-4 border-orange-400">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-100">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-xs">💸</span>
+                Forecast Kebutuhan Dana Vendor
+              </h2>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-gray-900">Total: {formatRupiah(cashflow.grandTotal)}</span>
+                <button
+                  onClick={() => exportCsv('cashflow-forecast.csv', cashflow.months.flatMap(m => m.items.map(it => ({
+                    Bulan: m.month,
+                    Tanggal: it.neededDate?.slice(0, 10),
+                    Project: it.project.code,
+                    Komponen: it.label,
+                    Jumlah: it.amount,
+                    Status: it.isActual ? 'Aktual' : 'Forecast',
+                  }))))}
+                  className="text-xs text-brand-600 hover:text-brand-700 font-medium underline-offset-2 hover:underline"
+                >Export CSV</button>
+              </div>
+            </div>
+            {cashflow.months.length === 0 && (
+              <p className="text-sm text-gray-400">Belum ada jadwal kebutuhan dana.</p>
+            )}
+            {cashflow.months.map(m => (
+              <div key={m.month} className="border border-gray-100 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700">
+                    {new Date(m.month + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                  </span>
+                  <span className="text-sm font-bold text-brand-700">{formatRupiah(m.total)}</span>
+                </div>
+                <div className="space-y-1">
+                  {m.items.map(it => (
+                    <div key={it.id} className="flex items-center justify-between text-xs text-gray-600">
+                      <span>
+                        {new Date(it.neededDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} · {it.project.code} — {it.project.name} — {it.label}
+                        {it.isActual && <span className="ml-1 text-emerald-600">(aktual)</span>}
+                      </span>
+                      <span className="font-medium text-gray-800">{formatRupiah(it.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Margin report (Owner/Finance/Direksi only) */}
+        {marginReport && marginReport.divisions.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-200">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs">📊</span>
+                Laporan Margin per Divisi
+              </h2>
+              <button
+                onClick={() => exportCsv('laporan-margin.csv', marginReport.divisions.flatMap(d => d.projects.map(p => ({
+                  Divisi: DIVISION_LABEL[d.division] || d.division,
+                  Kode: p.code,
+                  Project: p.name,
+                  Status: p.status,
+                  NilaiProject: p.projectValue,
+                  ForecastBiaya: p.forecastCost,
+                  AktualBiaya: p.actualCost,
+                  MarginForecast: p.marginForecast,
+                  MarginAktual: p.marginActual,
+                }))))}
+                className="text-xs text-brand-600 hover:text-brand-700 font-medium underline-offset-2 hover:underline"
+              >Export CSV</button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {marginReport.divisions.map(d => (
+                <div key={d.division} className="rounded-2xl bg-gradient-to-br from-brand-50 to-orange-50 border border-brand-100 p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-gray-900">{DIVISION_LABEL[d.division] || d.division}</h3>
+                    <span className="text-xs text-gray-500">{d.projects.length} project</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-gray-500">Total Nilai Project</p>
+                      <p className="font-bold text-gray-900">{formatRupiah(d.totalValue)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Total Biaya (Aktual)</p>
+                      <p className="font-bold text-gray-900">{formatRupiah(d.totalActualCost)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Margin (Forecast)</p>
+                      <p className={clsx('font-bold', d.totalMarginForecast >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(d.totalMarginForecast)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Margin (Aktual)</p>
+                      <p className={clsx('font-bold', d.totalMarginActual >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(d.totalMarginActual)}</p>
+                    </div>
+                  </div>
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-brand-700 font-medium hover:text-brand-800 select-none">Detail per project</summary>
+                    <div className="mt-2 space-y-1.5">
+                      {d.projects.map(p => (
+                        <div key={p.id} className="flex items-center justify-between bg-white/60 rounded-lg px-2 py-1.5">
+                          <span className="text-gray-700">{p.code} — {p.name}</span>
+                          <span className={clsx('font-semibold', p.marginActual >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(p.marginActual)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Profitability analysis (Owner/Finance/Direksi only) */}
+        {profitability && (profitability.byClient.length > 0 || profitability.byCategory.length > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ProfitabilityCard title="Profitabilitas per Klien" rows={profitability.byClient} labelMap={null} />
+            <ProfitabilityCard title="Profitabilitas per Kategori" rows={profitability.byCategory} labelMap={CATEGORY_LABEL} />
+          </div>
+        )}
+
+        {/* Revenue summary per client — total revenue across all won projects */}
+        {profitability && profitability.byClient.length > 0 && (
+          <RevenuePerClientCard rows={profitability.byClient} />
+        )}
+
+        {/* Profitability per project */}
+        {profitability && profitability.byProject?.length > 0 && (
+          <ProfitabilityByProjectCard rows={profitability.byProject} />
+        )}
+
 
         {/* Payment requests list */}
-        <div className="card p-4 space-y-3">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h2 className="text-sm font-bold text-gray-900">Pengajuan Pembayaran</h2>
+        <div className="card p-4 space-y-3 border-t-4 border-purple-400">
+          <div className="flex items-center justify-between gap-3 flex-wrap pb-2 border-b border-gray-100">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xs">🧾</span>
+              Pengajuan Pembayaran
+            </h2>
             <div className="flex items-center gap-3">
               <select className="select w-56" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                 <option value="">Semua Status</option>
