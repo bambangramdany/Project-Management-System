@@ -4,12 +4,10 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { StatusBadge, CategoryBadge, PitchResultBadge } from '@/components/StatusBadge'
-import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, DIVISION_LABEL } from '@/lib/constants'
+import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, DIVISION_LABEL, EO_CATEGORIES, PH_CATEGORIES } from '@/lib/constants'
 import { canViewAllProjects, canQuickEditProjects } from '@/lib/rbac'
 import { HEALTH_LABEL, HEALTH_DOT } from '@/lib/health'
 import Link from 'next/link'
-
-const CATEGORY_VALUES_HINT = `${Object.keys(CATEGORY_LABEL).join(', ')}`
 
 export default function ProjectsPage() {
   return (
@@ -118,7 +116,7 @@ function ProjectsContent() {
       ['Nama Project', 'Wajib diisi'],
       ['Client', 'Nama client/perusahaan'],
       ['Divisi', 'EVENT (untuk tim EO) atau PH (untuk Production House)'],
-      ['Kategori', CATEGORY_VALUES_HINT],
+      ['Kategori', 'Pilih sesuai Divisi — lihat daftar lengkap & valid di sheet "Pilihan"'],
       ['PIC (email)', 'Email akun PIC/Project Manager yang sudah terdaftar di sistem'],
       ['Status', STATUS_PIPELINE.map(s => s).join(', ')],
       ['Hasil Pitch', 'WIN, LOSE, atau NOT_FINAL (kosongkan jika belum ada hasil)'],
@@ -138,9 +136,29 @@ function ProjectsContent() {
     const wsGuide = XLSX.utils.aoa_to_sheet(guideRows)
     wsGuide['!cols'] = [{ wch: 38 }, { wch: 90 }]
 
+    // Reference sheet listing every valid value for the dropdown-style columns,
+    // grouped by division so EO and PH teams pick from the right list.
+    const eoCategories = EO_CATEGORIES.map(k => CATEGORY_LABEL[k] + ' = ' + k)
+    const phCategories = PH_CATEGORIES.map(k => CATEGORY_LABEL[k] + ' = ' + k)
+    const statusList = STATUS_PIPELINE.map(s => `${s} (${STATUS_LABEL[s]})`)
+    const maxRows = Math.max(eoCategories.length, phCategories.length, statusList.length, 4)
+    const choiceRows = [['Divisi', 'Kategori - EVENT (EO)', 'Kategori - PH', 'Status', 'Hasil Pitch']]
+    for (let i = 0; i < maxRows; i++) {
+      choiceRows.push([
+        i === 0 ? 'EVENT' : i === 1 ? 'PH' : '',
+        eoCategories[i] || '',
+        phCategories[i] || '',
+        statusList[i] || '',
+        i === 0 ? 'WIN' : i === 1 ? 'LOSE' : i === 2 ? 'NOT_FINAL' : '',
+      ])
+    }
+    const wsChoices = XLSX.utils.aoa_to_sheet(choiceRows)
+    wsChoices['!cols'] = [{ wch: 14 }, { wch: 38 }, { wch: 40 }, { wch: 28 }, { wch: 14 }]
+
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Projects')
     XLSX.utils.book_append_sheet(wb, wsGuide, 'Petunjuk')
+    XLSX.utils.book_append_sheet(wb, wsChoices, 'Pilihan')
     XLSX.writeFile(wb, 'template-import-project.xlsx')
   }
 

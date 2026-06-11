@@ -42,7 +42,19 @@ export const CATEGORY_LABEL = {
   EXHIBITION: 'Exhibition',
   INCENTIVE_GATHERING: 'Incentive & Gathering',
   SPONSORSHIP: 'Sponsorship',
+  // Production House (PH)
+  CORPORATE_PROFILE_BRANDING: 'Corporate Profile & Branding',
+  COMMERCIAL_ADVERTISING: 'Commercial & Advertising',
+  EVENT_DOCUMENTATION_HIGHLIGHT: 'Event Documentation & Highlight',
+  SOCIAL_MEDIA_CONTENT: 'Social Media Content',
+  TRAINING_INTERNAL_COMMUNICATION: 'Training & Internal Communication',
+  PRODUCT_EXPLAINER_VIDEO: 'Product & Explainer Video',
+  MOTION_GRAPHIC_ANIMATION: 'Motion Graphic & Animation',
+  DOCUMENTARY_STORYTELLING: 'Documentary & Storytelling',
 }
+
+export const EO_CATEGORIES = ['MEETING_CONFERENCE', 'ACTIVATION', 'LAUNCHING', 'EXHIBITION', 'INCENTIVE_GATHERING', 'SPONSORSHIP']
+export const PH_CATEGORIES = ['CORPORATE_PROFILE_BRANDING', 'COMMERCIAL_ADVERTISING', 'EVENT_DOCUMENTATION_HIGHLIGHT', 'SOCIAL_MEDIA_CONTENT', 'TRAINING_INTERNAL_COMMUNICATION', 'PRODUCT_EXPLAINER_VIDEO', 'MOTION_GRAPHIC_ANIMATION', 'DOCUMENTARY_STORYTELLING']
 
 // SOP checklist templates — auto-generated as tasks when a project of the
 // matching category is created, so no standard step gets skipped.

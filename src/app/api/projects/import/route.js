@@ -7,7 +7,11 @@ import { NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
 
 const STATUS_VALUES = ['HOLD', 'PITCHING', 'WAITING_PITCH_RESULT', 'PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING', 'DONE', 'FAILED', 'CANCELED']
-const CATEGORY_VALUES = ['MEETING_CONFERENCE', 'ACTIVATION', 'LAUNCHING', 'EXHIBITION', 'INCENTIVE_GATHERING', 'SPONSORSHIP']
+const CATEGORY_VALUES = [
+  'MEETING_CONFERENCE', 'ACTIVATION', 'LAUNCHING', 'EXHIBITION', 'INCENTIVE_GATHERING', 'SPONSORSHIP',
+  'CORPORATE_PROFILE_BRANDING', 'COMMERCIAL_ADVERTISING', 'EVENT_DOCUMENTATION_HIGHLIGHT', 'SOCIAL_MEDIA_CONTENT',
+  'TRAINING_INTERNAL_COMMUNICATION', 'PRODUCT_EXPLAINER_VIDEO', 'MOTION_GRAPHIC_ANIMATION', 'DOCUMENTARY_STORYTELLING',
+]
 const DIVISION_VALUES = ['EVENT', 'CREATIVE', 'PH', 'FINANCE_HRGA']
 const PITCH_RESULT_VALUES = ['WIN', 'LOSE', 'NOT_FINAL']
 
@@ -42,7 +46,7 @@ function parseNumber(value) {
 
 function matchEnum(value, allowed, fallback = null) {
   if (!value) return fallback
-  const v = String(value).trim().toUpperCase().replace(/[\s-]+/g, '_')
+  const v = String(value).trim().toUpperCase().replace(/&/g, '').replace(/[\s-]+/g, '_').replace(/_+/g, '_')
   return allowed.includes(v) ? v : fallback
 }
 
