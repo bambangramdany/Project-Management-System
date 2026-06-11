@@ -375,6 +375,7 @@ model Project {
   evaluationNote  String?
   projectValue    Float?
   quotationNumber String?
+  invoiceNumber   String?
   budgetLockedAt  DateTime?
   budgetLockedById String?
   notes           String?

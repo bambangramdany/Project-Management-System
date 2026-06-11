@@ -101,6 +101,8 @@ export async function POST(req) {
     const notes = pick(row, ['catatan', 'notes'])
     const evaluationNote = pick(row, ['catatan evaluasi', 'evaluation note'])
     const codeRaw = pick(row, ['kode', 'code'])
+    const quotationNumber = pick(row, ['no quotation', 'no. quotation', 'nomor quotation', 'quotation number', 'quotation'])
+    const invoiceNumber = pick(row, ['no invoice', 'no. invoice', 'nomor invoice', 'invoice number', 'invoice'])
 
     let picId = null
     const picRaw = pick(row, ['pic'])
@@ -143,6 +145,8 @@ export async function POST(req) {
         vendorWinner: vendorWinner ? String(vendorWinner).trim() : null,
         notes: notes ? String(notes).trim() : null,
         evaluationNote: evaluationNote ? String(evaluationNote).trim() : null,
+        quotationNumber: quotationNumber ? String(quotationNumber).trim() : null,
+        invoiceNumber: invoiceNumber ? String(invoiceNumber).trim() : null,
       },
     })
     imported++

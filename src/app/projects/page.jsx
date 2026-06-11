@@ -9,6 +9,8 @@ import { canViewAllProjects, canQuickEditProjects } from '@/lib/rbac'
 import { HEALTH_LABEL, HEALTH_DOT } from '@/lib/health'
 import Link from 'next/link'
 
+const CATEGORY_VALUES_HINT = `${Object.keys(CATEGORY_LABEL).join(', ')}`
+
 export default function ProjectsPage() {
   return (
     <Suspense fallback={null}>
@@ -83,6 +85,65 @@ function ProjectsContent() {
     return true
   })
 
+  const downloadProjectTemplate = async () => {
+    const XLSX = await import('xlsx')
+
+    const headers = [
+      'Kode', 'Nama Project', 'Client', 'Divisi', 'Kategori', 'PIC (email)',
+      'Status', 'Hasil Pitch', 'Nilai Project', 'No. Quotation', 'No. Invoice',
+      'Tanggal Brief', 'Tanggal Submit', 'Tanggal Mulai', 'Tanggal Selesai',
+      'Alasan Menang/Kalah', 'Vendor Pemenang', 'Catatan',
+    ]
+
+    const exampleEvent = [
+      'EVT-021', 'Annual Gathering PT Maju Jaya', 'PT Maju Jaya', 'EVENT', 'INCENTIVE_GATHERING',
+      'wulan@watermark.co.id', 'DONE', 'WIN', 250000000, 'WTM/EVENT/QUOT/2026/021', 'WTM/EVENT/INV/2026/021/25',
+      '2026-01-05', '2026-01-10', '2026-02-14', '2026-02-14', '', '', 'Contoh data project Event',
+    ]
+    const examplePh = [
+      'PH-011', 'Company Profile Video PT Sejahtera', 'PT Sejahtera', 'PH', 'ACTIVATION',
+      'bastya@watermark.co.id', 'DONE', 'WIN', 75000000, 'WTM/PH/QUOT/2026/011', 'WTM/PH/INV/2026/011/26',
+      '2026-01-08', '2026-01-12', '2026-02-20', '2026-02-22', '', '', 'Contoh data project Production House',
+    ]
+
+    const sheetData = [headers, exampleEvent, examplePh]
+    const ws = XLSX.utils.aoa_to_sheet(sheetData)
+    ws['!cols'] = headers.map(() => ({ wch: 22 }))
+
+    const guideRows = [
+      ['Petunjuk Pengisian Template Project'],
+      [''],
+      ['Kolom', 'Keterangan'],
+      ['Kode', 'Kode internal project (boleh dikosongkan, sistem akan membuat otomatis)'],
+      ['Nama Project', 'Wajib diisi'],
+      ['Client', 'Nama client/perusahaan'],
+      ['Divisi', 'EVENT (untuk tim EO) atau PH (untuk Production House)'],
+      ['Kategori', CATEGORY_VALUES_HINT],
+      ['PIC (email)', 'Email akun PIC/Project Manager yang sudah terdaftar di sistem'],
+      ['Status', STATUS_PIPELINE.map(s => s).join(', ')],
+      ['Hasil Pitch', 'WIN, LOSE, atau NOT_FINAL (kosongkan jika belum ada hasil)'],
+      ['Nilai Project', 'Nilai kontrak dalam Rupiah, angka saja tanpa titik/koma (contoh: 250000000)'],
+      ['No. Quotation', 'Format: WTM/[DIVISI]/QUOT/[TAHUN]/[NO. URUT] — contoh: WTM/EVENT/QUOT/2026/021 atau WTM/PH/QUOT/2026/011'],
+      ['No. Invoice', 'Format: WTM/[DIVISI]/INV/[TAHUN]/[NO. URUT QUOTATION]/[NO. URUT INVOICE] — contoh: WTM/EVENT/INV/2026/021/25 atau WTM/PH/INV/2026/011/26'],
+      ['Tanggal Brief / Submit / Mulai / Selesai', 'Format tanggal: YYYY-MM-DD (contoh: 2026-02-14)'],
+      ['Alasan Menang/Kalah', 'Diisi jika project sudah WIN atau LOSE (opsional)'],
+      ['Vendor Pemenang', 'Diisi jika project LOSE dan ada vendor/kompetitor yang menang (opsional)'],
+      ['Catatan', 'Catatan tambahan (opsional)'],
+      [''],
+      ['Catatan penting:'],
+      ['- Jangan ubah nama header pada baris pertama sheet "Projects".'],
+      ['- Hapus 2 baris contoh sebelum mengisi data project asli, atau timpa langsung dengan data asli.'],
+      ['- Satu baris = satu project.'],
+    ]
+    const wsGuide = XLSX.utils.aoa_to_sheet(guideRows)
+    wsGuide['!cols'] = [{ wch: 38 }, { wch: 90 }]
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Projects')
+    XLSX.utils.book_append_sheet(wb, wsGuide, 'Petunjuk')
+    XLSX.writeFile(wb, 'template-import-project.xlsx')
+  }
+
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -146,6 +207,9 @@ function ProjectsContent() {
           {isManager && (
             <div className="flex items-center gap-2 self-start sm:self-auto">
               <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileChange} />
+              <button onClick={downloadProjectTemplate} className="text-sm px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
+                ⬇ Unduh Template
+              </button>
               <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="text-sm px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
                 {importing ? 'Mengunggah...' : '⬆ Import Project'}
               </button>
