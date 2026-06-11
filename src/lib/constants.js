@@ -251,3 +251,33 @@ export const PAYMENT_STATUS_COLOR = {
   REJECTED: 'bg-red-100 text-red-700',
   PAID: 'bg-green-100 text-green-700',
 }
+
+// ── Opex (operational expenses) ─────────────────────────────────────────
+export const OPEX_CATEGORIES = [
+  'Sewa & Utilitas',
+  'Gaji & Tunjangan',
+  'Operasional Kantor',
+  'Marketing',
+  'Transportasi',
+  'Langganan & Software',
+  'Pajak & Legal',
+  'Lainnya',
+]
+
+// ── Asset register ───────────────────────────────────────────────────────
+export const ASSET_CATEGORY_LABEL = {
+  VEHICLE: 'Kendaraan',
+  ELECTRONICS: 'Elektronik',
+  EQUIPMENT: 'Peralatan',
+  PROPERTY: 'Properti',
+  FURNITURE: 'Furniture',
+  SOFTWARE: 'Software / Lisensi',
+  CRYPTO: 'Crypto',
+  OTHER: 'Lainnya',
+}
+
+export const ASSET_CONDITION_LABEL = {
+  BAIK: 'Baik',
+  RUSAK_RINGAN: 'Rusak Ringan',
+  RUSAK_BERAT: 'Rusak Berat',
+}

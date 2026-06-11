@@ -38,6 +38,8 @@ model User {
   directorNotesSent     DirectorNote[] @relation("DirectorNoteAuthor")
   auditLogs             AuditLog[]
   cashTransactions      CashTransaction[]
+  opexEntries           OpexEntry[]
+  assets                Asset[]
 }
 
 // Global audit trail of important changes across the system, for Direksi/Owner
@@ -86,8 +88,64 @@ model CashTransaction {
   recordedBy     User?           @relation(fields: [recordedById], references: [id], onDelete: SetNull)
   paymentRequest PaymentRequest? @relation(fields: [paymentRequestId], references: [id], onDelete: SetNull)
   debtPayment    DebtPayment?
+  opexEntry      OpexEntry?
 
   @@index([date])
+}
+
+// Monthly operational expenses (rent, utilities, salaries, subscriptions,
+// etc.). Each entry mirrors a CashTransaction (OUT) so the cash ledger stays
+// consistent — deleting an OpexEntry also removes its cash entry.
+model OpexEntry {
+  id          String   @id @default(cuid())
+  category    String
+  description String
+  amount      Float
+  date        DateTime
+  period      String // YYYY-MM, for monthly summaries
+  recordedById String?
+  cashTransactionId String? @unique
+  createdAt   DateTime @default(now())
+
+  recordedBy      User?            @relation(fields: [recordedById], references: [id], onDelete: SetNull)
+  cashTransaction CashTransaction? @relation(fields: [cashTransactionId], references: [id], onDelete: SetNull)
+
+  @@index([period])
+}
+
+enum AssetCategory {
+  VEHICLE
+  ELECTRONICS
+  EQUIPMENT
+  PROPERTY
+  FURNITURE
+  SOFTWARE
+  CRYPTO
+  OTHER
+}
+
+enum AssetCondition {
+  BAIK
+  RUSAK_RINGAN
+  RUSAK_BERAT
+}
+
+// Company fixed-asset register — acquisition cost vs. current value gives a
+// running depreciation figure per asset and in aggregate.
+model Asset {
+  id               String         @id @default(cuid())
+  name             String
+  category         AssetCategory
+  condition        AssetCondition @default(BAIK)
+  acquisitionCost  Float
+  currentValue     Float
+  acquisitionDate  DateTime
+  notes            String?
+  createdById      String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
 }
 
 enum DebtStatus {
