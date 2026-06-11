@@ -29,10 +29,28 @@ function ProjectsContent() {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const fileInputRef = useRef(null)
+  const [showEO, setShowEO] = useState(true)
+  const [showPH, setShowPH] = useState(true)
+  const [divisionInitialized, setDivisionInitialized] = useState(false)
+  const [involvedOnly, setInvolvedOnly] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
+
+  // Default the division toggle to the logged-in user's own division
+  useEffect(() => {
+    if (status === 'authenticated' && !divisionInitialized) {
+      if (session.user.divisi === 'PH') {
+        setShowEO(false)
+        setShowPH(true)
+      } else {
+        setShowEO(true)
+        setShowPH(false)
+      }
+      setDivisionInitialized(true)
+    }
+  }, [status, session, divisionInitialized])
 
   const fetchProjects = useCallback(() => {
     const params = new URLSearchParams()
@@ -49,6 +67,17 @@ function ProjectsContent() {
   useEffect(() => { if (status === 'authenticated') fetchProjects() }, [status, fetchProjects])
 
   const isManager = canViewAllProjects(session?.user.role)
+
+  const visibleProjects = projects.filter(p => {
+    const isPh = p.division === 'PH'
+    if (isPh && !showPH) return false
+    if (!isPh && !showEO) return false
+    if (involvedOnly) {
+      const isInvolved = p.picId === session?.user.id || p.members?.some(m => m.user?.id === session?.user.id)
+      if (!isInvolved) return false
+    }
+    return true
+  })
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0]
@@ -124,18 +153,43 @@ function ProjectsContent() {
               ))}
             </select>
           </div>
+          <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+            <span className="text-xs text-gray-500 mr-1">Divisi:</span>
+            <button
+              type="button"
+              onClick={() => setShowEO(v => !v)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors flex items-center gap-1 ${showEO ? 'bg-brand text-white border-brand' : 'bg-gray-50 text-gray-500 border-gray-200'}`}
+            >
+              {showEO && '✓'} EO
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPH(v => !v)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors flex items-center gap-1 ${showPH ? 'bg-brand text-white border-brand' : 'bg-gray-50 text-gray-500 border-gray-200'}`}
+            >
+              {showPH && '✓'} PH
+            </button>
+            <span className="text-xs text-gray-500 ml-3 mr-1">|</span>
+            <button
+              type="button"
+              onClick={() => setInvolvedOnly(v => !v)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors flex items-center gap-1 ${involvedOnly ? 'bg-brand text-white border-brand' : 'bg-gray-50 text-gray-500 border-gray-200'}`}
+            >
+              {involvedOnly && '✓'} Project Saya
+            </button>
+          </div>
         </div>
 
         {/* Project count */}
-        <p className="text-xs text-gray-500">{projects.length} project ditemukan</p>
+        <p className="text-xs text-gray-500">{visibleProjects.length} project ditemukan</p>
 
         {/* Project list */}
         <div className="space-y-2">
           {loading && <div className="text-center py-12 text-gray-400 text-sm">Memuat...</div>}
-          {!loading && projects.length === 0 && (
+          {!loading && visibleProjects.length === 0 && (
             <div className="text-center py-12 text-gray-400 text-sm">Tidak ada project</div>
           )}
-          {projects.map(p => (
+          {visibleProjects.map(p => (
             <Link key={p.id} href={`/projects/${p.id}`} className="card flex flex-col sm:flex-row sm:items-center gap-3 p-4 hover:shadow-md hover:border-brand-200 hover:-translate-y-0.5 transition-all duration-200 block">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
