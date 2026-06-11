@@ -49,7 +49,7 @@ export async function PATCH(req, { params }) {
   const data = {}
   const allowed = ['name','status','pitchStatus','pitchResult','wonLossReason','vendorWinner','category',
     'budgetTier','eventComplexity','recommendation','picId','clientId','briefDate','submitDate',
-    'pitchDuration','startDate','endDate','projectDuration','projectValue','notes','evaluationNote']
+    'pitchDuration','startDate','endDate','projectDuration','projectValue','notes','evaluationNote','division']
 
   for (const key of allowed) {
     if (key in fields) {

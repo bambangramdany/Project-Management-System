@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { StatusBadge, CategoryBadge, PitchResultBadge } from '@/components/StatusBadge'
-import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL } from '@/lib/constants'
+import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, DIVISION_LABEL } from '@/lib/constants'
 import { canViewAllProjects } from '@/lib/rbac'
 import { HEALTH_LABEL, HEALTH_DOT } from '@/lib/health'
 import Link from 'next/link'
@@ -33,6 +33,9 @@ function ProjectsContent() {
   const [showPH, setShowPH] = useState(true)
   const [divisionInitialized, setDivisionInitialized] = useState(false)
   const [involvedOnly, setInvolvedOnly] = useState(false)
+  const [editId, setEditId] = useState(null)
+  const [editForm, setEditForm] = useState({})
+  const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -96,6 +99,40 @@ function ProjectsContent() {
       setImportResult({ error: d.error || 'Gagal mengimpor file' })
     }
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const openQuickEdit = (e, p) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setEditId(p.id)
+    setEditForm({
+      division: p.division || 'EVENT',
+      status: p.status,
+      startDate: p.startDate ? p.startDate.slice(0, 10) : '',
+    })
+  }
+
+  const saveQuickEdit = async (e, id) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setSavingEdit(true)
+    const res = await fetch(`/api/projects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        division: editForm.division,
+        status: editForm.status,
+        startDate: editForm.startDate || null,
+      }),
+    })
+    setSavingEdit(false)
+    if (res.ok) {
+      setEditId(null)
+      fetchProjects()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      alert(d.error || 'Gagal menyimpan perubahan')
+    }
   }
 
   return (
@@ -190,36 +227,85 @@ function ProjectsContent() {
             <div className="text-center py-12 text-gray-400 text-sm">Tidak ada project</div>
           )}
           {visibleProjects.map(p => (
-            <Link key={p.id} href={`/projects/${p.id}`} className="card flex flex-col sm:flex-row sm:items-center gap-3 p-4 hover:shadow-md hover:border-brand-200 hover:-translate-y-0.5 transition-all duration-200 block">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="text-xs text-gray-400 font-mono">{p.code}</span>
-                  <CategoryBadge category={p.category} />
-                  {p.recommendation === 'PRIORITIZE' && <span className="text-xs">🔥</span>}
-                  {p.recommendation === 'EVALUATE' && <span className="text-xs">⚠️</span>}
-                  {p.health && p.health.level !== 'gray' && p.health.level !== 'green' && (
-                    <span
-                      className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${p.health.level === 'red' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}
-                      title={p.health.reasons.join(' · ')}
+            <Link key={p.id} href={`/projects/${p.id}`} className="card flex flex-col gap-3 p-4 hover:shadow-md hover:border-brand-200 hover:-translate-y-0.5 transition-all duration-200 block">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-xs text-gray-400 font-mono">{p.code}</span>
+                    <CategoryBadge category={p.category} />
+                    {p.recommendation === 'PRIORITIZE' && <span className="text-xs">🔥</span>}
+                    {p.recommendation === 'EVALUATE' && <span className="text-xs">⚠️</span>}
+                    {p.health && p.health.level !== 'gray' && p.health.level !== 'green' && (
+                      <span
+                        className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${p.health.level === 'red' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}
+                        title={p.health.reasons.join(' · ')}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${HEALTH_DOT[p.health.level]}`} />
+                        {HEALTH_LABEL[p.health.level]}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm font-semibold text-gray-900 truncate">{p.name}</p>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+                    <span>{p.client?.name || 'No client'}</span>
+                    <span>·</span>
+                    <span>PIC: {p.pic?.name || '—'}</span>
+                    <span>· {p.division === 'PH' ? 'PH' : 'EO'}</span>
+                    {p.startDate && <span>· {new Date(p.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                    {p.members?.length > 0 && <span>· {p.members.length} anggota</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <PitchResultBadge result={p.pitchResult} />
+                  <StatusBadge status={p.status} />
+                  {isManager && (
+                    <button
+                      onClick={(e) => {
+                        if (editId === p.id) {
+                          e.preventDefault(); e.stopPropagation(); setEditId(null)
+                        } else {
+                          openQuickEdit(e, p)
+                        }
+                      }}
+                      title="Edit cepat"
+                      className="text-xs px-2 py-1 rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-brand-600"
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${HEALTH_DOT[p.health.level]}`} />
-                      {HEALTH_LABEL[p.health.level]}
-                    </span>
+                      ✏️
+                    </button>
                   )}
                 </div>
-                <p className="text-sm font-semibold text-gray-900 truncate">{p.name}</p>
-                <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
-                  <span>{p.client?.name || 'No client'}</span>
-                  <span>·</span>
-                  <span>PIC: {p.pic?.name || '—'}</span>
-                  {p.startDate && <span>· {new Date(p.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
-                  {p.members?.length > 0 && <span>· {p.members.length} anggota</span>}
+              </div>
+
+              {editId === p.id && (
+                <div
+                  className="border-t border-gray-100 pt-3 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+                >
+                  <div>
+                    <label className="label">Divisi</label>
+                    <select className="select text-sm" value={editForm.division} onChange={e => setEditForm(f => ({ ...f, division: e.target.value }))}>
+                      <option value="EVENT">EO (Event)</option>
+                      <option value="PH">PH (Production House)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Status</label>
+                    <select className="select text-sm" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
+                      {STATUS_PIPELINE.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Waktu Pelaksanaan</label>
+                    <input type="date" className="input text-sm" value={editForm.startDate} onChange={e => setEditForm(f => ({ ...f, startDate: e.target.value }))} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={(e) => saveQuickEdit(e, p.id)} disabled={savingEdit} className="btn-primary text-sm">
+                      {savingEdit ? 'Menyimpan...' : 'Simpan'}
+                    </button>
+                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditId(null) }} className="text-sm text-gray-400 hover:underline">Batal</button>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <PitchResultBadge result={p.pitchResult} />
-                <StatusBadge status={p.status} />
-              </div>
+              )}
             </Link>
           ))}
         </div>
