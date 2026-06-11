@@ -282,6 +282,85 @@ export default function FinancePage() {
           )}
         </div>
 
+        {/* Create payment request form */}
+        {showForm && canCreate && (
+          <form onSubmit={submitRequest} className="card p-4 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="label">Project *</label>
+                <select className="select" value={form.projectId} onChange={e => onFormProjectChange(e.target.value)} required>
+                  <option value="">Pilih project</option>
+                  {myProjects.map(p => (
+                    <option key={p.id} value={p.id}>{p.code} — {p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Kategori *</label>
+                <select className="select" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+                  {EXPENSE_CATEGORIES.map(c => (
+                    <option key={c} value={c}>{EXPENSE_CATEGORY_LABEL[c]}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label">Komponen Forecast (sesuai quotation)</label>
+                <input
+                  className="input" list="budget-item-options"
+                  value={form.budgetItemLabel}
+                  onChange={e => setForm(f => ({ ...f, budgetItemLabel: e.target.value }))}
+                  placeholder="Pilih komponen forecast yang sudah ada, atau ketik nama baru"
+                />
+                <datalist id="budget-item-options">
+                  {formBudgetItems.map(label => <option key={label} value={label} />)}
+                </datalist>
+                <p className="text-xs text-gray-400 mt-1">Pengajuan ini akan disandingkan dengan forecast project — jika nama komponen baru, akan otomatis ditambahkan ke forecast.</p>
+              </div>
+              <div>
+                <label className="label">Nominal (Rp) *</label>
+                <ThousandsInput className="input" value={form.amount} onChange={v => setForm(f => ({ ...f, amount: v }))} placeholder="0" />
+              </div>
+              <div>
+                <label className="label">Vendor / Tujuan</label>
+                <input className="input" value={form.vendor} onChange={e => setForm(f => ({ ...f, vendor: e.target.value }))} placeholder="Nama vendor / penerima" />
+              </div>
+              <div>
+                <label className="label">Termin Pembayaran</label>
+                <select className="select" value={form.paymentTerm} onChange={e => setForm(f => ({ ...f, paymentTerm: e.target.value }))}>
+                  {Object.entries(PAYMENT_TERM_LABEL).map(([k, l]) => (
+                    <option key={k} value={k}>{l}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Nama Penerima</label>
+                <input className="input" value={form.recipientName} onChange={e => setForm(f => ({ ...f, recipientName: e.target.value }))} placeholder="Nama pemilik rekening" />
+              </div>
+              <div>
+                <label className="label">No. Rekening Penerima</label>
+                <input className="input" value={form.recipientAccount} onChange={e => setForm(f => ({ ...f, recipientAccount: e.target.value }))} placeholder="Bank & nomor rekening" />
+              </div>
+              <div>
+                <label className="label">Tanggal Dibutuhkan</label>
+                <input type="date" className="input" value={form.neededDate} onChange={e => setForm(f => ({ ...f, neededDate: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <label className="label">Keterangan</label>
+              <textarea className="input" rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Detail kebutuhan pembayaran..." />
+            </div>
+            {formBudgetEmpty && (
+              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                Forecast budget project ini belum diisi oleh PM/PIC. Lengkapi forecast budget terlebih dahulu di bagian "Forecast Budget per Project" sebelum mengajukan pembayaran.
+              </p>
+            )}
+            <div className="flex gap-2">
+              <button type="submit" className="btn-primary" disabled={formBudgetEmpty}>Ajukan</button>
+              <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">Batal</button>
+            </div>
+          </form>
+        )}
+
         {/* Cashflow forecast (Owner/Finance/Direksi only) */}
         {cashflow && (
           <div className="card p-4 space-y-3">
@@ -407,85 +486,6 @@ export default function FinancePage() {
         {/* Profitability per project */}
         {profitability && profitability.byProject?.length > 0 && (
           <ProfitabilityByProjectCard rows={profitability.byProject} />
-        )}
-
-        {/* Create payment request form */}
-        {showForm && canCreate && (
-          <form onSubmit={submitRequest} className="card p-4 space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="label">Project *</label>
-                <select className="select" value={form.projectId} onChange={e => onFormProjectChange(e.target.value)} required>
-                  <option value="">Pilih project</option>
-                  {myProjects.map(p => (
-                    <option key={p.id} value={p.id}>{p.code} — {p.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="label">Kategori *</label>
-                <select className="select" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-                  {EXPENSE_CATEGORIES.map(c => (
-                    <option key={c} value={c}>{EXPENSE_CATEGORY_LABEL[c]}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="sm:col-span-2">
-                <label className="label">Komponen Forecast (sesuai quotation)</label>
-                <input
-                  className="input" list="budget-item-options"
-                  value={form.budgetItemLabel}
-                  onChange={e => setForm(f => ({ ...f, budgetItemLabel: e.target.value }))}
-                  placeholder="Pilih komponen forecast yang sudah ada, atau ketik nama baru"
-                />
-                <datalist id="budget-item-options">
-                  {formBudgetItems.map(label => <option key={label} value={label} />)}
-                </datalist>
-                <p className="text-xs text-gray-400 mt-1">Pengajuan ini akan disandingkan dengan forecast project — jika nama komponen baru, akan otomatis ditambahkan ke forecast.</p>
-              </div>
-              <div>
-                <label className="label">Nominal (Rp) *</label>
-                <ThousandsInput className="input" value={form.amount} onChange={v => setForm(f => ({ ...f, amount: v }))} placeholder="0" />
-              </div>
-              <div>
-                <label className="label">Vendor / Tujuan</label>
-                <input className="input" value={form.vendor} onChange={e => setForm(f => ({ ...f, vendor: e.target.value }))} placeholder="Nama vendor / penerima" />
-              </div>
-              <div>
-                <label className="label">Termin Pembayaran</label>
-                <select className="select" value={form.paymentTerm} onChange={e => setForm(f => ({ ...f, paymentTerm: e.target.value }))}>
-                  {Object.entries(PAYMENT_TERM_LABEL).map(([k, l]) => (
-                    <option key={k} value={k}>{l}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="label">Nama Penerima</label>
-                <input className="input" value={form.recipientName} onChange={e => setForm(f => ({ ...f, recipientName: e.target.value }))} placeholder="Nama pemilik rekening" />
-              </div>
-              <div>
-                <label className="label">No. Rekening Penerima</label>
-                <input className="input" value={form.recipientAccount} onChange={e => setForm(f => ({ ...f, recipientAccount: e.target.value }))} placeholder="Bank & nomor rekening" />
-              </div>
-              <div>
-                <label className="label">Tanggal Dibutuhkan</label>
-                <input type="date" className="input" value={form.neededDate} onChange={e => setForm(f => ({ ...f, neededDate: e.target.value }))} />
-              </div>
-            </div>
-            <div>
-              <label className="label">Keterangan</label>
-              <textarea className="input" rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Detail kebutuhan pembayaran..." />
-            </div>
-            {formBudgetEmpty && (
-              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                Forecast budget project ini belum diisi oleh PM/PIC. Lengkapi forecast budget terlebih dahulu di bagian "Forecast Budget per Project" sebelum mengajukan pembayaran.
-              </p>
-            )}
-            <div className="flex gap-2">
-              <button type="submit" className="btn-primary" disabled={formBudgetEmpty}>Ajukan</button>
-              <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">Batal</button>
-            </div>
-          </form>
         )}
 
         {/* Budget forecast section */}
