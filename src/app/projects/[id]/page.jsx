@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { StatusBadge, CategoryBadge, PitchResultBadge } from '@/components/StatusBadge'
-import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, RECOMMENDATION_ICON, DIVISION_LABEL, PROJECT_SCORE_CRITERIA, KPI_SCORE_LABEL } from '@/lib/constants'
+import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, RECOMMENDATION_ICON, DIVISION_LABEL, PROJECT_SCORE_CRITERIA, KPI_SCORE_LABEL, LOSE_REASON_OPTIONS } from '@/lib/constants'
 import { canScoreProject } from '@/lib/rbac'
 import ProjectBonusTab from '@/components/ProjectBonusTab'
 import Link from 'next/link'
@@ -436,54 +436,206 @@ export default function ProjectDetailPage() {
   )
 }
 
+// evaluationNote is stored as a JSON string with a shape depending on project status:
+// DONE (menang):    { type: 'WIN', clientFeedback: string[], internalFeedback: string[], crewVendorTalent: string[] }
+// FAILED (kalah):   { type: 'LOSE', loseReasons: string[], loseReasonOther: string, competitors: string }
+// other statuses:   { type: 'FREE', note: string }
+function parseEvaluationNote(raw, status) {
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw)
+      if (parsed && typeof parsed === 'object' && parsed.type) return parsed
+    } catch {
+      // legacy plain-text note — surface as a free-form note regardless of status
+      return { type: 'FREE', note: raw }
+    }
+  }
+  if (status === 'DONE') return { type: 'WIN', clientFeedback: [''], internalFeedback: [''], crewVendorTalent: [''] }
+  if (status === 'FAILED') return { type: 'LOSE', loseReasons: [], loseReasonOther: '', competitors: '' }
+  return { type: 'FREE', note: '' }
+}
+
+function MultiFieldList({ label, items, onChange, placeholder }) {
+  return (
+    <div>
+      <p className="text-xs text-gray-600 font-medium mb-1">{label}</p>
+      <div className="space-y-1.5">
+        {items.map((v, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input
+              className="input text-sm flex-1"
+              value={v}
+              placeholder={placeholder}
+              onChange={e => onChange(items.map((x, j) => j === i ? e.target.value : x))}
+            />
+            {items.length > 1 && (
+              <button type="button" onClick={() => onChange(items.filter((_, j) => j !== i))} className="text-xs text-red-500 hover:underline">Hapus</button>
+            )}
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={() => onChange([...items, ''])} className="text-xs text-brand-600 hover:underline mt-1">+ Tambah poin</button>
+    </div>
+  )
+}
+
 function EvaluationNote({ project, setProject }) {
   const [editing, setEditing] = useState(false)
-  const [value, setValue] = useState(project.evaluationNote || '')
+  const [draft, setDraft] = useState(() => parseEvaluationNote(project.evaluationNote, project.status))
   const [saving, setSaving] = useState(false)
 
   const STATUS_HINT = {
-    FAILED: 'Learning points: alasan kalah (harga, kreatif, relasi, dll), kalah dari kompetitor mana, plus & minus dari sisi internal kita dan dari sisi eksternal (klien/kompetitor/pasar).',
-    DONE: 'Learning points: alasan menang/dipercaya klien, plus & minus internal (tim, proses, eksekusi) dan eksternal (klien, vendor, kondisi lapangan), feedback klien & performa vendor.',
-    HOLD: 'Learning points: kondisi project saat ini, plus & minus internal dan eksternal yang perlu jadi catatan untuk referensi ke depan.',
-    CANCELED: 'Learning points: alasan project dibatalkan, plus & minus dari sisi internal kita dan dari sisi eksternal (klien/kondisi lain).',
+    FAILED: 'Dokumentasikan alasan kalah dan kompetitor yang ikut serta, sebagai learning points untuk pitching berikutnya.',
+    DONE: 'Dokumentasikan evaluasi dari klien, internal, dan crew/vendor/talent sebagai learning points project ini.',
+    HOLD: 'Catatan evaluasi project ini untuk referensi ke depan.',
+    CANCELED: 'Catatan evaluasi mengapa project ini dibatalkan.',
   }
-  const hint = STATUS_HINT[project.status] || 'Learning points untuk didokumentasikan tim: alasan menang/kalah, plus & minus dari sisi internal dan eksternal, untuk referensi project ke depan.'
+  const hint = STATUS_HINT[project.status] || 'Learning points untuk didokumentasikan tim, untuk referensi project ke depan.'
+
+  function startEdit() {
+    setDraft(parseEvaluationNote(project.evaluationNote, project.status))
+    setEditing(true)
+  }
 
   async function save() {
     setSaving(true)
+    // Drop empty trailing entries before saving
+    const clean = { ...draft }
+    if (clean.clientFeedback) clean.clientFeedback = clean.clientFeedback.filter(v => v.trim())
+    if (clean.internalFeedback) clean.internalFeedback = clean.internalFeedback.filter(v => v.trim())
+    if (clean.crewVendorTalent) clean.crewVendorTalent = clean.crewVendorTalent.filter(v => v.trim())
     const res = await fetch(`/api/projects/${project.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ evaluationNote: value }),
+      body: JSON.stringify({ evaluationNote: JSON.stringify(clean) }),
     })
     setSaving(false)
     if (res.ok) {
-      setProject(p => ({ ...p, evaluationNote: value }))
+      setProject(p => ({ ...p, evaluationNote: JSON.stringify(clean) }))
       setEditing(false)
     }
   }
+
+  const view = parseEvaluationNote(project.evaluationNote, project.status)
+  const hasContent = project.evaluationNote && (
+    (view.clientFeedback?.some(v => v.trim())) ||
+    (view.internalFeedback?.some(v => v.trim())) ||
+    (view.crewVendorTalent?.some(v => v.trim())) ||
+    (view.loseReasons?.length) || view.loseReasonOther?.trim() || view.competitors?.trim() ||
+    view.note?.trim()
+  )
 
   return (
     <div className="pt-4 border-t border-gray-100">
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs text-gray-500">Catatan Evaluasi Tim</p>
         {!editing && (
-          <button onClick={() => { setValue(project.evaluationNote || ''); setEditing(true) }} className="text-xs text-brand-600 hover:underline">
-            {project.evaluationNote ? 'Edit' : 'Tambah catatan'}
+          <button onClick={startEdit} className="text-xs text-brand-600 hover:underline">
+            {hasContent ? 'Edit' : 'Tambah catatan'}
           </button>
         )}
       </div>
       <p className="text-xs text-gray-400 mb-2">{hint}</p>
       {editing ? (
-        <div className="space-y-2">
-          <textarea className="input text-sm w-full" rows={4} value={value} onChange={e => setValue(e.target.value)} placeholder={hint} />
+        <div className="space-y-3">
+          {draft.type === 'WIN' && (
+            <>
+              <MultiFieldList label="Evaluasi dari Klien" items={draft.clientFeedback} placeholder="cth. Klien puas dengan eksekusi venue"
+                onChange={v => setDraft(d => ({ ...d, clientFeedback: v }))} />
+              <MultiFieldList label="Evaluasi Internal" items={draft.internalFeedback} placeholder="cth. Koordinasi tim H-1 perlu diperbaiki"
+                onChange={v => setDraft(d => ({ ...d, internalFeedback: v }))} />
+              <MultiFieldList label="Evaluasi Crew, Vendor & Talent" items={draft.crewVendorTalent} placeholder="cth. Vendor sound: responsif & on-time"
+                onChange={v => setDraft(d => ({ ...d, crewVendorTalent: v }))} />
+            </>
+          )}
+          {draft.type === 'LOSE' && (
+            <>
+              <div>
+                <p className="text-xs text-gray-600 font-medium mb-1">Alasan Kalah</p>
+                <div className="space-y-1.5">
+                  {LOSE_REASON_OPTIONS.map(opt => (
+                    <label key={opt} className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={draft.loseReasons.includes(opt)}
+                        onChange={e => setDraft(d => ({
+                          ...d,
+                          loseReasons: e.target.checked ? [...d.loseReasons, opt] : d.loseReasons.filter(r => r !== opt),
+                        }))}
+                      />
+                      {opt}
+                    </label>
+                  ))}
+                </div>
+                <input
+                  className="input text-sm w-full mt-2"
+                  placeholder="Alasan lain (opsional, isi manual)"
+                  value={draft.loseReasonOther}
+                  onChange={e => setDraft(d => ({ ...d, loseReasonOther: e.target.value }))}
+                />
+              </div>
+              <div>
+                <p className="text-xs text-gray-600 font-medium mb-1">Kompetitor yang Menang & Turut Serta</p>
+                <input
+                  className="input text-sm w-full"
+                  placeholder="cth. PT Kompetitor A (menang), PT Kompetitor B"
+                  value={draft.competitors}
+                  onChange={e => setDraft(d => ({ ...d, competitors: e.target.value }))}
+                />
+              </div>
+            </>
+          )}
+          {draft.type === 'FREE' && (
+            <textarea className="input text-sm w-full" rows={4} value={draft.note} onChange={e => setDraft(d => ({ ...d, note: e.target.value }))} placeholder={hint} />
+          )}
           <div className="flex items-center gap-2">
             <button onClick={save} disabled={saving} className="btn-primary text-xs px-3 py-1.5">{saving ? 'Menyimpan...' : 'Simpan'}</button>
             <button onClick={() => setEditing(false)} className="text-xs text-gray-500 hover:underline">Batal</button>
           </div>
         </div>
+      ) : !hasContent ? (
+        <p className="text-sm text-gray-400">Belum ada catatan evaluasi.</p>
+      ) : view.type === 'WIN' ? (
+        <div className="space-y-2 text-sm text-gray-700">
+          {view.clientFeedback?.some(v => v.trim()) && (
+            <div>
+              <p className="font-medium text-gray-600">Evaluasi dari Klien</p>
+              <ul className="list-disc list-inside">{view.clientFeedback.filter(v => v.trim()).map((v, i) => <li key={i}>{v}</li>)}</ul>
+            </div>
+          )}
+          {view.internalFeedback?.some(v => v.trim()) && (
+            <div>
+              <p className="font-medium text-gray-600">Evaluasi Internal</p>
+              <ul className="list-disc list-inside">{view.internalFeedback.filter(v => v.trim()).map((v, i) => <li key={i}>{v}</li>)}</ul>
+            </div>
+          )}
+          {view.crewVendorTalent?.some(v => v.trim()) && (
+            <div>
+              <p className="font-medium text-gray-600">Evaluasi Crew, Vendor & Talent</p>
+              <ul className="list-disc list-inside">{view.crewVendorTalent.filter(v => v.trim()).map((v, i) => <li key={i}>{v}</li>)}</ul>
+            </div>
+          )}
+        </div>
+      ) : view.type === 'LOSE' ? (
+        <div className="space-y-2 text-sm text-gray-700">
+          {(view.loseReasons?.length > 0 || view.loseReasonOther?.trim()) && (
+            <div>
+              <p className="font-medium text-gray-600">Alasan Kalah</p>
+              <ul className="list-disc list-inside">
+                {view.loseReasons?.map(r => <li key={r}>{r}</li>)}
+                {view.loseReasonOther?.trim() && <li>{view.loseReasonOther}</li>}
+              </ul>
+            </div>
+          )}
+          {view.competitors?.trim() && (
+            <div>
+              <p className="font-medium text-gray-600">Kompetitor yang Menang & Turut Serta</p>
+              <p>{view.competitors}</p>
+            </div>
+          )}
+        </div>
       ) : (
-        <p className="text-sm text-gray-700 whitespace-pre-wrap">{project.evaluationNote || <span className="text-gray-400">Belum ada catatan evaluasi.</span>}</p>
+        <p className="text-sm text-gray-700 whitespace-pre-wrap">{view.note}</p>
       )}
     </div>
   )

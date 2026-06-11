@@ -247,6 +247,15 @@ export function resolveKpiPeriod(date = new Date()) {
   return `${y}-${String(m + 1).padStart(2, '0')}`
 }
 
+// ── Lose-reason options for project evaluation notes (FAILED status) ──
+export const LOSE_REASON_OPTIONS = [
+  'Proposal kurang detail',
+  'Creative kurang menarik',
+  'Budget terlalu tinggi',
+  'Telat submit',
+  'Relasi/koneksi klien dengan kompetitor lebih kuat',
+]
+
 // ── Project bonus scoring (per-project, independent of monthly KPI cycle) ──
 export const PROJECT_SCORE_CRITERIA = [
   { key: 'contribution', label: 'Kontribusi terhadap keberhasilan project' },
