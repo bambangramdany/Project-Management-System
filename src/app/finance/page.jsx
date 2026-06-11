@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import clsx from 'clsx'
+import Link from 'next/link'
 import {
   EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABEL,
   PAYMENT_STATUS_LABEL, PAYMENT_STATUS_COLOR, PAYMENT_TERM_LABEL, PAYMENT_STAGES, PAYMENT_STAGES_WITH_OWNER,
@@ -353,6 +354,16 @@ export default function FinancePage() {
             <ProfitabilityCard title="Profitabilitas per Klien" rows={profitability.byClient} labelMap={null} />
             <ProfitabilityCard title="Profitabilitas per Kategori" rows={profitability.byCategory} labelMap={CATEGORY_LABEL} />
           </div>
+        )}
+
+        {/* Revenue summary per client — total revenue across all won projects */}
+        {profitability && profitability.byClient.length > 0 && (
+          <RevenuePerClientCard rows={profitability.byClient} />
+        )}
+
+        {/* Profitability per project */}
+        {profitability && profitability.byProject?.length > 0 && (
+          <ProfitabilityByProjectCard rows={profitability.byProject} />
         )}
 
         {/* Create payment request form */}
@@ -759,6 +770,83 @@ function ProfitabilityCard({ title, rows, labelMap }) {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function RevenuePerClientCard({ rows }) {
+  const sorted = [...rows].sort((a, b) => b.totalValue - a.totalValue)
+  const grandTotal = sorted.reduce((s, r) => s + r.totalValue, 0)
+  return (
+    <div className="card p-4">
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">Summary Revenue per Klien</h3>
+      <p className="text-xs text-gray-400 mb-3">Akumulasi nilai project (yang sudah/sedang berjalan) dari seluruh klien yang masuk ke Watermark.</p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
+              <th className="py-2 pr-2">Klien</th>
+              <th className="py-2 pr-2 text-right">Jumlah Project</th>
+              <th className="py-2 pr-2 text-right">Total Revenue</th>
+              <th className="py-2 text-right">% dari Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(r => (
+              <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50">
+                <td className="py-2 pr-2 font-medium text-gray-800">{r.label}</td>
+                <td className="py-2 pr-2 text-right text-gray-600">{r.count}</td>
+                <td className="py-2 pr-2 text-right font-semibold text-gray-800">{formatRupiah(r.totalValue)}</td>
+                <td className="py-2 text-right text-gray-500">{grandTotal ? ((r.totalValue / grandTotal) * 100).toFixed(1) : 0}%</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t border-gray-200">
+              <td className="py-2 pr-2 font-semibold text-gray-800">Total</td>
+              <td className="py-2 pr-2 text-right font-semibold text-gray-800">{sorted.reduce((s, r) => s + r.count, 0)}</td>
+              <td className="py-2 pr-2 text-right font-bold text-gray-900">{formatRupiah(grandTotal)}</td>
+              <td className="py-2 text-right text-gray-500">100%</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function ProfitabilityByProjectCard({ rows }) {
+  return (
+    <div className="card p-4">
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">Profitabilitas per Project</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
+              <th className="py-2 pr-2">Project</th>
+              <th className="py-2 pr-2">Klien</th>
+              <th className="py-2 pr-2 text-right">Nilai Project</th>
+              <th className="py-2 pr-2 text-right">Biaya Aktual</th>
+              <th className="py-2 pr-2 text-right">Margin</th>
+              <th className="py-2 text-right">% Margin</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r.projectId} className="border-b border-gray-50 hover:bg-gray-50">
+                <td className="py-2 pr-2">
+                  <Link href={`/projects/${r.projectId}`} className="font-medium text-gray-800 hover:text-brand">{r.projectCode} · {r.projectName}</Link>
+                </td>
+                <td className="py-2 pr-2 text-gray-600">{r.clientName}</td>
+                <td className="py-2 pr-2 text-right text-gray-700">{formatRupiah(r.projectValue)}</td>
+                <td className="py-2 pr-2 text-right text-gray-700">{formatRupiah(r.actualCost)}</td>
+                <td className={clsx('py-2 pr-2 text-right font-semibold', r.margin >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(r.margin)}</td>
+                <td className="py-2 text-right text-gray-500">{r.marginPct.toFixed(1)}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

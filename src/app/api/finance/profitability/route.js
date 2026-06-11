@@ -15,8 +15,9 @@ export async function GET(req) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // Cross-division strategic view: Owner, Finance, and all Directors (division
+  // directors included) see profitability/revenue across the whole company.
   const where = { status: { in: WON_STATUSES }, projectValue: { not: null } }
-  if (session.user.role === 'DIRECTOR') where.division = session.user.divisi
 
   const projects = await prisma.project.findMany({
     where,
@@ -32,6 +33,9 @@ export async function GET(req) {
     const margin = (p.projectValue || 0) - actualCost
     const marginPct = p.projectValue ? (margin / p.projectValue) * 100 : 0
     return {
+      projectId: p.id,
+      projectCode: p.code,
+      projectName: p.name,
       clientId: p.client?.id || 'unknown',
       clientName: p.client?.name || 'Tanpa Klien',
       category: p.category,
@@ -61,5 +65,7 @@ export async function GET(req) {
   const byClient = groupBy(r => ({ id: r.clientId, label: r.clientName }))
   const byCategory = groupBy(r => ({ id: r.category, label: r.category }))
 
-  return NextResponse.json({ byClient, byCategory })
+  const byProject = [...rows].sort((a, b) => b.margin - a.margin)
+
+  return NextResponse.json({ byClient, byCategory, byProject })
 }
