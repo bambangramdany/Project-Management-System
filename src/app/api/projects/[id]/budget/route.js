@@ -43,6 +43,7 @@ export async function GET(req, { params }) {
   return NextResponse.json({
     budgetItems,
     projectValue: project.projectValue,
+    quotationNumber: project.quotationNumber,
     canViewMargin: canViewMargin(session.user, project),
     canEditProjectValue: canEditProjectValue(session.user, project),
     canEditBudget: canEditBudget(session.user, project),
@@ -126,6 +127,15 @@ export async function PUT(req, { params }) {
           userId: session.user.id, action: 'PROJECT_VALUE_CHANGE', entity: 'Project', entityId: project.id,
           summary: `${session.user.name} mengubah nilai project ${project.name} dari ${project.projectValue ?? '-'} ke ${newValue ?? '-'}`,
           meta: { from: project.projectValue, to: newValue },
+        })
+      }
+    }
+    if (body.quotationNumber !== undefined && canEditProjectValue(session.user, project)) {
+      const newQuotation = body.quotationNumber === '' ? null : body.quotationNumber
+      if (newQuotation !== project.quotationNumber) {
+        await prisma.project.update({
+          where: { id: params.id },
+          data: { quotationNumber: newQuotation },
         })
       }
     }

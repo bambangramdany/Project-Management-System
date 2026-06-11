@@ -60,12 +60,17 @@ export default function FinancePage() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ projectId: '', category: 'TICKET_TRANSPORT', budgetItemLabel: '', amount: '', vendor: '', recipientName: '', recipientAccount: '', paymentTerm: 'FULL', description: '', neededDate: '' })
   const [formBudgetItems, setFormBudgetItems] = useState([])
+  const [formBudgetEmpty, setFormBudgetEmpty] = useState(false)
   const [loading, setLoading] = useState(true)
   const [budgetProjectId, setBudgetProjectId] = useState('')
   const [budgetItems, setBudgetItems] = useState({})
   const [budgetLoading, setBudgetLoading] = useState(false)
   const [savingBudget, setSavingBudget] = useState(false)
   const [projectValue, setProjectValue] = useState('')
+  const [quotationNumber, setQuotationNumber] = useState('')
+  const [budgetSaved, setBudgetSaved] = useState(false)
+  const [budgetEditing, setBudgetEditing] = useState(false)
+  const [budgetConfirming, setBudgetConfirming] = useState(false)
   const [budgetMeta, setBudgetMeta] = useState({ canViewMargin: false, canEditProjectValue: false })
   const [cashflow, setCashflow] = useState(null)
   const [marginReport, setMarginReport] = useState(null)
@@ -121,11 +126,14 @@ export default function FinancePage() {
   async function onFormProjectChange(projectId) {
     setForm(f => ({ ...f, projectId, budgetItemLabel: '' }))
     setFormBudgetItems([])
+    setFormBudgetEmpty(false)
     if (!projectId) return
     const res = await fetch(`/api/projects/${projectId}/budget`)
     if (res.ok) {
       const data = await res.json()
-      setFormBudgetItems((data.budgetItems || []).map(b => b.label).filter(Boolean))
+      const items = data.budgetItems || []
+      setFormBudgetItems(items.map(b => b.label).filter(Boolean))
+      setFormBudgetEmpty(items.length === 0)
     }
   }
 
@@ -147,13 +155,19 @@ export default function FinancePage() {
     setBudgetProjectId(projectId)
     setBudgetItems([])
     setProjectValue('')
+    setQuotationNumber('')
+    setBudgetEditing(false)
+    setBudgetConfirming(false)
     if (!projectId) return
     setBudgetLoading(true)
     const res = await fetch(`/api/projects/${projectId}/budget`)
     if (res.ok) {
       const data = await res.json()
-      setBudgetItems((data.budgetItems || []).map(b => ({ ...b, neededDate: b.neededDate ? b.neededDate.slice(0, 10) : '' })))
+      const items = data.budgetItems || []
+      setBudgetItems(items.map(b => ({ ...b, neededDate: b.neededDate ? b.neededDate.slice(0, 10) : '' })))
       setProjectValue(data.projectValue ?? '')
+      setQuotationNumber(data.quotationNumber ?? '')
+      setBudgetSaved(items.length > 0)
       setBudgetMeta({
         canViewMargin: !!data.canViewMargin,
         canEditProjectValue: !!data.canEditProjectValue,
@@ -187,12 +201,16 @@ export default function FinancePage() {
       body: JSON.stringify({
         items: budgetItems,
         projectValue: budgetMeta.canEditProjectValue ? (projectValue === '' ? null : projectValue) : undefined,
+        quotationNumber: budgetMeta.canEditProjectValue ? quotationNumber : undefined,
       }),
     })
     setSavingBudget(false)
     if (res.ok) {
       const data = await res.json()
       setBudgetItems((data.budgetItems || []).map(b => ({ ...b, neededDate: b.neededDate ? b.neededDate.slice(0, 10) : '' })))
+      setBudgetSaved(true)
+      setBudgetEditing(false)
+      setBudgetConfirming(false)
     } else {
       const err = await res.json()
       alert(err.error || 'Gagal menyimpan')
@@ -221,6 +239,8 @@ export default function FinancePage() {
   const role = session.user.role
   const canCreate = role === 'OWNER' || role === 'PROJECT_MANAGER' || role === 'DIRECTOR'
   const canSeeBudgetEdit = role !== 'PROJECT_MANAGER' || true // PM can view own; edit gated server-side
+
+  const forecastLocked = budgetMeta.canEditBudget && budgetSaved && !budgetEditing && !budgetMeta.budgetLockedAt
 
   const myProjects = (role === 'PROJECT_MANAGER' || role === 'PRODUCTION')
     ? projects.filter(p => p.pic?.id === session.user.id || p.picId === session.user.id || p.members?.some(m => (m.user?.id || m.userId) === session.user.id))
@@ -433,8 +453,13 @@ export default function FinancePage() {
               <label className="label">Keterangan</label>
               <textarea className="input" rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Detail kebutuhan pembayaran..." />
             </div>
+            {formBudgetEmpty && (
+              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                Forecast budget project ini belum diisi oleh PM/PIC. Lengkapi forecast budget terlebih dahulu di bagian "Forecast Budget per Project" sebelum mengajukan pembayaran.
+              </p>
+            )}
             <div className="flex gap-2">
-              <button type="submit" className="btn-primary">Ajukan</button>
+              <button type="submit" className="btn-primary" disabled={formBudgetEmpty}>Ajukan</button>
               <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">Batal</button>
             </div>
           </form>
@@ -490,6 +515,23 @@ export default function FinancePage() {
                   </div>
                 )
               )}
+              {forecastLocked && (
+                <div className="flex items-center justify-between gap-3 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-700">
+                  <span>✓ Forecast budget tersimpan dan terkunci. Klik "Edit" untuk mengubah.</span>
+                  <button onClick={() => setBudgetEditing(true)} className="btn-secondary text-xs shrink-0">Edit</button>
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-3 pb-2 border-b border-gray-100">
+                <label className="text-sm font-semibold text-gray-700 flex-1">No. Quotation</label>
+                <input
+                  type="text"
+                  className="input w-40"
+                  value={quotationNumber}
+                  onChange={e => setQuotationNumber(e.target.value)}
+                  disabled={!budgetMeta.canEditProjectValue || forecastLocked}
+                  placeholder="cth. QTN-2026-001"
+                />
+              </div>
               <div className="flex items-center justify-between gap-3 pb-2 border-b border-gray-100">
                 <label className="text-sm font-semibold text-gray-700 flex-1">Nilai Project (Rp)</label>
                 <input
@@ -498,7 +540,7 @@ export default function FinancePage() {
                   className="input w-40"
                   value={projectValue}
                   onChange={e => setProjectValue(e.target.value)}
-                  disabled={!budgetMeta.canEditProjectValue}
+                  disabled={!budgetMeta.canEditProjectValue || forecastLocked}
                   placeholder="0"
                 />
               </div>
@@ -517,7 +559,7 @@ export default function FinancePage() {
                     value={item.label}
                     onChange={e => updateBudgetRow(idx, { label: e.target.value })}
                     placeholder="cth. Sewa Venue"
-                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt}
+                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
                   />
                   <input
                     type="number" min="0"
@@ -525,7 +567,7 @@ export default function FinancePage() {
                     value={item.quotedAmount || ''}
                     onChange={e => updateBudgetRow(idx, { quotedAmount: e.target.value })}
                     placeholder="0"
-                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt}
+                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
                   />
                   <input
                     type="number" min="0"
@@ -540,7 +582,7 @@ export default function FinancePage() {
                     className="input col-span-2"
                     value={item.neededDate || ''}
                     onChange={e => updateBudgetRow(idx, { neededDate: e.target.value })}
-                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt}
+                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
                   />
                   <input
                     className="input col-span-2"
@@ -549,7 +591,7 @@ export default function FinancePage() {
                     placeholder="cth. selisih melebihi forecast"
                     disabled={!budgetMeta.canNote}
                   />
-                  {budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && (
+                  {budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && !forecastLocked && (
                     <button onClick={() => removeBudgetRow(idx)} className="col-span-1 text-red-500 text-xs hover:underline">Hapus</button>
                   )}
                   {item.id && (
@@ -564,7 +606,7 @@ export default function FinancePage() {
                   )}
                 </div>
               ))}
-              {budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && (
+              {budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && !forecastLocked && (
                 <button onClick={addBudgetRow} className="btn-secondary text-xs">+ Tambah Komponen</button>
               )}
 
@@ -599,10 +641,26 @@ export default function FinancePage() {
                 </div>
               )}
 
-              {(budgetMeta.canEditBudget || budgetMeta.canNote) && (
-                <button onClick={saveBudget} disabled={savingBudget} className="btn-primary">
-                  {savingBudget ? 'Menyimpan...' : 'Simpan'}
-                </button>
+              {(budgetMeta.canEditBudget || budgetMeta.canNote) && !forecastLocked && (
+                budgetEditing && budgetSaved ? (
+                  <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+                    {budgetConfirming ? (
+                      <>
+                        <span className="text-xs text-gray-500">Simpan perubahan forecast budget?</span>
+                        <button onClick={saveBudget} disabled={savingBudget} className="btn-primary text-xs">
+                          {savingBudget ? 'Menyimpan...' : 'Ya, Simpan'}
+                        </button>
+                        <button onClick={() => setBudgetConfirming(false)} className="btn-secondary text-xs">Batal</button>
+                      </>
+                    ) : (
+                      <button onClick={() => setBudgetConfirming(true)} className="btn-primary text-xs">Konfirmasi & Simpan</button>
+                    )}
+                  </div>
+                ) : (
+                  <button onClick={saveBudget} disabled={savingBudget} className="btn-primary">
+                    {savingBudget ? 'Menyimpan...' : 'Simpan'}
+                  </button>
+                )
               )}
             </div>
           )}

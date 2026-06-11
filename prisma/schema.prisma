@@ -373,6 +373,7 @@ model Project {
   vendorWinner    String?
   evaluationNote  String?
   projectValue    Float?
+  quotationNumber String?
   budgetLockedAt  DateTime?
   budgetLockedById String?
   notes           String?

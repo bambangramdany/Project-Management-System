@@ -67,6 +67,11 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  const budgetItemCount = await prisma.projectBudgetItem.count({ where: { projectId: body.projectId } })
+  if (budgetItemCount === 0) {
+    return NextResponse.json({ error: 'Forecast budget project ini belum diisi oleh PM/PIC. Lengkapi forecast budget terlebih dahulu sebelum mengajukan pembayaran.' }, { status: 400 })
+  }
+
   // Match/create a forecast line item by label so this request shows up against
   // the project's budget forecast and reduces the remaining "sisa" amount there.
   let budgetItemId = body.budgetItemId || null
