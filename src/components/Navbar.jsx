@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { href: '/opex', label: 'Opex', cashOnly: true },
   { href: '/assets', label: 'Aset', cashOnly: true },
   { href: '/debts', label: 'Hutang', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
+  { href: '/admin/users', label: 'Setup Akun', roles: ['OWNER'] },
   { href: '/audit', label: 'Audit Log', auditOnly: true },
 ]
 

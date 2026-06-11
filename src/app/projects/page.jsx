@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, useEffect, useState, useCallback } from 'react'
+import { Suspense, useEffect, useState, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
@@ -25,6 +25,9 @@ function ProjectsContent() {
   const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || '')
   const [filterCategory, setFilterCategory] = useState('')
   const [search, setSearch] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState(null)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -46,6 +49,25 @@ function ProjectsContent() {
 
   const isManager = ['OWNER', 'PROJECT_MANAGER'].includes(session?.user.role)
 
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    setImportResult(null)
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/projects/import', { method: 'POST', body: fd })
+    setImporting(false)
+    const d = await res.json().catch(() => ({}))
+    if (res.ok) {
+      setImportResult(d)
+      fetchProjects()
+    } else {
+      setImportResult({ error: d.error || 'Gagal mengimpor file' })
+    }
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -54,9 +76,30 @@ function ProjectsContent() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h1 className="text-xl font-bold text-gray-900">Projects</h1>
           {isManager && (
-            <Link href="/projects/new" className="btn-primary self-start sm:self-auto">+ Project Baru</Link>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileChange} />
+              <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="text-sm px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
+                {importing ? 'Mengunggah...' : '⬆ Import Project'}
+              </button>
+              <Link href="/projects/new" className="btn-primary">+ Project Baru</Link>
+            </div>
           )}
         </div>
+
+        {importResult && (
+          <div className={`card p-3 text-sm ${importResult.error ? 'border-l-4 border-red-400 text-red-600' : 'border-l-4 border-green-400 text-green-700'}`}>
+            {importResult.error ? importResult.error : (
+              <>
+                Berhasil mengimpor {importResult.imported} project{importResult.skipped > 0 && `, ${importResult.skipped} dilewati`}.
+                {importResult.errors?.length > 0 && (
+                  <ul className="mt-1 text-xs text-gray-500 list-disc list-inside">
+                    {importResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                  </ul>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         {/* Filters */}
         <div className="card p-4">
