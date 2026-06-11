@@ -105,7 +105,7 @@ export default function ScoresPage() {
 
         {/* My summary */}
         {session.user.role !== 'OWNER' && (
-        <div className="card p-4">
+        <div className="card p-4 border-t-4 border-blue-400">
           <p className="text-sm font-semibold text-ink-800 mb-3">Penilaian Saya</p>
           {data.mine.count === 0 ? (
             <p className="text-sm text-gray-400">Belum ada penilaian.</p>
@@ -130,7 +130,7 @@ export default function ScoresPage() {
           const kpiDefs = KPI_BY_ROLE[session.user.role] || []
           const overall = myKpi.reduce((s, a) => s + a.score, 0) / myKpi.length
           return (
-            <div className="card p-4">
+            <div className="card p-4 border-t-4 border-orange-400">
               <p className="text-sm font-semibold text-ink-800 mb-3">Kinerja General Saya (Bulanan)</p>
               <div className="grid sm:grid-cols-3 gap-3 mb-2">
                 {kpiDefs.map(def => {
@@ -152,7 +152,7 @@ export default function ScoresPage() {
 
         {/* Berikan penilaian — pilih project */}
         {myProjects.length > 0 && (
-          <div className="card p-4">
+          <div className="card p-4 border-t-4 border-emerald-400">
             <p className="text-sm font-semibold text-ink-800 mb-1">Berikan Penilaian</p>
             <p className="text-xs text-gray-500 mb-3">Pilih project untuk menilai anggota tim yang terlibat di dalamnya.</p>
             <select className="select" value={scoreProjectId} onChange={e => setScoreProjectId(e.target.value)}>
@@ -171,7 +171,7 @@ export default function ScoresPage() {
 
         {/* Anonymous notes addressed to me (director / owner) */}
         {['DIRECTOR', 'OWNER'].includes(session.user.role) && (
-          <div className="card p-4">
+          <div className="card p-4 border-t-4 border-purple-400">
             <p className="text-sm font-semibold text-ink-800 mb-2">Catatan dari Tim (Anonim)</p>
             {(!data.myNotes || data.myNotes.length === 0) ? (
               <p className="text-sm text-gray-400">Belum ada catatan.</p>
@@ -190,7 +190,7 @@ export default function ScoresPage() {
 
         {/* Team summary */}
         {data.team && data.team.length > 0 && (
-          <div className="card p-4">
+          <div className="card p-4 border-t-4 border-pink-400">
             <p className="text-sm font-semibold text-ink-800 mb-1">Ringkasan Penilaian Tim</p>
             <p className="text-xs text-gray-500 mb-3">
               "Per Project (Event)" adalah akumulasi penilaian dari setiap project/event yang sudah dinilai (lihat tab "Penilaian Tim" di tiap project).
@@ -249,8 +249,8 @@ export default function ScoresPage() {
           const evaluators = Object.values(byEvaluator).filter(e => e.late > 0)
 
           return (
-            <div className="card p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+            <div className="card p-4 border-t-4 border-teal-400">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-2 border-b border-gray-100">
                 <div>
                   <p className="text-sm font-semibold text-ink-800">Detail KPI Bulanan</p>
                   <p className="text-xs text-gray-500">Rincian penilaian KPI per anggota untuk periode terpilih</p>
@@ -333,7 +333,7 @@ export default function ScoresPage() {
 
         {/* Submit anonymous note to a director */}
         {canSubmitNote && directors.length > 0 && (
-          <div className="card p-4">
+          <div className="card p-4 border-t-4 border-amber-400">
             <p className="text-sm font-semibold text-ink-800 mb-1">Sampaikan Catatan ke Direktur</p>
             <p className="text-xs text-gray-500 mb-3">Identitas Anda dirahasiakan dari direktur penerima — hanya Direktur Utama & HR yang dapat melihatnya.</p>
             <form onSubmit={submitNote} className="space-y-2">
@@ -350,7 +350,7 @@ export default function ScoresPage() {
 
         {/* Owner / HR: all notes with authors */}
         {allNotes && (
-          <div className="card p-4">
+          <div className="card p-4 border-t-4 border-indigo-400">
             <p className="text-sm font-semibold text-ink-800 mb-2">Semua Catatan Tim untuk Direktur</p>
             {allNotes.length === 0 ? (
               <p className="text-sm text-gray-400">Belum ada catatan.</p>

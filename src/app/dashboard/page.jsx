@@ -114,9 +114,9 @@ export default function DashboardPage() {
 
         {/* Projects needing attention */}
         {attentionProjects.length > 0 && (
-          <div className="card">
+          <div className="card border-t-4 border-blue-400">
             <div className="px-5 py-4 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-700">⚠️ Project Perlu Perhatian ({attentionProjects.length})</h3>
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xs">⚠️</span>Project Perlu Perhatian ({attentionProjects.length})</h3>
             </div>
             <div className="divide-y divide-gray-50">
               {attentionProjects.map(p => (
@@ -163,8 +163,8 @@ function DivisionSection({ title, projects, session, onChanged }) {
       </h2>
 
       {/* Pipeline overview, ordered to end with Reporting & Invoicing for morning briefing */}
-      <div className="card p-5">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4">Pipeline Project</h3>
+      <div className="card p-5 border-t-4 border-orange-400">
+        <h3 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-xs">📈</span>Pipeline Project</h3>
         <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
           {PIPELINE_STAGES.map((stage, i) => (
             <Link key={stage.key} href={`/projects?status=${stage.key}`} className="group text-center">
@@ -183,9 +183,9 @@ function DivisionSection({ title, projects, session, onChanged }) {
       </div>
 
       {/* Active projects list — ordered for morning briefing */}
-      <div className="card">
+      <div className="card border-t-4 border-emerald-400">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700">Project Aktif (urutan briefing)</h3>
+          <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs">📋</span>Project Aktif (urutan briefing)</h3>
           <Link href="/projects" className="text-xs text-orange-500 hover:text-orange-600">Lihat semua →</Link>
         </div>
         <div className="divide-y divide-gray-50">
@@ -287,9 +287,9 @@ function formatRupiah(n) {
 
 function CashPositionCard({ data }) {
   return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-gray-700">Posisi Kas</h3>
+    <div className="card p-5 border-t-4 border-purple-400">
+      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xs">💰</span>Posisi Kas</h3>
         <Link href="/cashflow" className="text-xs font-medium text-brand hover:underline">Kelola Kas →</Link>
       </div>
       <div className="mb-4 p-3 rounded-lg bg-gray-50 border border-gray-100">
@@ -387,8 +387,8 @@ function DivisionSummaryCard({ title, projects }) {
 
 function CashConditionCard({ data }) {
   return (
-    <div className="card p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4">Kondisi Keuangan Watermark</h3>
+    <div className="card p-5 border-t-4 border-pink-400">
+      <h3 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-pink-100 text-pink-600 flex items-center justify-center text-xs">🏦</span>Kondisi Keuangan Watermark</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
           <p className="text-xs text-gray-500">Saldo Kas Saat Ini</p>
@@ -407,9 +407,9 @@ function CashConditionCard({ data }) {
 function DebtSummaryCard({ data }) {
   const dueItems = [...data.overdue, ...data.dueThisMonth]
   return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-gray-700">Kewajiban Hutang</h3>
+    <div className="card p-5 border-t-4 border-teal-400">
+      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center text-xs">📉</span>Kewajiban Hutang</h3>
         <Link href="/debts" className="text-xs font-medium text-brand hover:underline">Kelola Hutang →</Link>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">

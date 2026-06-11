@@ -103,8 +103,8 @@ export default function WorkloadPage() {
         {!loading && isManager && (
           <>
             {/* Summary heatmap */}
-            <div className="card p-5">
-              <h2 className="text-sm font-semibold text-gray-700 mb-4">Distribusi Beban Kerja</h2>
+            <div className="card p-5 border-t-4 border-blue-400">
+              <h2 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xs">📊</span>Distribusi Beban Kerja</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {filtered.map(w => (
                   <button
@@ -160,8 +160,8 @@ export default function WorkloadPage() {
 
             {/* Team comparison */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <TeamColumn title="Divisi Event" members={eventTeam} onSelect={setSelectedUser} selectedId={selectedUser?.user.id} />
-              <TeamColumn title="Divisi Creative" members={creativeTeam} onSelect={setSelectedUser} selectedId={selectedUser?.user.id} />
+              <TeamColumn title="Divisi Event" members={eventTeam} onSelect={setSelectedUser} selectedId={selectedUser?.user.id} accentClass="border-emerald-400" />
+              <TeamColumn title="Divisi Creative" members={creativeTeam} onSelect={setSelectedUser} selectedId={selectedUser?.user.id} accentClass="border-purple-400" />
             </div>
           </>
         )}
@@ -321,7 +321,7 @@ function WorkloadWeightsEditor() {
   }
 
   return (
-    <div className="card p-5">
+    <div className="card p-5 border-t-4 border-orange-400">
       <button onClick={() => setOpen(o => !o)} className="flex items-center justify-between w-full text-left">
         <h3 className="text-sm font-semibold text-gray-700">Pengaturan Skor Beban Kerja</h3>
         <span className="text-xs text-gray-400">{open ? 'Tutup' : 'Atur'}</span>
@@ -373,10 +373,10 @@ function WorkloadWeightsEditor() {
   )
 }
 
-function TeamColumn({ title, members, onSelect, selectedId }) {
+function TeamColumn({ title, members, onSelect, selectedId, accentClass = 'border-emerald-400' }) {
   if (members.length === 0) return null
   return (
-    <div className="card p-4">
+    <div className={`card p-4 border-t-4 ${accentClass}`}>
       <h3 className="text-sm font-semibold text-gray-700 mb-3">{title}</h3>
       <div className="space-y-2">
         {members.map(w => (
@@ -434,8 +434,8 @@ function UserDetail({ data, session, teamList = [], canReassign = false }) {
   const displayed = showAll ? data.projects : activeProjects
 
   return (
-    <div className="card p-5">
-      <div className="flex items-center gap-3 mb-4">
+    <div className="card p-5 border-t-4 border-pink-400">
+      <div className="flex items-center gap-3 mb-4 pb-2 border-b border-gray-100">
         <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold">
           {data.user.name[0]}
         </div>

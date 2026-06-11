@@ -104,7 +104,7 @@ export default function AuditLogPanel() {
   return (
     <div className="space-y-4">
       {threshold && (
-        <div className="card p-4">
+        <div className="card p-4 border-t-4 border-blue-400">
           <h3 className="text-sm font-semibold text-gray-700 mb-1">Batas Approval Direktur Utama</h3>
           <p className="text-xs text-gray-500 mb-3">
             Pengajuan pembayaran dari Direktur Divisi (Event/PH/Creative) di bawah atau sama dengan nominal ini akan langsung ke Direktur Finance tanpa perlu approval Direktur Utama terlebih dahulu. Direktur Finance tetap wajib menyetujui semua pengeluaran.
@@ -133,7 +133,7 @@ export default function AuditLogPanel() {
         <div className="text-center py-12 text-gray-400 text-sm">Belum ada catatan audit</div>
       )}
 
-      <div className="card divide-y divide-gray-50">
+      <div className="card divide-y divide-gray-50 border-t-4 border-orange-400">
         {filtered.map(log => (
           <div key={log.id} className="px-5 py-3.5 flex items-start gap-3 hover:bg-gray-50 transition-colors">
             <div className="flex-1 min-w-0">

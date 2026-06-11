@@ -252,7 +252,7 @@ function ProjectsContent() {
         )}
 
         {/* Filters */}
-        <div className="card p-4">
+        <div className="card p-4 border-t-4 border-blue-400">
           <div className="flex flex-col sm:flex-row gap-3">
             <input
               className="input flex-1"

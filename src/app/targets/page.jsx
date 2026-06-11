@@ -86,13 +86,14 @@ export default function TargetsPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {DIVISIONS.map(d => {
+          {DIVISIONS.map((d, i) => {
             const target = data.targets[d]
             const actual = data.actuals[d]
             const revenuePct = target.revenueTarget > 0 ? Math.min(100, (actual.revenue / target.revenueTarget) * 100) : 0
             const countPct = target.projectCountTarget > 0 ? Math.min(100, (actual.projectCount / target.projectCountTarget) * 100) : 0
+            const ACCENTS = ['border-blue-400', 'border-orange-400', 'border-emerald-400', 'border-purple-400']
             return (
-              <div key={d} className="card p-4 hover:shadow-md transition-all duration-200">
+              <div key={d} className={`card p-4 hover:shadow-md transition-all duration-200 border-t-4 ${ACCENTS[i % ACCENTS.length]}`}>
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">{DIVISION_LABEL[d]}</h3>
 
                 <div className="mb-3">

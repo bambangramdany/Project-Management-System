@@ -122,7 +122,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Trend chart */}
-        <div className="card p-4">
+        <div className="card p-4 border-t-4 border-blue-400">
           <p className="text-sm font-semibold text-ink-800 mb-3">Tren Jumlah Project per Bulan (mulai project)</p>
           <div className="flex items-end gap-3 h-32">
             {trendMonths.map((t, i) => (
@@ -145,7 +145,7 @@ export default function CalendarPage() {
         ) : (
           <div className="grid lg:grid-cols-3 gap-4">
             {/* Calendar grid */}
-            <div className="lg:col-span-2 card p-4">
+            <div className="lg:col-span-2 card p-4 border-t-4 border-orange-400">
               <div className="grid grid-cols-7 gap-1 mb-1">
                 {DAY_NAMES.map(d => (
                   <div key={d} className="text-center text-xs font-semibold text-gray-400 py-1">{d}</div>
@@ -193,7 +193,7 @@ export default function CalendarPage() {
             </div>
 
             {/* Detail panel */}
-            <div className="card p-4">
+            <div className="card p-4 border-t-4 border-emerald-400">
               <p className="text-sm font-semibold text-ink-800 mb-3">
                 {selectedDay ? selectedDay.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Pilih tanggal'}
               </p>

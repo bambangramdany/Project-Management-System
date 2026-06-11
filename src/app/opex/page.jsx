@@ -125,7 +125,7 @@ export default function OpexPage() {
           </div>
         </div>
 
-        <div className="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t-4 border-blue-400">
           <div>
             <label className="label">Pilih Bulan</label>
             <input type="month" className="input w-auto" value={period} onChange={e => setPeriod(e.target.value)} />
@@ -153,7 +153,7 @@ export default function OpexPage() {
           </div>
         )}
 
-        <div className="card p-4">
+        <div className="card p-4 border-t-4 border-orange-400">
           <p className="text-sm font-semibold text-gray-700 mb-3">Ringkasan {periodLabel(period)}</p>
           <div className="grid grid-cols-2 gap-4 mb-3">
             <div>
@@ -177,7 +177,7 @@ export default function OpexPage() {
           )}
         </div>
 
-        <div className="card p-5">
+        <div className="card p-5 border-t-4 border-emerald-400">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">Tambah Opex</h3>
           <form onSubmit={submit} className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -205,7 +205,7 @@ export default function OpexPage() {
           </form>
         </div>
 
-        <div className="card divide-y divide-gray-50">
+        <div className="card divide-y divide-gray-50 border-t-4 border-purple-400">
           <h3 className="text-sm font-semibold text-gray-700 px-5 py-3">Daftar Opex</h3>
           {loading && <div className="text-center py-12 text-gray-400 text-sm">Memuat...</div>}
           {!loading && data?.entries.length === 0 && (

@@ -134,7 +134,7 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* Project header */}
-        <div className="card p-5">
+        <div className="card p-5 border-t-4 border-blue-400">
           <div className="flex flex-col sm:flex-row sm:items-start gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -377,7 +377,7 @@ export default function ProjectDetailPage() {
 
         {/* TAB: Activity feed */}
         {activeTab === 'activity' && (
-          <div className="card divide-y divide-gray-50">
+          <div className="card divide-y divide-gray-50 border-t-4 border-orange-400">
             {!activityLoaded && <p className="text-sm text-gray-400 text-center py-8">Memuat...</p>}
             {activityLoaded && activity.length === 0 && (
               <p className="text-sm text-gray-400 text-center py-8">Belum ada aktivitas tercatat</p>
@@ -400,7 +400,7 @@ export default function ProjectDetailPage() {
 
         {/* TAB: Info */}
         {activeTab === 'info' && (
-          <div className="card p-5 space-y-4">
+          <div className="card p-5 space-y-4 border-t-4 border-emerald-400">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <InfoRow label="Client" value={project.client?.name} />
               <InfoRow label="Industri" value={project.client?.industry} />

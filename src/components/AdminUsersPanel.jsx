@@ -118,7 +118,7 @@ export default function AdminUsersPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="card p-5">
+      <div className="card p-5 border-t-4 border-blue-400">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Tambah Akun Baru</h3>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -165,7 +165,7 @@ export default function AdminUsersPanel() {
         </form>
       </div>
 
-      <div className="card overflow-x-auto">
+      <div className="card overflow-x-auto border-t-4 border-orange-400">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-400 text-xs border-b border-gray-100">
