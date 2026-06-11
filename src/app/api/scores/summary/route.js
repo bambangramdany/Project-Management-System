@@ -79,10 +79,26 @@ export async function GET() {
   if (allUsers) {
     const userIds = allUsers.map(u => u.id)
     const allScores = await prisma.projectScore.findMany({ where: { userId: { in: userIds } } })
-    team = allUsers.map(u => ({
-      user: u,
-      summary: aggregate(allScores.filter(s => s.userId === u.id), criteria),
-    }))
+    const allKpi = await prisma.kpiAssessment.findMany({ where: { userId: { in: userIds } } })
+    team = allUsers.map(u => {
+      const project = aggregate(allScores.filter(s => s.userId === u.id), criteria)
+      const kpiForUser = allKpi.filter(a => a.userId === u.id)
+      const kpiSum = kpiForUser.reduce((sum, a) => sum + a.score, 0)
+      const kpiCount = kpiForUser.length
+      const kpiOverall = kpiCount ? kpiSum / kpiCount : null
+      const combinedSum = (project.overall ?? 0) * project.count + kpiSum
+      const combinedCount = project.count + kpiCount
+      const combinedOverall = combinedCount ? combinedSum / combinedCount : null
+      return {
+        user: u,
+        summary: {
+          ...project,
+          kpiOverall,
+          kpiCount,
+          combinedOverall,
+        },
+      }
+    })
   }
 
   return NextResponse.json({ mine, myNotes, team, criteria })

@@ -142,7 +142,10 @@ export default function ScoresPage() {
         {data.team && data.team.length > 0 && (
           <div className="card p-4">
             <p className="text-sm font-semibold text-ink-800 mb-1">Ringkasan Penilaian Tim</p>
-            <p className="text-xs text-gray-500 mb-3">Rata-rata nilai dari seluruh project yang sudah dinilai sejak awal (akumulatif, bukan per bulan/per periode tertentu).</p>
+            <p className="text-xs text-gray-500 mb-3">
+              "Per Project (Event)" adalah akumulasi penilaian dari setiap project/event yang sudah dinilai (lihat tab "Penilaian Tim" di tiap project).
+              "Kinerja General (Bulanan)" adalah akumulasi penilaian KPI bulanan (lihat menu KPI). "Gabungan" adalah rata-rata keduanya digabung.
+            </p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -151,7 +154,9 @@ export default function ScoresPage() {
                     {(data.criteria || PROJECT_SCORE_CRITERIA).map(c => (
                       <th key={c.key} className="pb-2 px-2 text-center">{c.label}</th>
                     ))}
-                    <th className="pb-2 pl-2 text-center">Rata-rata</th>
+                    <th className="pb-2 px-2 text-center">Per Project (Event)</th>
+                    <th className="pb-2 px-2 text-center">Kinerja General (Bulanan)</th>
+                    <th className="pb-2 pl-2 text-center">Gabungan</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -164,7 +169,9 @@ export default function ScoresPage() {
                       {(data.criteria || PROJECT_SCORE_CRITERIA).map(c => (
                         <td key={c.key} className="py-2 px-2 text-center text-gray-700">{fmt(summary.byCriteria[c.key])}</td>
                       ))}
-                      <td className="py-2 pl-2 text-center font-semibold text-brand-700">{fmt(summary.overall)}</td>
+                      <td className="py-2 px-2 text-center text-gray-700">{fmt(summary.overall)}</td>
+                      <td className="py-2 px-2 text-center text-gray-700">{fmt(summary.kpiOverall)}</td>
+                      <td className="py-2 pl-2 text-center font-semibold text-brand-700">{fmt(summary.combinedOverall)}</td>
                     </tr>
                   ))}
                 </tbody>
