@@ -108,6 +108,23 @@ export const ACTIVE_STATUSES = ['HOLD', 'PITCHING', 'WAITING_PITCH_RESULT', 'PRE
 export const CLOSED_STATUSES = ['DONE', 'FAILED', 'CANCELED']
 export const WON_STATUSES = ['PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING', 'DONE']
 
+// ── Workload scoring ─────────────────────────────────────────────────────
+// Default weight each project stage contributes to a person's workload score —
+// separate weights for the PIC (PM/owner of the project) vs. other members,
+// since not every stage requires every team member's involvement.
+export const DEFAULT_WORKLOAD_WEIGHTS = {
+  HOLD:                 { picWeight: 0,   memberWeight: 0 },
+  PITCHING:             { picWeight: 1,   memberWeight: 0.5 },
+  WAITING_PITCH_RESULT: { picWeight: 1,   memberWeight: 0 },
+  PREPARATION:          { picWeight: 1,   memberWeight: 1 },
+  EVENT_DAY:            { picWeight: 1.5, memberWeight: 1.5 },
+  REPORTING:            { picWeight: 1,   memberWeight: 0.5 },
+  INVOICING:            { picWeight: 0.5, memberWeight: 0 },
+  DONE:                 { picWeight: 0,   memberWeight: 0 },
+  FAILED:               { picWeight: 0,   memberWeight: 0 },
+  CANCELED:             { picWeight: 0,   memberWeight: 0 },
+}
+
 // ── Finance ──────────────────────────────────────────────────────────────
 
 export const DIVISION_LABEL = {

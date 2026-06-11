@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
-import { ACTIVE_STATUSES } from '@/lib/constants'
+import { ACTIVE_STATUSES, DEFAULT_WORKLOAD_WEIGHTS, STATUS_PIPELINE } from '@/lib/constants'
 
 export async function GET(req) {
   const session = await getServerSession(authOptions)
@@ -67,6 +67,12 @@ export async function GET(req) {
   const projectInfo = {}
   projects.forEach(p => { projectInfo[p.id] = { code: p.code, name: p.name } })
 
+  // Configurable workload weights per status (PIC vs other members)
+  const weightRows = await prisma.workloadWeight.findMany()
+  const weights = {}
+  for (const s of STATUS_PIPELINE) weights[s] = DEFAULT_WORKLOAD_WEIGHTS[s]
+  weightRows.forEach(r => { weights[r.status] = { picWeight: r.picWeight, memberWeight: r.memberWeight } })
+
   // Build workload map per user
   const workload = users.map(user => {
     const picProjects = projects.filter(p => p.picId === user.id)
@@ -90,12 +96,21 @@ export async function GET(req) {
       ? baseActiveStatuses
       : baseActiveStatuses.filter(s => !['REPORTING', 'INVOICING'].includes(s))
 
+    // Weighted workload score — uses configurable per-status weights, with the
+    // PIC weight applying to the project's PIC and memberWeight to everyone else.
+    const loadScore = allProjects.reduce((sum, p) => {
+      if (!userActiveStatuses.includes(p.status)) return sum
+      const w = weights[p.status] || DEFAULT_WORKLOAD_WEIGHTS[p.status]
+      return sum + (p.picId === user.id ? w.picWeight : w.memberWeight)
+    }, 0)
+
     return {
       user,
       totalProjects: allProjects.length,
       picCount: picProjects.length,
       memberCount: memberProjects.length,
       activeCount: allProjects.filter(p => userActiveStatuses.includes(p.status)).length,
+      loadScore: Math.round(loadScore * 10) / 10,
       byStatus,
       projects: allProjects.map(p => ({
         id: p.id, code: p.code, name: p.name,
@@ -114,8 +129,8 @@ export async function GET(req) {
     }
   })
 
-  // Sort by total active projects descending
-  workload.sort((a, b) => b.activeCount - a.activeCount)
+  // Sort by weighted workload score descending
+  workload.sort((a, b) => b.loadScore - a.loadScore)
 
   return NextResponse.json(workload)
 }

@@ -299,6 +299,17 @@ model ScoreCriterion {
   @@unique([division, key])
 }
 
+// Configurable workload-score weights per project status — how much a stage
+// counts toward a person's workload, separately for the PIC vs other members
+// (since not every stage requires every member's involvement).
+model WorkloadWeight {
+  id           String        @id @default(cuid())
+  status       ProjectStatus @unique
+  picWeight    Float
+  memberWeight Float
+  updatedAt    DateTime      @updatedAt
+}
+
 enum UserRole {
   OWNER
   PROJECT_MANAGER

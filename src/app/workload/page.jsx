@@ -6,27 +6,29 @@ import Navbar from '@/components/Navbar'
 import { StatusBadge } from '@/components/StatusBadge'
 import Link from 'next/link'
 import clsx from 'clsx'
-import { KPI_BY_ROLE, KPI_SCORE_LABEL, KPI_DEADLINE_DAY, resolveKpiPeriod } from '@/lib/constants'
+import { KPI_BY_ROLE, KPI_SCORE_LABEL, KPI_DEADLINE_DAY, resolveKpiPeriod, STATUS_PIPELINE, STATUS_LABEL } from '@/lib/constants'
 import { CROSS_TEAM_PM_EMAIL } from '@/lib/rbac'
 import KpiCriteriaEditor from '@/components/KpiCriteriaEditor'
 
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
 
-const LOAD_COLOR = (count) => {
-  if (count === 0) return 'bg-gray-100 text-gray-400'
-  if (count <= 2) return 'bg-green-100 text-green-700'
-  if (count <= 4) return 'bg-yellow-100 text-yellow-700'
-  if (count <= 6) return 'bg-orange-100 text-orange-700'
+const LOAD_COLOR = (score) => {
+  if (score <= 0) return 'bg-gray-100 text-gray-400'
+  if (score <= 2) return 'bg-green-100 text-green-700'
+  if (score <= 4) return 'bg-yellow-100 text-yellow-700'
+  if (score <= 6) return 'bg-orange-100 text-orange-700'
   return 'bg-red-100 text-red-700'
 }
 
-const LOAD_LABEL = (count) => {
-  if (count === 0) return 'Kosong'
-  if (count <= 2) return 'Ringan'
-  if (count <= 4) return 'Normal'
-  if (count <= 6) return 'Padat'
+const LOAD_LABEL = (score) => {
+  if (score <= 0) return 'Kosong'
+  if (score <= 2) return 'Ringan'
+  if (score <= 4) return 'Normal'
+  if (score <= 6) return 'Padat'
   return 'Overload'
 }
+
+const formatScore = (score) => Number.isInteger(score) ? String(score) : score.toFixed(1)
 
 export default function WorkloadPage() {
   const { data: session, status } = useSession()
@@ -111,7 +113,7 @@ export default function WorkloadPage() {
                     className={clsx(
                       'rounded-xl p-3 text-left transition-all duration-200 border-2 hover:shadow-md hover:-translate-y-0.5',
                       selectedUser?.user.id === w.user.id ? 'border-orange-400 shadow-md' : 'border-transparent',
-                      LOAD_COLOR(w.activeCount)
+                      LOAD_COLOR(w.loadScore)
                     )}
                   >
                     <div className="flex items-center gap-2 mb-2">
@@ -125,12 +127,14 @@ export default function WorkloadPage() {
                     </div>
                     <div className="flex items-end justify-between">
                       <div>
-                        <span className="text-2xl font-bold">{w.activeCount}</span>
-                        <span className="text-xs opacity-70 ml-1">aktif</span>
+                        <span className="text-2xl font-bold">{formatScore(w.loadScore)}</span>
+                        <span className="text-xs opacity-70 ml-1">skor</span>
                       </div>
-                      <span className="text-xs font-medium opacity-80">{LOAD_LABEL(w.activeCount)}</span>
+                      <span className="text-xs font-medium opacity-80">{LOAD_LABEL(w.loadScore)}</span>
                     </div>
                     <div className="flex gap-2 mt-1 text-xs opacity-70">
+                      <span>{w.activeCount} project aktif</span>
+                      <span>·</span>
                       <span>PIC: {w.picCount}</span>
                       <span>·</span>
                       <span>Member: {w.memberCount}</span>
@@ -142,12 +146,17 @@ export default function WorkloadPage() {
               {/* Legend */}
               <div className="flex flex-wrap gap-3 mt-4 text-xs text-gray-500">
                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-200 inline-block" /> Kosong (0)</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 inline-block" /> Ringan (1-2)</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-200 inline-block" /> Normal (3-4)</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 inline-block" /> Padat (5-6)</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 inline-block" /> Overload (7+)</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 inline-block" /> Ringan (&le;2)</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-200 inline-block" /> Normal (&le;4)</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 inline-block" /> Padat (&le;6)</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 inline-block" /> Overload (&gt;6)</span>
               </div>
+              <p className="text-xs text-gray-400 mt-2">Skor dihitung dari bobot setiap fase project (lihat pengaturan skor di bawah).</p>
             </div>
+
+            {(session.user.role === 'OWNER' || session.user.role === 'DIRECTOR') && (
+              <WorkloadWeightsEditor />
+            )}
 
             {/* Team comparison */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -280,6 +289,90 @@ function KpiPanel({ user, session }) {
   )
 }
 
+function WorkloadWeightsEditor() {
+  const [open, setOpen] = useState(false)
+  const [weights, setWeights] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (open && !weights) {
+      fetch('/api/workload/weights').then(r => r.ok ? r.json() : null).then(setWeights)
+    }
+  }, [open])
+
+  const setWeight = (status, key, value) => {
+    setWeights(w => ({ ...w, [status]: { ...w[status], [key]: value } }))
+    setSaved(false)
+  }
+
+  const save = async () => {
+    setSaving(true)
+    const res = await fetch('/api/workload/weights', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(weights),
+    })
+    setSaving(false)
+    if (res.ok) {
+      setWeights(await res.json())
+      setSaved(true)
+    }
+  }
+
+  return (
+    <div className="card p-5">
+      <button onClick={() => setOpen(o => !o)} className="flex items-center justify-between w-full text-left">
+        <h3 className="text-sm font-semibold text-gray-700">Pengaturan Skor Beban Kerja</h3>
+        <span className="text-xs text-gray-400">{open ? 'Tutup' : 'Atur'}</span>
+      </button>
+      {open && (
+        <div className="mt-3">
+          {!weights ? (
+            <p className="text-sm text-gray-400">Memuat...</p>
+          ) : (
+            <>
+              <p className="text-xs text-gray-500 mb-3">
+                Atur seberapa besar setiap fase project menambah skor beban kerja seseorang.
+                Bobot PIC berlaku untuk PM/penanggung jawab project, bobot Anggota untuk member lain
+                yang ikut terlibat di project tersebut.
+              </p>
+              <div className="space-y-2">
+                <div className="grid grid-cols-3 gap-2 text-xs font-semibold text-gray-500 px-1">
+                  <span>Fase</span>
+                  <span>Bobot PIC</span>
+                  <span>Bobot Anggota</span>
+                </div>
+                {STATUS_PIPELINE.map(status => (
+                  <div key={status} className="grid grid-cols-3 gap-2 items-center">
+                    <span className="text-sm text-gray-700">{STATUS_LABEL[status]}</span>
+                    <input
+                      type="number" step="0.5" min="0" className="input text-sm py-1"
+                      value={weights[status]?.picWeight ?? 0}
+                      onChange={e => setWeight(status, 'picWeight', e.target.value)}
+                    />
+                    <input
+                      type="number" step="0.5" min="0" className="input text-sm py-1"
+                      value={weights[status]?.memberWeight ?? 0}
+                      onChange={e => setWeight(status, 'memberWeight', e.target.value)}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 mt-3">
+                <button onClick={save} disabled={saving} className="btn-primary text-xs px-3 py-1.5">
+                  {saving ? 'Menyimpan...' : 'Simpan Skor'}
+                </button>
+                {saved && <span className="text-xs text-green-600">Tersimpan ✓</span>}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TeamColumn({ title, members, onSelect, selectedId }) {
   if (members.length === 0) return null
   return (
@@ -295,7 +388,7 @@ function TeamColumn({ title, members, onSelect, selectedId }) {
               selectedId === w.user.id ? 'bg-orange-50 ring-1 ring-orange-200' : 'hover:bg-gray-50'
             )}
           >
-            <div className={clsx('w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0', LOAD_COLOR(w.activeCount))}>
+            <div className={clsx('w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0', LOAD_COLOR(w.loadScore))}>
               {w.user.name[0]}
             </div>
             <div className="flex-1 min-w-0">
@@ -303,13 +396,13 @@ function TeamColumn({ title, members, onSelect, selectedId }) {
               <p className="text-xs text-gray-400">{w.user.jobTitle}</p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-sm font-bold text-gray-800">{w.activeCount}</p>
-              <p className="text-xs text-gray-400">aktif</p>
+              <p className="text-sm font-bold text-gray-800">{formatScore(w.loadScore)}</p>
+              <p className="text-xs text-gray-400">skor</p>
             </div>
             <div className="w-16 bg-gray-100 rounded-full h-1.5 shrink-0">
               <div
-                className={clsx('h-1.5 rounded-full', w.activeCount <= 2 ? 'bg-green-400' : w.activeCount <= 4 ? 'bg-yellow-400' : w.activeCount <= 6 ? 'bg-orange-400' : 'bg-red-400')}
-                style={{ width: `${Math.min(100, (w.activeCount / 8) * 100)}%` }}
+                className={clsx('h-1.5 rounded-full', w.loadScore <= 2 ? 'bg-green-400' : w.loadScore <= 4 ? 'bg-yellow-400' : w.loadScore <= 6 ? 'bg-orange-400' : 'bg-red-400')}
+                style={{ width: `${Math.min(100, (w.loadScore / 8) * 100)}%` }}
               />
             </div>
           </button>
