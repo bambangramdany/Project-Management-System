@@ -56,8 +56,8 @@ export async function POST(req) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  if (!body.projectId || !body.category || !body.amount) {
-    return NextResponse.json({ error: 'projectId, category, dan amount wajib diisi' }, { status: 400 })
+  if (!body.projectId || !body.amount) {
+    return NextResponse.json({ error: 'projectId dan amount wajib diisi' }, { status: 400 })
   }
 
   const project = await prisma.project.findUnique({ where: { id: body.projectId } })
@@ -74,7 +74,9 @@ export async function POST(req) {
 
   // Match/create a forecast line item by label so this request shows up against
   // the project's budget forecast and reduces the remaining "sisa" amount there.
+  // The category is taken from this matched forecast item, not chosen manually.
   let budgetItemId = body.budgetItemId || null
+  let category = 'OPERATIONAL_OTHER'
   const label = (body.budgetItemLabel || '').trim()
   if (!budgetItemId && label) {
     const existing = await prisma.projectBudgetItem.findFirst({
@@ -82,12 +84,17 @@ export async function POST(req) {
     })
     if (existing) {
       budgetItemId = existing.id
+      category = existing.category
     } else {
       const created = await prisma.projectBudgetItem.create({
         data: { projectId: body.projectId, label, quotedAmount: 0 },
       })
       budgetItemId = created.id
+      category = created.category
     }
+  } else if (budgetItemId) {
+    const existing = await prisma.projectBudgetItem.findUnique({ where: { id: budgetItemId } })
+    if (existing) category = existing.category
   }
 
   // Requests submitted by a division director (Event/PH/Creative) need an extra
@@ -104,7 +111,7 @@ export async function POST(req) {
     data: {
       projectId: body.projectId,
       requestedById: session.user.id,
-      category: body.category,
+      category,
       budgetItemId,
       amount,
       vendor: body.vendor || null,

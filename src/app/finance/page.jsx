@@ -81,7 +81,7 @@ export default function FinancePage() {
   const [payments, setPayments] = useState([])
   const [filterStatus, setFilterStatus] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ projectId: '', category: 'TICKET_TRANSPORT', budgetItemLabel: '', amount: '', vendor: '', recipientName: '', recipientAccount: '', paymentTerm: 'FULL', description: '', neededDate: '' })
+  const [form, setForm] = useState({ projectId: '', budgetItemLabel: '', amount: '', vendor: '', recipientName: '', recipientAccount: '', paymentTerm: 'FULL', description: '', neededDate: '' })
   const [formBudgetItems, setFormBudgetItems] = useState([])
   const [formBudgetEmpty, setFormBudgetEmpty] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -133,7 +133,7 @@ export default function FinancePage() {
       body: JSON.stringify(form),
     })
     if (res.ok) {
-      setForm({ projectId: '', category: 'TICKET_TRANSPORT', budgetItemLabel: '', amount: '', vendor: '', recipientName: '', recipientAccount: '', paymentTerm: 'FULL', description: '', neededDate: '' })
+      setForm({ projectId: '', budgetItemLabel: '', amount: '', vendor: '', recipientName: '', recipientAccount: '', paymentTerm: 'FULL', description: '', neededDate: '' })
       setFormBudgetItems([])
       setShowForm(false)
       fetchPayments()
@@ -155,7 +155,7 @@ export default function FinancePage() {
     if (res.ok) {
       const data = await res.json()
       const items = data.budgetItems || []
-      setFormBudgetItems(items.map(b => b.label).filter(Boolean))
+      setFormBudgetItems(items.filter(b => b.label).map(b => ({ label: b.label, category: b.category })))
       setFormBudgetEmpty(items.length === 0)
     }
   }
@@ -295,26 +295,21 @@ export default function FinancePage() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="label">Kategori *</label>
-                <select className="select" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-                  {EXPENSE_CATEGORIES.map(c => (
-                    <option key={c} value={c}>{EXPENSE_CATEGORY_LABEL[c]}</option>
-                  ))}
-                </select>
-              </div>
               <div className="sm:col-span-2">
-                <label className="label">Komponen Forecast (sesuai quotation)</label>
-                <input
-                  className="input" list="budget-item-options"
+                <label className="label">Komponen Forecast (sesuai quotation) *</label>
+                <select
+                  className="select"
                   value={form.budgetItemLabel}
                   onChange={e => setForm(f => ({ ...f, budgetItemLabel: e.target.value }))}
-                  placeholder="Pilih komponen forecast yang sudah ada, atau ketik nama baru"
-                />
-                <datalist id="budget-item-options">
-                  {formBudgetItems.map(label => <option key={label} value={label} />)}
-                </datalist>
-                <p className="text-xs text-gray-400 mt-1">Pengajuan ini akan disandingkan dengan forecast project — jika nama komponen baru, akan otomatis ditambahkan ke forecast.</p>
+                  required
+                  disabled={!form.projectId}
+                >
+                  <option value="">Pilih komponen forecast...</option>
+                  {formBudgetItems.map(b => (
+                    <option key={b.label} value={b.label}>{b.label} ({EXPENSE_CATEGORY_LABEL[b.category] || b.category})</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">Kategori pengajuan otomatis mengikuti kategori komponen forecast yang dipilih.</p>
               </div>
               <div>
                 <label className="label">Nominal (Rp) *</label>
@@ -566,22 +561,33 @@ export default function FinancePage() {
                 />
               </div>
               <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-gray-500 px-1">
-                <span className="col-span-3">Komponen (sesuai quotation)</span>
+                <span className="col-span-2">Komponen (sesuai quotation)</span>
+                <span className="col-span-2">Kategori</span>
                 <span className="col-span-2">Forecast / Quotation (Rp)</span>
                 <span className="col-span-2">Aktual Modal (Rp)</span>
-                <span className="col-span-2">Tgl Dibutuhkan</span>
+                <span className="col-span-1">Tgl Dibutuhkan</span>
                 <span className="col-span-2">Catatan Finance/Direksi</span>
                 <span className="col-span-1"></span>
               </div>
               {budgetItems.map((item, idx) => (
                 <div key={item.id || idx} className="grid grid-cols-12 gap-2 items-center">
                   <input
-                    className="input col-span-3"
+                    className="input col-span-2"
                     value={item.label}
                     onChange={e => updateBudgetRow(idx, { label: e.target.value })}
                     placeholder="cth. Sewa Venue"
                     disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
                   />
+                  <select
+                    className="select col-span-2"
+                    value={item.category || 'OPERATIONAL_OTHER'}
+                    onChange={e => updateBudgetRow(idx, { category: e.target.value })}
+                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                  >
+                    {EXPENSE_CATEGORIES.map(c => (
+                      <option key={c} value={c}>{EXPENSE_CATEGORY_LABEL[c]}</option>
+                    ))}
+                  </select>
                   <ThousandsInput
                     className="input col-span-2"
                     value={item.quotedAmount || ''}
@@ -598,7 +604,7 @@ export default function FinancePage() {
                   />
                   <input
                     type="date"
-                    className="input col-span-2"
+                    className="input col-span-1"
                     value={item.neededDate || ''}
                     onChange={e => updateBudgetRow(idx, { neededDate: e.target.value })}
                     disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}

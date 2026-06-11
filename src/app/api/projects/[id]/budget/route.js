@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canViewBudget, canEditBudget, canViewMargin, canEditProjectValue, canLockBudget } from '@/lib/rbac'
 import { logAudit } from '@/lib/audit'
+import { EXPENSE_CATEGORIES } from '@/lib/constants'
 import { NextResponse } from 'next/server'
 
 export async function GET(req, { params }) {
@@ -102,6 +103,7 @@ export async function PUT(req, { params }) {
     await Promise.all(items.map((item, idx) => {
       const data = {
         label: item.label || '',
+        category: EXPENSE_CATEGORIES.includes(item.category) ? item.category : 'OPERATIONAL_OTHER',
         quotedAmount: parseFloat(item.quotedAmount) || 0,
         actualAmount: item.actualAmount === '' || item.actualAmount === null || item.actualAmount === undefined ? null : (parseFloat(item.actualAmount) || 0),
         neededDate: item.neededDate ? new Date(item.neededDate) : null,

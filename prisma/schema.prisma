@@ -539,6 +539,7 @@ model ProjectBudgetItem {
   id            String    @id @default(cuid())
   projectId     String
   label         String
+  category      ExpenseCategory @default(OPERATIONAL_OTHER)
   quotedAmount  Float     @default(0)
   actualAmount  Float?
   neededDate    DateTime?
