@@ -166,7 +166,8 @@ model Debt {
   id              String     @id @default(cuid())
   lenderName      String
   principal       Float
-  monthlyInterest Float      @default(0) // bunga / bagi hasil per bulan (nominal)
+  interestRate    Float      @default(0) // bunga / bagi hasil per bulan (% dari pokok)
+  monthlyInterest Float      @default(0) // bunga / bagi hasil per bulan (nominal, dihitung dari interestRate)
   tenorMonths     Int
   startDate       DateTime
   notes           String?

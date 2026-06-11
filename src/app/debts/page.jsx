@@ -9,7 +9,17 @@ import { isFinanceDirector } from '@/lib/rbac'
 const formatRupiah = (n) => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID')
 const formatDate = (d) => new Date(d).toLocaleDateString('id-ID', { dateStyle: 'medium' })
 
-const emptyForm = { lenderName: '', principal: '', monthlyInterest: '', tenorMonths: '', startDate: '', notes: '' }
+const emptyForm = { lenderName: '', principal: '', interestRate: '', tenorMonths: '', startDate: '', notes: '' }
+
+// "3 hari lagi", "9 minggu lagi", "Lewat 2 hari", etc.
+function countdownLabel(dueDate, now) {
+  const diffMs = new Date(dueDate) - now
+  const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+  if (days < 0) return { text: `Lewat ${Math.abs(days)} hari`, tone: 'overdue' }
+  if (days === 0) return { text: 'Hari ini', tone: 'soon' }
+  if (days <= 13) return { text: `${days} hari lagi`, tone: days <= 3 ? 'soon' : 'normal' }
+  return { text: `${Math.round(days / 7)} minggu lagi`, tone: 'normal' }
+}
 
 export default function DebtsPage() {
   const { data: session, status } = useSession()
@@ -21,6 +31,9 @@ export default function DebtsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [expanded, setExpanded] = useState(null)
+  const [editId, setEditId] = useState(null)
+  const [editForm, setEditForm] = useState({ lenderName: '', interestRate: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
 
   const canManage = status === 'authenticated' &&
     (session.user.role === 'OWNER' || session.user.role === 'FINANCE' || isFinanceDirector(session.user))
@@ -76,6 +89,28 @@ export default function DebtsPage() {
     }
   }
 
+  const startEdit = (debt) => {
+    setEditId(debt.id)
+    setEditForm({ lenderName: debt.lenderName, interestRate: debt.interestRate ?? 0 })
+  }
+
+  const saveEdit = async (id) => {
+    setSavingEdit(true)
+    const res = await fetch(`/api/debts/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lenderName: editForm.lenderName, interestRate: editForm.interestRate }),
+    })
+    setSavingEdit(false)
+    if (res.ok) {
+      setEditId(null)
+      load()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      alert(d.error || 'Gagal menyimpan')
+    }
+  }
+
   const removeDebt = async (id) => {
     if (!confirm('Hapus catatan hutang ini beserta seluruh jadwal cicilannya?')) return
     const res = await fetch(`/api/debts/${id}`, { method: 'DELETE' })
@@ -115,6 +150,81 @@ export default function DebtsPage() {
           )}
         </div>
 
+        {!loading && debts.length > 0 && (
+          <div className="card p-4 border-t-4 border-indigo-400 overflow-x-auto">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2 pb-2 border-b border-gray-100 mb-2">
+              <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs">📑</span>
+              Summary Hutang
+            </h2>
+            <table className="w-full text-sm min-w-[760px]">
+              <thead>
+                <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
+                  <th className="py-2 pr-2">Kreditor</th>
+                  <th className="py-2 pr-2 text-right">Pokok Utang</th>
+                  <th className="py-2 pr-2 text-right">Bunga/Bln (%)</th>
+                  <th className="py-2 pr-2 text-right">Bunga/Bln (Rp)</th>
+                  <th className="py-2 pr-2">Jatuh Tempo</th>
+                  <th className="py-2 pr-2">Countdown</th>
+                  <th className="py-2 pr-2">Status</th>
+                  {canManage && <th className="py-2 pr-2">Aksi</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {debts.map(debt => {
+                  const nextPayment = debt.payments.find(p => p.status === 'PENDING')
+                  const countdown = nextPayment ? countdownLabel(nextPayment.dueDate, now) : null
+                  const isEditing = editId === debt.id
+                  return (
+                    <tr key={debt.id} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="py-2 pr-2 font-medium text-gray-800">
+                        {isEditing ? (
+                          <input className="input text-xs py-1" value={editForm.lenderName} onChange={e => setEditForm(f => ({ ...f, lenderName: e.target.value }))} />
+                        ) : debt.lenderName}
+                      </td>
+                      <td className="py-2 pr-2 text-right text-gray-700">{formatRupiah(debt.principal)}</td>
+                      <td className="py-2 pr-2 text-right text-gray-700">
+                        {isEditing ? (
+                          <input type="number" step="0.01" className="input text-xs py-1 w-20 text-right" value={editForm.interestRate} onChange={e => setEditForm(f => ({ ...f, interestRate: e.target.value }))} />
+                        ) : `${debt.interestRate ?? 0}%`}
+                      </td>
+                      <td className="py-2 pr-2 text-right text-gray-700">{formatRupiah(debt.monthlyInterest)}</td>
+                      <td className="py-2 pr-2 text-gray-600 whitespace-nowrap">{nextPayment ? formatDate(nextPayment.dueDate) : '—'}</td>
+                      <td className="py-2 pr-2 whitespace-nowrap">
+                        {countdown ? (
+                          <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                            countdown.tone === 'overdue' ? 'bg-red-100 text-red-700' :
+                            countdown.tone === 'soon' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'
+                          }`}>{countdown.text}</span>
+                        ) : '—'}
+                      </td>
+                      <td className="py-2 pr-2">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${debt.status === 'PAID_OFF' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                          {debt.status === 'PAID_OFF' ? 'Lunas' : 'Aktif'}
+                        </span>
+                      </td>
+                      {canManage && (
+                        <td className="py-2 pr-2 whitespace-nowrap">
+                          {isEditing ? (
+                            <div className="flex gap-2">
+                              <button onClick={() => saveEdit(debt.id)} disabled={savingEdit} className="text-xs text-emerald-600 hover:underline font-medium">Simpan</button>
+                              <button onClick={() => setEditId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <button onClick={() => startEdit(debt)} className="text-xs text-brand-600 hover:underline font-medium">Edit</button>
+                              <button onClick={() => removeDebt(debt.id)} className="text-xs text-red-500 hover:underline">Hapus</button>
+                            </div>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {showForm && canManage && (
           <div className="card p-5">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Tambah Hutang Baru</h3>
@@ -131,8 +241,13 @@ export default function DebtsPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="label">Bunga / Bagi Hasil per Bulan (Rp)</label>
-                  <input type="number" className="input" value={form.monthlyInterest} onChange={e => setForm(f => ({ ...f, monthlyInterest: e.target.value }))} placeholder="0" />
+                  <label className="label">Bunga / Bagi Hasil per Bulan (%)</label>
+                  <input type="number" step="0.01" className="input" value={form.interestRate} onChange={e => setForm(f => ({ ...f, interestRate: e.target.value }))} placeholder="cth. 1.75" />
+                  {form.principal && form.interestRate && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      ≈ {formatRupiah(Math.round((parseFloat(form.principal) || 0) * (parseFloat(form.interestRate) || 0) / 100))} / bulan
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="label">Lama Pinjaman (bulan) *</label>

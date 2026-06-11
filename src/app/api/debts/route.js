@@ -33,7 +33,10 @@ export async function POST(req) {
 
   const body = await req.json()
   const principal = parseFloat(body.principal)
-  const monthlyInterest = parseFloat(body.monthlyInterest || 0)
+  const interestRate = parseFloat(body.interestRate || 0)
+  const monthlyInterest = Number.isFinite(principal) && Number.isFinite(interestRate)
+    ? Math.round(principal * (interestRate / 100))
+    : 0
   const tenorMonths = parseInt(body.tenorMonths)
 
   if (!body.lenderName || !body.lenderName.trim()) {
@@ -59,7 +62,8 @@ export async function POST(req) {
     data: {
       lenderName: body.lenderName.trim(),
       principal,
-      monthlyInterest: Number.isFinite(monthlyInterest) ? monthlyInterest : 0,
+      interestRate: Number.isFinite(interestRate) ? interestRate : 0,
+      monthlyInterest,
       tenorMonths,
       startDate,
       notes: body.notes || null,
@@ -71,7 +75,7 @@ export async function POST(req) {
             installmentNo: i + 1,
             dueDate,
             principalAmount: i === tenorMonths - 1 ? lastPrincipal : basePrincipal,
-            interestAmount: Number.isFinite(monthlyInterest) ? monthlyInterest : 0,
+            interestAmount: monthlyInterest,
           }
         }),
       },

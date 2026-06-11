@@ -20,9 +20,28 @@ export async function PATCH(req, { params }) {
   const body = await req.json()
   const data = {}
   if (body.notes !== undefined) data.notes = body.notes || null
+  if (body.lenderName !== undefined && body.lenderName.trim()) data.lenderName = body.lenderName.trim()
   if (body.status && ['ACTIVE', 'PAID_OFF'].includes(body.status)) data.status = body.status
 
+  let newMonthlyInterest = null
+  if (body.interestRate !== undefined) {
+    const interestRate = parseFloat(body.interestRate)
+    if (Number.isFinite(interestRate)) {
+      data.interestRate = interestRate
+      newMonthlyInterest = Math.round(debt.principal * (interestRate / 100))
+      data.monthlyInterest = newMonthlyInterest
+    }
+  }
+
   const updated = await prisma.debt.update({ where: { id: params.id }, data })
+
+  // Recalculate interest portion of any not-yet-paid installments to match the new rate.
+  if (newMonthlyInterest !== null) {
+    await prisma.debtPayment.updateMany({
+      where: { debtId: params.id, status: 'PENDING' },
+      data: { interestAmount: newMonthlyInterest },
+    })
+  }
 
   if (data.status && data.status !== debt.status) {
     await logAudit({
