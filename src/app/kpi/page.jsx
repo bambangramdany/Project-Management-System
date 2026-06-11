@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { KPI_BY_ROLE, resolveKpiPeriod } from '@/lib/constants'
+import KpiCriteriaEditor from '@/components/KpiCriteriaEditor'
 
 const SUMMARY_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE']
 
@@ -19,6 +20,7 @@ export default function KpiSummaryPage() {
   const [assessments, setAssessments] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
+  const [criteriaMap, setCriteriaMap] = useState({})
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -93,7 +95,7 @@ export default function KpiSummaryPage() {
         <div className="space-y-3">
           {users.map(({ user, items }) => {
             const overall = items.reduce((s, a) => s + a.score, 0) / items.length
-            const kpiDefs = KPI_BY_ROLE[user.role] || []
+            const kpiDefs = criteriaMap[user.id] || KPI_BY_ROLE[user.role] || []
             const isOpen = expanded === user.id
             return (
               <div key={user.id} className="card p-4 hover:shadow-md transition-all duration-200">
@@ -113,6 +115,7 @@ export default function KpiSummaryPage() {
 
                 {isOpen && (
                   <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                    <KpiCriteriaEditor role={user.role} division={user.divisi} session={session} onChange={list => setCriteriaMap(m => ({ ...m, [user.id]: list }))} />
                     {kpiDefs.map(def => {
                       const rows = items.filter(a => a.kpiKey === def.key)
                       if (rows.length === 0) return null

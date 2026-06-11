@@ -7,14 +7,8 @@ import { StatusBadge } from '@/components/StatusBadge'
 import Link from 'next/link'
 import clsx from 'clsx'
 import { KPI_BY_ROLE, KPI_SCORE_LABEL, KPI_DEADLINE_DAY, resolveKpiPeriod } from '@/lib/constants'
-import { CROSS_TEAM_PM_EMAIL, isFinanceDirector } from '@/lib/rbac'
-
-function canManageKpiCriteria(evaluator, target) {
-  if (!evaluator) return false
-  if (evaluator.role === 'OWNER' || isFinanceDirector(evaluator)) return true
-  if (evaluator.role === 'DIRECTOR') return evaluator.divisi === target.divisi
-  return false
-}
+import { CROSS_TEAM_PM_EMAIL } from '@/lib/rbac'
+import KpiCriteriaEditor from '@/components/KpiCriteriaEditor'
 
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
 
@@ -199,39 +193,7 @@ function KpiPanel({ user, session }) {
   const [existing, setExisting] = useState([])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [editMode, setEditMode] = useState(false)
-  const [newCriterion, setNewCriterion] = useState({ key: '', label: '' })
-
   const canScore = canScoreKpiClient(session?.user, user)
-  const canManage = canManageKpiCriteria(session?.user, user)
-
-  function loadCriteria() {
-    fetch(`/api/kpi/criteria?role=${user.role}&division=${user.divisi || ''}`)
-      .then(r => r.ok ? r.json() : [])
-      .then(data => setItems(Array.isArray(data) && data.length ? data : (KPI_BY_ROLE[user.role] || [])))
-  }
-
-  useEffect(() => { loadCriteria() }, [user.role, user.divisi])
-
-  async function addCriterion() {
-    if (!newCriterion.key.trim() || !newCriterion.label.trim()) return
-    await fetch('/api/kpi/criteria', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role: user.role, division: user.divisi || null, key: newCriterion.key.trim(), label: newCriterion.label.trim(), order: items.length }),
-    })
-    setNewCriterion({ key: '', label: '' })
-    loadCriteria()
-  }
-
-  async function removeCriterion(key) {
-    // Find criterion id by re-fetching the raw list scoped to this role/division
-    const all = await fetch('/api/kpi/criteria').then(r => r.json())
-    const match = all.find(c => c.role === user.role && (c.division || null) === (user.divisi || null) && c.key === key && c.active)
-    if (!match) return
-    await fetch(`/api/kpi/criteria?id=${match.id}`, { method: 'DELETE' })
-    loadCriteria()
-  }
 
   useEffect(() => {
     fetch(`/api/kpi?userId=${user.id}&period=${period}`).then(r => r.ok ? r.json() : []).then(data => {
@@ -269,30 +231,9 @@ function KpiPanel({ user, session }) {
     <div className="mb-4 p-3 rounded-lg bg-brand-50 border border-brand-100">
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-semibold text-brand-700 uppercase tracking-wide">KPI — {user.jobTitle || user.role} · {period}</p>
-        <div className="flex items-center gap-2">
-          {!canScore && <span className="text-xs text-gray-400">Hanya superior/pemberi task yang bisa menilai</span>}
-          {canManage && (
-            <button onClick={() => setEditMode(m => !m)} className="text-xs text-brand-600 hover:underline">
-              {editMode ? 'Selesai' : 'Atur Kriteria'}
-            </button>
-          )}
-        </div>
+        {!canScore && <span className="text-xs text-gray-400">Hanya superior/pemberi task yang bisa menilai</span>}
       </div>
-      {editMode && canManage && (
-        <div className="mb-2 p-2 rounded-lg bg-white border border-brand-100 space-y-2">
-          {items.map(it => (
-            <div key={it.key} className="flex items-center justify-between gap-2 text-xs">
-              <span className="text-gray-700">{it.label} <span className="text-gray-400">({it.key})</span></span>
-              <button onClick={() => removeCriterion(it.key)} className="text-red-500 hover:underline">Hapus</button>
-            </div>
-          ))}
-          <div className="flex items-center gap-2">
-            <input className="input text-xs py-1 w-28" placeholder="key" value={newCriterion.key} onChange={e => setNewCriterion(c => ({ ...c, key: e.target.value }))} />
-            <input className="input text-xs py-1 flex-1" placeholder="Label kriteria" value={newCriterion.label} onChange={e => setNewCriterion(c => ({ ...c, label: e.target.value }))} />
-            <button onClick={addCriterion} className="btn-primary text-xs px-2 py-1">Tambah</button>
-          </div>
-        </div>
-      )}
+      <KpiCriteriaEditor role={user.role} division={user.divisi} session={session} onChange={setItems} />
       {canScore && isPastDeadline && (
         <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-2 py-1.5 mb-2">
           ⚠ Sudah lewat tanggal {KPI_DEADLINE_DAY}. Pengisian KPI bulan ini tercatat terlambat dan akan mengurangi poin Anda sebagai penilai. Periode penilaian saat ini: {period}.

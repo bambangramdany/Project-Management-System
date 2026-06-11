@@ -2,12 +2,14 @@
 import { useEffect, useState } from 'react'
 import { PROJECT_SCORE_CRITERIA, KPI_SCORE_LABEL } from '@/lib/constants'
 import { canScoreProjectMember } from '@/lib/rbac'
+import ScoreCriteriaEditor from '@/components/ScoreCriteriaEditor'
 
 export default function ProjectBonusTab({ project, session }) {
   const [scores, setScores] = useState([])
   const [loading, setLoading] = useState(true)
   const [drafts, setDrafts] = useState({})
   const [saving, setSaving] = useState(null)
+  const [criteria, setCriteria] = useState(PROJECT_SCORE_CRITERIA)
 
   const members = [
     ...(project.pic ? [project.pic] : []),
@@ -19,27 +21,31 @@ export default function ProjectBonusTab({ project, session }) {
       .then(res => res.json())
       .then(data => {
         setScores(Array.isArray(data) ? data : [])
-        const d = {}
-        members.forEach(m => {
-          d[m.id] = {}
-          PROJECT_SCORE_CRITERIA.forEach(c => {
-            const existing = (Array.isArray(data) ? data : []).find(s => s.userId === m.id && s.criteria === c.key && s.evaluatorId === session?.user?.id)
-            d[m.id][c.key] = { score: existing?.score || 0, comment: existing?.comment || '' }
-          })
-        })
-        setDrafts(d)
         setLoading(false)
       })
       .catch(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id])
 
+  useEffect(() => {
+    const d = {}
+    members.forEach(m => {
+      d[m.id] = {}
+      criteria.forEach(c => {
+        const existing = scores.find(s => s.userId === m.id && s.criteria === c.key && s.evaluatorId === session?.user?.id)
+        d[m.id][c.key] = { score: existing?.score || 0, comment: existing?.comment || '' }
+      })
+    })
+    setDrafts(d)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scores, criteria])
+
   if (loading) return <p className="text-sm text-gray-500">Memuat...</p>
   if (members.length === 0) return <p className="text-sm text-gray-500">Tidak ada anggota tim yang bisa Anda nilai pada project ini.</p>
 
   const handleSave = async (userId) => {
     setSaving(userId)
-    const items = PROJECT_SCORE_CRITERIA.map(c => ({
+    const items = criteria.map(c => ({
       criteria: c.key,
       score: drafts[userId]?.[c.key]?.score || 0,
       comment: drafts[userId]?.[c.key]?.comment || '',
@@ -54,7 +60,8 @@ export default function ProjectBonusTab({ project, session }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-500">Berikan penilaian per anggota tim untuk project ini sebagai dasar skema bonus.</p>
+      <p className="text-sm text-gray-500">Berikan penilaian per anggota tim untuk project ini sebagai evaluasi tim.</p>
+      <ScoreCriteriaEditor division={project.division} session={session} onChange={setCriteria} />
       {members.map(m => (
         <div key={m.id} className="card p-4 space-y-3">
           <div className="flex items-center justify-between">
@@ -71,7 +78,7 @@ export default function ProjectBonusTab({ project, session }) {
             </button>
           </div>
           <div className="grid sm:grid-cols-3 gap-3">
-            {PROJECT_SCORE_CRITERIA.map(c => (
+            {criteria.map(c => (
               <div key={c.key}>
                 <p className="text-xs text-gray-500 mb-1">{c.label}</p>
                 <select

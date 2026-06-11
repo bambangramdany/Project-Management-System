@@ -302,6 +302,7 @@ model Project {
   pitchResult     PitchResult?
   wonLossReason   String?
   vendorWinner    String?
+  evaluationNote  String?
   projectValue    Float?
   budgetLockedAt  DateTime?
   budgetLockedById String?

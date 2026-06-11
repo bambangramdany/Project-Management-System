@@ -5,9 +5,9 @@ import { CROSS_TEAM_PM_EMAIL, canViewAllScores } from '@/lib/rbac'
 import { PROJECT_SCORE_CRITERIA } from '@/lib/constants'
 import { NextResponse } from 'next/server'
 
-function aggregate(scores) {
+function aggregate(scores, criteria) {
   const byCriteria = {}
-  PROJECT_SCORE_CRITERIA.forEach(c => { byCriteria[c.key] = { sum: 0, count: 0 } })
+  criteria.forEach(c => { byCriteria[c.key] = { sum: 0, count: 0 } })
   scores.forEach(s => {
     if (!byCriteria[s.criteria]) byCriteria[s.criteria] = { sum: 0, count: 0 }
     byCriteria[s.criteria].sum += s.score
@@ -29,12 +29,18 @@ export async function GET() {
 
   const me = session.user
 
+  // Union of default + custom-defined criteria, for column rendering and aggregation
+  const customCriteria = await prisma.scoreCriterion.findMany({ where: { active: true }, orderBy: { order: 'asc' } })
+  const criteriaMap = new Map(PROJECT_SCORE_CRITERIA.map(c => [c.key, c]))
+  customCriteria.forEach(c => criteriaMap.set(c.key, { key: c.key, label: c.label }))
+  const criteria = Array.from(criteriaMap.values())
+
   // 1. My own received scores (anonymous to me)
   const myScores = await prisma.projectScore.findMany({
     where: { userId: me.id },
     include: { project: { select: { id: true, code: true, name: true } } },
   })
-  const mine = aggregate(myScores)
+  const mine = aggregate(myScores, criteria)
 
   // 2. Anonymous notes addressed to me (if I'm a director)
   let myNotes = []
@@ -75,9 +81,9 @@ export async function GET() {
     const allScores = await prisma.projectScore.findMany({ where: { userId: { in: userIds } } })
     team = allUsers.map(u => ({
       user: u,
-      summary: aggregate(allScores.filter(s => s.userId === u.id)),
+      summary: aggregate(allScores.filter(s => s.userId === u.id), criteria),
     }))
   }
 
-  return NextResponse.json({ mine, myNotes, team })
+  return NextResponse.json({ mine, myNotes, team, criteria })
 }

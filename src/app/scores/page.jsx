@@ -75,7 +75,7 @@ export default function ScoresPage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Nilai Tim</h1>
-          <p className="text-sm text-gray-500">Ringkasan penilaian per project sebagai dasar skema bonus</p>
+          <p className="text-sm text-gray-500">Ringkasan penilaian tim per project</p>
         </div>
 
         {/* My summary */}
@@ -87,7 +87,7 @@ export default function ScoresPage() {
           ) : (
             <>
               <div className="grid sm:grid-cols-3 gap-3 mb-2">
-                {PROJECT_SCORE_CRITERIA.map(c => (
+                {(data.criteria || PROJECT_SCORE_CRITERIA).map(c => (
                   <div key={c.key} className="bg-brand-50 rounded-lg p-3 hover:shadow-sm transition-all duration-200">
                     <p className="text-xs text-gray-500 mb-1">{c.label}</p>
                     <p className="text-lg font-bold text-brand-700">{fmt(data.mine.byCriteria[c.key])}</p>
@@ -147,7 +147,7 @@ export default function ScoresPage() {
                 <thead>
                   <tr className="text-left text-gray-400 text-xs">
                     <th className="pb-2 pr-2">Nama</th>
-                    {PROJECT_SCORE_CRITERIA.map(c => (
+                    {(data.criteria || PROJECT_SCORE_CRITERIA).map(c => (
                       <th key={c.key} className="pb-2 px-2 text-center">{c.label}</th>
                     ))}
                     <th className="pb-2 pl-2 text-center">Rata-rata</th>
@@ -160,7 +160,7 @@ export default function ScoresPage() {
                         <p className="font-medium text-ink-800">{user.name}</p>
                         <p className="text-xs text-gray-400">{user.jobTitle || user.role}</p>
                       </td>
-                      {PROJECT_SCORE_CRITERIA.map(c => (
+                      {(data.criteria || PROJECT_SCORE_CRITERIA).map(c => (
                         <td key={c.key} className="py-2 px-2 text-center text-gray-700">{fmt(summary.byCriteria[c.key])}</td>
                       ))}
                       <td className="py-2 pl-2 text-center font-semibold text-brand-700">{fmt(summary.overall)}</td>

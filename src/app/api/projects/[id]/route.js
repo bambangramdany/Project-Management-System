@@ -35,15 +35,21 @@ export async function PATCH(req, { params }) {
 
   const existingProject = await prisma.project.findUnique({ where: { id: params.id } })
   if (!existingProject) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (!canEditProject(session.user, existingProject)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
   const { memberIds, ...fields } = body
 
+  // Evaluation notes on closed projects can be added by any authenticated team
+  // member (for shared post-mortem learning), even without general edit rights.
+  const isEvaluationOnly = Object.keys(fields).every(k => k === 'evaluationNote')
+  if (!isEvaluationOnly && !canEditProject(session.user, existingProject)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const data = {}
   const allowed = ['name','status','pitchStatus','pitchResult','wonLossReason','vendorWinner','category',
     'budgetTier','eventComplexity','recommendation','picId','clientId','briefDate','submitDate',
-    'pitchDuration','startDate','endDate','projectDuration','projectValue','notes']
+    'pitchDuration','startDate','endDate','projectDuration','projectValue','notes','evaluationNote']
 
   for (const key of allowed) {
     if (key in fields) {

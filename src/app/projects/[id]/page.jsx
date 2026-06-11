@@ -218,7 +218,7 @@ export default function ProjectDetailPage() {
                 activeTab === tab ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
               }`}
             >
-              {tab === 'tasks' ? `Tasks (${totalTasks})` : tab === 'team' ? `Tim (${(project.members?.length || 0) + (project.pic ? 1 : 0)})` : tab === 'bonus' ? 'Penilaian Bonus' : tab === 'activity' ? 'Aktivitas' : 'Info'}
+              {tab === 'tasks' ? `Tasks (${totalTasks})` : tab === 'team' ? `Tim (${(project.members?.length || 0) + (project.pic ? 1 : 0)})` : tab === 'bonus' ? 'Penilaian Tim' : tab === 'activity' ? 'Aktivitas' : 'Info'}
             </button>
           ))}
         </div>
@@ -427,10 +427,65 @@ export default function ProjectDetailPage() {
                 <p className="text-sm text-gray-700">{project.notes}</p>
               </div>
             )}
+            {['HOLD', 'FAILED', 'DONE', 'CANCELED'].includes(project.status) && (
+              <EvaluationNote project={project} setProject={setProject} />
+            )}
           </div>
         )}
 
       </main>
+    </div>
+  )
+}
+
+function EvaluationNote({ project, setProject }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(project.evaluationNote || '')
+  const [saving, setSaving] = useState(false)
+
+  const STATUS_HINT = {
+    FAILED: 'Mis: alasan kalah (budget/kreatif), kalah dari kompetitor mana, dll.',
+    DONE: 'Mis: kritik/feedback dari klien, catatan vendor (siapa & bagaimana hasil kerjanya), dll.',
+    HOLD: 'Catatan evaluasi project ini untuk referensi ke depan.',
+    CANCELED: 'Catatan evaluasi mengapa project ini dibatalkan.',
+  }
+
+  async function save() {
+    setSaving(true)
+    const res = await fetch(`/api/projects/${project.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ evaluationNote: value }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      setProject(p => ({ ...p, evaluationNote: value }))
+      setEditing(false)
+    }
+  }
+
+  return (
+    <div className="pt-4 border-t border-gray-100">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-xs text-gray-500">Catatan Evaluasi Tim</p>
+        {!editing && (
+          <button onClick={() => { setValue(project.evaluationNote || ''); setEditing(true) }} className="text-xs text-brand-600 hover:underline">
+            {project.evaluationNote ? 'Edit' : 'Tambah catatan'}
+          </button>
+        )}
+      </div>
+      <p className="text-xs text-gray-400 mb-2">{STATUS_HINT[project.status]}</p>
+      {editing ? (
+        <div className="space-y-2">
+          <textarea className="input text-sm w-full" rows={4} value={value} onChange={e => setValue(e.target.value)} placeholder={STATUS_HINT[project.status]} />
+          <div className="flex items-center gap-2">
+            <button onClick={save} disabled={saving} className="btn-primary text-xs px-3 py-1.5">{saving ? 'Menyimpan...' : 'Simpan'}</button>
+            <button onClick={() => setEditing(false)} className="text-xs text-gray-500 hover:underline">Batal</button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-700 whitespace-pre-wrap">{project.evaluationNote || <span className="text-gray-400">Belum ada catatan evaluasi.</span>}</p>
+      )}
     </div>
   )
 }
