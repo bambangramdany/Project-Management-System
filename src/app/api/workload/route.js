@@ -86,20 +86,28 @@ export async function GET(req) {
       byStatus[p.status] = (byStatus[p.status] || 0) + 1
     }
 
-    // HOLD and WAITING_PITCH_RESULT projects don't carry meaningful workload yet.
-    const baseActiveStatuses = ACTIVE_STATUSES.filter(s => !['HOLD', 'WAITING_PITCH_RESULT'].includes(s))
+    // Whether `user` is actually involved in `p` at its current stage:
+    // - HOLD: nobody has active workload yet
+    // - WAITING_PITCH_RESULT: only the PM/PIC is waiting on the result
+    // - REPORTING / INVOICING: only PM/PIC and Finance handle closing — creative,
+    //   production, design, etc. are done once Event Day wraps up
+    // - everything else (PITCHING, PREPARATION, EVENT_DAY): whole tagged team
+    const isInvolved = (p) => {
+      const isPic = p.picId === user.id
+      switch (p.status) {
+        case 'HOLD': return false
+        case 'WAITING_PITCH_RESULT': return isPic
+        case 'REPORTING':
+        case 'INVOICING': return isPic || user.role === 'FINANCE'
+        default: return ACTIVE_STATUSES.includes(p.status)
+      }
+    }
 
-    // Roles other than PM/Director/Finance are not involved in reporting/invoicing —
-    // their workload ends at EVENT_DAY, so those stages don't count as active for them.
-    const involvedThroughClosing = ['PROJECT_MANAGER', 'DIRECTOR', 'FINANCE'].includes(user.role)
-    const userActiveStatuses = involvedThroughClosing
-      ? baseActiveStatuses
-      : baseActiveStatuses.filter(s => !['REPORTING', 'INVOICING'].includes(s))
+    const involvedProjects = allProjects.filter(isInvolved)
 
     // Weighted workload score — uses configurable per-status weights, with the
     // PIC weight applying to the project's PIC and memberWeight to everyone else.
-    const loadScore = allProjects.reduce((sum, p) => {
-      if (!userActiveStatuses.includes(p.status)) return sum
+    const loadScore = involvedProjects.reduce((sum, p) => {
       const w = weights[p.status] || DEFAULT_WORKLOAD_WEIGHTS[p.status]
       return sum + (p.picId === user.id ? w.picWeight : w.memberWeight)
     }, 0)
@@ -109,7 +117,7 @@ export async function GET(req) {
       totalProjects: allProjects.length,
       picCount: picProjects.length,
       memberCount: memberProjects.length,
-      activeCount: allProjects.filter(p => userActiveStatuses.includes(p.status)).length,
+      activeCount: involvedProjects.length,
       loadScore: Math.round(loadScore * 10) / 10,
       byStatus,
       projects: allProjects.map(p => ({
@@ -118,10 +126,11 @@ export async function GET(req) {
         startDate: p.startDate, endDate: p.endDate,
         isPic: p.picId === user.id,
       })),
-      tasks: tasks.filter(t => t.assigneeId === user.id && (
-        involvedThroughClosing ||
-        !['REPORTING', 'INVOICING'].includes(projects.find(p => p.id === t.projectId)?.status)
-      )).map(t => ({
+      tasks: tasks.filter(t => {
+        if (t.assigneeId !== user.id) return false
+        const proj = projects.find(pr => pr.id === t.projectId)
+        return proj ? isInvolved(proj) : true
+      }).map(t => ({
         id: t.id, title: t.title, status: t.status, priority: t.priority, dueDate: t.dueDate,
         project: projectInfo[t.projectId] || null,
         projectId: t.projectId,
