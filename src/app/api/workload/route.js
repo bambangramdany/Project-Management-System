@@ -125,6 +125,7 @@ export async function GET(req) {
         status: p.status, category: p.category,
         startDate: p.startDate, endDate: p.endDate,
         isPic: p.picId === user.id,
+        involved: isInvolved(p),
       })),
       tasks: tasks.filter(t => {
         if (t.assigneeId !== user.id) return false

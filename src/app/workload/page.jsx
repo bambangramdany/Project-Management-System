@@ -430,8 +430,7 @@ function UserDetail({ data, session, teamList = [], canReassign = false }) {
     setReassigning(null)
   }
 
-  const activeProjects = data.projects.filter(p => ['PITCHING','PREPARATION','EVENT_DAY','REPORTING','INVOICING'].includes(p.status))
-  const closedProjects = data.projects.filter(p => ['DONE','FAILED','CANCELED','HOLD','WAITING_PITCH_RESULT'].includes(p.status))
+  const activeProjects = data.projects.filter(p => p.involved)
   const displayed = showAll ? data.projects : activeProjects
 
   return (
