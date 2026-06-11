@@ -442,12 +442,12 @@ function EvaluationNote({ project, setProject }) {
   const [saving, setSaving] = useState(false)
 
   const STATUS_HINT = {
-    FAILED: 'Mis: alasan kalah (budget/kreatif), kalah dari kompetitor mana, dll.',
-    DONE: 'Mis: kritik/feedback dari klien, catatan vendor (siapa & bagaimana hasil kerjanya), dll.',
-    HOLD: 'Catatan evaluasi project ini untuk referensi ke depan.',
-    CANCELED: 'Catatan evaluasi mengapa project ini dibatalkan.',
+    FAILED: 'Learning points: alasan kalah (harga, kreatif, relasi, dll), kalah dari kompetitor mana, plus & minus dari sisi internal kita dan dari sisi eksternal (klien/kompetitor/pasar).',
+    DONE: 'Learning points: alasan menang/dipercaya klien, plus & minus internal (tim, proses, eksekusi) dan eksternal (klien, vendor, kondisi lapangan), feedback klien & performa vendor.',
+    HOLD: 'Learning points: kondisi project saat ini, plus & minus internal dan eksternal yang perlu jadi catatan untuk referensi ke depan.',
+    CANCELED: 'Learning points: alasan project dibatalkan, plus & minus dari sisi internal kita dan dari sisi eksternal (klien/kondisi lain).',
   }
-  const hint = STATUS_HINT[project.status] || 'Catatan evaluasi project ini (kritik klien, performa vendor, alasan menang/kalah, dll) untuk referensi ke depan.'
+  const hint = STATUS_HINT[project.status] || 'Learning points untuk didokumentasikan tim: alasan menang/kalah, plus & minus dari sisi internal dan eksternal, untuk referensi project ke depan.'
 
   async function save() {
     setSaving(true)
