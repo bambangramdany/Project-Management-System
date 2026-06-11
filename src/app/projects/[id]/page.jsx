@@ -440,7 +440,7 @@ export default function ProjectDetailPage() {
 // DONE (menang):    { type: 'WIN', clientFeedback: string[], internalFeedback: string[], crewVendorTalent: string[] }
 // FAILED (kalah):   { type: 'LOSE', loseReasons: string[], loseReasonOther: string, competitors: string }
 // other statuses:   { type: 'FREE', note: string }
-function parseEvaluationNote(raw, status) {
+function parseEvaluationNote(raw, project) {
   if (raw) {
     try {
       const parsed = JSON.parse(raw)
@@ -450,8 +450,8 @@ function parseEvaluationNote(raw, status) {
       return { type: 'FREE', note: raw }
     }
   }
-  if (status === 'DONE') return { type: 'WIN', clientFeedback: [''], internalFeedback: [''], crewVendorTalent: [''] }
-  if (status === 'FAILED') return { type: 'LOSE', loseReasons: [], loseReasonOther: '', competitors: '' }
+  if (project.status === 'DONE' || project.pitchResult === 'WIN') return { type: 'WIN', clientFeedback: [''], internalFeedback: [''], crewVendorTalent: [''] }
+  if (project.status === 'FAILED' || project.pitchResult === 'LOSE') return { type: 'LOSE', loseReasons: [], loseReasonOther: '', competitors: '' }
   return { type: 'FREE', note: '' }
 }
 
@@ -481,7 +481,7 @@ function MultiFieldList({ label, items, onChange, placeholder }) {
 
 function EvaluationNote({ project, setProject }) {
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(() => parseEvaluationNote(project.evaluationNote, project.status))
+  const [draft, setDraft] = useState(() => parseEvaluationNote(project.evaluationNote, project))
   const [saving, setSaving] = useState(false)
 
   const STATUS_HINT = {
@@ -493,7 +493,7 @@ function EvaluationNote({ project, setProject }) {
   const hint = STATUS_HINT[project.status] || 'Learning points untuk didokumentasikan tim, untuk referensi project ke depan.'
 
   function startEdit() {
-    setDraft(parseEvaluationNote(project.evaluationNote, project.status))
+    setDraft(parseEvaluationNote(project.evaluationNote, project))
     setEditing(true)
   }
 
@@ -516,7 +516,7 @@ function EvaluationNote({ project, setProject }) {
     }
   }
 
-  const view = parseEvaluationNote(project.evaluationNote, project.status)
+  const view = parseEvaluationNote(project.evaluationNote, project)
   const hasContent = project.evaluationNote && (
     (view.clientFeedback?.some(v => v.trim())) ||
     (view.internalFeedback?.some(v => v.trim())) ||
