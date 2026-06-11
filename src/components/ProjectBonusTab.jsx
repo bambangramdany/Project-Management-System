@@ -78,21 +78,24 @@ export default function ProjectBonusTab({ project, session }) {
             </button>
           </div>
           <div className="grid sm:grid-cols-3 gap-3">
-            {criteria.map(c => (
-              <div key={c.key}>
-                <p className="text-xs text-gray-500 mb-1">{c.label}</p>
-                <select
-                  value={drafts[m.id]?.[c.key]?.score || 0}
-                  onChange={e => setDrafts(d => ({ ...d, [m.id]: { ...d[m.id], [c.key]: { ...d[m.id]?.[c.key], score: Number(e.target.value) } } }))}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5"
-                >
-                  <option value={0}>- Pilih -</option>
-                  {Object.entries(KPI_SCORE_LABEL).map(([val, label]) => (
-                    <option key={val} value={val}>{val} - {label}</option>
-                  ))}
-                </select>
-              </div>
-            ))}
+            {criteria.map(c => {
+              const filled = (drafts[m.id]?.[c.key]?.score || 0) > 0
+              return (
+                <div key={c.key}>
+                  <p className="text-xs text-gray-500 mb-1">{c.label}</p>
+                  <select
+                    value={drafts[m.id]?.[c.key]?.score || 0}
+                    onChange={e => setDrafts(d => ({ ...d, [m.id]: { ...d[m.id], [c.key]: { ...d[m.id]?.[c.key], score: Number(e.target.value) } } }))}
+                    className={`w-full text-sm border rounded-lg px-2 py-1.5 ${filled ? 'border-green-200 bg-green-50' : 'border-amber-300 bg-amber-50'}`}
+                  >
+                    <option value={0}>- Pilih -</option>
+                    {Object.entries(KPI_SCORE_LABEL).map(([val, label]) => (
+                      <option key={val} value={val}>{val} - {label}</option>
+                    ))}
+                  </select>
+                </div>
+              )
+            })}
           </div>
         </div>
       ))}
