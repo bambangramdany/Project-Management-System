@@ -5,6 +5,22 @@ export function canViewAllProjects(role) {
   return MANAGER_ROLES.includes(role) || ['DIRECTOR', 'FINANCE'].includes(role)
 }
 
+// Team leads who maintain the project list (divisi/status/tanggal pelaksanaan)
+// for their division even if their role isn't PROJECT_MANAGER/DIRECTOR.
+export const PROJECT_LIST_EDITOR_EMAILS = [
+  'wulan@watermark.co.id',
+  'irham@watermark.co.id',
+  'bastya@watermark.co.id',
+  'jamal@watermark.co.id',
+]
+
+// Can the user use the quick-edit (divisi/status/tanggal) on the projects list?
+export function canQuickEditProjects(user) {
+  if (!user) return false
+  if (canViewAllProjects(user.role)) return true
+  return PROJECT_LIST_EDITOR_EMAILS.includes(user.email)
+}
+
 export function canEditProject(user, project) {
   if (!user) return false
   if (['OWNER', 'PROJECT_MANAGER'].includes(user.role)) return true

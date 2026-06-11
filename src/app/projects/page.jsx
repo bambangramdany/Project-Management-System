@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { StatusBadge, CategoryBadge, PitchResultBadge } from '@/components/StatusBadge'
 import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, DIVISION_LABEL } from '@/lib/constants'
-import { canViewAllProjects } from '@/lib/rbac'
+import { canViewAllProjects, canQuickEditProjects } from '@/lib/rbac'
 import { HEALTH_LABEL, HEALTH_DOT } from '@/lib/health'
 import Link from 'next/link'
 
@@ -70,6 +70,7 @@ function ProjectsContent() {
   useEffect(() => { if (status === 'authenticated') fetchProjects() }, [status, fetchProjects])
 
   const isManager = canViewAllProjects(session?.user.role)
+  const canQuickEdit = canQuickEditProjects(session?.user)
 
   const visibleProjects = projects.filter(p => {
     const isPh = p.division === 'PH'
@@ -258,7 +259,7 @@ function ProjectsContent() {
                 <div className="flex items-center gap-2 shrink-0">
                   <PitchResultBadge result={p.pitchResult} />
                   <StatusBadge status={p.status} />
-                  {isManager && (
+                  {canQuickEdit && (
                     <button
                       onClick={(e) => {
                         if (editId === p.id) {

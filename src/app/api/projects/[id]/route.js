@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { canEditProject, canDeleteProject } from '@/lib/rbac'
+import { canEditProject, canDeleteProject, canQuickEditProjects } from '@/lib/rbac'
 import { logAudit } from '@/lib/audit'
 import { NextResponse } from 'next/server'
 
@@ -42,8 +42,13 @@ export async function PATCH(req, { params }) {
   // Evaluation notes on closed projects can be added by any authenticated team
   // member (for shared post-mortem learning), even without general edit rights.
   const isEvaluationOnly = Object.keys(fields).every(k => k === 'evaluationNote')
+  // Quick-edit on the projects list (divisi/status/tanggal pelaksanaan) is
+  // allowed for designated team leads even without general edit rights.
+  const isQuickEditOnly = Object.keys(fields).every(k => ['division', 'status', 'startDate'].includes(k))
   if (!isEvaluationOnly && !canEditProject(session.user, existingProject)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!(isQuickEditOnly && canQuickEditProjects(session.user))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
   }
 
   const data = {}
