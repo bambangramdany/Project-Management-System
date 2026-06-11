@@ -540,14 +540,17 @@ export default function FinancePage() {
                 </div>
               )}
               <div className="flex items-center justify-between gap-3 pb-2 border-b border-gray-100">
-                <label className="text-sm font-semibold text-gray-700 flex-1">No. Quotation</label>
+                <div className="flex-1">
+                  <label className="text-sm font-semibold text-gray-700">No. Quotation</label>
+                  <p className="text-xs text-gray-400 mt-0.5">Format: WTM/[DIVISI]/QUOT/[TAHUN]/[NO. URUT] — sesuai penomoran quotation tim Event, agar mudah disandingkan oleh Finance.</p>
+                </div>
                 <input
                   type="text"
-                  className="input w-40"
+                  className="input w-56"
                   value={quotationNumber}
                   onChange={e => setQuotationNumber(e.target.value)}
                   disabled={!budgetMeta.canEditProjectValue || forecastLocked}
-                  placeholder="cth. QTN-2026-001"
+                  placeholder="cth. WTM/EVENT/QUOT/2026/059"
                 />
               </div>
               <div className="flex items-center justify-between gap-3 pb-2 border-b border-gray-100">
