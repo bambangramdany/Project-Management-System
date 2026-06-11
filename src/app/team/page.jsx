@@ -74,38 +74,20 @@ export default function TeamPage() {
 
         {!loading && (
           <>
-            {/* Top: Direktur Utama */}
-            {owners.length > 0 && (
-              <div>
-                <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3 text-center">Direktur Utama</h2>
-                <div className="flex flex-wrap justify-center gap-3">
-                  {owners.map(u => <PersonCard key={u.id} u={u} highlight />)}
-                </div>
+            {/* Manajemen: owners + division directors together */}
+            <div>
+              <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3 text-center">Manajemen</h2>
+              <div className="flex flex-wrap justify-center gap-3">
+                {owners.map(u => <PersonCard key={u.id} u={u} />)}
+                {divisionMembers.filter(d => d.director).map(d => <PersonCard key={d.director.id} u={d.director} />)}
               </div>
-            )}
+            </div>
 
-            {/* Connector line */}
-            {owners.length > 0 && divisionMembers.length > 0 && (
-              <div className="flex justify-center">
-                <div className="w-px h-6 bg-gray-300" />
-              </div>
-            )}
-
-            {/* Director row + division columns */}
+            {/* Division columns (staff below their director) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {divisionMembers.map(d => (
                 <div key={d.key} className="space-y-3">
                   <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide text-center">{d.title}</h2>
-                  {d.director && (
-                    <div className="flex justify-center">
-                      <PersonCard u={d.director} highlight />
-                    </div>
-                  )}
-                  {d.director && d.rest.length > 0 && (
-                    <div className="flex justify-center">
-                      <div className="w-px h-4 bg-gray-300" />
-                    </div>
-                  )}
                   <div className="space-y-2">
                     {d.rest.map(u => <PersonCard key={u.id} u={u} />)}
                   </div>
@@ -128,15 +110,16 @@ export default function TeamPage() {
   )
 }
 
-function PersonCard({ u, highlight }) {
+function PersonCard({ u }) {
+  const label = u.role === 'OWNER' ? 'Management' : (u.jobTitle || ROLE_LABEL[u.role])
   return (
-    <div className={`card p-4 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 w-full ${highlight ? 'border-2 border-brand-200' : ''}`}>
+    <div className="card p-4 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 w-full">
       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white font-bold shrink-0">
         {u.name[0]}
       </div>
       <div className="min-w-0">
         <p className="text-sm font-semibold text-gray-900">{u.name}</p>
-        <p className="text-xs text-gray-500">{u.jobTitle || ROLE_LABEL[u.role]}</p>
+        <p className="text-xs text-gray-500">{label}</p>
         {u.email && <p className="text-xs text-gray-400 truncate">{u.email}</p>}
       </div>
     </div>
