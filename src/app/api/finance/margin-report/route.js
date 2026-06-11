@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { WON_STATUSES } from '@/lib/constants'
+import { isFinanceDirector } from '@/lib/rbac'
 import { NextResponse } from 'next/server'
 
 const ALLOWED_ROLES = ['OWNER', 'FINANCE', 'DIRECTOR']
@@ -16,7 +17,7 @@ export async function GET(req) {
   }
 
   const where = { status: { in: WON_STATUSES }, projectValue: { not: null } }
-  if (session.user.role === 'DIRECTOR') where.division = session.user.divisi
+  if (session.user.role === 'DIRECTOR' && !isFinanceDirector(session.user)) where.division = session.user.divisi
 
   const projects = await prisma.project.findMany({
     where,

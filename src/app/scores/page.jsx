@@ -33,7 +33,7 @@ export default function ScoresPage() {
     fetch('/api/team').then(r => r.json()).then(members => {
       setDirectors((Array.isArray(members) ? members : []).filter(m => ['DIRECTOR', 'OWNER'].includes(m.role) && m.id !== session.user.id))
     })
-    if (session.user.role === 'OWNER' || (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA')) {
+    if (session.user.role === 'OWNER') {
       fetch('/api/director-notes').then(r => r.json()).then(setAllNotes)
     }
     fetch('/api/projects').then(r => r.json()).then(data => {
@@ -74,7 +74,7 @@ export default function ScoresPage() {
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Nilai Saya</h1>
+          <h1 className="text-xl font-bold text-gray-900">Nilai Tim</h1>
           <p className="text-sm text-gray-500">Ringkasan penilaian per project sebagai dasar skema bonus</p>
         </div>
 
