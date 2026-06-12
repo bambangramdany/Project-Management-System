@@ -50,30 +50,12 @@ export default function Navbar() {
         </div>
       )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative flex items-center h-14 gap-2">
+        <div className="flex items-center h-14 gap-2">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2 font-bold text-white">
             <div className="w-7 h-7 bg-brand rounded-lg flex items-center justify-center text-white text-xs font-black">W</div>
             <span className="hidden sm:block text-sm tracking-wide">Watermark PM</span>
           </Link>
-
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center justify-center gap-1 absolute left-1/2 -translate-x-1/2">
-            {visibleItems.map(item => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={clsx(
-                  'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                  pathname.startsWith(item.href)
-                    ? 'bg-brand text-white'
-                    : 'text-ink-200 hover:text-white hover:bg-ink-700'
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
 
           {/* User + mobile menu */}
           <div className="flex items-center justify-end gap-3 ml-auto">
@@ -95,6 +77,24 @@ export default function Navbar() {
               </svg>
             </button>
           </div>
+        </div>
+
+        {/* Desktop nav — wraps to multiple centered rows when needed */}
+        <div className="hidden md:flex flex-wrap items-center justify-center gap-1 pb-2">
+          {visibleItems.map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={clsx(
+                'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+                pathname.startsWith(item.href)
+                  ? 'bg-brand text-white'
+                  : 'text-ink-200 hover:text-white hover:bg-ink-700'
+              )}
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
       </div>
 
