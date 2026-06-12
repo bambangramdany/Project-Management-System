@@ -20,6 +20,9 @@ export default function VendorsPage() {
   const [q, setQ] = useState('')
   const [vendorType, setVendorType] = useState('')
   const [city, setCity] = useState('')
+  const [priceMin, setPriceMin] = useState('')
+  const [priceMax, setPriceMax] = useState('')
+  const [sortBy, setSortBy] = useState('createdAt_desc')
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -127,6 +130,35 @@ export default function VendorsPage() {
     return f(v.priceMin ?? v.priceMax)
   }
 
+  const effectivePrice = (v) => v.priceMin ?? v.priceMax ?? null
+
+  const displayed = vendors
+    .filter(v => {
+      const pMin = priceMin !== '' ? parseFloat(priceMin) : null
+      const pMax = priceMax !== '' ? parseFloat(priceMax) : null
+      const ep = effectivePrice(v)
+      if (pMin != null && (ep == null || (v.priceMax ?? v.priceMin ?? 0) < pMin)) return false
+      if (pMax != null && (ep == null || (v.priceMin ?? v.priceMax ?? Infinity) > pMax)) return false
+      return true
+    })
+    .slice()
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'name_asc': return a.name.localeCompare(b.name)
+        case 'name_desc': return b.name.localeCompare(a.name)
+        case 'price_asc': {
+          const pa = effectivePrice(a) ?? Infinity, pb = effectivePrice(b) ?? Infinity
+          return pa - pb
+        }
+        case 'price_desc': {
+          const pa = effectivePrice(a) ?? -Infinity, pb = effectivePrice(b) ?? -Infinity
+          return pb - pa
+        }
+        case 'city_asc': return (a.city || '').localeCompare(b.city || '')
+        default: return new Date(b.createdAt) - new Date(a.createdAt)
+      }
+    })
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -151,6 +183,24 @@ export default function VendorsPage() {
             placeholder="Kota"
             className="border rounded-lg px-3 py-2 text-sm w-32"
           />
+          <input
+            type="number" value={priceMin} onChange={e => setPriceMin(e.target.value)}
+            placeholder="Harga Min"
+            className="border rounded-lg px-3 py-2 text-sm w-32"
+          />
+          <input
+            type="number" value={priceMax} onChange={e => setPriceMax(e.target.value)}
+            placeholder="Harga Max"
+            className="border rounded-lg px-3 py-2 text-sm w-32"
+          />
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="border rounded-lg px-3 py-2 text-sm">
+            <option value="createdAt_desc">Terbaru</option>
+            <option value="name_asc">Nama A-Z</option>
+            <option value="name_desc">Nama Z-A</option>
+            <option value="price_asc">Harga Terendah</option>
+            <option value="price_desc">Harga Tertinggi</option>
+            <option value="city_asc">Kota A-Z</option>
+          </select>
         </div>
 
         {loading && <div className="text-center py-12 text-gray-400 text-sm">Memuat...</div>}
@@ -171,7 +221,7 @@ export default function VendorsPage() {
                 </tr>
               </thead>
               <tbody>
-                {vendors.map(v => (
+                {displayed.map(v => (
                   <tr key={v.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => setDetail(v)}>
                     <td className="px-3 py-2 font-medium text-gray-900">{v.name}</td>
                     <td className="px-3 py-2 text-gray-600">{v.vendorType}</td>
@@ -188,7 +238,7 @@ export default function VendorsPage() {
                     </td>
                   </tr>
                 ))}
-                {vendors.length === 0 && (
+                {displayed.length === 0 && (
                   <tr><td colSpan={8} className="px-3 py-8 text-center text-gray-400">Tidak ada vendor ditemukan</td></tr>
                 )}
               </tbody>
