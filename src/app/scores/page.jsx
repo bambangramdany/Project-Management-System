@@ -228,7 +228,43 @@ export default function ScoresPage() {
               "Per Project (Event)" adalah akumulasi penilaian dari setiap project/event yang sudah dinilai (lihat tab "Penilaian Tim" di tiap project).
               "Kinerja General (Bulanan)" adalah akumulasi penilaian KPI bulanan (lihat menu KPI). "Gabungan" adalah rata-rata keduanya digabung.
             </p>
-            <div className="overflow-x-auto">
+            {/* Mobile: card layout */}
+            <div className="sm:hidden space-y-3">
+              {data.team.map(({ user, summary }) => (
+                <div key={user.id} className="border border-gray-100 rounded-lg p-3">
+                  <p className="font-medium text-ink-800">{user.name}</p>
+                  <p className="text-xs text-gray-400 mb-2">{user.jobTitle || user.role}</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {(data.criteria || PROJECT_SCORE_CRITERIA).map(c => (
+                      <div key={c.key} className="flex justify-between gap-2">
+                        <span className="text-gray-400">{c.label}</span>
+                        <span className="text-gray-700 font-medium">{fmt(summary.byCriteria[c.key])}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between gap-2">
+                      <span className="text-gray-400">Per Project (Event)</span>
+                      <span className="text-gray-700 font-medium">{fmt(summary.overall)}</span>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <span className="text-gray-400">Kinerja General (Bulanan)</span>
+                      <span className="text-gray-700 font-medium">{fmt(summary.kpiOverall)}</span>
+                    </div>
+                    <div className="col-span-2 flex justify-between gap-2 pt-1 border-t border-gray-100">
+                      <span className="text-gray-500 font-medium">Gabungan</span>
+                      <span className="text-brand-700 font-semibold">{fmt(summary.combinedOverall)}</span>
+                    </div>
+                    {summary.deduction > 0 && (
+                      <div className="col-span-2 text-red-600 font-semibold" title={(summary.delayedNotes || []).map(n => `${n.status}: ${n.note || '-'}`).join('\n')}>
+                        Potongan: -{summary.deduction} ({summary.delayedCount} catatan, {summary.lateUpdateCount} terlambat)
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop/tablet: table layout */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-400 text-xs">
