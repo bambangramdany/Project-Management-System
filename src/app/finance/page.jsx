@@ -128,10 +128,13 @@ export default function FinancePage() {
       fetchPayments()
     }
     if (status === 'authenticated' && ['OWNER', 'FINANCE', 'DIRECTOR'].includes(session.user.role)) {
-      fetch('/api/finance/cashflow').then(r => r.json()).then(data => setCashflow(data))
-      fetch('/api/finance/margin-report').then(r => r.json()).then(data => setMarginReport(data))
-      fetch('/api/finance/profitability').then(r => r.json()).then(data => setProfitability(data))
-      fetchReceivables()
+      fetch('/api/finance/summary').then(r => r.ok ? r.json() : null).then(data => {
+        if (!data) return
+        setCashflow(data.cashflow)
+        setMarginReport(data.marginReport)
+        setProfitability(data.profitability)
+        setReceivables(data.receivables)
+      })
     }
   }, [status, session, fetchPayments])
 

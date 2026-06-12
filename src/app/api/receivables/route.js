@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isFinanceDirector } from '@/lib/rbac'
 import { logAudit } from '@/lib/audit'
+import { getReceivables } from '@/lib/financeData'
 import { NextResponse } from 'next/server'
 
 function canManageReceivables(user) {
@@ -20,18 +21,8 @@ export async function GET(req) {
 
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status')
-  const where = status && ['UNPAID', 'PAID'].includes(status) ? { status } : {}
 
-  const receivables = await prisma.receivable.findMany({
-    where,
-    include: { project: { select: { id: true, code: true, name: true } } },
-    orderBy: [{ status: 'asc' }, { dueDate: 'asc' }],
-  })
-
-  const totalUnpaid = receivables.filter(r => r.status === 'UNPAID').reduce((s, r) => s + r.amount, 0)
-  const totalPaid = receivables.filter(r => r.status === 'PAID').reduce((s, r) => s + r.amount, 0)
-
-  return NextResponse.json({ receivables, totalUnpaid, totalPaid })
+  return NextResponse.json(await getReceivables(status))
 }
 
 export async function POST(req) {
