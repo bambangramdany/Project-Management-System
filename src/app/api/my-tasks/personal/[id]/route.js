@@ -16,6 +16,12 @@ export async function PATCH(req, { params }) {
   if ('description' in body) data.description = body.description || null
   if ('dueDate' in body) data.dueDate = body.dueDate ? new Date(body.dueDate) : null
   if ('status' in body) data.status = body.status
+  if ('projectId' in body) {
+    data.projectId = body.projectId || null
+    if (body.projectId) { data.clientName = null; data.projectName = null }
+  }
+  if ('clientName' in body) data.clientName = body.clientName || null
+  if ('projectName' in body) data.projectName = body.projectName || null
 
   const updated = await prisma.personalTask.update({ where: { id: params.id }, data })
   return NextResponse.json(updated)

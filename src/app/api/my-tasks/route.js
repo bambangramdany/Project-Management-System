@@ -24,7 +24,7 @@ export async function GET() {
   const tasks = await prisma.task.findMany({
     where: { assigneeId: userId, status: { not: 'DONE' } },
     include: {
-      project: { select: { id: true, code: true, name: true, status: true } },
+      project: { select: { id: true, code: true, name: true, status: true, client: { select: { name: true } } } },
       progressUpdates: { where: { userId }, orderBy: { date: 'desc' }, take: 1 },
     },
     orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
@@ -33,9 +33,24 @@ export async function GET() {
   const personalTasks = await prisma.personalTask.findMany({
     where: { userId, status: { not: 'DONE' } },
     include: {
+      project: { select: { id: true, code: true, name: true, status: true, client: { select: { name: true } } } },
       progressUpdates: { where: { userId }, orderBy: { date: 'desc' }, take: 1 },
     },
     orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
+  })
+
+  // Projects the user is involved in (PIC or member), or assigned a task in —
+  // used to populate the project dropdown for manual to-do items.
+  const memberProjects = await prisma.project.findMany({
+    where: {
+      OR: [
+        { picId: userId },
+        { members: { some: { userId } } },
+        { tasks: { some: { assigneeId: userId } } },
+      ],
+    },
+    select: { id: true, code: true, name: true, client: { select: { name: true } } },
+    orderBy: { updatedAt: 'desc' },
   })
 
   function shape(item, kind) {
@@ -49,6 +64,8 @@ export async function GET() {
       dueDate: item.dueDate,
       status: item.status,
       project: item.project || null,
+      clientName: item.clientName || item.project?.client?.name || null,
+      projectName: item.projectName || item.project?.name || null,
       latestUpdate: latest ? { status: latest.status, note: latest.note, date: latest.date } : null,
       hasTodayUpdate: !!hasToday,
     }
@@ -63,6 +80,7 @@ export async function GET() {
     items,
     deadlinePassed: isPastDeadlineWIB(),
     today: today.toISOString(),
+    projectOptions: memberProjects.map(p => ({ id: p.id, code: p.code, name: p.name, clientName: p.client?.name || null })),
   })
 }
 
@@ -82,7 +100,11 @@ export async function POST(req) {
       title: body.title.trim(),
       description: body.description || null,
       dueDate: body.dueDate ? new Date(body.dueDate) : null,
+      projectId: body.projectId || null,
+      clientName: body.projectId ? null : (body.clientName || null),
+      projectName: body.projectId ? null : (body.projectName || null),
     },
+    include: { project: { select: { id: true, code: true, name: true, client: { select: { name: true } } } } },
   })
 
   return NextResponse.json(item, { status: 201 })

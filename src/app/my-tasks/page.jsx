@@ -41,11 +41,15 @@ function TaskRow({ item, onSave }) {
       <div className="flex items-start justify-between gap-3 mb-2">
         <div>
           <p className="font-medium text-ink-800">{item.title}</p>
-          {item.project && (
+          {item.project ? (
             <Link href={`/projects/${item.project.id}`} className="text-xs text-brand-600 hover:underline">
-              {item.project.code} · {item.project.name}
+              {item.project.code} · {item.project.name}{item.clientName ? ` (${item.clientName})` : ''}
             </Link>
-          )}
+          ) : (item.clientName || item.projectName) ? (
+            <p className="text-xs text-gray-500">
+              {[item.clientName, item.projectName].filter(Boolean).join(' · ')}
+            </p>
+          ) : null}
           {item.description && <p className="text-xs text-gray-400 mt-0.5">{item.description}</p>}
           {item.dueDate && (
             <p className="text-xs text-gray-400 mt-0.5">Deadline: {new Date(item.dueDate).toLocaleDateString('id-ID')}</p>
@@ -117,6 +121,9 @@ export default function MyTasksPage() {
   const [loading, setLoading] = useState(true)
   const [newTitle, setNewTitle] = useState('')
   const [newDue, setNewDue] = useState('')
+  const [newProjectId, setNewProjectId] = useState('')
+  const [newClientName, setNewClientName] = useState('')
+  const [newProjectName, setNewProjectName] = useState('')
   const [adding, setAdding] = useState(false)
 
   useEffect(() => {
@@ -154,11 +161,20 @@ export default function MyTasksPage() {
     const res = await fetch('/api/my-tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: newTitle, dueDate: newDue || null }),
+      body: JSON.stringify({
+        title: newTitle,
+        dueDate: newDue || null,
+        projectId: newProjectId || null,
+        clientName: newProjectId ? null : (newClientName || null),
+        projectName: newProjectId ? null : (newProjectName || null),
+      }),
     })
     if (res.ok) {
       setNewTitle('')
       setNewDue('')
+      setNewProjectId('')
+      setNewClientName('')
+      setNewProjectName('')
       load()
     }
     setAdding(false)
@@ -224,9 +240,25 @@ export default function MyTasksPage() {
 
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-ink-800">Catatan / To-Do Manual ({personalTasks.length})</h2>
-          <form onSubmit={addPersonalTask} className="card p-4 flex flex-col sm:flex-row gap-2">
-            <input className="input flex-1" placeholder="Tambah item baru..." value={newTitle} onChange={e => setNewTitle(e.target.value)} />
-            <input type="date" className="input sm:w-44" value={newDue} onChange={e => setNewDue(e.target.value)} />
+          <form onSubmit={addPersonalTask} className="card p-4 space-y-2">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input className="input flex-1" placeholder="Tambah item baru..." value={newTitle} onChange={e => setNewTitle(e.target.value)} />
+              <input type="date" className="input sm:w-44" value={newDue} onChange={e => setNewDue(e.target.value)} />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <select className="select flex-1" value={newProjectId} onChange={e => { setNewProjectId(e.target.value); if (e.target.value) { setNewClientName(''); setNewProjectName('') } }}>
+                <option value="">Pilih project yang sudah ada (opsional)...</option>
+                {(data.projectOptions || []).map(p => (
+                  <option key={p.id} value={p.id}>{p.code} · {p.name}{p.clientName ? ` (${p.clientName})` : ''}</option>
+                ))}
+              </select>
+            </div>
+            {!newProjectId && (
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input className="input flex-1" placeholder="Nama klien (jika project baru / di luar sistem)" value={newClientName} onChange={e => setNewClientName(e.target.value)} />
+                <input className="input flex-1" placeholder="Nama project (jika project baru / di luar sistem)" value={newProjectName} onChange={e => setNewProjectName(e.target.value)} />
+              </div>
+            )}
             <button className="btn-primary px-4" disabled={adding}>Tambah</button>
           </form>
           {personalTasks.map(item => (
