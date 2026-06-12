@@ -91,6 +91,7 @@ export default function FinancePage() {
   const [budgetLoading, setBudgetLoading] = useState(false)
   const [savingBudget, setSavingBudget] = useState(false)
   const [projectValue, setProjectValue] = useState('')
+  const [includesPpn, setIncludesPpn] = useState(false)
   const [quotationNumber, setQuotationNumber] = useState('')
   const [budgetSaved, setBudgetSaved] = useState(false)
   const [budgetEditing, setBudgetEditing] = useState(false)
@@ -241,6 +242,7 @@ export default function FinancePage() {
       const items = data.budgetItems || []
       setBudgetItems(items.map(b => ({ ...b, neededDate: b.neededDate ? b.neededDate.slice(0, 10) : '' })))
       setProjectValue(data.projectValue ?? '')
+      setIncludesPpn(!!data.includesPpn)
       setQuotationNumber(data.quotationNumber ?? '')
       setBudgetSaved(items.length > 0)
       setBudgetMeta({
@@ -335,6 +337,7 @@ export default function FinancePage() {
       body: JSON.stringify({
         items: budgetItems,
         projectValue: budgetMeta.canEditProjectValue ? (projectValue === '' ? null : projectValue) : undefined,
+        includesPpn: budgetMeta.canEditProjectValue ? includesPpn : undefined,
         quotationNumber: budgetMeta.canEditProjectValue ? quotationNumber : undefined,
       }),
     })
@@ -549,6 +552,25 @@ export default function FinancePage() {
                   disabled={!budgetMeta.canEditProjectValue || forecastLocked}
                   placeholder="0"
                 />
+              </div>
+              <div className="flex items-center justify-between gap-3 pb-2 border-b border-gray-100">
+                <label className="text-sm text-gray-600 flex items-center gap-2 flex-1">
+                  <input
+                    type="checkbox"
+                    checked={includesPpn}
+                    onChange={e => setIncludesPpn(e.target.checked)}
+                    disabled={!budgetMeta.canEditProjectValue || forecastLocked}
+                  />
+                  Nilai di atas belum termasuk PPN 11%
+                </label>
+                {includesPpn && (
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400">PPN 11%: {formatRupiah((parseFloat(projectValue) || 0) * 0.11)}</p>
+                    <p className="text-sm font-semibold text-gray-700">
+                      Total termasuk PPN: {formatRupiah((parseFloat(projectValue) || 0) * 1.11)}
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-gray-500 px-1">
                 <span className="col-span-2">Komponen (sesuai quotation)</span>

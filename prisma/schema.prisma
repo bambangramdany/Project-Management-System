@@ -401,6 +401,7 @@ model Project {
   vendorWinner    String?
   evaluationNote  String?
   projectValue    Float?
+  includesPpn     Boolean @default(false)
   quotationNumber String?
   invoiceNumber   String?
   budgetLockedAt  DateTime?
