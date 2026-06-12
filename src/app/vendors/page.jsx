@@ -1,0 +1,332 @@
+'use client'
+import { useEffect, useState, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import Navbar from '@/components/Navbar'
+import { VENDOR_TYPES, VENDOR_STATUSES } from '@/lib/constants'
+
+const EMPTY_FORM = {
+  name: '', vendorType: '', province: '', city: '', address: '', area: '',
+  capacity: '', ballroomCapacity: '', meetingCapacity: '', website: '', instagram: '',
+  output: '', productService: '', status: 'Active', picContact: '', phone: '',
+  priceMin: '', priceMax: '', priceNote: '', notes: '',
+}
+
+export default function VendorsPage() {
+  const { status } = useSession()
+  const router = useRouter()
+  const [vendors, setVendors] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [q, setQ] = useState('')
+  const [vendorType, setVendorType] = useState('')
+  const [city, setCity] = useState('')
+  const [showForm, setShowForm] = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [saving, setSaving] = useState(false)
+  const [detail, setDetail] = useState(null)
+  const [uploading, setUploading] = useState(false)
+
+  useEffect(() => {
+    if (status === 'unauthenticated') router.push('/login')
+  }, [status, router])
+
+  const load = useCallback(() => {
+    const params = new URLSearchParams()
+    if (q) params.set('q', q)
+    if (vendorType) params.set('vendorType', vendorType)
+    if (city) params.set('city', city)
+    setLoading(true)
+    fetch(`/api/vendors?${params.toString()}`).then(r => r.json()).then(data => {
+      setVendors(Array.isArray(data) ? data : [])
+      setLoading(false)
+    })
+  }, [q, vendorType, city])
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      const t = setTimeout(load, 300)
+      return () => clearTimeout(t)
+    }
+  }, [status, load])
+
+  const openAdd = () => {
+    setEditing(null)
+    setForm(EMPTY_FORM)
+    setShowForm(true)
+  }
+
+  const openEdit = (v) => {
+    setEditing(v)
+    setForm({
+      name: v.name || '', vendorType: v.vendorType || '', province: v.province || '',
+      city: v.city || '', address: v.address || '', area: v.area || '',
+      capacity: v.capacity || '', ballroomCapacity: v.ballroomCapacity || '',
+      meetingCapacity: v.meetingCapacity || '', website: v.website || '', instagram: v.instagram || '',
+      output: v.output || '', productService: v.productService || '', status: v.status || 'Active',
+      picContact: v.picContact || '', phone: v.phone || '',
+      priceMin: v.priceMin ?? '', priceMax: v.priceMax ?? '', priceNote: v.priceNote || '', notes: v.notes || '',
+    })
+    setShowForm(true)
+  }
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    const url = editing ? `/api/vendors/${editing.id}` : '/api/vendors'
+    const method = editing ? 'PATCH' : 'POST'
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
+    setSaving(false)
+    if (res.ok) {
+      setShowForm(false)
+      load()
+    } else {
+      const err = await res.json().catch(() => ({}))
+      alert(err.error || 'Gagal menyimpan')
+    }
+  }
+
+  const remove = async (v) => {
+    if (!confirm(`Hapus vendor "${v.name}"?`)) return
+    const res = await fetch(`/api/vendors/${v.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      if (detail?.id === v.id) setDetail(null)
+      load()
+    }
+  }
+
+  const uploadPhoto = async (vendorId, file) => {
+    setUploading(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch(`/api/vendors/${vendorId}/photos`, { method: 'POST', body: fd })
+    setUploading(false)
+    if (res.ok) {
+      const updated = await res.json()
+      setDetail(updated)
+      load()
+    } else {
+      const err = await res.json().catch(() => ({}))
+      alert(err.error || 'Gagal upload')
+    }
+  }
+
+  const removePhoto = async (vendorId, url) => {
+    const res = await fetch(`/api/vendors/${vendorId}/photos`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
+    if (res.ok) {
+      const updated = await res.json()
+      setDetail(updated)
+      load()
+    }
+  }
+
+  const fmtPrice = (v) => {
+    if (v.priceMin == null && v.priceMax == null) return '-'
+    const f = (n) => n != null ? `Rp${Number(n).toLocaleString('id-ID')}` : '?'
+    if (v.priceMin != null && v.priceMax != null && v.priceMin !== v.priceMax) return `${f(v.priceMin)} - ${f(v.priceMax)}`
+    return f(v.priceMin ?? v.priceMax)
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h1 className="text-xl font-bold text-gray-900">Database Vendor</h1>
+          <button onClick={openAdd} className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700">+ Tambah Vendor</button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <input
+            value={q} onChange={e => setQ(e.target.value)}
+            placeholder="Cari nama, kota, area, produk, PIC, catatan..."
+            className="flex-1 min-w-[220px] border rounded-lg px-3 py-2 text-sm"
+          />
+          <select value={vendorType} onChange={e => setVendorType(e.target.value)} className="border rounded-lg px-3 py-2 text-sm">
+            <option value="">Semua Jenis</option>
+            {VENDOR_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <input
+            value={city} onChange={e => setCity(e.target.value)}
+            placeholder="Kota"
+            className="border rounded-lg px-3 py-2 text-sm w-32"
+          />
+        </div>
+
+        {loading && <div className="text-center py-12 text-gray-400 text-sm">Memuat...</div>}
+
+        {!loading && (
+          <div className="bg-white rounded-xl shadow overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500 border-b">
+                  <th className="px-3 py-2">Nama Vendor</th>
+                  <th className="px-3 py-2">Jenis</th>
+                  <th className="px-3 py-2">Kota / Area</th>
+                  <th className="px-3 py-2">PIC / Kontak</th>
+                  <th className="px-3 py-2">Harga</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2">Diisi oleh</th>
+                  <th className="px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {vendors.map(v => (
+                  <tr key={v.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => setDetail(v)}>
+                    <td className="px-3 py-2 font-medium text-gray-900">{v.name}</td>
+                    <td className="px-3 py-2 text-gray-600">{v.vendorType}</td>
+                    <td className="px-3 py-2 text-gray-600">{[v.city, v.area].filter(Boolean).join(' / ') || '-'}</td>
+                    <td className="px-3 py-2 text-gray-600">{[v.picContact, v.phone].filter(Boolean).join(' - ') || '-'}</td>
+                    <td className="px-3 py-2 text-gray-600">{fmtPrice(v)}</td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-0.5 rounded text-xs ${v.status === 'Active' ? 'bg-green-100 text-green-700' : v.status === 'Blacklist' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>{v.status}</span>
+                    </td>
+                    <td className="px-3 py-2 text-gray-500">{v.enteredBy?.name || v.enteredByName || '-'}</td>
+                    <td className="px-3 py-2 text-right">
+                      <button onClick={(e) => { e.stopPropagation(); openEdit(v) }} className="text-blue-600 hover:underline text-xs mr-2">Edit</button>
+                      <button onClick={(e) => { e.stopPropagation(); remove(v) }} className="text-red-500 hover:underline text-xs">Hapus</button>
+                    </td>
+                  </tr>
+                ))}
+                {vendors.length === 0 && (
+                  <tr><td colSpan={8} className="px-3 py-8 text-center text-gray-400">Tidak ada vendor ditemukan</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </main>
+
+      {/* Add/Edit form modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4">
+            <h2 className="text-lg font-bold">{editing ? 'Edit Vendor' : 'Tambah Vendor'}</h2>
+            <form onSubmit={submit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Nama Vendor *" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} required />
+                <SelectField label="Jenis Vendor *" value={form.vendorType} onChange={v => setForm(f => ({ ...f, vendorType: v }))} options={VENDOR_TYPES} required />
+                <Field label="Provinsi" value={form.province} onChange={v => setForm(f => ({ ...f, province: v }))} />
+                <Field label="Kota" value={form.city} onChange={v => setForm(f => ({ ...f, city: v }))} />
+                <Field label="Area" value={form.area} onChange={v => setForm(f => ({ ...f, area: v }))} />
+                <Field label="Alamat" value={form.address} onChange={v => setForm(f => ({ ...f, address: v }))} />
+                <Field label="Kapasitas" value={form.capacity} onChange={v => setForm(f => ({ ...f, capacity: v }))} />
+                <Field label="Kapasitas Ballroom" value={form.ballroomCapacity} onChange={v => setForm(f => ({ ...f, ballroomCapacity: v }))} />
+                <Field label="Kapasitas Meeting" value={form.meetingCapacity} onChange={v => setForm(f => ({ ...f, meetingCapacity: v }))} />
+                <Field label="Website" value={form.website} onChange={v => setForm(f => ({ ...f, website: v }))} />
+                <Field label="Instagram" value={form.instagram} onChange={v => setForm(f => ({ ...f, instagram: v }))} />
+                <Field label="Output" value={form.output} onChange={v => setForm(f => ({ ...f, output: v }))} />
+                <Field label="Produk / Layanan" value={form.productService} onChange={v => setForm(f => ({ ...f, productService: v }))} />
+                <SelectField label="Status" value={form.status} onChange={v => setForm(f => ({ ...f, status: v }))} options={VENDOR_STATUSES} />
+                <Field label="PIC Kontak" value={form.picContact} onChange={v => setForm(f => ({ ...f, picContact: v }))} />
+                <Field label="Telepon" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} />
+                <Field label="Harga Min" type="number" value={form.priceMin} onChange={v => setForm(f => ({ ...f, priceMin: v }))} />
+                <Field label="Harga Max" type="number" value={form.priceMax} onChange={v => setForm(f => ({ ...f, priceMax: v }))} />
+              </div>
+              <Field label="Catatan Harga" value={form.priceNote} onChange={v => setForm(f => ({ ...f, priceNote: v }))} />
+              <div>
+                <label className="text-xs text-gray-500">Catatan</label>
+                <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm" rows={3} />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm rounded-lg border">Batal</button>
+                <button type="submit" disabled={saving} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white disabled:opacity-50">{saving ? 'Menyimpan...' : 'Simpan'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Detail modal */}
+      {detail && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" onClick={() => setDetail(null)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold">{detail.name}</h2>
+              <button onClick={() => setDetail(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div className="text-sm text-gray-700 grid grid-cols-2 gap-2">
+              <Info label="Jenis" value={detail.vendorType} />
+              <Info label="Status" value={detail.status} />
+              <Info label="Provinsi / Kota" value={[detail.province, detail.city].filter(Boolean).join(' / ')} />
+              <Info label="Area" value={detail.area} />
+              <Info label="Alamat" value={detail.address} />
+              <Info label="Kapasitas" value={detail.capacity} />
+              <Info label="Kapasitas Ballroom" value={detail.ballroomCapacity} />
+              <Info label="Kapasitas Meeting" value={detail.meetingCapacity} />
+              <Info label="Website" value={detail.website} />
+              <Info label="Instagram" value={detail.instagram} />
+              <Info label="Output" value={detail.output} />
+              <Info label="Produk / Layanan" value={detail.productService} />
+              <Info label="PIC Kontak" value={detail.picContact} />
+              <Info label="Telepon" value={detail.phone} />
+              <Info label="Harga" value={fmtPrice(detail)} />
+              <Info label="Catatan Harga" value={detail.priceNote} />
+              <Info label="Diisi oleh" value={detail.enteredBy?.name || detail.enteredByName} />
+            </div>
+            {detail.notes && (
+              <div>
+                <div className="text-xs text-gray-500">Catatan</div>
+                <div className="text-sm whitespace-pre-wrap">{detail.notes}</div>
+              </div>
+            )}
+
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Foto / Dokumen</div>
+              <div className="flex flex-wrap gap-2">
+                {(Array.isArray(detail.photos) ? detail.photos : []).map((p, i) => (
+                  <div key={i} className="relative group">
+                    <a href={p.url} target="_blank" rel="noreferrer">
+                      <img src={p.url} alt={p.name} className="w-20 h-20 object-cover rounded border" />
+                    </a>
+                    <button onClick={() => removePhoto(detail.id, p.url)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs">✕</button>
+                  </div>
+                ))}
+                <label className="w-20 h-20 border-2 border-dashed rounded flex items-center justify-center text-xs text-gray-400 cursor-pointer hover:bg-gray-50">
+                  {uploading ? '...' : '+ Foto'}
+                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={e => e.target.files[0] && uploadPhoto(detail.id, e.target.files[0])} />
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => { setDetail(null); openEdit(detail) }} className="px-4 py-2 text-sm rounded-lg border">Edit</button>
+              <button onClick={() => remove(detail)} className="px-4 py-2 text-sm rounded-lg border border-red-200 text-red-600">Hapus</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Field({ label, value, onChange, type = 'text', required }) {
+  return (
+    <div>
+      <label className="text-xs text-gray-500">{label}</label>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} required={required} className="w-full border rounded-lg px-3 py-2 text-sm" />
+    </div>
+  )
+}
+
+function SelectField({ label, value, onChange, options, required }) {
+  return (
+    <div>
+      <label className="text-xs text-gray-500">{label}</label>
+      <select value={value} onChange={e => onChange(e.target.value)} required={required} className="w-full border rounded-lg px-3 py-2 text-sm">
+        <option value="">- Pilih -</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </div>
+  )
+}
+
+function Info({ label, value }) {
+  if (!value) return null
+  return (
+    <div>
+      <div className="text-xs text-gray-500">{label}</div>
+      <div>{value}</div>
+    </div>
+  )
+}

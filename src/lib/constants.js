@@ -319,3 +319,19 @@ export const ASSET_CONDITION_LABEL = {
   RUSAK_RINGAN: 'Rusak Ringan',
   RUSAK_BERAT: 'Rusak Berat',
 }
+
+export const VENDOR_TYPES = [
+  'Venue',
+  'Talent / Entertainment',
+  'Production',
+  'Equipment & Rental',
+  'Catering & F&B',
+  'Merchandise & Printing',
+  'Creative & Design',
+  'Agency / Specialist',
+  'Logistic & Operational',
+  'Digital & Technology',
+  'Other',
+]
+
+export const VENDOR_STATUSES = ['Active', 'Inactive', 'Blacklist']

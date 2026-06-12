@@ -36,6 +36,7 @@ model User {
   projectScoresReceived ProjectScore[] @relation("ProjectScoreUser")
   personalTasks  PersonalTask[]
   progressUpdates ProgressUpdate[]
+  vendorsEntered Vendor[]
   projectScoresGiven    ProjectScore[] @relation("ProjectScoreEvaluator")
   directorNotesReceived DirectorNote[] @relation("DirectorNoteTarget")
   directorNotesSent     DirectorNote[] @relation("DirectorNoteAuthor")
@@ -376,6 +377,43 @@ model Client {
   createdAt DateTime  @default(now())
 
   projects  Project[]
+}
+
+// Vendor database — searchable directory of external vendors (venues, talent,
+// production, merchandise, etc.) used when sourcing for projects. "Entered by"
+// is auto-derived from the logged-in account, so it's reliable for follow-up.
+model Vendor {
+  id            String   @id @default(cuid())
+  name          String
+  vendorType    String
+  province      String?
+  city          String?
+  address       String?
+  area          String?
+  capacity      String?
+  ballroomCapacity String?
+  meetingCapacity  String?
+  website       String?
+  instagram     String?
+  output        String?
+  productService String?
+  status        String   @default("Active")
+  picContact    String?
+  phone         String?
+  priceMin      Float?
+  priceMax      Float?
+  priceNote     String?
+  notes         String?
+  photos        Json?
+  enteredById   String?
+  enteredByName String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  enteredBy User? @relation(fields: [enteredById], references: [id], onDelete: SetNull)
+
+  @@index([vendorType])
+  @@index([city])
 }
 
 model Project {
