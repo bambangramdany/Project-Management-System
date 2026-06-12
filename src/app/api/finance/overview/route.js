@@ -50,7 +50,6 @@ export async function GET(req) {
   const rangeProjects = allProjects.filter(inRange)
   const wonProjects = rangeProjects.filter(p => WON_STATUSES.includes(p.status))
   const loseProjects = rangeProjects.filter(p => p.pitchResult === 'LOSE')
-  const invoicingProjects = rangeProjects.filter(p => p.status === 'INVOICING')
 
   const totalOmset = wonProjects.reduce((sum, p) => sum + (p.projectValue || 0), 0)
 
@@ -75,7 +74,8 @@ export async function GET(req) {
 
   const aktualNettProfit = (totalOmset - aktualCostTotal) - totalOpex
 
-  const piutang = invoicingProjects.reduce((sum, p) => sum + (p.projectValue || 0), 0)
+  const unpaidReceivables = await prisma.receivable.findMany({ where: { status: 'UNPAID' }, select: { amount: true } })
+  const piutang = unpaidReceivables.reduce((sum, r) => sum + r.amount, 0)
 
   const pitchGagalValue = loseProjects.reduce((sum, p) => sum + (p.projectValue || 0), 0)
   const pitchGagalLostProfit = loseProjects.reduce((sum, p) => {
@@ -104,7 +104,7 @@ export async function GET(req) {
     ekspektasiProfit,
     aktualNettProfit,
     totalOpex,
-    piutang: { amount: piutang, count: invoicingProjects.length },
+    piutang: { amount: piutang, count: unpaidReceivables.length },
     pitchGagal: { value: pitchGagalValue, lostProfit: pitchGagalLostProfit, count: loseProjects.length },
     totalNilaiAset: { value: totalNilaiAset, count: assets.length },
     totalHutangAktif: { value: totalHutangAktif, monthlyInterest: totalBungaPerBulan, count: activeDebts.length },

@@ -26,6 +26,9 @@ const ACTION_LABEL = {
   DEBT_DELETE: 'Hapus Hutang',
   DEBT_PAYMENT_PAID: 'Pembayaran Cicilan Hutang',
   DEBT_PAYMENT_UNPAID: 'Batal Pembayaran Cicilan',
+  RECEIVABLE_CREATE: 'Tambah Piutang',
+  RECEIVABLE_STATUS_CHANGE: 'Status Piutang',
+  RECEIVABLE_DELETE: 'Hapus Piutang',
 }
 
 const ACTION_COLOR = {
@@ -52,6 +55,9 @@ const ACTION_COLOR = {
   DEBT_DELETE: 'bg-red-100 text-red-700',
   DEBT_PAYMENT_PAID: 'bg-emerald-100 text-emerald-700',
   DEBT_PAYMENT_UNPAID: 'bg-red-100 text-red-700',
+  RECEIVABLE_CREATE: 'bg-cyan-100 text-cyan-700',
+  RECEIVABLE_STATUS_CHANGE: 'bg-cyan-100 text-cyan-700',
+  RECEIVABLE_DELETE: 'bg-red-100 text-red-700',
 }
 
 export default function AuditLogPanel() {

@@ -159,6 +159,32 @@ enum DebtPaymentStatus {
   PAID
 }
 
+enum ReceivableStatus {
+  UNPAID
+  PAID
+}
+
+// Outstanding invoices to clients (piutang) — tracked so Direksi/Finance can
+// monitor how much revenue is invoiced but not yet collected.
+model Receivable {
+  id            String           @id @default(cuid())
+  projectId     String?
+  invoiceNumber String?
+  clientName    String
+  amount        Float
+  issueDate     DateTime?
+  dueDate       DateTime?
+  status        ReceivableStatus @default(UNPAID)
+  paidAt        DateTime?
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+}
+
 // Company debt/loan obligations (e.g. from investors, banks, profit-sharing
 // arrangements) — tracked so Owner & Finance stay aware of monthly principal +
 // interest obligations and how they affect cash flow.
@@ -391,6 +417,7 @@ model Project {
   budgets   ProjectBudget[]
   budgetItems ProjectBudgetItem[]
   payments  PaymentRequest[]
+  receivables Receivable[]
   scores    ProjectScore[]
 }
 
