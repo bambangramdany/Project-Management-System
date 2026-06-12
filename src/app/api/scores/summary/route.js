@@ -58,7 +58,7 @@ export async function GET() {
   let allUsers = null
 
   if (canViewAllScores(me) || me.role === 'OWNER') {
-    allUsers = await prisma.user.findMany({ where: { role: { notIn: ['OWNER'] } }, select: { id: true, name: true, jobTitle: true, role: true, divisi: true } })
+    allUsers = await prisma.user.findMany({ where: { role: { notIn: ['OWNER', 'DIRECTOR'] } }, select: { id: true, name: true, jobTitle: true, role: true, divisi: true } })
   } else if (me.email === CROSS_TEAM_PM_EMAIL) {
     allUsers = await prisma.user.findMany({ where: { role: { notIn: ['OWNER', 'DIRECTOR'] }, id: { not: me.id } }, select: { id: true, name: true, jobTitle: true, role: true, divisi: true } })
   } else if (me.role === 'DIRECTOR') {
@@ -122,6 +122,8 @@ export async function GET() {
       }
     })
   }
+
+  team.sort((a, b) => (a.user.divisi || '').localeCompare(b.user.divisi || '') || a.user.name.localeCompare(b.user.name))
 
   return NextResponse.json({ mine, myNotes, team, criteria })
 }
