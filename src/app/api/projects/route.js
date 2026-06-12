@@ -14,6 +14,9 @@ export async function GET(req) {
   const status = searchParams.get('status')
   const category = searchParams.get('category')
   const search = searchParams.get('search')
+  // Lightweight mode: skip tasks/budgetItems/health computation for pages that
+  // only need basic project info (finance dropdowns, calendar, scores list).
+  const light = searchParams.get('light') === '1'
 
   const where = {}
   if (status) where.status = status
@@ -34,12 +37,16 @@ export async function GET(req) {
       client: { select: { id: true, name: true, industry: true } },
       pic: { select: { id: true, name: true } },
       members: { include: { user: { select: { id: true, name: true, role: true } } } },
-      _count: { select: { tasks: true } },
-      tasks: { select: { status: true, dueDate: true } },
-      budgetItems: { select: { quotedAmount: true, actualAmount: true } },
+      ...(light ? {} : {
+        _count: { select: { tasks: true } },
+        tasks: { select: { status: true, dueDate: true } },
+        budgetItems: { select: { quotedAmount: true, actualAmount: true } },
+      }),
     },
     orderBy: { updatedAt: 'desc' },
   })
+
+  if (light) return NextResponse.json(projects)
 
   const withHealth = projects.map(p => {
     const { tasks, budgetItems, ...rest } = p

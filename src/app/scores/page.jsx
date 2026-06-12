@@ -45,7 +45,7 @@ export default function ScoresPage() {
     if (session.user.role === 'OWNER') {
       fetch('/api/director-notes').then(r => r.json()).then(setAllNotes)
     }
-    fetch('/api/projects').then(r => r.json()).then(data => {
+    fetch('/api/projects?light=1').then(r => r.json()).then(data => {
       const projects = Array.isArray(data) ? data : []
       setMyProjects(projects.filter(p => p.pitchResult === 'WIN' || p.status === 'DONE'))
     })

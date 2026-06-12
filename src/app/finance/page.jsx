@@ -124,7 +124,7 @@ export default function FinancePage() {
 
   useEffect(() => {
     if (status === 'authenticated' && FINANCE_ROLES.includes(session.user.role)) {
-      fetch('/api/projects').then(r => r.json()).then(data => setProjects(Array.isArray(data) ? data : []))
+      fetch('/api/projects?light=1').then(r => r.json()).then(data => setProjects(Array.isArray(data) ? data : []))
       fetchPayments()
     }
     if (status === 'authenticated' && ['OWNER', 'FINANCE', 'DIRECTOR'].includes(session.user.role)) {

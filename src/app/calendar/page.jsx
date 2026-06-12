@@ -35,7 +35,7 @@ export default function CalendarPage() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      fetch('/api/projects').then(r => r.json()).then(data => {
+      fetch('/api/projects?light=1').then(r => r.json()).then(data => {
         setProjects(Array.isArray(data) ? data : [])
         setLoading(false)
       })
