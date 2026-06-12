@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { PROJECT_SCORE_CRITERIA, KPI_SCORE_LABEL } from '@/lib/constants'
+import { PROJECT_SCORE_CRITERIA, PROJECT_SCORE_EXTRA_BY_ROLE, KPI_SCORE_LABEL } from '@/lib/constants'
 import { canScoreProjectMember } from '@/lib/rbac'
 import ScoreCriteriaEditor from '@/components/ScoreCriteriaEditor'
 
@@ -19,6 +19,9 @@ export default function ProjectBonusTab({ project, session }) {
     ...((project.members || []).map(m => m.user).filter(u => u && u.id !== project.pic?.id)),
   ].filter(u => canScoreProjectMember(session?.user, u, project))
 
+  // 3 kriteria universal + indikator tambahan khusus role anggota tersebut
+  const criteriaFor = (member) => [...criteria, ...(PROJECT_SCORE_EXTRA_BY_ROLE[member?.role] || [])]
+
   useEffect(() => {
     fetch(`/api/projects/${project.id}/scores`)
       .then(res => res.json())
@@ -36,7 +39,7 @@ export default function ProjectBonusTab({ project, session }) {
     members.forEach(m => {
       d[m.id] = {}
       let hasExisting = false
-      criteria.forEach(c => {
+      criteriaFor(m).forEach(c => {
         const existing = scores.find(s => s.userId === m.id && s.criteria === c.key && s.evaluatorId === session?.user?.id)
         if (existing) hasExisting = true
         d[m.id][c.key] = { score: existing?.score || 0, comment: existing?.comment || '' }
@@ -53,7 +56,8 @@ export default function ProjectBonusTab({ project, session }) {
 
   const handleSave = async (userId) => {
     setSaving(userId)
-    const items = criteria.map(c => ({
+    const member = members.find(m => m.id === userId)
+    const items = criteriaFor(member).map(c => ({
       criteria: c.key,
       score: drafts[userId]?.[c.key]?.score || 0,
       comment: drafts[userId]?.[c.key]?.comment || '',
@@ -102,7 +106,7 @@ export default function ProjectBonusTab({ project, session }) {
               ) : null}
             </div>
             <div className="grid sm:grid-cols-3 gap-3">
-              {criteria.map(c => {
+              {criteriaFor(m).map(c => {
                 const filled = (drafts[m.id]?.[c.key]?.score || 0) > 0
                 return (
                   <div key={c.key}>

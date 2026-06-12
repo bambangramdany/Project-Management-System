@@ -319,6 +319,32 @@ export const PROJECT_SCORE_CRITERIA = [
   { key: 'teamwork', label: 'Kerjasama & komunikasi tim' },
 ]
 
+// Indikator tambahan khusus role — dinilai bersamaan dengan 3 kriteria
+// universal di atas, agar evaluasi per-project juga menangkap hal-hal
+// spesifik yang menjadi tanggung jawab utama role tersebut di project ini.
+export const PROJECT_SCORE_EXTRA_BY_ROLE = {
+  PROJECT_MANAGER: [
+    { key: 'profitability', label: 'Profitabilitas project vs RAB' },
+    { key: 'client_satisfaction_project', label: 'Kepuasan klien pada project ini' },
+  ],
+  PROJECT_OFFICER: [
+    { key: 'field_execution', label: 'Kelancaran eksekusi lapangan' },
+    { key: 'documentation_project', label: 'Dokumentasi & laporan project lengkap' },
+  ],
+  PRODUCTION: [
+    { key: 'equipment_readiness_project', label: 'Kesiapan alat tepat waktu' },
+    { key: 'zero_issue_project', label: 'Zero issue saat hari-H' },
+  ],
+  PRODUCER: [
+    { key: 'production_schedule', label: 'Ketepatan jadwal produksi' },
+    { key: 'crew_budget_management', label: 'Manajemen crew & budget' },
+  ],
+  EDITOR: [
+    { key: 'delivery_deadline', label: 'Ketepatan deadline delivery' },
+    { key: 'revision_count_project', label: 'Jumlah revisi (sesuai target)' },
+  ],
+}
+
 export const PAYMENT_TERM_LABEL = {
   DP: 'DP (Uang Muka)',
   PELUNASAN: 'Pelunasan',
