@@ -7,7 +7,7 @@ const ROLE_LABEL = {
   PROJECT_OFFICER: 'Project Officer', CREATIVE_LEAD: 'Creative Lead',
   GRAPHIC_DESIGNER: 'Graphic Designer', STAGE_DESIGNER: 'Stage Designer',
   CONTENT_CREATOR: 'Content Creator', INTERNSHIP: 'Internship', MEMBER: 'Member',
-  DIRECTOR: 'Director', FINANCE: 'Finance',
+  DIRECTOR: 'Director', FINANCE: 'Finance', PRODUCER: 'Producer', EDITOR: 'Editor',
 }
 
 const EMPTY_FORM = { name: '', email: '', password: '', role: 'MEMBER', divisi: '', jobTitle: '', phone: '' }

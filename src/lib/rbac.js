@@ -136,10 +136,11 @@ export function canLockBudget(user, project) {
 // Wulan has cross-team scoring privilege (can score other PMs and any team member)
 export const CROSS_TEAM_PM_EMAIL = 'wulan@watermark.co.id'
 
-// Roles that may act as evaluator (superior / task giver)
+// Roles that may act as evaluator (superior / task giver, or the person themselves for self-assessment)
 export function canScoreKpi(evaluator, target) {
   if (!evaluator || !target) return false
-  if (evaluator.id === target.id) return false
+  // Self-assessment: everyone may score their own monthly KPI
+  if (evaluator.id === target.id) return true
   if (evaluator.role === 'OWNER') return true
   if (['OWNER', 'DIRECTOR'].includes(target.role)) return false
   if (evaluator.role === 'DIRECTOR') return evaluator.divisi === target.divisi

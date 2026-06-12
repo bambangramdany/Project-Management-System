@@ -354,6 +354,8 @@ enum UserRole {
   MEMBER
   DIRECTOR
   FINANCE
+  PRODUCER
+  EDITOR
 }
 
 enum Divisi {

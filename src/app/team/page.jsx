@@ -9,13 +9,13 @@ const ROLE_LABEL = {
   PROJECT_OFFICER: 'Project Officer', CREATIVE_LEAD: 'Creative Lead',
   GRAPHIC_DESIGNER: 'Graphic Designer', STAGE_DESIGNER: 'Stage Designer',
   CONTENT_CREATOR: 'Content Creator', INTERNSHIP: 'Internship', MEMBER: 'Member',
-  DIRECTOR: 'Director', FINANCE: 'Finance',
+  DIRECTOR: 'Director', FINANCE: 'Finance', PRODUCER: 'Producer', EDITOR: 'Editor',
 }
 
 // Org-hierarchy order: top management down to support staff
 const ROLE_ORDER = [
   'OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'CREATIVE_LEAD', 'FINANCE',
-  'PROJECT_OFFICER', 'PRODUCTION', 'GRAPHIC_DESIGNER', 'STAGE_DESIGNER',
+  'PROJECT_OFFICER', 'PRODUCTION', 'PRODUCER', 'EDITOR', 'GRAPHIC_DESIGNER', 'STAGE_DESIGNER',
   'CONTENT_CREATOR', 'MEMBER', 'INTERNSHIP',
 ]
 const byHierarchy = (a, b) => {

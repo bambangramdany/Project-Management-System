@@ -183,7 +183,8 @@ function currentPeriod() {
 
 function canScoreKpiClient(evaluator, target) {
   if (!evaluator || !target) return false
-  if (evaluator.id === target.id) return false
+  // Self-assessment: everyone may score their own monthly KPI
+  if (evaluator.id === target.id) return true
   if (evaluator.role === 'OWNER') return true
   if (['OWNER', 'DIRECTOR'].includes(target.role)) return false
   if (evaluator.role === 'DIRECTOR') return evaluator.divisi === target.divisi
@@ -240,6 +241,11 @@ function KpiPanel({ user, session }) {
     <div className="mb-4 p-3 rounded-lg bg-brand-50 border border-brand-100">
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-semibold text-brand-700 uppercase tracking-wide">KPI — {user.jobTitle || user.role} · {period}</p>
+        {canScore && (
+          <span className="text-xs text-gray-400">
+            {session?.user.id === user.id ? 'Penilaian Diri (Self-Assessment)' : 'Penilaian Atasan'}
+          </span>
+        )}
         {!canScore && <span className="text-xs text-gray-400">Hanya superior/pemberi task yang bisa menilai</span>}
       </div>
       <KpiCriteriaEditor role={user.role} division={user.divisi} session={session} onChange={setItems} />

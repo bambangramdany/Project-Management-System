@@ -189,28 +189,58 @@ export const PAYMENT_STAGES_WITH_OWNER = [
 
 // ── KPI ──────────────────────────────────────────────────────────────────
 
-// General KPI per role — placeholder for further discussion with each director
-export const KPI_BY_ROLE = {
+// 5 kompetensi inti — dipakai untuk SEMUA role sebagai dasar penilaian
+// kinerja bulanan (self-assessment & supervisor). Menggantikan dimensi-
+// dimensi lama yang tumpang tindih (Kecepatan Respons, Ketepatan Waktu,
+// Kualitas Hasil Kerja, Tanggung Jawab, Inisiatif, dst) dengan set yang
+// lebih ringkas namun tetap menangkap sinyal yang sama.
+export const CORE_KPI = [
+  { key: 'response_communication', label: 'Kecepatan Respons & Komunikasi' },
+  { key: 'on_time_discipline', label: 'Ketepatan Waktu (Disiplin Deadline)' },
+  { key: 'work_quality', label: 'Kualitas Hasil Kerja' },
+  { key: 'responsibility_initiative', label: 'Tanggung Jawab & Inisiatif' },
+  { key: 'teamwork', label: 'Kolaborasi Tim' },
+]
+
+// 3 kompetensi tambahan — hanya untuk role dengan tanggung jawab memimpin
+// tim/divisi (PM, Director, Owner, Creative Lead).
+export const LEADERSHIP_KPI = [
+  { key: 'decision_making', label: 'Ketepatan Pengambilan Keputusan' },
+  { key: 'delegation', label: 'Arahan & Delegasi Tugas' },
+  { key: 'team_development', label: 'Pengembangan & Pembinaan Tim' },
+]
+
+// Indikator tambahan spesifik per role (di luar 5 kompetensi inti),
+// menangkap hal-hal yang memang khas tugas pokok role tersebut.
+const ROLE_SPECIFIC_KPI = {
   PROJECT_MANAGER: [
-    { key: 'win_rate', label: 'Win rate pitching ≥ 60%' },
-    { key: 'on_time_budget', label: 'Project selesai sesuai timeline & budget' },
+    { key: 'win_rate', label: 'Win rate pitching sesuai target' },
+    { key: 'on_time_budget', label: 'Project berjalan sesuai timeline & budget' },
     { key: 'client_satisfaction', label: 'Kepuasan klien (feedback / repeat order)' },
-    { key: 'reporting', label: 'Laporan progress & invoicing tepat waktu' },
   ],
   PROJECT_OFFICER: [
     { key: 'execution_sop', label: 'Eksekusi lapangan sesuai brief & SOP' },
-    { key: 'on_time_event', label: 'Ketepatan waktu persiapan & event day' },
-    { key: 'documentation', label: 'Dokumentasi & laporan event lengkap' },
+    { key: 'progress_update', label: 'Update progress & dokumentasi tepat waktu' },
+    { key: 'field_problem_solving', label: 'Penanganan masalah lapangan (problem-solving)' },
   ],
   PRODUCTION: [
     { key: 'equipment_ready', label: 'Kelengkapan & kesiapan alat/produksi' },
     { key: 'zero_issue', label: 'Zero technical issue saat event/shooting' },
     { key: 'budget_efficiency', label: 'Efisiensi penggunaan budget produksi' },
   ],
+  PRODUCER: [
+    { key: 'production_planning', label: 'Kualitas perencanaan produksi (jadwal, crew, lokasi)' },
+    { key: 'client_creative_coordination', label: 'Koordinasi dengan klien/tim kreatif (revisi terkendali)' },
+    { key: 'production_budget_efficiency', label: 'Efisiensi budget produksi vs hasil akhir' },
+  ],
+  EDITOR: [
+    { key: 'edit_on_time', label: 'Ketepatan waktu delivery hasil edit' },
+    { key: 'edit_quality', label: 'Kualitas hasil edit (sesuai brief: color/audio/pacing)' },
+    { key: 'edit_revision_count', label: 'Jumlah revisi minimal (≤2x per deliverable)' },
+  ],
   CREATIVE_LEAD: [
     { key: 'concept_approved', label: 'Konsep kreatif disetujui klien di percobaan pertama' },
-    { key: 'on_time_deliverable', label: 'Ketepatan waktu deliverable tim creative' },
-    { key: 'quality_consistency', label: 'Konsistensi kualitas & branding' },
+    { key: 'quality_consistency', label: 'Konsistensi kualitas & branding tim' },
   ],
   GRAPHIC_DESIGNER: [
     { key: 'on_time_design', label: 'Ketepatan waktu desain sesuai deadline' },
@@ -223,7 +253,6 @@ export const KPI_BY_ROLE = {
   ],
   CONTENT_CREATOR: [
     { key: 'content_calendar', label: 'Output konten sesuai kalender konten' },
-    { key: 'engagement', label: 'Engagement / kualitas konten' },
     { key: 'on_time_publish', label: 'Ketepatan waktu editing & publish' },
   ],
   FINANCE: [
@@ -240,6 +269,21 @@ export const KPI_BY_ROLE = {
     { key: 'team_health', label: 'Kesehatan pipeline & utilisasi tim divisi' },
   ],
 }
+
+// Role yang mendapat dimensi Leadership tambahan.
+const LEADERSHIP_ROLES = ['PROJECT_MANAGER', 'DIRECTOR', 'OWNER', 'CREATIVE_LEAD']
+
+// Final KPI set per role: 5 kompetensi inti + (leadership jika applicable) + indikator spesifik role.
+export const KPI_BY_ROLE = Object.fromEntries(
+  Object.keys(ROLE_SPECIFIC_KPI).map(role => [
+    role,
+    [
+      ...CORE_KPI,
+      ...(LEADERSHIP_ROLES.includes(role) ? LEADERSHIP_KPI : []),
+      ...ROLE_SPECIFIC_KPI[role],
+    ],
+  ])
+)
 
 export const KPI_SCORE_LABEL = { 1: 'Kurang', 2: 'Cukup', 3: 'Baik', 4: 'Sangat Baik', 5: 'Istimewa' }
 
