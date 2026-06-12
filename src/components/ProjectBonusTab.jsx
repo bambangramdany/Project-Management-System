@@ -127,7 +127,7 @@ export default function ProjectBonusTab({ project, session }) {
               })}
             </div>
             {locked && (
-              <p className="text-xs text-green-600 flex items-center gap-1">✓ Penilaian tersimpan dan terkunci. Klik "Edit" untuk mengubah.</p>
+              <p className="text-xs text-green-600 flex items-center gap-1">✓ Penilaian untuk project {project.code} - {project.name} tersimpan dan terkunci. Klik "Edit" untuk mengubah.</p>
             )}
             {editing[m.id] && !locked && (
               <div className="flex items-center gap-2 pt-1 border-t border-gray-100">

@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canScoreKpi, canViewKpiSummary } from '@/lib/rbac'
+import { notifyManagement } from '@/lib/notify'
 import { KPI_DEADLINE_DAY } from '@/lib/constants'
 import { NextResponse } from 'next/server'
 
@@ -45,7 +46,7 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
   }
 
-  const target = await prisma.user.findUnique({ where: { id: body.userId }, select: { id: true, divisi: true, role: true } })
+  const target = await prisma.user.findUnique({ where: { id: body.userId }, select: { id: true, name: true, divisi: true, role: true } })
   if (!target) return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 })
 
   if (!canScoreKpi(session.user, target)) {
@@ -79,6 +80,18 @@ export async function POST(req) {
       },
     })
   ))
+
+  const isSelf = session.user.id === target.id
+  await notifyManagement({
+    excludeUserId: session.user.id,
+    division: target.divisi,
+    type: 'KPI_ASSESSMENT',
+    title: 'Penilaian KPI Bulanan Baru',
+    message: isSelf
+      ? `${target.name} mengisi self-assessment KPI periode ${body.period}`
+      : `${session.user.name} menilai KPI ${target.name} periode ${body.period}`,
+    link: '/scores',
+  })
 
   return NextResponse.json(results, { status: 201 })
 }

@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar'
 import { PROJECT_SCORE_CRITERIA, KPI_BY_ROLE, resolveKpiPeriod } from '@/lib/constants'
 import ProjectBonusTab from '@/components/ProjectBonusTab'
 import KpiCriteriaEditor from '@/components/KpiCriteriaEditor'
+import KpiPanel, { canScoreKpiClient } from '@/components/KpiPanel'
 
 const KPI_SUMMARY_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE']
 
@@ -31,6 +32,7 @@ export default function ScoresPage() {
   const [kpiLoading, setKpiLoading] = useState(true)
   const [kpiExpanded, setKpiExpanded] = useState(null)
   const [kpiCriteriaMap, setKpiCriteriaMap] = useState({})
+  const [team, setTeam] = useState([])
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -40,7 +42,9 @@ export default function ScoresPage() {
     if (status !== 'authenticated') return
     fetch('/api/scores/summary').then(r => r.json()).then(d => { setData(d); setLoading(false) })
     fetch('/api/team').then(r => r.json()).then(members => {
-      setDirectors((Array.isArray(members) ? members : []).filter(m => ['DIRECTOR', 'OWNER'].includes(m.role) && m.id !== session.user.id))
+      const list = Array.isArray(members) ? members : []
+      setDirectors(list.filter(m => ['DIRECTOR', 'OWNER'].includes(m.role) && m.id !== session.user.id))
+      setTeam(list.filter(m => canScoreKpiClient(session.user, m)))
     })
     if (session.user.role === 'OWNER') {
       fetch('/api/director-notes').then(r => r.json()).then(setAllNotes)
@@ -163,9 +167,25 @@ export default function ScoresPage() {
             </select>
             {scoreProject && (
               <div className="mt-3">
+                <div className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2.5 py-1">
+                  📁 Project: {scoreProject.code} — {scoreProject.name}
+                </div>
                 <ProjectBonusTab project={scoreProject} session={session} />
               </div>
             )}
+          </div>
+        )}
+
+        {/* Penilaian Bulanan (KPI) — Tim Saya */}
+        {team.length > 0 && (
+          <div className="card p-4 border-t-4 border-orange-400">
+            <p className="text-sm font-semibold text-ink-800 mb-1">Penilaian Bulanan (KPI) — Tim Saya</p>
+            <p className="text-xs text-gray-500 mb-3">Isi penilaian KPI bulanan untuk anggota tim yang bisa Anda nilai, termasuk diri Anda sendiri.</p>
+            <div className="space-y-3">
+              {team.map(m => (
+                <KpiPanel key={m.id} user={m} session={session} />
+              ))}
+            </div>
           </div>
         )}
 
