@@ -92,6 +92,9 @@ export default function FinancePage() {
   const [savingBudget, setSavingBudget] = useState(false)
   const [projectValue, setProjectValue] = useState('')
   const [includesPpn, setIncludesPpn] = useState(false)
+  const [quotationFileUrl, setQuotationFileUrl] = useState(null)
+  const [quotationFileName, setQuotationFileName] = useState(null)
+  const [uploadingQuotation, setUploadingQuotation] = useState(false)
   const [quotationNumber, setQuotationNumber] = useState('')
   const [budgetSaved, setBudgetSaved] = useState(false)
   const [budgetEditing, setBudgetEditing] = useState(false)
@@ -243,6 +246,8 @@ export default function FinancePage() {
       setBudgetItems(items.map(b => ({ ...b, neededDate: b.neededDate ? b.neededDate.slice(0, 10) : '' })))
       setProjectValue(data.projectValue ?? '')
       setIncludesPpn(!!data.includesPpn)
+      setQuotationFileUrl(data.quotationFileUrl || null)
+      setQuotationFileName(data.quotationFileName || null)
       setQuotationNumber(data.quotationNumber ?? '')
       setBudgetSaved(items.length > 0)
       setBudgetMeta({
@@ -259,7 +264,7 @@ export default function FinancePage() {
   }
 
   function addBudgetRow() {
-    setBudgetItems(items => [...items, { label: '', quotedAmount: 0, actualAmount: '', neededDate: '', note: '' }])
+    setBudgetItems(items => [...items, { label: '', qty: '', unitPrice: '', quotedAmount: 0, needsUpfrontFunding: false, actualAmount: '', neededDate: '', note: '' }])
   }
 
   // Parse a CSV exported from the legacy quotation template (label, kategori, forecast,
@@ -322,7 +327,45 @@ export default function FinancePage() {
   }
 
   function updateBudgetRow(idx, patch) {
-    setBudgetItems(items => items.map((it, i) => i === idx ? { ...it, ...patch } : it))
+    setBudgetItems(items => items.map((it, i) => {
+      if (i !== idx) return it
+      const next = { ...it, ...patch }
+      // Auto-calculate forecast amount from Qty x Harga Satuan when both are filled
+      if (('qty' in patch || 'unitPrice' in patch) && next.qty !== '' && next.unitPrice !== '' && next.qty != null && next.unitPrice != null) {
+        const qty = parseFloat(next.qty) || 0
+        const unitPrice = parseFloat(next.unitPrice) || 0
+        next.quotedAmount = qty * unitPrice
+      }
+      return next
+    }))
+  }
+
+  async function handleQuotationFileUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingQuotation(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`/api/projects/${budgetProjectId}/quotation`, { method: 'POST', body: formData })
+    setUploadingQuotation(false)
+    if (res.ok) {
+      const data = await res.json()
+      setQuotationFileUrl(data.quotationFileUrl)
+      setQuotationFileName(data.quotationFileName)
+    } else {
+      const err = await res.json()
+      alert(err.error || 'Gagal mengunggah file quotation')
+    }
+    e.target.value = ''
+  }
+
+  async function removeQuotationFile() {
+    if (!confirm('Hapus file quotation yang sudah diunggah?')) return
+    const res = await fetch(`/api/projects/${budgetProjectId}/quotation`, { method: 'DELETE' })
+    if (res.ok) {
+      setQuotationFileUrl(null)
+      setQuotationFileName(null)
+    }
   }
 
   function removeBudgetRow(idx) {
@@ -544,6 +587,30 @@ export default function FinancePage() {
                 />
               </div>
               <div className="flex items-center justify-between gap-3 pb-2 border-b border-gray-100">
+                <div className="flex-1">
+                  <label className="text-sm font-semibold text-gray-700">File Quotation</label>
+                  <p className="text-xs text-gray-400 mt-0.5">Unggah dokumen quotation (PDF/gambar) sebagai lampiran resmi, lalu lengkapi rincian item di tabel forecast di bawah.</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {quotationFileUrl && (
+                    <a href={quotationFileUrl} target="_blank" rel="noreferrer" className="text-xs text-brand-600 hover:underline max-w-[10rem] truncate">
+                      {quotationFileName || 'Lihat file'}
+                    </a>
+                  )}
+                  {budgetMeta.canEditProjectValue && !forecastLocked && (
+                    <>
+                      <label className="btn-secondary text-xs cursor-pointer">
+                        {uploadingQuotation ? 'Mengunggah...' : quotationFileUrl ? 'Ganti File' : 'Unggah File'}
+                        <input type="file" accept=".pdf,.png,.jpg,.jpeg" className="hidden" onChange={handleQuotationFileUpload} disabled={uploadingQuotation} />
+                      </label>
+                      {quotationFileUrl && (
+                        <button type="button" onClick={removeQuotationFile} className="text-xs text-red-500 hover:underline">Hapus</button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-3 pb-2 border-b border-gray-100">
                 <label className="text-sm font-semibold text-gray-700 flex-1">Nilai Project (Rp)</label>
                 <ThousandsInput
                   className="input w-40"
@@ -572,22 +639,40 @@ export default function FinancePage() {
                   </div>
                 )}
               </div>
-              <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-gray-500 px-1">
+              <div className="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-2 text-xs font-semibold text-gray-500 px-1">
                 <span className="col-span-2">Komponen (sesuai quotation)</span>
+                <span className="col-span-1">Qty</span>
+                <span className="col-span-2">Harga Satuan (Rp)</span>
                 <span className="col-span-2">Kategori</span>
                 <span className="col-span-2">Forecast / Quotation (Rp)</span>
                 <span className="col-span-2">Aktual Modal (Rp)</span>
                 <span className="col-span-1">Tgl Dibutuhkan</span>
+                <span className="col-span-1 text-center">Modal Awal</span>
                 <span className="col-span-2">Catatan Finance/Direksi</span>
                 <span className="col-span-1"></span>
               </div>
               {budgetItems.map((item, idx) => (
-                <div key={item.id || idx} className="grid grid-cols-12 gap-2 items-center">
+                <div key={item.id || idx} className="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-2 items-center">
                   <input
                     className="input col-span-2"
                     value={item.label}
                     onChange={e => updateBudgetRow(idx, { label: e.target.value })}
                     placeholder="cth. Sewa Venue"
+                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                  />
+                  <input
+                    type="number"
+                    className="input col-span-1"
+                    value={item.qty ?? ''}
+                    onChange={e => updateBudgetRow(idx, { qty: e.target.value })}
+                    placeholder="1"
+                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                  />
+                  <ThousandsInput
+                    className="input col-span-2"
+                    value={item.unitPrice ?? ''}
+                    onChange={v => updateBudgetRow(idx, { unitPrice: v })}
+                    placeholder="0"
                     disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
                   />
                   <select
@@ -621,6 +706,15 @@ export default function FinancePage() {
                     onChange={e => updateBudgetRow(idx, { neededDate: e.target.value })}
                     disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
                   />
+                  <div className="col-span-1 flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      title="Tandai jika komponen ini butuh dana awal/modal kerja sebelum project berjalan"
+                      checked={!!item.needsUpfrontFunding}
+                      onChange={e => updateBudgetRow(idx, { needsUpfrontFunding: e.target.checked })}
+                      disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                    />
+                  </div>
                   <input
                     className="input col-span-2"
                     value={item.note || ''}
@@ -632,7 +726,7 @@ export default function FinancePage() {
                     <button onClick={() => { if (confirm('Hapus komponen forecast ini?')) removeBudgetRow(idx) }} className="col-span-1 text-red-500 text-xs hover:underline">Hapus</button>
                   )}
                   {item.id && (
-                    <div className="col-span-12 -mt-1 flex items-center gap-2 flex-wrap text-xs text-gray-500">
+                    <div className="col-span-16 -mt-1 flex items-center gap-2 flex-wrap text-xs text-gray-500">
                       <span className={clsx('px-2 py-0.5 rounded-full font-medium', BUDGET_ITEM_STATUS_COLOR[item.paymentStatus] || 'bg-gray-100 text-gray-600')}>
                         {BUDGET_ITEM_STATUS_LABEL[item.paymentStatus] || item.paymentStatus}
                       </span>
@@ -668,6 +762,12 @@ export default function FinancePage() {
                   {formatRupiah(
                     budgetItems.reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0) -
                     budgetItems.reduce((sum, b) => sum + (parseFloat(b.actualAmount) || 0), 0)
+                  )}
+                </span>
+                <span className="font-semibold text-sky-700">Total Kebutuhan Modal Awal</span>
+                <span className="font-bold text-sky-700 text-right">
+                  {formatRupiah(
+                    budgetItems.filter(b => b.needsUpfrontFunding).reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0)
                   )}
                 </span>
               </div>

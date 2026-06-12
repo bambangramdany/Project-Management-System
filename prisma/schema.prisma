@@ -403,6 +403,8 @@ model Project {
   projectValue    Float?
   includesPpn     Boolean @default(false)
   quotationNumber String?
+  quotationFileUrl  String?
+  quotationFileName String?
   invoiceNumber   String?
   budgetLockedAt  DateTime?
   budgetLockedById String?
@@ -581,6 +583,9 @@ model ProjectBudgetItem {
   label         String
   category      ExpenseCategory @default(OPERATIONAL_OTHER)
   quotedAmount  Float     @default(0)
+  qty           Float?
+  unitPrice     Float?
+  needsUpfrontFunding Boolean @default(false)
   actualAmount  Float?
   neededDate    DateTime?
   note          String?
