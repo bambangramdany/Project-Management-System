@@ -30,6 +30,8 @@ export default function DashboardPage() {
   const [cashPosition, setCashPosition] = useState(null)
   const [debtSummary, setDebtSummary] = useState(null)
   const [cashSummary, setCashSummary] = useState(null)
+  const [overview, setOverview] = useState(null)
+  const [overviewRange, setOverviewRange] = useState(null) // { from: 'YYYY-MM', to: 'YYYY-MM' }
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -57,7 +59,17 @@ export default function DashboardPage() {
     if (role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)) {
       fetch('/api/debts/summary').then(r => r.ok ? r.json() : null).then(setDebtSummary)
     }
+    if (role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)) {
+      const y = new Date().getFullYear()
+      setOverviewRange({ from: `${y}-01`, to: `${y}-12` })
+    }
   }, [status, session])
+
+  useEffect(() => {
+    if (!overviewRange) return
+    const params = new URLSearchParams(overviewRange)
+    fetch(`/api/finance/overview?${params}`).then(r => r.ok ? r.json() : null).then(setOverview)
+  }, [overviewRange])
 
   if (status === 'loading' || loading) return <LoadingScreen />
 
@@ -87,6 +99,11 @@ export default function DashboardPage() {
             + Project Baru
           </Link>
         </div>
+
+        {/* Finance overview — Owner / Finance / Directors only */}
+        {overview && overviewRange && (
+          <FinanceOverviewCard data={overview} range={overviewRange} setRange={setOverviewRange} />
+        )}
 
         {/* Stats cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -283,6 +300,85 @@ function ProjectRow({ project: p, canEdit, onChanged }) {
 
 function formatRupiah(n) {
   return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID')
+}
+
+// Compact display: "Rp 6,6 M" (miliar) / "Rp 234 jt" (juta) / plain rupiah for small values
+function formatCompactRupiah(n) {
+  const v = Math.round(n || 0)
+  const abs = Math.abs(v)
+  if (abs >= 1_000_000_000) return `Rp ${(v / 1_000_000_000).toFixed(1).replace('.', ',')} M`
+  if (abs >= 1_000_000) return `Rp ${Math.round(v / 1_000_000)} jt`
+  return formatRupiah(v)
+}
+
+const MONTH_LABEL = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+
+function MonthYearSelect({ value, onChange }) {
+  const [y, m] = value.split('-').map(Number)
+  const years = []
+  const nowY = new Date().getFullYear()
+  for (let yr = nowY - 2; yr <= nowY + 1; yr++) years.push(yr)
+  return (
+    <div className="flex items-center gap-1">
+      <select className="select text-xs py-1" value={m} onChange={e => onChange(`${y}-${String(Number(e.target.value)).padStart(2, '0')}`)}>
+        {MONTH_LABEL.map((lbl, i) => <option key={i} value={i + 1}>{lbl}</option>)}
+      </select>
+      <select className="select text-xs py-1" value={y} onChange={e => onChange(`${e.target.value}-${String(m).padStart(2, '0')}`)}>
+        {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
+      </select>
+    </div>
+  )
+}
+
+function FinanceOverviewCard({ data, range, setRange }) {
+  const cards = [
+    { key: 'omset', label: 'Total Omset', value: formatCompactRupiah(data.totalOmset), sub: `${MONTH_LABEL[Number(range.from.split('-')[1]) - 1]} ${range.from.split('-')[0]} – ${MONTH_LABEL[Number(range.to.split('-')[1]) - 1]} ${range.to.split('-')[0]}`, icon: '📈', color: 'blue' },
+    { key: 'ekspektasi', label: 'Ekspektasi Profit', value: formatCompactRupiah(data.ekspektasiProfit), sub: 'estimasi margin vs forecast', icon: '📊', color: 'emerald' },
+    { key: 'aktual', label: 'Aktual Nett Profit', value: formatCompactRupiah(data.aktualNettProfit), sub: 'margin aktual − opex', icon: '✅', color: 'emerald' },
+    { key: 'opex', label: 'Total Opex', value: formatCompactRupiah(data.totalOpex), sub: 'biaya operasional', icon: '↙️', color: 'rose' },
+    { key: 'piutang', label: 'Piutang', value: formatCompactRupiah(data.piutang.amount), sub: `${data.piutang.count} project invoicing`, icon: '📄', color: 'orange' },
+    { key: 'pitchgagal', label: 'Pitch Gagal', value: formatCompactRupiah(data.pitchGagal.value), sub: `Profit hilang: ${formatCompactRupiah(data.pitchGagal.lostProfit)}`, icon: '📉', color: 'rose' },
+    { key: 'aset', label: 'Total Nilai Aset', value: formatCompactRupiah(data.totalNilaiAset.value), sub: `${data.totalNilaiAset.count} aset tercatat`, icon: '🗂️', color: 'blue' },
+    { key: 'hutang', label: 'Total Hutang Aktif', value: formatCompactRupiah(data.totalHutangAktif.value), sub: `Bunga/bln: ${formatCompactRupiah(data.totalHutangAktif.monthlyInterest)}`, icon: '🏦', color: 'rose' },
+  ]
+  const colorMap = {
+    blue: { border: 'border-blue-400', bg: 'bg-blue-100', text: 'text-blue-600' },
+    emerald: { border: 'border-emerald-400', bg: 'bg-emerald-100', text: 'text-emerald-600' },
+    orange: { border: 'border-orange-400', bg: 'bg-orange-100', text: 'text-orange-600' },
+    rose: { border: 'border-rose-400', bg: 'bg-rose-100', text: 'text-rose-600' },
+  }
+  return (
+    <div className="card p-5 border-t-4 border-indigo-400">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-2 border-b border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs">💼</span>
+          Overview Keuangan Perusahaan
+        </h3>
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <span>Dari</span>
+          <MonthYearSelect value={range.from} onChange={v => setRange(r => ({ ...r, from: v }))} />
+          <span>Sampai</span>
+          <MonthYearSelect value={range.to} onChange={v => setRange(r => ({ ...r, to: v }))} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {cards.map(c => {
+          const cm = colorMap[c.color]
+          return (
+            <div key={c.key} className={`p-3 rounded-xl border-t-4 ${cm.border} bg-gray-50`}>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-gray-500">{c.label}</p>
+                <span className={`w-5 h-5 rounded-full ${cm.bg} ${cm.text} flex items-center justify-center text-[10px]`}>{c.icon}</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900 mt-1">{c.value}</p>
+              <p className="text-[11px] text-gray-400 mt-0.5 truncate">{c.sub}</p>
+            </div>
+          )
+        })}
+      </div>
+      <p className="text-[11px] text-gray-400 mt-3">Hanya terlihat oleh Direksi & Management.</p>
+    </div>
+  )
 }
 
 function CashPositionCard({ data }) {
