@@ -114,6 +114,17 @@ export default function AdminUsersPanel() {
     }
   }
 
+  const removeUser = async (u) => {
+    if (!confirm(`Hapus akun ${u.name} secara permanen? Tindakan ini tidak bisa dibatalkan. Jika akun ini sudah resign tapi punya riwayat project/task, sebaiknya set status "Tidak Aktif" saja.`)) return
+    const res = await fetch(`/api/admin/users/${u.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      load()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      alert(d.error || 'Gagal menghapus akun')
+    }
+  }
+
   const submitResetPassword = async (id) => {
     if (resetPassword.length < 6) { alert('Password minimal 6 karakter'); return }
     const res = await fetch(`/api/admin/users/${id}`, {
@@ -262,6 +273,9 @@ export default function AdminUsersPanel() {
                       <button onClick={() => { setResetPasswordId(resetPasswordId === u.id ? null : u.id); setResetPassword('') }} className="text-xs text-gray-400 hover:underline">Reset Password</button>
                       {u.role !== 'OWNER' && (
                         <button onClick={() => loginAs(u)} className="text-xs text-amber-600 hover:underline">Login sebagai</button>
+                      )}
+                      {u.role !== 'OWNER' && (
+                        <button onClick={() => removeUser(u)} className="text-xs text-red-500 hover:underline">Hapus</button>
                       )}
                     </td>
                   </>

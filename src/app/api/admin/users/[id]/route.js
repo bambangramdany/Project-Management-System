@@ -47,3 +47,32 @@ export async function PATCH(req, { params }) {
 
   return NextResponse.json(user)
 }
+
+export async function DELETE(req, { params }) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (session.user.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const existing = await prisma.user.findUnique({ where: { id: params.id } })
+  if (!existing) return NextResponse.json({ error: 'Tidak ditemukan' }, { status: 404 })
+  if (existing.role === 'OWNER') return NextResponse.json({ error: 'Akun Owner tidak bisa dihapus' }, { status: 400 })
+  if (existing.id === session.user.id) return NextResponse.json({ error: 'Tidak bisa menghapus akun sendiri' }, { status: 400 })
+
+  try {
+    await prisma.user.delete({ where: { id: params.id } })
+  } catch (e) {
+    return NextResponse.json({
+      error: 'Tidak bisa menghapus akun ini karena masih memiliki data terkait (project, task, payment, dll). Set status menjadi "Tidak Aktif" sebagai gantinya.',
+    }, { status: 400 })
+  }
+
+  await logAudit({
+    userId: session.user.id,
+    action: 'USER_DELETE',
+    entity: 'User',
+    entityId: params.id,
+    summary: `${session.user.name} menghapus akun ${existing.name}`,
+  })
+
+  return NextResponse.json({ ok: true })
+}
