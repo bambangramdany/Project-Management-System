@@ -422,6 +422,10 @@ model Project {
   payments  PaymentRequest[]
   receivables Receivable[]
   scores    ProjectScore[]
+
+  @@index([status])
+  @@index([division])
+  @@index([picId])
 }
 
 enum ProjectStatus {
@@ -518,6 +522,8 @@ model Task {
   assignee     User?            @relation(fields: [assigneeId], references: [id])
   dependencies TaskDependency[] @relation("DependentTask")
   dependents   TaskDependency[] @relation("RequiredTask")
+
+  @@index([projectId])
 }
 
 enum TaskStatus {
@@ -596,6 +602,8 @@ model ProjectBudgetItem {
 
   project  Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   payments PaymentRequest[]
+
+  @@index([projectId])
 }
 
 model PaymentRequest {
@@ -635,6 +643,10 @@ model PaymentRequest {
   financeBy   User?              @relation("PaymentFinanceBy", fields: [financeById], references: [id])
   budgetItem  ProjectBudgetItem? @relation(fields: [budgetItemId], references: [id])
   cashTransaction CashTransaction?
+
+  @@index([status])
+  @@index([projectId])
+  @@index([createdAt])
 }
 
 model TaskDependency {
