@@ -16,7 +16,8 @@ export function canScoreKpiClient(evaluator, target) {
   return ['CREATIVE_LEAD', 'FINANCE'].includes(evaluator.role)
 }
 
-export default function KpiPanel({ user, session }) {
+export default function KpiPanel({ user, session, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen)
   const [items, setItems] = useState(KPI_BY_ROLE[user.role] || [])
   const [period] = useState(resolveKpiPeriod())
   const today = new Date()
@@ -60,17 +61,29 @@ export default function KpiPanel({ user, session }) {
     avgByKey[it.key] = vals.length ? (vals.reduce((s, a) => s + a.score, 0) / vals.length) : null
   })
 
+  const filledCount = items.filter(it => scores[it.key]).length
+  const myAvg = filledCount ? items.reduce((s, it) => s + (scores[it.key] || 0), 0) / items.length : null
+
   return (
-    <div className="mb-4 p-3 rounded-lg bg-brand-50 border border-brand-100">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold text-brand-700 uppercase tracking-wide">KPI — {user.jobTitle || user.role} · {period}</p>
-        {canScore && (
-          <span className="text-xs text-gray-400">
-            {session?.user.id === user.id ? 'Penilaian Diri (Self-Assessment)' : 'Penilaian Atasan'}
-          </span>
-        )}
-        {!canScore && <span className="text-xs text-gray-400">Hanya superior/pemberi task yang bisa menilai</span>}
-      </div>
+    <div className="mb-2 rounded-lg bg-brand-50 border border-brand-100 overflow-hidden">
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between gap-3 p-3 text-left hover:bg-brand-100/50 transition-colors">
+        <div>
+          <p className="text-sm font-semibold text-ink-800">{user.name}</p>
+          <p className="text-xs text-gray-500">{user.jobTitle || user.role} · {period}</p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          {canScore && (
+            <span className="text-xs text-gray-400">
+              {session?.user.id === user.id ? 'Penilaian Diri' : 'Penilaian Atasan'}
+            </span>
+          )}
+          {myAvg != null && <span className="text-sm font-bold text-brand-700">{myAvg.toFixed(1)}</span>}
+          {saved && <span className="text-xs text-green-600">Tersimpan ✓</span>}
+          <span className="text-gray-400">{open ? '▲' : '▼'}</span>
+        </div>
+      </button>
+      {open && (
+      <div className="px-3 pb-3">
       <KpiCriteriaEditor role={user.role} division={user.divisi} session={session} onChange={setItems} />
       {canScore && isPastDeadline && (
         <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-2 py-1.5 mb-2">
@@ -113,6 +126,8 @@ export default function KpiPanel({ user, session }) {
           </button>
           {saved && <span className="text-xs text-green-600">Tersimpan ✓</span>}
         </div>
+      )}
+      </div>
       )}
     </div>
   )
