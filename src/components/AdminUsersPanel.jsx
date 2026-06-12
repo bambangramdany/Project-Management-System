@@ -99,6 +99,21 @@ export default function AdminUsersPanel() {
     load()
   }
 
+  const loginAs = async (u) => {
+    if (!confirm(`Masuk sebagai ${u.name}? Anda bisa kembali ke akun sendiri kapan saja lewat tombol di navbar.`)) return
+    const res = await fetch('/api/admin/impersonate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: u.id }),
+    })
+    if (res.ok) {
+      window.location.href = '/dashboard'
+    } else {
+      const d = await res.json().catch(() => ({}))
+      alert(d.error || 'Gagal masuk sebagai user ini')
+    }
+  }
+
   const submitResetPassword = async (id) => {
     if (resetPassword.length < 6) { alert('Password minimal 6 karakter'); return }
     const res = await fetch(`/api/admin/users/${id}`, {
@@ -245,6 +260,9 @@ export default function AdminUsersPanel() {
                     <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                       <button onClick={() => startEdit(u)} className="text-xs text-brand-600 hover:underline">Edit</button>
                       <button onClick={() => { setResetPasswordId(resetPasswordId === u.id ? null : u.id); setResetPassword('') }} className="text-xs text-gray-400 hover:underline">Reset Password</button>
+                      {u.role !== 'OWNER' && (
+                        <button onClick={() => loginAs(u)} className="text-xs text-amber-600 hover:underline">Login sebagai</button>
+                      )}
                     </td>
                   </>
                 )}

@@ -35,8 +35,19 @@ export default function Navbar() {
     return !item.roles || item.roles.includes(session?.user.role)
   })
 
+  async function stopImpersonating() {
+    await fetch('/api/admin/impersonate/stop', { method: 'POST' })
+    window.location.href = '/settings'
+  }
+
   return (
     <nav className="bg-ink-800 sticky top-0 z-50 shadow-sm">
+      {session?.user.impersonating && (
+        <div className="bg-amber-500 text-ink-900 text-xs text-center py-1 px-2 flex items-center justify-center gap-2">
+          <span>Mode pengawasan: melihat sebagai <strong>{session.user.name}</strong></span>
+          <button onClick={stopImpersonating} className="underline font-semibold">Kembali ke akun saya</button>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative flex items-center h-14 gap-2">
           {/* Logo */}
@@ -71,7 +82,7 @@ export default function Navbar() {
                 <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 text-xs font-bold">
                   {session.user.name?.[0]?.toUpperCase()}
                 </div>
-                <span className="text-xs text-ink-200">{session.user.name}</span>
+                <Link href="/profile" className="text-xs text-ink-200 hover:text-brand-300">{session.user.name}</Link>
                 <button onClick={() => signOut({ callbackUrl: '/login' })} className="text-xs text-ink-300 hover:text-brand-300">
                   Keluar
                 </button>

@@ -26,7 +26,17 @@ export const authOptions = {
       return token
     },
     async session({ session, token }) {
-      if (token) { session.user.id = token.id; session.user.role = token.role; session.user.divisi = token.divisi }
+      if (token) {
+        session.user.id = token.id
+        session.user.role = token.role
+        session.user.divisi = token.divisi
+        session.user.name = token.name
+        session.user.email = token.email
+        if (token.impersonating) {
+          session.user.impersonating = true
+          session.user.actualUserId = token.actualUserId
+        }
+      }
       return session
     },
   },
