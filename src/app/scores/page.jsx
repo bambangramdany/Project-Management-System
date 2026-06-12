@@ -206,6 +206,7 @@ export default function ScoresPage() {
                     ))}
                     <th className="pb-2 px-2 text-center">Per Project (Event)</th>
                     <th className="pb-2 px-2 text-center">Kinerja General (Bulanan)</th>
+                    <th className="pb-2 px-2 text-center">Potongan Progress (Bulan Ini)</th>
                     <th className="pb-2 pl-2 text-center">Gabungan</th>
                   </tr>
                 </thead>
@@ -221,6 +222,15 @@ export default function ScoresPage() {
                       ))}
                       <td className="py-2 px-2 text-center text-gray-700">{fmt(summary.overall)}</td>
                       <td className="py-2 px-2 text-center text-gray-700">{fmt(summary.kpiOverall)}</td>
+                      <td className="py-2 px-2 text-center">
+                        {summary.deduction > 0 ? (
+                          <span className="text-xs text-red-600 font-semibold" title={(summary.delayedNotes || []).map(n => `${n.status}: ${n.note || '-'}`).join('\n')}>
+                            -{summary.deduction} ({summary.delayedCount} catatan, {summary.lateUpdateCount} terlambat)
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-300">-</span>
+                        )}
+                      </td>
                       <td className="py-2 pl-2 text-center font-semibold text-brand-700">{fmt(summary.combinedOverall)}</td>
                     </tr>
                   ))}

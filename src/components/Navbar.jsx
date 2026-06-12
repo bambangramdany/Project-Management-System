@@ -9,6 +9,7 @@ import { isFinanceDirector } from '@/lib/rbac'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard' },
+  { href: '/my-tasks', label: 'Tugas Saya' },
   { href: '/projects', label: 'Projects' },
   { href: '/workload', label: 'Workload Tim' },
   { href: '/scores', label: 'Nilai Tim' },

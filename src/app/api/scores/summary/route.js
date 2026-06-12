@@ -80,6 +80,17 @@ export async function GET() {
     const userIds = allUsers.map(u => u.id)
     const allScores = await prisma.projectScore.findMany({ where: { userId: { in: userIds } } })
     const allKpi = await prisma.kpiAssessment.findMany({ where: { userId: { in: userIds } } })
+
+    // Monthly progress-update deduction: missing updates (submitted after the
+    // 20:00 deadline) and Delayed/Hold/Problem statuses on assigned tasks/to-dos
+    // count against this month's performance score.
+    const now = new Date()
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+    const monthUpdates = await prisma.progressUpdate.findMany({
+      where: { userId: { in: userIds }, date: { gte: monthStart } },
+      select: { userId: true, status: true, note: true, date: true, late: true },
+    })
+
     team = allUsers.map(u => {
       const project = aggregate(allScores.filter(s => s.userId === u.id), criteria)
       const kpiForUser = allKpi.filter(a => a.userId === u.id)
@@ -88,7 +99,14 @@ export async function GET() {
       const kpiOverall = kpiCount ? kpiSum / kpiCount : null
       const combinedSum = (project.overall ?? 0) * project.count + kpiSum
       const combinedCount = project.count + kpiCount
-      const combinedOverall = combinedCount ? combinedSum / combinedCount : null
+      const combinedOverallRaw = combinedCount ? combinedSum / combinedCount : null
+
+      const userUpdates = monthUpdates.filter(m => m.userId === u.id)
+      const delayedNotes = userUpdates.filter(m => ['DELAYED', 'HOLD', 'PROBLEM'].includes(m.status))
+      const lateCount = userUpdates.filter(m => m.late).length
+      const deduction = delayedNotes.length * 0.5 + lateCount * 1
+      const combinedOverall = combinedOverallRaw != null ? Math.max(0, combinedOverallRaw - deduction) : combinedOverallRaw
+
       return {
         user: u,
         summary: {
@@ -96,6 +114,10 @@ export async function GET() {
           kpiOverall,
           kpiCount,
           combinedOverall,
+          deduction,
+          delayedCount: delayedNotes.length,
+          lateUpdateCount: lateCount,
+          delayedNotes: delayedNotes.map(n => ({ status: n.status, note: n.note, date: n.date })),
         },
       }
     })
