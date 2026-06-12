@@ -85,6 +85,7 @@ export async function POST(req) {
       status: body.status || 'HOLD',
       pitchStatus: body.pitchStatus || null,
       notes: body.notes || null,
+      quotationNumber: body.quotationNumber || null,
     },
     include: { client: true, pic: true },
   })

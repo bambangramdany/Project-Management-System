@@ -67,6 +67,10 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  if (!project.quotationNumber || !project.quotationNumber.trim()) {
+    return NextResponse.json({ error: 'Nomor quotation untuk project ini belum diisi. Lengkapi nomor quotation di halaman Finance project sebelum mengajukan pembayaran.' }, { status: 400 })
+  }
+
   const budgetItemCount = await prisma.projectBudgetItem.count({ where: { projectId: body.projectId } })
   if (budgetItemCount === 0) {
     return NextResponse.json({ error: 'Forecast budget project ini belum diisi oleh PM/PIC. Lengkapi forecast budget terlebih dahulu sebelum mengajukan pembayaran.' }, { status: 400 })

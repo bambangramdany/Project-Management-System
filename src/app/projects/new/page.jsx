@@ -16,7 +16,7 @@ export default function NewProjectPage() {
   const [form, setForm] = useState({
     name: '', clientId: '', category: 'MEETING_CONFERENCE', budgetTier: 'MEDIUM',
     eventComplexity: 'MEDIUM', recommendation: 'MAINTAIN', picId: '', division: 'EVENT',
-    briefDate: '', startDate: '', endDate: '', loadInDays: '', status: 'HOLD', pitchStatus: 'PITCH', notes: '',
+    briefDate: '', startDate: '', endDate: '', loadInDays: '', status: 'HOLD', pitchStatus: 'PITCH', notes: '', quotationNumber: '',
     applySopTemplate: true,
   })
   const [multiDay, setMultiDay] = useState(false)
@@ -67,6 +67,12 @@ export default function NewProjectPage() {
           <div>
             <label className="label">Nama Project *</label>
             <input className="input" value={form.name} onChange={e => set('name', e.target.value)} required placeholder="Nama event / project" />
+          </div>
+
+          <div>
+            <label className="label">Nomor Quotation</label>
+            <input className="input" value={form.quotationNumber} onChange={e => set('quotationNumber', e.target.value)} placeholder="Opsional, bisa diisi nanti" />
+            <p className="text-xs text-gray-400 mt-1">Tidak wajib saat ini, tapi wajib diisi sebelum tim bisa mengajukan pembayaran untuk project ini.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
