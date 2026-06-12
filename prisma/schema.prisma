@@ -44,6 +44,7 @@ model User {
   cashTransactions      CashTransaction[]
   opexEntries           OpexEntry[]
   assets                Asset[]
+  taskComments          TaskComment[]
 }
 
 // Global audit trail of important changes across the system, for Direksi/Owner
@@ -567,8 +568,24 @@ model Task {
   dependents   TaskDependency[] @relation("RequiredTask")
 
   progressUpdates ProgressUpdate[]
+  comments        TaskComment[]
 
   @@index([projectId])
+}
+
+// Discussion thread on a project task — team members can comment and @mention
+// each other; mentioned users (and the task assignee) get a notification.
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
 }
 
 enum TaskStatus {

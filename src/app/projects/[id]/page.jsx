@@ -22,6 +22,10 @@ export default function ProjectDetailPage() {
   const [saving, setSaving] = useState(false)
   const [activity, setActivity] = useState([])
   const [activityLoaded, setActivityLoaded] = useState(false)
+  const [openCommentsTaskId, setOpenCommentsTaskId] = useState(null)
+  const [comments, setComments] = useState({})
+  const [commentText, setCommentText] = useState({})
+  const [mentionBox, setMentionBox] = useState(null) // { taskId, query }
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -89,6 +93,55 @@ export default function ProjectDetailPage() {
     if (!confirm('Hapus task ini?')) return
     await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' })
     fetchProject()
+  }
+
+  async function toggleComments(taskId) {
+    if (openCommentsTaskId === taskId) {
+      setOpenCommentsTaskId(null)
+      return
+    }
+    setOpenCommentsTaskId(taskId)
+    if (!comments[taskId]) {
+      const res = await fetch(`/api/tasks/${taskId}/comments`)
+      if (res.ok) {
+        const data = await res.json()
+        setComments(c => ({ ...c, [taskId]: data }))
+      }
+    }
+  }
+
+  async function sendComment(taskId) {
+    const content = (commentText[taskId] || '').trim()
+    if (!content) return
+    const res = await fetch(`/api/tasks/${taskId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    })
+    if (res.ok) {
+      const newComment = await res.json()
+      setComments(c => ({ ...c, [taskId]: [...(c[taskId] || []), newComment] }))
+      setCommentText(t => ({ ...t, [taskId]: '' }))
+      setMentionBox(null)
+      fetchProject()
+    }
+  }
+
+  function handleCommentChange(taskId, value) {
+    setCommentText(t => ({ ...t, [taskId]: value }))
+    const match = value.match(/@(\w*)$/)
+    if (match) {
+      setMentionBox({ taskId, query: match[1].toLowerCase() })
+    } else {
+      setMentionBox(null)
+    }
+  }
+
+  function insertMention(taskId, name) {
+    const current = commentText[taskId] || ''
+    const replaced = current.replace(/@(\w*)$/, `@${name.replace(/\s+/g, '_')} `)
+    setCommentText(t => ({ ...t, [taskId]: replaced }))
+    setMentionBox(null)
   }
 
   async function addMember(userId) {
@@ -227,7 +280,8 @@ export default function ProjectDetailPage() {
         {activeTab === 'tasks' && (
           <div className="space-y-2">
             {project.tasks?.map(task => (
-              <div key={task.id} className={`card px-4 py-3 flex items-start gap-3 hover:shadow-sm transition-all duration-200 ${task.status === 'BLOCKED' ? 'opacity-60' : ''}`}>
+              <div key={task.id} className={`card px-4 py-3 ${task.status === 'BLOCKED' ? 'opacity-60' : ''}`}>
+              <div className="flex items-start gap-3 hover:shadow-sm transition-all duration-200">
                 <button
                   onClick={() => toggleTask(task.id, task.status)}
                   className={`mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all active:scale-90 ${
@@ -269,6 +323,60 @@ export default function ProjectDetailPage() {
                     <button onClick={() => deleteTask(task.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
                   )}
                 </div>
+              </div>
+
+              {/* Comments / discussion */}
+              <div className="mt-2 pl-8">
+                <button onClick={() => toggleComments(task.id)} className="text-xs text-gray-400 hover:text-orange-500">
+                  💬 {openCommentsTaskId === task.id ? 'Tutup diskusi' : `Diskusi${task._count?.comments ? ` (${task._count.comments})` : ''}`}
+                </button>
+
+                {openCommentsTaskId === task.id && (
+                  <div className="mt-2 space-y-2">
+                    {(comments[task.id] || []).map(c => (
+                      <div key={c.id} className="bg-gray-50 rounded-lg px-3 py-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-gray-700">{c.author?.name}</span>
+                          <span className="text-[10px] text-gray-400">{new Date(c.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{c.content}</p>
+                      </div>
+                    ))}
+                    {(comments[task.id]?.length === 0 || !comments[task.id]) && (comments[task.id]?.length === 0) && (
+                      <p className="text-xs text-gray-400">Belum ada diskusi.</p>
+                    )}
+
+                    <div className="relative">
+                      <div className="flex gap-2">
+                        <input
+                          className="input text-sm"
+                          placeholder="Tulis komentar... ketik @ untuk tag anggota"
+                          value={commentText[task.id] || ''}
+                          onChange={e => handleCommentChange(task.id, e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter' && !mentionBox) sendComment(task.id) }}
+                        />
+                        <button onClick={() => sendComment(task.id)} className="btn-primary text-sm shrink-0">Kirim</button>
+                      </div>
+                      {mentionBox?.taskId === task.id && (
+                        <div className="absolute z-10 bg-white border border-gray-200 rounded-lg shadow-md mt-1 w-48 max-h-40 overflow-y-auto">
+                          {[project.pic, ...(project.members?.map(m => m.user) || [])]
+                            .filter(Boolean)
+                            .filter(u => u.name.toLowerCase().includes(mentionBox.query))
+                            .map(u => (
+                              <button
+                                key={u.id}
+                                onClick={() => insertMention(task.id, u.name)}
+                                className="block w-full text-left px-3 py-1.5 text-sm hover:bg-orange-50 text-gray-700"
+                              >
+                                {u.name}
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
               </div>
             ))}
 

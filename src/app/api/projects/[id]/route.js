@@ -19,6 +19,7 @@ export async function GET(req, { params }) {
         include: {
           assignee: { select: { id: true, name: true } },
           dependencies: { include: { requiredTask: { select: { id: true, title: true, status: true } } } },
+          _count: { select: { comments: true } },
         },
         orderBy: { order: 'asc' },
       },
