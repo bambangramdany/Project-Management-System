@@ -7,6 +7,14 @@
   html { -webkit-text-size-adjust: 100%; }
 }
 
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 @layer components {
   .card { @apply bg-white rounded-xl border border-gray-200 shadow-sm; }
   .btn-primary { @apply bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50; }

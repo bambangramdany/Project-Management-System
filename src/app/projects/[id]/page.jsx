@@ -201,7 +201,7 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-gray-200">
+        <div className="flex gap-1 border-b border-gray-200 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
           {['tasks', 'team', 'activity', 'info', ...(canScoreProject(session?.user, project) ? ['bonus'] : [])].map(tab => (
             <button
               key={tab}
@@ -214,7 +214,7 @@ export default function ProjectDetailPage() {
                   })
                 }
               }}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-all ${
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-all whitespace-nowrap shrink-0 ${
                 activeTab === tab ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
               }`}
             >
