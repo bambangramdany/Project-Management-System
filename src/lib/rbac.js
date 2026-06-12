@@ -136,17 +136,66 @@ export function canLockBudget(user, project) {
 // Wulan has cross-team scoring privilege (can score other PMs and any team member)
 export const CROSS_TEAM_PM_EMAIL = 'wulan@watermark.co.id'
 
-// Roles that may act as evaluator (superior / task giver, or the person themselves for self-assessment)
+// Creative-division peers who may evaluate each other (excluding direksi)
+const CREATIVE_PEER_EMAILS = [
+  'jennifer@watermark.co.id', 'kres@watermark.co.id', 'saffira@watermark.co.id', 'noval@watermark.co.id',
+]
+
+// Explicit KPI-scoring org chart per division (in addition to self-assessment,
+// which is always allowed). Mirrors the company's reporting structure so each
+// person only sees/scores the teammates relevant to them.
 export function canScoreKpi(evaluator, target) {
   if (!evaluator || !target) return false
   // Self-assessment: everyone may score their own monthly KPI
   if (evaluator.id === target.id) return true
-  if (evaluator.role === 'OWNER') return true
-  if (['OWNER', 'DIRECTOR'].includes(target.role)) return false
-  if (evaluator.role === 'DIRECTOR') return evaluator.divisi === target.divisi
-  if (evaluator.email === CROSS_TEAM_PM_EMAIL) return true
-  if (evaluator.role === 'PROJECT_MANAGER') return target.role !== 'PROJECT_MANAGER'
-  if (['CREATIVE_LEAD', 'FINANCE'].includes(evaluator.role)) return true
+
+  const eEmail = evaluator.email
+  const tEmail = target.email
+
+  // Owner: can score anyone except fellow Direksi/Owner (those are peers —
+  // handled informally / via anonymous notes, not formal KPI scoring)
+  if (evaluator.role === 'OWNER') return !['OWNER', 'DIRECTOR'].includes(target.role)
+
+  // Division Directors: score everyone below in their own division
+  if (evaluator.role === 'DIRECTOR') {
+    if (['OWNER', 'DIRECTOR'].includes(target.role)) return false
+    return evaluator.divisi === target.divisi
+  }
+
+  // ── Event division ──────────────────────────────────────────────────
+  // Wulan: all non-direksi across the company, including Creative
+  if (eEmail === CROSS_TEAM_PM_EMAIL) return !['OWNER', 'DIRECTOR'].includes(target.role)
+
+  // Irham: everyone below (non-PM), plus Wulan specifically
+  if (eEmail === 'irham@watermark.co.id') {
+    if (['OWNER', 'DIRECTOR'].includes(target.role)) return false
+    if (tEmail === CROSS_TEAM_PM_EMAIL) return true
+    return target.role !== 'PROJECT_MANAGER'
+  }
+
+  // Putra -> Eca
+  if (eEmail === 'putra@watermark.co.id') return tEmail === 'eca@watermark.co.id'
+
+  // Doddi <-> Reghy, both also score Boni
+  if (eEmail === 'doddi@watermark.co.id') return ['reghy@watermark.co.id', 'boni@watermark.co.id'].includes(tEmail)
+  if (eEmail === 'reghy@watermark.co.id') return ['doddi@watermark.co.id', 'boni@watermark.co.id'].includes(tEmail)
+
+  // ── PH division ──────────────────────────────────────────────────────
+  // Bastya <-> Jamal
+  if (eEmail === 'bastya@watermark.co.id') return tEmail === 'jamal@watermark.co.id'
+  if (eEmail === 'jamal@watermark.co.id') return tEmail === 'bastya@watermark.co.id'
+
+  // ── Creative division ───────────────────────────────────────────────
+  // Jennifer/Kres/Saffira/Noval can score each other (and other creative
+  // members), but not direksi
+  if (CREATIVE_PEER_EMAILS.includes(eEmail)) {
+    return target.divisi === 'CREATIVE' && !['OWNER', 'DIRECTOR'].includes(target.role)
+  }
+
+  // ── Finance / HR / GA division ──────────────────────────────────────
+  // Antoni -> Bima
+  if (eEmail === 'antoni@watermark.co.id') return tEmail === 'bima@watermark.co.id'
+
   return false
 }
 

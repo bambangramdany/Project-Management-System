@@ -46,10 +46,7 @@ export default function ScoresPage() {
     fetch('/api/team').then(r => r.json()).then(members => {
       const list = Array.isArray(members) ? members : []
       setDirectors(list.filter(m => ['DIRECTOR', 'OWNER'].includes(m.role) && m.id !== session.user.id))
-      // Owner/Direksi tidak menilai sesama direksi/owner di sini (mereka setara,
-      // kekurangan dibicarakan langsung; tim di bawah bisa kirim catatan anonim).
       const scoreable = list.filter(m => canScoreKpiClient(session.user, m))
-        .filter(m => session.user.role !== 'OWNER' || !['OWNER', 'DIRECTOR'].includes(m.role))
         .sort((a, b) => a.name.localeCompare(b.name))
       setTeam(scoreable)
     })

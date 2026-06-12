@@ -1,20 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { KPI_BY_ROLE, KPI_SCORE_LABEL, KPI_DEADLINE_DAY, resolveKpiPeriod } from '@/lib/constants'
-import { CROSS_TEAM_PM_EMAIL } from '@/lib/rbac'
+import { canScoreKpi as canScoreKpiClient } from '@/lib/rbac'
 import KpiCriteriaEditor from '@/components/KpiCriteriaEditor'
 
-export function canScoreKpiClient(evaluator, target) {
-  if (!evaluator || !target) return false
-  // Self-assessment: everyone may score their own monthly KPI
-  if (evaluator.id === target.id) return true
-  if (evaluator.role === 'OWNER') return true
-  if (['OWNER', 'DIRECTOR'].includes(target.role)) return false
-  if (evaluator.role === 'DIRECTOR') return evaluator.divisi === target.divisi
-  if (evaluator.email === CROSS_TEAM_PM_EMAIL) return true
-  if (evaluator.role === 'PROJECT_MANAGER') return target.role !== 'PROJECT_MANAGER'
-  return ['CREATIVE_LEAD', 'FINANCE'].includes(evaluator.role)
-}
+export { canScoreKpiClient }
 
 export default function KpiPanel({ user, session, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
