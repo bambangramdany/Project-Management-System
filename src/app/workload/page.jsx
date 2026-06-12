@@ -9,6 +9,7 @@ import clsx from 'clsx'
 import { KPI_BY_ROLE, KPI_SCORE_LABEL, KPI_DEADLINE_DAY, resolveKpiPeriod, STATUS_PIPELINE, STATUS_LABEL } from '@/lib/constants'
 import { CROSS_TEAM_PM_EMAIL } from '@/lib/rbac'
 import KpiCriteriaEditor from '@/components/KpiCriteriaEditor'
+import KpiPanel from '@/components/KpiPanel'
 
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
 
