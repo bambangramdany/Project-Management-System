@@ -2,7 +2,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canScoreProject, canScoreProjectMember, canViewAllScores } from '@/lib/rbac'
-import { notifyManagement } from '@/lib/notify'
 import { NextResponse } from 'next/server'
 
 export async function GET(req, { params }) {
@@ -72,15 +71,6 @@ export async function POST(req, { params }) {
       },
     })
   ))
-
-  await notifyManagement({
-    excludeUserId: session.user.id,
-    division: target.divisi || project.division,
-    type: 'PROJECT_SCORE',
-    title: 'Penilaian Per-Project Baru',
-    message: `${session.user.name} menilai ${target.name} untuk project ${project.code} - ${project.name}`,
-    link: `/projects/${project.id}`,
-  })
 
   return NextResponse.json(results, { status: 201 })
 }

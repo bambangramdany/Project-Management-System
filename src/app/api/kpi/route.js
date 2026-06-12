@@ -2,7 +2,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canScoreKpi, canViewKpiSummary } from '@/lib/rbac'
-import { notifyManagement } from '@/lib/notify'
 import { KPI_DEADLINE_DAY } from '@/lib/constants'
 import { NextResponse } from 'next/server'
 
@@ -80,18 +79,6 @@ export async function POST(req) {
       },
     })
   ))
-
-  const isSelf = session.user.id === target.id
-  await notifyManagement({
-    excludeUserId: session.user.id,
-    division: target.divisi,
-    type: 'KPI_ASSESSMENT',
-    title: 'Penilaian KPI Bulanan Baru',
-    message: isSelf
-      ? `${target.name} mengisi self-assessment KPI periode ${body.period}`
-      : `${session.user.name} menilai KPI ${target.name} periode ${body.period}`,
-    link: '/scores',
-  })
 
   return NextResponse.json(results, { status: 201 })
 }

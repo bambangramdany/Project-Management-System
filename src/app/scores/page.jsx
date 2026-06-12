@@ -33,6 +33,8 @@ export default function ScoresPage() {
   const [kpiExpanded, setKpiExpanded] = useState(null)
   const [kpiCriteriaMap, setKpiCriteriaMap] = useState({})
   const [team, setTeam] = useState([])
+  const [reminding, setReminding] = useState(false)
+  const [reminded, setReminded] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -84,6 +86,14 @@ export default function ScoresPage() {
   }
 
   const canSubmitNote = !['OWNER', 'DIRECTOR'].includes(session.user.role)
+
+  const sendReminders = async () => {
+    setReminding(true)
+    const res = await fetch('/api/kpi/remind', { method: 'POST' })
+    const result = res.ok ? await res.json() : null
+    setReminding(false)
+    setReminded(result)
+  }
 
   const submitNote = async (e) => {
     e.preventDefault()
@@ -285,8 +295,20 @@ export default function ScoresPage() {
                   <p className="text-sm font-semibold text-ink-800">Detail KPI Bulanan</p>
                   <p className="text-xs text-gray-500">Rincian penilaian KPI per anggota untuk periode terpilih</p>
                 </div>
-                <input type="month" className="input w-auto" value={kpiPeriod} onChange={e => setKpiPeriod(e.target.value)} />
+                <div className="flex items-center gap-2">
+                  <input type="month" className="input w-auto" value={kpiPeriod} onChange={e => setKpiPeriod(e.target.value)} />
+                  <button onClick={sendReminders} disabled={reminding} className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap">
+                    {reminding ? 'Mengirim...' : 'Kirim Reminder ke Belum Mengisi'}
+                  </button>
+                </div>
               </div>
+              {reminded && (
+                <p className="text-xs text-gray-500 mb-2">
+                  {reminded.remindedCount === 0
+                    ? 'Semua penilai sudah mengisi KPI periode ini. Tidak ada reminder dikirim.'
+                    : `Reminder dikirim ke ${reminded.remindedCount} penilai yang belum mengisi.`}
+                </p>
+              )}
 
               {evaluators.length > 0 && (
                 <div className="mb-3 p-3 rounded-lg border-l-4 border-red-400 bg-red-50">
