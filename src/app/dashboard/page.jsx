@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
@@ -44,31 +44,31 @@ export default function DashboardPage() {
     })
   }
 
-  useEffect(() => {
-    if (status === 'authenticated') fetchProjects()
-  }, [status])
-
+  // One combined request: projects + role-gated finance widgets, fetched
+  // server-side in parallel instead of 4-5 separate client round-trips.
   useEffect(() => {
     if (status !== 'authenticated') return
-    const role = session.user.role
-    if (role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) {
-      fetch('/api/cashflow/position').then(r => r.ok ? r.json() : null).then(setCashPosition)
-    } else if (role === 'DIRECTOR') {
-      fetch('/api/cashflow/summary').then(r => r.ok ? r.json() : null).then(setCashSummary)
-    }
-    if (role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)) {
-      fetch('/api/debts/summary').then(r => r.ok ? r.json() : null).then(setDebtSummary)
-    }
-    if (role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)) {
-      const y = new Date().getFullYear()
-      setOverviewRange({ from: `${y}-01`, to: `${y}-12` })
-    }
-  }, [status, session])
+    fetch('/api/dashboard/summary').then(r => r.ok ? r.json() : null).then(data => {
+      if (!data) { setLoading(false); return }
+      setProjects(Array.isArray(data.projects) ? data.projects : [])
+      if (data.cashPosition) setCashPosition(data.cashPosition)
+      if (data.cashSummary) setCashSummary(data.cashSummary)
+      if (data.debtSummary) setDebtSummary(data.debtSummary)
+      if (data.overview) {
+        setOverview(data.overview)
+        skipNextOverviewFetch.current = true
+        setOverviewRange({ from: data.overview.from, to: data.overview.to })
+      }
+      setLoading(false)
+    })
+  }, [status])
 
+  const skipNextOverviewFetch = useRef(false)
   useEffect(() => {
     if (!overviewRange) return
+    if (skipNextOverviewFetch.current) { skipNextOverviewFetch.current = false; return }
     const params = new URLSearchParams(overviewRange)
-    fetch(`/api/finance/overview?${params}`).then(r => r.ok ? r.json() : null).then(setOverview)
+    fetch(`/api/finance/overview?${params}`).then(r => r.ok ? r.json() : null).then(data => { if (data) setOverview(data) })
   }, [overviewRange])
 
   if (status === 'loading' || loading) return <LoadingScreen />
