@@ -25,6 +25,7 @@ function ProjectsContent() {
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || '')
   const [filterCategory, setFilterCategory] = useState('')
+  const [filterMonth, setFilterMonth] = useState('')
   const [search, setSearch] = useState('')
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
@@ -72,17 +73,6 @@ function ProjectsContent() {
   const isManager = canViewAllProjects(session?.user.role)
   const canQuickEdit = canQuickEditProjects(session?.user)
 
-  const visibleProjects = projects.filter(p => {
-    const isPh = p.division === 'PH'
-    if (isPh && !showPH) return false
-    if (!isPh && !showEO) return false
-    if (involvedOnly) {
-      const isInvolved = p.picId === session?.user.id || p.members?.some(m => m.user?.id === session?.user.id)
-      if (!isInvolved) return false
-    }
-    return true
-  })
-
   const FINISHED_STATUSES = ['DONE', 'FAILED', 'CANCELED']
   function relevantDate(p) {
     switch (p.status) {
@@ -98,9 +88,27 @@ function ProjectsContent() {
       case 'HOLD':
         return p.briefDate || p.startDate
       default:
-        return null
+        return p.startDate || p.endDate || p.submitDate || p.briefDate
     }
   }
+
+  const visibleProjects = projects.filter(p => {
+    const isPh = p.division === 'PH'
+    if (isPh && !showPH) return false
+    if (!isPh && !showEO) return false
+    if (involvedOnly) {
+      const isInvolved = p.picId === session?.user.id || p.members?.some(m => m.user?.id === session?.user.id)
+      if (!isInvolved) return false
+    }
+    if (filterMonth) {
+      const d = relevantDate(p)
+      if (!d) return false
+      const ym = new Date(d).toISOString().slice(0, 7) // YYYY-MM
+      if (ym !== filterMonth) return false
+    }
+    return true
+  })
+
   visibleProjects.sort((a, b) => {
     const aFinished = FINISHED_STATUSES.includes(a.status)
     const bFinished = FINISHED_STATUSES.includes(b.status)
@@ -303,6 +311,18 @@ function ProjectsContent() {
                 <option key={k} value={k}>{v}</option>
               ))}
             </select>
+            <input
+              type="month"
+              className="input sm:w-40 transition-shadow focus:shadow-sm"
+              value={filterMonth}
+              onChange={e => setFilterMonth(e.target.value)}
+              title="Filter berdasarkan bulan pelaksanaan project"
+            />
+            {filterMonth && (
+              <button type="button" onClick={() => setFilterMonth('')} className="text-xs text-gray-400 hover:text-red-500 px-2 self-center">
+                ✕ Hapus filter bulan
+              </button>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100">
             <span className="text-xs text-gray-500 mr-1">Divisi:</span>
