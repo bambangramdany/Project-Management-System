@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { canViewAllProjects, isFinanceDirector } from '@/lib/rbac'
+import { canViewAllProjects, isFinanceDirector, CROSS_TEAM_PM_EMAIL } from '@/lib/rbac'
 import { computeProjectHealth } from '@/lib/health'
 import { getCashPosition, getCashSummary, getDebtSummary, getFinanceOverview } from '@/lib/dashboardData'
 import { NextResponse } from 'next/server'
@@ -17,8 +17,14 @@ export async function GET(req) {
   const finDirector = isFinanceDirector(session.user)
   const { searchParams } = new URL(req.url)
 
+  // Full visibility on the dashboard is reserved for Owner/Direksi/Finance and
+  // the cross-team PM (Wulan). Regular Project Managers only see projects
+  // they're actually involved in (as PIC or member) — otherwise the dashboard
+  // gets flooded with every project across both divisions, including ones
+  // they have nothing to do with.
+  const isCrossTeamPM = session.user.email === CROSS_TEAM_PM_EMAIL
   const where = {}
-  if (!canViewAllProjects(role)) {
+  if (!canViewAllProjects(role) || (role === 'PROJECT_MANAGER' && !isCrossTeamPM)) {
     where.OR = [
       { picId: session.user.id },
       { members: { some: { userId: session.user.id } } },
