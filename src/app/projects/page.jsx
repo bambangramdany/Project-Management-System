@@ -83,6 +83,37 @@ function ProjectsContent() {
     return true
   })
 
+  const FINISHED_STATUSES = ['DONE', 'FAILED', 'CANCELED']
+  function relevantDate(p) {
+    switch (p.status) {
+      case 'PITCHING':
+      case 'WAITING_PITCH_RESULT':
+        return p.submitDate || p.briefDate
+      case 'PREPARATION':
+      case 'EVENT_DAY':
+        return p.startDate
+      case 'REPORTING':
+      case 'INVOICING':
+        return p.endDate || p.startDate
+      case 'HOLD':
+        return p.briefDate || p.startDate
+      default:
+        return null
+    }
+  }
+  visibleProjects.sort((a, b) => {
+    const aFinished = FINISHED_STATUSES.includes(a.status)
+    const bFinished = FINISHED_STATUSES.includes(b.status)
+    if (aFinished !== bFinished) return aFinished ? 1 : -1
+    if (aFinished && bFinished) return new Date(b.updatedAt) - new Date(a.updatedAt)
+    const aDate = relevantDate(a)
+    const bDate = relevantDate(b)
+    if (!aDate && !bDate) return 0
+    if (!aDate) return 1
+    if (!bDate) return -1
+    return new Date(aDate) - new Date(bDate)
+  })
+
   const downloadProjectTemplate = async () => {
     const XLSX = await import('xlsx')
 
