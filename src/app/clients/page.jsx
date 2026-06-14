@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 
+const EMPTY_CONTACT = { name: '', jobTitle: '', email: '', phone: '', address: '', religion: '', notes: '' }
+
 export default function ClientsPage() {
   const { status } = useSession()
   const router = useRouter()
@@ -15,6 +17,8 @@ export default function ClientsPage() {
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [expandedId, setExpandedId] = useState(null)
+  const [contactForm, setContactForm] = useState(null) // { clientId, contactId|null, ...EMPTY_CONTACT }
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -58,6 +62,50 @@ export default function ClientsPage() {
     }
   }
 
+  const toggleExpand = (id) => {
+    setContactForm(null)
+    setExpandedId(expandedId === id ? null : id)
+  }
+
+  const startAddContact = (clientId) => {
+    setContactForm({ clientId, contactId: null, ...EMPTY_CONTACT })
+  }
+
+  const startEditContact = (clientId, contact) => {
+    setContactForm({
+      clientId, contactId: contact.id,
+      name: contact.name || '', jobTitle: contact.jobTitle || '', email: contact.email || '',
+      phone: contact.phone || '', address: contact.address || '', religion: contact.religion || '', notes: contact.notes || '',
+    })
+  }
+
+  const saveContact = async () => {
+    if (!contactForm.name.trim()) { alert('Nama PIC tidak boleh kosong'); return }
+    setSaving(true)
+    const { clientId, contactId, ...fields } = contactForm
+    const url = contactId ? `/api/client-contacts/${contactId}` : `/api/clients/${clientId}/contacts`
+    const res = await fetch(url, {
+      method: contactId ? 'PATCH' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fields),
+    })
+    setSaving(false)
+    if (res.ok) {
+      setContactForm(null)
+      load()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      alert(d.error || 'Gagal menyimpan')
+    }
+  }
+
+  const deleteContact = async (contactId) => {
+    if (!confirm('Hapus PIC ini?')) return
+    const res = await fetch(`/api/client-contacts/${contactId}`, { method: 'DELETE' })
+    if (res.ok) load()
+    else alert('Gagal menghapus')
+  }
+
   const filtered = clients.filter(c => c.name.toLowerCase().includes(q.toLowerCase()))
 
   if (status === 'loading' || loading) {
@@ -74,13 +122,14 @@ export default function ClientsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Data Klien</h1>
           <p className="text-sm text-gray-500 mt-1">
             Daftar nama klien yang tercatat di sistem. Pastikan nama klien diisi dengan benar
             (jangan tertukar dengan nama project) — perbaiki di sini jika ada kesalahan, perubahan
-            akan otomatis berlaku untuk semua project terkait.
+            akan otomatis berlaku untuk semua project terkait. Klik nama klien untuk melihat dan
+            mengelola kontak PIC.
           </p>
         </div>
 
@@ -99,39 +148,82 @@ export default function ClientsPage() {
               <tr className="text-left text-gray-400 text-xs border-b border-gray-100">
                 <th className="px-4 py-2.5">Nama Klien</th>
                 <th className="px-4 py-2.5">Jumlah Project</th>
+                <th className="px-4 py-2.5">PIC</th>
                 <th className="px-4 py-2.5"></th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={3} className="text-center py-10 text-gray-400 text-sm">Tidak ada klien ditemukan</td></tr>
+                <tr><td colSpan={4} className="text-center py-10 text-gray-400 text-sm">Tidak ada klien ditemukan</td></tr>
               )}
               {filtered.map(c => (
-                <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-800">
-                    {editId === c.id ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          autoFocus
-                          className="input text-sm py-1"
-                          value={editValue}
-                          onChange={e => setEditValue(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditId(null) }}
-                        />
-                        <button onClick={saveEdit} disabled={saving} className="text-xs text-brand-600 hover:underline shrink-0">{saving ? 'Menyimpan...' : 'Simpan'}</button>
-                        <button onClick={() => setEditId(null)} className="text-xs text-gray-400 hover:underline shrink-0">Batal</button>
-                      </div>
-                    ) : (
-                      c.name
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{c._count?.projects ?? 0}</td>
-                  <td className="px-4 py-3 text-right">
-                    {editId !== c.id && (
-                      <button onClick={() => startEdit(c)} className="text-xs text-brand-600 hover:underline">Edit Nama</button>
-                    )}
-                  </td>
-                </tr>
+                <>
+                  <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-800">
+                      {editId === c.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            autoFocus
+                            className="input text-sm py-1"
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditId(null) }}
+                          />
+                          <button onClick={saveEdit} disabled={saving} className="text-xs text-brand-600 hover:underline shrink-0">{saving ? 'Menyimpan...' : 'Simpan'}</button>
+                          <button onClick={() => setEditId(null)} className="text-xs text-gray-400 hover:underline shrink-0">Batal</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => toggleExpand(c.id)} className="text-left hover:text-brand-600">
+                          {expandedId === c.id ? '▾' : '▸'} {c.name}
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">{c._count?.projects ?? 0}</td>
+                    <td className="px-4 py-3 text-gray-500">{c.contacts?.length || 0}</td>
+                    <td className="px-4 py-3 text-right space-x-3 whitespace-nowrap">
+                      {editId !== c.id && (
+                        <button onClick={() => startEdit(c)} className="text-xs text-brand-600 hover:underline">Edit Nama</button>
+                      )}
+                    </td>
+                  </tr>
+                  {expandedId === c.id && (
+                    <tr className="bg-gray-50/60 border-b border-gray-100">
+                      <td colSpan={4} className="px-4 py-3">
+                        <div className="space-y-2">
+                          {c.contacts?.length === 0 && !contactForm && (
+                            <p className="text-xs text-gray-400">Belum ada data PIC untuk klien ini.</p>
+                          )}
+                          {c.contacts?.map(contact => (
+                            contactForm?.contactId === contact.id ? (
+                              <ContactFormBlock key={contact.id} form={contactForm} setForm={setContactForm} onSave={saveContact} onCancel={() => setContactForm(null)} saving={saving} />
+                            ) : (
+                              <div key={contact.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-white border border-gray-100">
+                                <div className="text-xs text-gray-600 space-y-0.5">
+                                  <p className="text-sm font-semibold text-gray-800">{contact.name}{contact.jobTitle && <span className="text-gray-400 font-normal"> · {contact.jobTitle}</span>}</p>
+                                  {contact.email && <p>Email: {contact.email}</p>}
+                                  {contact.phone && <p>Telp: {contact.phone}</p>}
+                                  {contact.address && <p>Alamat: {contact.address}</p>}
+                                  {contact.religion && <p>Agama: {contact.religion}</p>}
+                                  {contact.notes && <p className="text-gray-400">Catatan: {contact.notes}</p>}
+                                </div>
+                                <div className="flex flex-col gap-1 shrink-0 text-xs">
+                                  <button onClick={() => startEditContact(c.id, contact)} className="text-brand-600 hover:underline">Edit</button>
+                                  <button onClick={() => deleteContact(contact.id)} className="text-red-500 hover:underline">Hapus</button>
+                                </div>
+                              </div>
+                            )
+                          ))}
+                          {contactForm?.clientId === c.id && contactForm.contactId === null && (
+                            <ContactFormBlock form={contactForm} setForm={setContactForm} onSave={saveContact} onCancel={() => setContactForm(null)} saving={saving} />
+                          )}
+                          {!(contactForm?.clientId === c.id) && (
+                            <button onClick={() => startAddContact(c.id)} className="text-xs text-brand-600 hover:underline">+ Tambah PIC</button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
             </tbody>
           </table>
@@ -142,6 +234,52 @@ export default function ClientsPage() {
           judul project, gunakan tombol ✏️ di halaman <Link href="/projects" className="text-brand-600 hover:underline">detail project</Link>.
         </p>
       </main>
+    </div>
+  )
+}
+
+function ContactFormBlock({ form, setForm, onSave, onCancel, saving }) {
+  const set = (key, value) => setForm(f => ({ ...f, [key]: value }))
+  return (
+    <div className="p-3 rounded-lg bg-white border border-brand-200 space-y-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div>
+          <label className="label">Nama PIC</label>
+          <input className="input text-sm" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Nama lengkap" />
+        </div>
+        <div>
+          <label className="label">Jabatan</label>
+          <input className="input text-sm" value={form.jobTitle} onChange={e => set('jobTitle', e.target.value)} placeholder="opsional" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div>
+          <label className="label">Email</label>
+          <input type="email" className="input text-sm" value={form.email} onChange={e => set('email', e.target.value)} placeholder="opsional" />
+        </div>
+        <div>
+          <label className="label">No. Telepon</label>
+          <input className="input text-sm" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="opsional" />
+        </div>
+      </div>
+      <div>
+        <label className="label">Alamat</label>
+        <input className="input text-sm" value={form.address} onChange={e => set('address', e.target.value)} placeholder="opsional" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div>
+          <label className="label">Agama (untuk bingkisan hari raya)</label>
+          <input className="input text-sm" value={form.religion} onChange={e => set('religion', e.target.value)} placeholder="opsional" />
+        </div>
+        <div>
+          <label className="label">Catatan</label>
+          <input className="input text-sm" value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="opsional" />
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <button onClick={onSave} disabled={saving} className="btn-primary text-xs px-3 py-1.5">{saving ? 'Menyimpan...' : 'Simpan'}</button>
+        <button onClick={onCancel} className="text-xs text-gray-400 hover:underline">Batal</button>
+      </div>
     </div>
   )
 }

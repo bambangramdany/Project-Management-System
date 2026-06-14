@@ -380,6 +380,25 @@ model Client {
   createdAt DateTime  @default(now())
 
   projects  Project[]
+  contacts  ClientContact[]
+}
+
+// Individual PIC contacts for a client — a client can have multiple PICs
+// (procurement, marketing, finance, etc.). Captures details useful for
+// relationship management, including info needed for holiday gift lists.
+model ClientContact {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name      String
+  jobTitle  String?
+  email     String?
+  phone     String?
+  address   String?
+  religion  String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Vendor database — searchable directory of external vendors (venues, talent,
