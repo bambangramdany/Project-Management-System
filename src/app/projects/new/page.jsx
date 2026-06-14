@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { canViewAllProjects } from '@/lib/rbac'
-import { CATEGORY_LABEL } from '@/lib/constants'
+import { CATEGORY_LABEL, EO_CATEGORIES, PH_CATEGORIES } from '@/lib/constants'
 import Link from 'next/link'
 
 export default function NewProjectPage() {
@@ -94,11 +94,27 @@ export default function NewProjectPage() {
             </div>
           </div>
 
+          <div>
+            <label className="label">Divisi</label>
+            <select className="select" value={form.division} onChange={e => {
+              const division = e.target.value
+              const validCategories = division === 'EVENT' ? EO_CATEGORIES : division === 'PH' ? PH_CATEGORIES : Object.keys(CATEGORY_LABEL)
+              setForm(f => ({ ...f, division, category: validCategories.includes(f.category) ? f.category : validCategories[0] }))
+            }}>
+              <option value="EVENT">Event (EO)</option>
+              <option value="PH">Production House</option>
+              <option value="CREATIVE">Creative</option>
+              <option value="FINANCE_HRGA">Finance / HR / GA</option>
+            </select>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="label">Kategori *</label>
               <select className="select" value={form.category} onChange={e => set('category', e.target.value)} required>
-                {Object.entries(CATEGORY_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                {(form.division === 'EVENT' ? EO_CATEGORIES : form.division === 'PH' ? PH_CATEGORIES : Object.keys(CATEGORY_LABEL)).map(k => (
+                  <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>
+                ))}
               </select>
               <label className="mt-2 flex items-center gap-2 text-sm text-gray-600">
                 <input type="checkbox" checked={form.applySopTemplate} onChange={e => set('applySopTemplate', e.target.checked)} />
@@ -133,16 +149,6 @@ export default function NewProjectPage() {
                 <option value="EVALUATE">⚠️ Evaluate</option>
               </select>
             </div>
-          </div>
-
-          <div>
-            <label className="label">Divisi</label>
-            <select className="select" value={form.division} onChange={e => set('division', e.target.value)}>
-              <option value="EVENT">Event (EO)</option>
-              <option value="PH">Production House</option>
-              <option value="CREATIVE">Creative</option>
-              <option value="FINANCE_HRGA">Finance / HR / GA</option>
-            </select>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
