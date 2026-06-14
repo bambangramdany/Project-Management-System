@@ -88,6 +88,7 @@ function ProjectsContent() {
   const canQuickEdit = canQuickEditProjects(session?.user)
 
   const FINISHED_STATUSES = ['DONE', 'FAILED', 'CANCELED']
+  const BRIEFING_ORDER = ['PITCHING', 'WAITING_PITCH_RESULT', 'PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING']
   function relevantDate(p) {
     switch (p.status) {
       case 'PITCHING':
@@ -128,6 +129,11 @@ function ProjectsContent() {
     const bFinished = FINISHED_STATUSES.includes(b.status)
     if (aFinished !== bFinished) return aFinished ? 1 : -1
     if (aFinished && bFinished) return new Date(b.updatedAt) - new Date(a.updatedAt)
+    const aStage = BRIEFING_ORDER.indexOf(a.status)
+    const bStage = BRIEFING_ORDER.indexOf(b.status)
+    const aStageIdx = aStage === -1 ? BRIEFING_ORDER.length : aStage
+    const bStageIdx = bStage === -1 ? BRIEFING_ORDER.length : bStage
+    if (aStageIdx !== bStageIdx) return aStageIdx - bStageIdx
     const aDate = relevantDate(a)
     const bDate = relevantDate(b)
     if (!aDate && !bDate) return 0
