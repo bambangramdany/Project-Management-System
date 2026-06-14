@@ -51,7 +51,7 @@ export async function getCashflowForecast(user) {
 
 // Margin summary across won/active projects, grouped by division.
 export async function getMarginReport(user) {
-  const where = { status: { in: WON_STATUSES }, projectValue: { not: null } }
+  const where = { status: { in: WON_STATUSES }, projectValue: { not: null }, pitchResult: { not: 'LOSE' } }
   if (user.role === 'DIRECTOR' && !isFinanceDirector(user)) where.division = user.divisi
 
   const projects = await prisma.project.findMany({
@@ -93,7 +93,7 @@ export async function getMarginReport(user) {
 
 // Profitability analysis grouped by client and by category.
 export async function getProfitability() {
-  const where = { status: { in: WON_STATUSES }, projectValue: { not: null } }
+  const where = { status: { in: WON_STATUSES }, projectValue: { not: null }, pitchResult: { not: 'LOSE' } }
 
   const projects = await prisma.project.findMany({
     where,
