@@ -30,6 +30,8 @@ export default function ProjectDetailPage() {
   const [titleValue, setTitleValue] = useState('')
   const [editingClient, setEditingClient] = useState(false)
   const [clientValue, setClientValue] = useState('')
+  const [editingPic, setEditingPic] = useState(false)
+  const [picValue, setPicValue] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -76,6 +78,19 @@ export default function ProjectDetailPage() {
       body: JSON.stringify({ name: value }),
     })
     setEditingClient(false)
+    setSaving(false)
+    fetchProject()
+  }
+
+  async function savePic() {
+    if (!picValue || picValue === project.pic?.id) { setEditingPic(false); return }
+    setSaving(true)
+    await fetch(`/api/projects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ picId: picValue }),
+    })
+    setEditingPic(false)
     setSaving(false)
     fetchProject()
   }
@@ -270,7 +285,29 @@ export default function ProjectDetailPage() {
                     )}
                   </span>
                 )}
-                <span>PIC: <strong>{project.pic?.name || '—'}</strong></span>
+                {editingPic ? (
+                  <span className="flex items-center gap-2">
+                    PIC:
+                    <select
+                      autoFocus
+                      className="select text-xs py-0.5 px-1.5 w-auto"
+                      value={picValue}
+                      onChange={e => setPicValue(e.target.value)}
+                    >
+                      {team.map(u => (
+                        <option key={u.id} value={u.id}>{u.name}</option>
+                      ))}
+                    </select>
+                    <button onClick={savePic} className="text-brand-600 hover:underline">Simpan</button>
+                    <button onClick={() => setEditingPic(false)} className="text-gray-400 hover:underline">Batal</button>
+                  </span>
+                ) : (
+                  <span>PIC: <strong>{project.pic?.name || '—'}</strong>
+                    {isManager && (
+                      <button onClick={() => { setPicValue(project.pic?.id || ''); setEditingPic(true) }} className="ml-1 text-gray-300 hover:text-brand-600" title="Edit PIC">✏️</button>
+                    )}
+                  </span>
+                )}
                 {project.startDate && <span>Event: <strong>{new Date(project.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></span>}
                 {project.budgetTier && <span>Budget: <strong>{project.budgetTier}</strong></span>}
                 {project.eventComplexity && <span>Kompleksitas: <strong>{project.eventComplexity}</strong></span>}
