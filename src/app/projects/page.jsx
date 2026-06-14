@@ -329,18 +329,20 @@ function ProjectsContent() {
                 <option key={k} value={k}>{v}</option>
               ))}
             </select>
-            <input
-              type="month"
-              className="input sm:w-40 transition-shadow focus:shadow-sm"
-              value={filterMonth}
-              onChange={e => setFilterMonth(e.target.value)}
-              title="Filter berdasarkan bulan pelaksanaan project"
-            />
-            {filterMonth && (
-              <button type="button" onClick={() => setFilterMonth('')} className="text-xs text-gray-400 hover:text-red-500 px-2 self-center">
-                ✕ Hapus filter bulan
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              <input
+                type="month"
+                className="input w-full sm:w-40 transition-shadow focus:shadow-sm"
+                value={filterMonth}
+                onChange={e => setFilterMonth(e.target.value)}
+                title="Filter berdasarkan bulan pelaksanaan project"
+              />
+              {filterMonth && (
+                <button type="button" onClick={() => setFilterMonth('')} className="text-xs text-gray-400 hover:text-red-500 px-1 shrink-0">
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100">
             <span className="text-xs text-gray-500 mr-1">Divisi:</span>
