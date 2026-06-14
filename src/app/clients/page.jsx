@@ -221,8 +221,11 @@ export default function ClientsPage() {
                           <button onClick={() => setEditId(null)} className="text-xs text-gray-400 hover:underline shrink-0">Batal</button>
                         </div>
                       ) : (
-                        <button onClick={() => toggleExpand(c.id)} className="text-left hover:text-brand-600">
-                          {expandedId === c.id ? '▾' : '▸'} {c.name}
+                        <button onClick={() => toggleExpand(c.id)} className="text-left hover:text-brand-600 flex items-center gap-2 group">
+                          <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full border text-sm shrink-0 transition-colors ${expandedId === c.id ? 'bg-brand-100 border-brand-300 text-brand-600' : 'border-gray-300 text-gray-400 group-hover:border-brand-300 group-hover:text-brand-600'}`}>
+                            {expandedId === c.id ? '−' : '+'}
+                          </span>
+                          {c.name}
                         </button>
                       )}
                     </td>
