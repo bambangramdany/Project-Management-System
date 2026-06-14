@@ -486,10 +486,25 @@ model Project {
   payments  PaymentRequest[]
   receivables Receivable[]
   scores    ProjectScore[]
+  briefItems ProjectBriefItem[]
 
   @@index([status])
   @@index([division])
   @@index([picId])
+}
+
+model ProjectBriefItem {
+  id        String   @id @default(cuid())
+  projectId String
+  order     Int      @default(0)
+  question  String
+  answer    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
 }
 
 enum ProjectStatus {

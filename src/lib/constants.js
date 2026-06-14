@@ -137,6 +137,42 @@ export const DEFAULT_WORKLOAD_WEIGHTS = {
   CANCELED:             { picWeight: 0,   memberWeight: 0 },
 }
 
+// Default client-brief question templates, based on "Watermark Client Brief - General" guideline.
+export const CLIENT_BRIEF_TEMPLATES = {
+  EVENT: [
+    'Apa tujuan utama event ini? (Brand awareness / Launch / Lead generation / Sales / Community engagement)',
+    'KPI utama yang ingin dicapai?',
+    'Apakah event ini bagian dari campaign besar?',
+    'Positioning brand yang ingin diperkuat melalui event ini?',
+    'Key message utama yang harus tersampaikan ke audience?',
+    'Siapa target audience utama dan secondary audience?',
+    'Format event yang diinginkan? (Exhibition / Roadshow / Launching / Community / Hybrid)',
+    'Aktivitas utama di dalam event?',
+    'Kebutuhan media handling & digital support?',
+    'Kebutuhan community engagement (jika ada)?',
+    'Lokasi & kebutuhan operasional khusus?',
+    'Timeline pelaksanaan dan alur approval?',
+    'Range budget dan prioritas utama?',
+    'Definisi event sukses menurut klien?',
+  ],
+  PH: [
+    'Tujuan utama video ini? (Company profile / Brand / Product / Internal / Campaign)',
+    'Platform utama distribusi video?',
+    'KPI yang diharapkan dari video ini?',
+    'Persepsi brand yang ingin ditampilkan?',
+    'Key message utama yang ingin disampaikan?',
+    'Target audience utama dan level teknisnya?',
+    'Pendekatan konten yang diinginkan? (Story-driven / Informative / Process-driven / Emotional)',
+    'Elemen wajib ditampilkan (produk, aktivitas, management, dll)?',
+    'Gaya visual & tone komunikasi yang diharapkan?',
+    'Lokasi shooting & kondisi operasional?',
+    'Deliverable yang dibutuhkan (durasi, cutdown, format, subtitle)?',
+    'Timeline produksi & tahapan approval?',
+    'Range budget?',
+    'Definisi video sukses menurut klien?',
+  ],
+}
+
 // ── Finance ──────────────────────────────────────────────────────────────
 
 export const DIVISION_LABEL = {

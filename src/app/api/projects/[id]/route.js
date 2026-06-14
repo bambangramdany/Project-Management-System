@@ -23,6 +23,7 @@ export async function GET(req, { params }) {
         },
         orderBy: { order: 'asc' },
       },
+      briefItems: { orderBy: { order: 'asc' } },
     },
   })
 

@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { StatusBadge, CategoryBadge, PitchResultBadge } from '@/components/StatusBadge'
-import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, RECOMMENDATION_ICON, DIVISION_LABEL, PROJECT_SCORE_CRITERIA, KPI_SCORE_LABEL, LOSE_REASON_OPTIONS } from '@/lib/constants'
+import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, RECOMMENDATION_ICON, DIVISION_LABEL, PROJECT_SCORE_CRITERIA, KPI_SCORE_LABEL, LOSE_REASON_OPTIONS, CLIENT_BRIEF_TEMPLATES } from '@/lib/constants'
 import { canScoreProject } from '@/lib/rbac'
 import ProjectBonusTab from '@/components/ProjectBonusTab'
 import Link from 'next/link'
@@ -646,7 +646,125 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
+        {/* TAB: Info — client brief */}
+        {activeTab === 'info' && (
+          <ClientBriefSection project={project} setProject={setProject} isManager={isManager} fetchProject={fetchProject} />
+        )}
+
       </main>
+    </div>
+  )
+}
+
+function ClientBriefSection({ project, isManager, fetchProject }) {
+  const [rows, setRows] = useState(project.briefItems?.length ? project.briefItems.map(b => ({ question: b.question, answer: b.answer || '' })) : [])
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setRows(project.briefItems?.length ? project.briefItems.map(b => ({ question: b.question, answer: b.answer || '' })) : [])
+  }, [project.briefItems])
+
+  function loadTemplate() {
+    const template = CLIENT_BRIEF_TEMPLATES[project.division] || CLIENT_BRIEF_TEMPLATES.EVENT
+    setRows(template.map(q => ({ question: q, answer: '' })))
+    setEditing(true)
+  }
+
+  function addRow() {
+    setRows(r => [...r, { question: '', answer: '' }])
+  }
+
+  function removeRow(i) {
+    setRows(r => r.filter((_, idx) => idx !== i))
+  }
+
+  function updateRow(i, field, value) {
+    setRows(r => r.map((row, idx) => idx === i ? { ...row, [field]: value } : row))
+  }
+
+  async function save() {
+    setSaving(true)
+    const items = rows.filter(r => r.question.trim() !== '')
+    await fetch(`/api/projects/${project.id}/brief`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items }),
+    })
+    setSaving(false)
+    setEditing(false)
+    fetchProject()
+  }
+
+  return (
+    <div className="card p-5 space-y-3 border-t-4 border-sky-400">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <p className="text-sm font-bold text-gray-900">Brief Klien</p>
+          <p className="text-xs text-gray-500">Dokumentasi kebutuhan klien — bisa ditambah/hapus barisnya sesuai kebutuhan project.</p>
+        </div>
+        {isManager && !editing && (
+          <div className="flex items-center gap-2">
+            {rows.length === 0 && (
+              <button onClick={loadTemplate} className="text-xs text-brand-600 hover:underline font-medium">Pakai template {project.division === 'PH' ? 'Production House' : 'Event Organizer'}</button>
+            )}
+            <button onClick={() => setEditing(true)} className="text-xs text-brand-600 hover:underline font-medium">{rows.length === 0 ? 'Buat manual' : 'Edit'}</button>
+          </div>
+        )}
+      </div>
+
+      {rows.length === 0 && !editing && (
+        <p className="text-sm text-gray-400">Belum ada brief klien untuk project ini.</p>
+      )}
+
+      {!editing && rows.length > 0 && (
+        <div className="space-y-2">
+          {rows.map((r, i) => (
+            <div key={i} className="border border-gray-100 rounded-lg p-2.5">
+              <p className="text-xs font-semibold text-gray-700">{i + 1}. {r.question}</p>
+              <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{r.answer || <span className="text-gray-300">— belum diisi —</span>}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editing && (
+        <div className="space-y-2">
+          {rows.length === 0 && (
+            <div className="flex items-center gap-2 mb-2">
+              <button onClick={loadTemplate} className="text-xs text-brand-600 hover:underline font-medium">Pakai template {project.division === 'PH' ? 'Production House' : 'Event Organizer'}</button>
+            </div>
+          )}
+          {rows.map((r, i) => (
+            <div key={i} className="border border-gray-100 rounded-lg p-2.5 space-y-2">
+              <div className="flex items-start gap-2">
+                <span className="text-xs text-gray-400 mt-2 shrink-0">{i + 1}.</span>
+                <textarea
+                  className="input text-xs flex-1"
+                  rows={1}
+                  placeholder="Pertanyaan / poin brief"
+                  value={r.question}
+                  onChange={e => updateRow(i, 'question', e.target.value)}
+                />
+                <button onClick={() => removeRow(i)} className="text-xs text-red-400 hover:text-red-600 shrink-0 mt-2">Hapus</button>
+              </div>
+              <textarea
+                className="input text-sm"
+                rows={2}
+                placeholder="Jawaban / hasil diskusi dengan klien"
+                value={r.answer}
+                onChange={e => updateRow(i, 'answer', e.target.value)}
+              />
+            </div>
+          ))}
+          <div className="flex items-center gap-3">
+            <button onClick={addRow} className="text-xs text-brand-600 hover:underline font-medium">+ Tambah baris</button>
+            <div className="flex-1" />
+            <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:underline">Batal</button>
+            <button onClick={save} disabled={saving} className="btn-primary text-xs px-3 py-1.5">{saving ? 'Menyimpan...' : 'Simpan'}</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
