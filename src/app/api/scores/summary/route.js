@@ -78,7 +78,10 @@ export async function GET() {
 
   if (allUsers) {
     const userIds = allUsers.map(u => u.id)
-    const allScores = await prisma.projectScore.findMany({ where: { userId: { in: userIds } } })
+    const allScores = await prisma.projectScore.findMany({
+      where: { userId: { in: userIds } },
+      include: { project: { select: { id: true, code: true, name: true } } },
+    })
     const allKpi = await prisma.kpiAssessment.findMany({ where: { userId: { in: userIds } } })
 
     // Monthly progress-update deduction: missing updates (submitted after the
@@ -92,7 +95,19 @@ export async function GET() {
     })
 
     team = allUsers.map(u => {
-      const project = aggregate(allScores.filter(s => s.userId === u.id), criteria)
+      const userScores = allScores.filter(s => s.userId === u.id)
+      const project = aggregate(userScores, criteria)
+
+      // Per-project breakdown: how this person scored on each individual project.
+      const byProjectMap = {}
+      userScores.forEach(s => {
+        const pid = s.project?.id || s.projectId
+        if (!byProjectMap[pid]) byProjectMap[pid] = { project: s.project, scores: [] }
+        byProjectMap[pid].scores.push(s)
+      })
+      const byProject = Object.values(byProjectMap)
+        .map(({ project: p, scores }) => ({ project: p, ...aggregate(scores, criteria) }))
+        .sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0))
       const kpiForUser = allKpi.filter(a => a.userId === u.id)
       const kpiSum = kpiForUser.reduce((sum, a) => sum + a.score, 0)
       const kpiCount = kpiForUser.length
@@ -111,6 +126,7 @@ export async function GET() {
         user: u,
         summary: {
           ...project,
+          byProject,
           kpiOverall,
           kpiCount,
           combinedOverall,

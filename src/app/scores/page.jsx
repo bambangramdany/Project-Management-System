@@ -265,6 +265,29 @@ export default function ScoresPage() {
                       </div>
                     )}
                   </div>
+                  {summary.byProject && summary.byProject.length > 0 && (
+                    <details className="mt-2 text-xs">
+                      <summary className="cursor-pointer text-brand-700 font-medium hover:text-brand-800 select-none">Detail per project ({summary.byProject.length})</summary>
+                      <div className="mt-2 space-y-1.5">
+                        {summary.byProject.map(bp => (
+                          <div key={bp.project?.id || Math.random()} className="bg-gray-50 rounded-lg p-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-gray-700 font-medium truncate">{bp.project ? `${bp.project.code} — ${bp.project.name}` : 'Tanpa project'}</span>
+                              <span className="font-semibold text-brand-700 shrink-0">{fmt(bp.overall)}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-1 mt-1 text-[11px] text-gray-500">
+                              {(data.criteria || PROJECT_SCORE_CRITERIA).map(c => (
+                                <div key={c.key} className="flex justify-between gap-1">
+                                  <span className="truncate">{c.label}</span>
+                                  <span className="font-medium text-gray-700">{fmt(bp.byCriteria[c.key])}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </div>
               ))}
             </div>
@@ -286,6 +309,7 @@ export default function ScoresPage() {
                 </thead>
                 <tbody>
                   {data.team.map(({ user, summary }) => (
+                    <>
                     <tr key={user.id} className="border-t border-gray-100">
                       <td className="py-2 pr-2">
                         <p className="font-medium text-ink-800">{user.name}</p>
@@ -307,6 +331,34 @@ export default function ScoresPage() {
                       </td>
                       <td className="py-2 pl-2 text-center font-semibold text-brand-700">{fmt(summary.combinedOverall)}</td>
                     </tr>
+                    {summary.byProject && summary.byProject.length > 0 && (
+                      <tr key={`${user.id}-detail`} className="border-t border-gray-50">
+                        <td colSpan={(data.criteria || PROJECT_SCORE_CRITERIA).length + 5} className="pb-2 px-2">
+                          <details className="text-xs">
+                            <summary className="cursor-pointer text-brand-700 font-medium hover:text-brand-800 select-none">Detail per project ({summary.byProject.length})</summary>
+                            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {summary.byProject.map(bp => (
+                                <div key={bp.project?.id || Math.random()} className="bg-gray-50 rounded-lg p-2">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="text-gray-700 font-medium truncate">{bp.project ? `${bp.project.code} — ${bp.project.name}` : 'Tanpa project'}</span>
+                                    <span className="font-semibold text-brand-700 shrink-0">{fmt(bp.overall)}</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-1 mt-1 text-[11px] text-gray-500">
+                                    {(data.criteria || PROJECT_SCORE_CRITERIA).map(c => (
+                                      <div key={c.key} className="flex justify-between gap-1">
+                                        <span className="truncate">{c.label}</span>
+                                        <span className="font-medium text-gray-700">{fmt(bp.byCriteria[c.key])}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        </td>
+                      </tr>
+                    )}
+                    </>
                   ))}
                 </tbody>
               </table>
