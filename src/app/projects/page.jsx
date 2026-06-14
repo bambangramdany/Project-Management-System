@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { StatusBadge, CategoryBadge, PitchResultBadge } from '@/components/StatusBadge'
 import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, DIVISION_LABEL, EO_CATEGORIES, PH_CATEGORIES } from '@/lib/constants'
-import { canViewAllProjects, canQuickEditProjects } from '@/lib/rbac'
+import { canViewAllProjects, canQuickEditProjects, canDeleteProject } from '@/lib/rbac'
 import { HEALTH_LABEL, HEALTH_DOT } from '@/lib/health'
 import Link from 'next/link'
 
@@ -86,6 +86,19 @@ function ProjectsContent() {
 
   const isManager = canViewAllProjects(session?.user.role)
   const canQuickEdit = canQuickEditProjects(session?.user)
+  const canDelete = canDeleteProject(session?.user?.role)
+
+  async function deleteProject(e, p) {
+    e.preventDefault(); e.stopPropagation()
+    if (!confirm(`Hapus project "${p.name}" (${p.code})? Tindakan ini tidak bisa dibatalkan.`)) return
+    const res = await fetch(`/api/projects/${p.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      setProjects(prev => prev.filter(x => x.id !== p.id))
+    } else {
+      const err = await res.json().catch(() => ({}))
+      alert(err.error || 'Gagal menghapus project')
+    }
+  }
 
   const FINISHED_STATUSES = ['DONE', 'FAILED', 'CANCELED']
   const BRIEFING_ORDER = ['PITCHING', 'WAITING_PITCH_RESULT', 'PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING']
@@ -444,6 +457,15 @@ function ProjectsContent() {
                       className="text-xs px-2 py-1 rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-brand-600"
                     >
                       ✏️
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      onClick={(e) => deleteProject(e, p)}
+                      title="Hapus project"
+                      className="text-xs px-2 py-1 rounded-md border border-gray-200 text-gray-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                    >
+                      🗑️
                     </button>
                   )}
                 </div>
