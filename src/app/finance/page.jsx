@@ -965,6 +965,11 @@ export default function FinancePage() {
           </div>
         )}
 
+        {/* Revenue summary per client — total revenue across all won projects */}
+        {profitability && profitability.byClient.length > 0 && (
+          <RevenuePerClientCard rows={profitability.byClient} rowsByDivision={profitability.byClientDivision} />
+        )}
+
         {/* Margin report (Owner/Finance/Direksi only) */}
         {marginReport && marginReport.divisions.length > 0 && (
           <div className="space-y-3">
@@ -1036,11 +1041,6 @@ export default function FinancePage() {
             <ProfitabilityCard title="Profitabilitas per Klien" rows={profitability.byClient} labelMap={null} />
             <ProfitabilityCard title="Profitabilitas per Kategori" rows={profitability.byCategory} labelMap={CATEGORY_LABEL} />
           </div>
-        )}
-
-        {/* Revenue summary per client — total revenue across all won projects */}
-        {profitability && profitability.byClient.length > 0 && (
-          <RevenuePerClientCard rows={profitability.byClient} rowsByDivision={profitability.byClientDivision} />
         )}
 
         {/* Profitability per project */}
@@ -1218,57 +1218,88 @@ function ProfitabilityCard({ title, rows, labelMap }) {
   )
 }
 
-function RevenuePerClientCard({ rows, rowsByDivision }) {
-  const [division, setDivision] = useState('ALL')
-  const divisionOptions = ['ALL', ...Object.keys(DIVISION_LABEL).filter(d => (rowsByDivision || []).some(r => r.division === d))]
-  const source = division === 'ALL' ? rows : (rowsByDivision || []).filter(r => r.division === division)
-  const sorted = [...source].sort((a, b) => b.totalValue - a.totalValue)
+function RevenueClientTable({ rows }) {
+  const sorted = [...rows].sort((a, b) => b.totalValue - a.totalValue)
   const grandTotal = sorted.reduce((s, r) => s + r.totalValue, 0)
   return (
-    <div className="card p-4">
-      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-        <h3 className="text-sm font-semibold text-gray-700">Summary Revenue per Klien</h3>
-        <select
-          className="select w-auto text-xs py-1"
-          value={division}
-          onChange={e => setDivision(e.target.value)}
-        >
-          {divisionOptions.map(d => (
-            <option key={d} value={d}>{d === 'ALL' ? 'Semua Divisi' : (DIVISION_LABEL[d] || d)}</option>
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
+            <th className="py-2 pr-2">Klien</th>
+            <th className="py-2 pr-2 text-right">Jumlah Project</th>
+            <th className="py-2 pr-2 text-right">Total Revenue</th>
+            <th className="py-2 text-right">% dari Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map(r => (
+            <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50">
+              <td className="py-2 pr-2 font-medium text-gray-800">{r.label}</td>
+              <td className="py-2 pr-2 text-right text-gray-600">{r.count}</td>
+              <td className="py-2 pr-2 text-right font-semibold text-gray-800">{formatRupiah(r.totalValue)}</td>
+              <td className="py-2 text-right text-gray-500">{grandTotal ? ((r.totalValue / grandTotal) * 100).toFixed(1) : 0}%</td>
+            </tr>
           ))}
-        </select>
+        </tbody>
+        <tfoot>
+          <tr className="border-t border-gray-200">
+            <td className="py-2 pr-2 font-semibold text-gray-800">Total</td>
+            <td className="py-2 pr-2 text-right font-semibold text-gray-800">{sorted.reduce((s, r) => s + r.count, 0)}</td>
+            <td className="py-2 pr-2 text-right font-bold text-gray-900">{formatRupiah(grandTotal)}</td>
+            <td className="py-2 text-right text-gray-500">100%</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  )
+}
+
+function RevenuePerClientCard({ rows, rowsByDivision }) {
+  const grandTotal = rows.reduce((s, r) => s + r.totalValue, 0)
+  const byDivision = {}
+  for (const r of (rowsByDivision || [])) {
+    if (!byDivision[r.division]) byDivision[r.division] = []
+    byDivision[r.division].push(r)
+  }
+  const divisionKeys = Object.keys(byDivision).sort((a, b) => {
+    const ta = byDivision[a].reduce((s, r) => s + r.totalValue, 0)
+    const tb = byDivision[b].reduce((s, r) => s + r.totalValue, 0)
+    return tb - ta
+  })
+
+  return (
+    <div className="card p-4 space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700">Summary Revenue per Klien</h3>
+        <p className="text-xs text-gray-400">Akumulasi nilai project (yang sudah/sedang berjalan) dari seluruh klien yang masuk ke Watermark.</p>
       </div>
-      <p className="text-xs text-gray-400 mb-3">Akumulasi nilai project (yang sudah/sedang berjalan) dari seluruh klien yang masuk ke Watermark.</p>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
-              <th className="py-2 pr-2">Klien</th>
-              <th className="py-2 pr-2 text-right">Jumlah Project</th>
-              <th className="py-2 pr-2 text-right">Total Revenue</th>
-              <th className="py-2 text-right">% dari Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map(r => (
-              <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="py-2 pr-2 font-medium text-gray-800">{r.label}</td>
-                <td className="py-2 pr-2 text-right text-gray-600">{r.count}</td>
-                <td className="py-2 pr-2 text-right font-semibold text-gray-800">{formatRupiah(r.totalValue)}</td>
-                <td className="py-2 text-right text-gray-500">{grandTotal ? ((r.totalValue / grandTotal) * 100).toFixed(1) : 0}%</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="border-t border-gray-200">
-              <td className="py-2 pr-2 font-semibold text-gray-800">Total</td>
-              <td className="py-2 pr-2 text-right font-semibold text-gray-800">{sorted.reduce((s, r) => s + r.count, 0)}</td>
-              <td className="py-2 pr-2 text-right font-bold text-gray-900">{formatRupiah(grandTotal)}</td>
-              <td className="py-2 text-right text-gray-500">100%</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+
+      <details open className="rounded-xl border border-gray-100 p-3">
+        <summary className="cursor-pointer select-none flex items-center justify-between gap-2 text-sm font-semibold text-gray-800">
+          <span>Semua Divisi (Total)</span>
+          <span className="text-xs font-bold text-gray-900">{formatRupiah(grandTotal)}</span>
+        </summary>
+        <div className="mt-2">
+          <RevenueClientTable rows={rows} />
+        </div>
+      </details>
+
+      {divisionKeys.map(div => {
+        const divRows = byDivision[div]
+        const divTotal = divRows.reduce((s, r) => s + r.totalValue, 0)
+        return (
+          <details key={div} className="rounded-xl border border-gray-100 p-3">
+            <summary className="cursor-pointer select-none flex items-center justify-between gap-2 text-sm font-semibold text-gray-800">
+              <span>{DIVISION_LABEL[div] || div}</span>
+              <span className="text-xs font-bold text-gray-900">{formatRupiah(divTotal)}</span>
+            </summary>
+            <div className="mt-2">
+              <RevenueClientTable rows={divRows} />
+            </div>
+          </details>
+        )
+      })}
     </div>
   )
 }
