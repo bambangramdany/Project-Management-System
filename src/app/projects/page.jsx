@@ -71,6 +71,13 @@ function ProjectsContent() {
 
   useEffect(() => { if (status === 'authenticated') fetchProjects() }, [status, fetchProjects])
 
+  // Clear category filter if it no longer belongs to the visible division(s)
+  useEffect(() => {
+    if (!filterCategory) return
+    if (showEO && !showPH && !EO_CATEGORIES.includes(filterCategory)) setFilterCategory('')
+    if (showPH && !showEO && !PH_CATEGORIES.includes(filterCategory)) setFilterCategory('')
+  }, [showEO, showPH, filterCategory])
+
   useEffect(() => {
     if (status === 'authenticated' && canQuickEditProjects(session?.user)) {
       fetch('/api/team').then(r => r.ok ? r.json() : []).then(data => setAllUsers(Array.isArray(data) ? data : []))
@@ -325,9 +332,15 @@ function ProjectsContent() {
             </select>
             <select className="select sm:w-44 transition-shadow focus:shadow-sm" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
               <option value="">Semua Kategori</option>
-              {Object.entries(CATEGORY_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
+              {Object.entries(CATEGORY_LABEL)
+                .filter(([k]) => {
+                  if (showEO && !showPH) return EO_CATEGORIES.includes(k)
+                  if (showPH && !showEO) return PH_CATEGORIES.includes(k)
+                  return true
+                })
+                .map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
             </select>
             <div className="flex items-center gap-2">
               <input
