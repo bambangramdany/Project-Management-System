@@ -320,10 +320,10 @@ function MonthYearSelect({ value, onChange }) {
   for (let yr = nowY - 2; yr <= nowY + 1; yr++) years.push(yr)
   return (
     <div className="flex items-center gap-1">
-      <select className="select text-xs py-1" value={m} onChange={e => onChange(`${y}-${String(Number(e.target.value)).padStart(2, '0')}`)}>
+      <select className="select text-xs py-1 w-16 px-1" value={m} onChange={e => onChange(`${y}-${String(Number(e.target.value)).padStart(2, '0')}`)}>
         {MONTH_LABEL.map((lbl, i) => <option key={i} value={i + 1}>{lbl}</option>)}
       </select>
-      <select className="select text-xs py-1" value={y} onChange={e => onChange(`${e.target.value}-${String(m).padStart(2, '0')}`)}>
+      <select className="select text-xs py-1 w-[4.5rem] px-1" value={y} onChange={e => onChange(`${e.target.value}-${String(m).padStart(2, '0')}`)}>
         {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
       </select>
     </div>
@@ -354,7 +354,7 @@ function FinanceOverviewCard({ data, range, setRange }) {
           <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs">💼</span>
           Overview Keuangan Perusahaan
         </h3>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
           <span>Dari</span>
           <MonthYearSelect value={range.from} onChange={v => setRange(r => ({ ...r, from: v }))} />
           <span>Sampai</span>
@@ -370,7 +370,7 @@ function FinanceOverviewCard({ data, range, setRange }) {
                 <p className="text-xs text-gray-500">{c.label}</p>
                 <span className={`w-5 h-5 rounded-full ${cm.bg} ${cm.text} flex items-center justify-center text-[10px]`}>{c.icon}</span>
               </div>
-              <p className="text-lg font-bold text-gray-900 mt-1">{c.value}</p>
+              <p className="text-base sm:text-lg font-bold text-gray-900 mt-1 break-words">{c.value}</p>
               <p className="text-[11px] text-gray-400 mt-0.5 truncate">{c.sub}</p>
             </div>
           )
@@ -508,15 +508,15 @@ function DebtSummaryCard({ data }) {
         <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center text-xs">📉</span>Kewajiban Hutang</h3>
         <Link href="/debts" className="text-xs font-medium text-brand hover:underline">Kelola Hutang →</Link>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
         <div className="p-3 rounded-lg bg-gray-50">
           <p className="text-xs text-gray-500">Sisa Pokok Hutang</p>
-          <p className="text-lg font-bold text-gray-900">{formatRupiah(data.outstandingPrincipal)}</p>
+          <p className="text-lg sm:text-xl font-bold text-gray-900 break-words">{formatRupiah(data.outstandingPrincipal)}</p>
           <p className="text-xs text-gray-400">{data.activeDebtCount} pinjaman aktif</p>
         </div>
         <div className="p-3 rounded-lg bg-orange-50">
           <p className="text-xs text-gray-500">Wajib Dibayar Bulan Ini</p>
-          <p className="text-lg font-bold text-orange-600">{formatRupiah(data.monthlyObligation)}</p>
+          <p className="text-lg sm:text-xl font-bold text-orange-600 break-words">{formatRupiah(data.monthlyObligation)}</p>
           <p className="text-xs text-gray-400">{dueItems.length} cicilan</p>
         </div>
       </div>
@@ -529,11 +529,11 @@ function DebtSummaryCard({ data }) {
               const overdue = new Date(item.dueDate) < new Date()
               const total = item.principalAmount + item.interestAmount
               return (
-                <div key={item.id} className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-gray-50">
+                <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 p-2.5 rounded-lg bg-gray-50">
                   <div className="min-w-0">
-                    <p className="text-sm text-gray-800 truncate">
-                      {item.lenderName} · cicilan ke-{item.installmentNo}
-                      {overdue && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">Lewat Tenggat</span>}
+                    <p className="text-sm text-gray-800">
+                      <span className="break-words">{item.lenderName} · cicilan ke-{item.installmentNo}</span>
+                      {overdue && <span className="ml-2 inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-medium align-middle">Lewat Tenggat</span>}
                     </p>
                     <p className="text-xs text-gray-400">Jatuh tempo {new Date(item.dueDate).toLocaleDateString('id-ID', { dateStyle: 'medium' })}</p>
                   </div>
