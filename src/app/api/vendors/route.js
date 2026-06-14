@@ -11,10 +11,12 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url)
   const q = searchParams.get('q')?.trim()
   const vendorType = searchParams.get('vendorType')
+  const subCategory = searchParams.get('subCategory')
   const city = searchParams.get('city')
 
   const where = { AND: [] }
   if (vendorType) where.AND.push({ vendorType })
+  if (subCategory) where.AND.push({ subCategory })
   if (city) where.AND.push({ city: { equals: city, mode: 'insensitive' } })
   if (q) {
     where.AND.push({
@@ -56,6 +58,7 @@ export async function POST(req) {
   const data = {
     name: body.name.trim(),
     vendorType: body.vendorType,
+    subCategory: body.subCategory || null,
     province: body.province || null,
     city: body.city || null,
     address: body.address || null,

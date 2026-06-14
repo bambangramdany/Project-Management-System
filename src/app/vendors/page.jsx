@@ -3,10 +3,10 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
-import { VENDOR_TYPES, VENDOR_STATUSES } from '@/lib/constants'
+import { VENDOR_TYPES, VENDOR_STATUSES, VENDOR_SUBCATEGORIES } from '@/lib/constants'
 
 const EMPTY_FORM = {
-  name: '', vendorType: '', province: '', city: '', address: '', area: '',
+  name: '', vendorType: '', subCategory: '', province: '', city: '', address: '', area: '',
   capacity: '', ballroomCapacity: '', meetingCapacity: '', website: '', instagram: '',
   output: '', productService: '', status: 'Active', picContact: '', phone: '',
   priceMin: '', priceMax: '', priceNote: '', notes: '',
@@ -19,6 +19,7 @@ export default function VendorsPage() {
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
   const [vendorType, setVendorType] = useState('')
+  const [subCategory, setSubCategory] = useState('')
   const [city, setCity] = useState('')
   const [priceMin, setPriceMin] = useState('')
   const [priceMax, setPriceMax] = useState('')
@@ -38,13 +39,14 @@ export default function VendorsPage() {
     const params = new URLSearchParams()
     if (q) params.set('q', q)
     if (vendorType) params.set('vendorType', vendorType)
+    if (subCategory) params.set('subCategory', subCategory)
     if (city) params.set('city', city)
     setLoading(true)
     fetch(`/api/vendors?${params.toString()}`).then(r => r.json()).then(data => {
       setVendors(Array.isArray(data) ? data : [])
       setLoading(false)
     })
-  }, [q, vendorType, city])
+  }, [q, vendorType, subCategory, city])
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -62,7 +64,7 @@ export default function VendorsPage() {
   const openEdit = (v) => {
     setEditing(v)
     setForm({
-      name: v.name || '', vendorType: v.vendorType || '', province: v.province || '',
+      name: v.name || '', vendorType: v.vendorType || '', subCategory: v.subCategory || '', province: v.province || '',
       city: v.city || '', address: v.address || '', area: v.area || '',
       capacity: v.capacity || '', ballroomCapacity: v.ballroomCapacity || '',
       meetingCapacity: v.meetingCapacity || '', website: v.website || '', instagram: v.instagram || '',
@@ -174,10 +176,16 @@ export default function VendorsPage() {
             placeholder="Cari nama, kota, area, produk, PIC, catatan..."
             className="flex-1 min-w-[220px] border rounded-lg px-3 py-2 text-sm"
           />
-          <select value={vendorType} onChange={e => setVendorType(e.target.value)} className="border rounded-lg px-3 py-2 text-sm">
+          <select value={vendorType} onChange={e => { setVendorType(e.target.value); setSubCategory('') }} className="border rounded-lg px-3 py-2 text-sm">
             <option value="">Semua Jenis</option>
             {VENDOR_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
+          {vendorType && VENDOR_SUBCATEGORIES[vendorType] && (
+            <select value={subCategory} onChange={e => setSubCategory(e.target.value)} className="border rounded-lg px-3 py-2 text-sm">
+              <option value="">Semua Sub-kategori</option>
+              {VENDOR_SUBCATEGORIES[vendorType].map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          )}
           <input
             value={city} onChange={e => setCity(e.target.value)}
             placeholder="Kota"
@@ -224,7 +232,7 @@ export default function VendorsPage() {
                 {displayed.map(v => (
                   <tr key={v.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => setDetail(v)}>
                     <td className="px-3 py-2 font-medium text-gray-900">{v.name}</td>
-                    <td className="px-3 py-2 text-gray-600">{v.vendorType}</td>
+                    <td className="px-3 py-2 text-gray-600">{v.vendorType}{v.subCategory && <span className="text-gray-400"> · {v.subCategory}</span>}</td>
                     <td className="px-3 py-2 text-gray-600">{[v.city, v.area].filter(Boolean).join(' / ') || '-'}</td>
                     <td className="px-3 py-2 text-gray-600">{[v.picContact, v.phone].filter(Boolean).join(' - ') || '-'}</td>
                     <td className="px-3 py-2 text-gray-600">{fmtPrice(v)}</td>
@@ -255,7 +263,10 @@ export default function VendorsPage() {
             <form onSubmit={submit} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Nama Vendor *" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} required />
-                <SelectField label="Jenis Vendor *" value={form.vendorType} onChange={v => setForm(f => ({ ...f, vendorType: v }))} options={VENDOR_TYPES} required />
+                <SelectField label="Jenis Vendor *" value={form.vendorType} onChange={v => setForm(f => ({ ...f, vendorType: v, subCategory: '' }))} options={VENDOR_TYPES} required />
+                {form.vendorType && VENDOR_SUBCATEGORIES[form.vendorType] && (
+                  <SelectField label="Sub-kategori" value={form.subCategory} onChange={v => setForm(f => ({ ...f, subCategory: v }))} options={VENDOR_SUBCATEGORIES[form.vendorType]} />
+                )}
                 <Field label="Provinsi" value={form.province} onChange={v => setForm(f => ({ ...f, province: v }))} />
                 <Field label="Kota" value={form.city} onChange={v => setForm(f => ({ ...f, city: v }))} />
                 <Field label="Area" value={form.area} onChange={v => setForm(f => ({ ...f, area: v }))} />

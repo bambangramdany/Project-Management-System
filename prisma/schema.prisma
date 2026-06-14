@@ -408,6 +408,7 @@ model Vendor {
   id            String   @id @default(cuid())
   name          String
   vendorType    String
+  subCategory   String?
   province      String?
   city          String?
   address       String?

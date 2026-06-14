@@ -405,3 +405,19 @@ export const VENDOR_TYPES = [
 ]
 
 export const VENDOR_STATUSES = ['Active', 'Inactive', 'Blacklist']
+
+// Sub-categories per vendor type — used to narrow down search/filter
+// (e.g. Talent / Entertainment -> MC, Band, Dancer, etc).
+export const VENDOR_SUBCATEGORIES = {
+  'Venue': ['Ballroom', 'Hotel', 'Outdoor', 'Convention Center', 'Restoran', 'Studio', 'Lainnya'],
+  'Talent / Entertainment': ['MC', 'Band', 'Singer', 'DJ', 'Dancer', 'Magician', 'Comedian', 'Public Figure / KOL', 'Lainnya'],
+  'Production': ['Sound System', 'Lighting', 'Multimedia / LED', 'Stage & Decoration', 'Rigging', 'Lainnya'],
+  'Equipment & Rental': ['Furniture', 'Tenda', 'Genset', 'AC', 'Audio Visual', 'Lainnya'],
+  'Catering & F&B': ['Catering', 'Coffee Cart', 'Bakery', 'Lainnya'],
+  'Merchandise & Printing': ['Merchandise', 'Printing / Banner', 'Souvenir', 'Lainnya'],
+  'Creative & Design': ['Graphic Design', 'Videography', 'Photography', 'Content Creator', 'Lainnya'],
+  'Agency / Specialist': ['Talent Agency', 'Event Agency', 'PR Agency', 'Lainnya'],
+  'Logistic & Operational': ['Transportasi', 'Security', 'Usher / SPG', 'Cleaning Service', 'Lainnya'],
+  'Digital & Technology': ['Livestreaming', 'Registration System', 'App Development', 'Lainnya'],
+  'Other': ['Lainnya'],
+}

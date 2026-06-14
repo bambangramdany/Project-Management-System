@@ -5,7 +5,7 @@ import { logAudit } from '@/lib/audit'
 import { NextResponse } from 'next/server'
 
 const ALLOWED = [
-  'name', 'vendorType', 'province', 'city', 'address', 'area', 'capacity',
+  'name', 'vendorType', 'subCategory', 'province', 'city', 'address', 'area', 'capacity',
   'ballroomCapacity', 'meetingCapacity', 'website', 'instagram', 'output',
   'productService', 'status', 'picContact', 'phone', 'priceNote', 'notes',
 ]
