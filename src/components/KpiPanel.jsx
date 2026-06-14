@@ -6,10 +6,10 @@ import KpiCriteriaEditor from '@/components/KpiCriteriaEditor'
 
 export { canScoreKpiClient }
 
-export default function KpiPanel({ user, session, defaultOpen = false }) {
+export default function KpiPanel({ user, session, defaultOpen = false, period: periodProp, projects }) {
   const [open, setOpen] = useState(defaultOpen)
   const [items, setItems] = useState(KPI_BY_ROLE[user.role] || [])
-  const [period] = useState(resolveKpiPeriod())
+  const period = periodProp || resolveKpiPeriod()
   const today = new Date()
   const isPastDeadline = today.getDate() > KPI_DEADLINE_DAY
   const [scores, setScores] = useState({})
@@ -54,6 +54,21 @@ export default function KpiPanel({ user, session, defaultOpen = false }) {
   const filledCount = items.filter(it => scores[it.key]).length
   const myAvg = filledCount ? items.reduce((s, it) => s + (scores[it.key] || 0), 0) / items.length : null
 
+  // Projects this user is involved in (as PIC or member) that overlap with
+  // the selected KPI period — gives the evaluator quick context on what the
+  // person actually worked on that month.
+  const [periodYear, periodMonth] = period.split('-').map(Number)
+  const periodStart = new Date(periodYear, periodMonth - 1, 1)
+  const periodEnd = new Date(periodYear, periodMonth, 0, 23, 59, 59)
+  const involvedProjects = (projects || []).filter(p => {
+    const isInvolved = p.picId === user.id || p.members?.some(m => m.user?.id === user.id || m.userId === user.id)
+    if (!isInvolved) return false
+    const start = p.startDate ? new Date(p.startDate) : null
+    const end = p.endDate ? new Date(p.endDate) : start
+    if (!start) return false
+    return start <= periodEnd && (end || start) >= periodStart
+  })
+
   return (
     <div className="mb-2 rounded-lg bg-brand-50 border border-brand-100 overflow-hidden">
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between gap-3 p-3 text-left hover:bg-brand-100/50 transition-colors">
@@ -74,6 +89,16 @@ export default function KpiPanel({ user, session, defaultOpen = false }) {
       </button>
       {open && (
       <div className="px-3 pb-3">
+      {involvedProjects.length > 0 && (
+        <div className="mb-2 p-2.5 rounded-lg bg-white border border-brand-100">
+          <p className="text-xs font-semibold text-gray-600 mb-1">Terlibat di project periode {period}:</p>
+          <ul className="text-xs text-gray-500 space-y-0.5 list-disc list-inside">
+            {involvedProjects.map(p => (
+              <li key={p.id}>{p.code ? `${p.code} — ` : ''}{p.name}{p.picId === user.id ? ' (PIC)' : ''}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <KpiCriteriaEditor role={user.role} division={user.divisi} session={session} onChange={setItems} />
       {canScore && isPastDeadline && (
         <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-2 py-1.5 mb-2">

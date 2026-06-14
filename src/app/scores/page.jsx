@@ -33,6 +33,8 @@ export default function ScoresPage() {
   const [kpiExpanded, setKpiExpanded] = useState(null)
   const [kpiCriteriaMap, setKpiCriteriaMap] = useState({})
   const [team, setTeam] = useState([])
+  const [teamKpiPeriod, setTeamKpiPeriod] = useState(resolveKpiPeriod())
+  const [allProjects, setAllProjects] = useState([])
   const [reminding, setReminding] = useState(false)
   const [reminded, setReminded] = useState(null)
 
@@ -56,6 +58,7 @@ export default function ScoresPage() {
     fetch('/api/projects?light=1').then(r => r.json()).then(data => {
       const projects = Array.isArray(data) ? data : []
       setMyProjects(projects.filter(p => p.pitchResult === 'WIN' || p.status === 'DONE'))
+      setAllProjects(projects)
     })
     if (!KPI_SUMMARY_ROLES.includes(session.user.role)) {
       fetch(`/api/kpi?userId=${session.user.id}`).then(r => r.json()).then(data => {
@@ -191,11 +194,14 @@ export default function ScoresPage() {
         {/* Penilaian Bulanan (KPI) — Tim Saya */}
         {team.length > 0 && (
           <div className="card p-4 border-t-4 border-orange-400">
-            <p className="text-sm font-semibold text-ink-800 mb-1">Penilaian Bulanan (KPI) — Tim Saya</p>
-            <p className="text-xs text-gray-500 mb-3">Isi penilaian KPI bulanan untuk anggota tim yang bisa Anda nilai, termasuk diri Anda sendiri.</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
+              <p className="text-sm font-semibold text-ink-800">Penilaian Bulanan (KPI) — Tim Saya</p>
+              <input type="month" className="input w-auto" value={teamKpiPeriod} onChange={e => setTeamKpiPeriod(e.target.value)} />
+            </div>
+            <p className="text-xs text-gray-500 mb-3">Isi penilaian KPI bulanan untuk anggota tim yang bisa Anda nilai, termasuk diri Anda sendiri. Pilih periode bulan di atas jika ingin mengisi/melihat bulan lain.</p>
             <div className="space-y-3">
               {team.map(m => (
-                <KpiPanel key={m.id} user={m} session={session} />
+                <KpiPanel key={m.id} user={m} session={session} period={teamKpiPeriod} projects={allProjects} />
               ))}
             </div>
           </div>
