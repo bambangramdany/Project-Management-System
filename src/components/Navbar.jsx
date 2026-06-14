@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: '/finance', label: 'Finance', roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'PRODUCTION'] },
   { href: '/targets', label: 'Target', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/vendors', label: 'Vendor' },
+  { href: '/clients', label: 'Klien' },
   { href: '/team', label: 'Tim' },
   { href: '/cashflow', label: 'Kas', cashOnly: true },
   { href: '/opex', label: 'Opex', cashOnly: true },
