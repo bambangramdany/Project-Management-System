@@ -45,7 +45,7 @@ export async function PATCH(req, { params }) {
   const isEvaluationOnly = Object.keys(fields).every(k => k === 'evaluationNote')
   // Quick-edit on the projects list (divisi/status/tanggal pelaksanaan) is
   // allowed for designated team leads even without general edit rights.
-  const isQuickEditOnly = Object.keys(fields).every(k => ['division', 'status', 'startDate'].includes(k))
+  const isQuickEditOnly = Object.keys(fields).every(k => ['division', 'status', 'startDate', 'picId'].includes(k))
   if (!isEvaluationOnly && !canEditProject(session.user, existingProject)) {
     if (!(isQuickEditOnly && canQuickEditProjects(session.user))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

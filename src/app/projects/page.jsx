@@ -37,6 +37,7 @@ function ProjectsContent() {
   const [editId, setEditId] = useState(null)
   const [editForm, setEditForm] = useState({})
   const [savingEdit, setSavingEdit] = useState(false)
+  const [allUsers, setAllUsers] = useState([])
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -69,6 +70,12 @@ function ProjectsContent() {
   }, [filterStatus, filterCategory, search])
 
   useEffect(() => { if (status === 'authenticated') fetchProjects() }, [status, fetchProjects])
+
+  useEffect(() => {
+    if (status === 'authenticated' && canQuickEditProjects(session?.user)) {
+      fetch('/api/team').then(r => r.ok ? r.json() : []).then(data => setAllUsers(Array.isArray(data) ? data : []))
+    }
+  }, [status, session])
 
   const isManager = canViewAllProjects(session?.user.role)
   const canQuickEdit = canQuickEditProjects(session?.user)
@@ -228,6 +235,15 @@ function ProjectsContent() {
       division: p.division || 'EVENT',
       status: p.status,
       startDate: p.startDate ? p.startDate.slice(0, 10) : '',
+      picId: p.picId || '',
+      memberIds: (p.members?.map(m => m.user?.id).filter(Boolean)) || [],
+    })
+  }
+
+  const toggleEditMember = (userId) => {
+    setEditForm(f => {
+      const has = f.memberIds.includes(userId)
+      return { ...f, memberIds: has ? f.memberIds.filter(id => id !== userId) : [...f.memberIds, userId] }
     })
   }
 
@@ -242,6 +258,8 @@ function ProjectsContent() {
         division: editForm.division,
         status: editForm.status,
         startDate: editForm.startDate || null,
+        picId: editForm.picId || null,
+        memberIds: editForm.memberIds,
       }),
     })
     setSavingEdit(false)
@@ -431,6 +449,30 @@ function ProjectsContent() {
                   <div>
                     <label className="label">Waktu Pelaksanaan</label>
                     <input type="date" className="input text-sm" value={editForm.startDate} onChange={e => setEditForm(f => ({ ...f, startDate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="label">PIC / Project Manager</label>
+                    <select className="select text-sm" value={editForm.picId} onChange={e => setEditForm(f => ({ ...f, picId: e.target.value }))}>
+                      <option value="">— Belum ada PIC —</option>
+                      {allUsers.map(u => (
+                        <option key={u.id} value={u.id}>{u.name}{u.jobTitle ? ` (${u.jobTitle})` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="sm:col-span-3">
+                    <label className="label">Anggota Tim</label>
+                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                      {allUsers.map(u => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={() => toggleEditMember(u.id)}
+                          className={`text-xs px-2 py-1 rounded-full border transition-colors ${editForm.memberIds?.includes(u.id) ? 'bg-brand text-white border-brand' : 'bg-gray-50 text-gray-500 border-gray-200'}`}
+                        >
+                          {editForm.memberIds?.includes(u.id) && '✓ '}{u.name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={(e) => saveQuickEdit(e, p.id)} disabled={savingEdit} className="btn-primary text-sm">
