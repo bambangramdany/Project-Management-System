@@ -26,6 +26,10 @@ export default function ProjectDetailPage() {
   const [comments, setComments] = useState({})
   const [commentText, setCommentText] = useState({})
   const [mentionBox, setMentionBox] = useState(null) // { taskId, query }
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleValue, setTitleValue] = useState('')
+  const [editingClient, setEditingClient] = useState(false)
+  const [clientValue, setClientValue] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -47,6 +51,34 @@ export default function ProjectDetailPage() {
 
   const isManager = ['OWNER', 'PROJECT_MANAGER'].includes(session?.user.role)
     || (session?.user.role === 'DIRECTOR' && project?.division === session?.user.divisi)
+
+  async function saveTitle() {
+    const value = titleValue.trim()
+    if (!value || value === project.name) { setEditingTitle(false); return }
+    setSaving(true)
+    await fetch(`/api/projects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: value }),
+    })
+    setEditingTitle(false)
+    setSaving(false)
+    fetchProject()
+  }
+
+  async function saveClientName() {
+    const value = clientValue.trim()
+    if (!project.client?.id || !value || value === project.client?.name) { setEditingClient(false); return }
+    setSaving(true)
+    await fetch(`/api/clients/${project.client.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: value }),
+    })
+    setEditingClient(false)
+    setSaving(false)
+    fetchProject()
+  }
 
   async function updateStatus(newStatus) {
     if (!isManager) return
@@ -197,9 +229,47 @@ export default function ProjectDetailPage() {
                   <span className="text-xs text-gray-500">{RECOMMENDATION_ICON[project.recommendation]}</span>
                 )}
               </div>
-              <h1 className="text-lg font-bold text-gray-900">{project.name}</h1>
+              {editingTitle ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    autoFocus
+                    className="input text-lg font-bold py-1"
+                    value={titleValue}
+                    onChange={e => setTitleValue(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') setEditingTitle(false) }}
+                  />
+                  <button onClick={saveTitle} className="text-xs text-brand-600 hover:underline shrink-0">Simpan</button>
+                  <button onClick={() => setEditingTitle(false)} className="text-xs text-gray-400 hover:underline shrink-0">Batal</button>
+                </div>
+              ) : (
+                <h1 className="text-lg font-bold text-gray-900 group flex items-center gap-2">
+                  {project.name}
+                  {isManager && (
+                    <button onClick={() => { setTitleValue(project.name); setEditingTitle(true) }} className="text-xs text-gray-300 hover:text-brand-600" title="Edit nama project">✏️</button>
+                  )}
+                </h1>
+              )}
               <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
-                <span>Client: <strong>{project.client?.name || '—'}</strong></span>
+                {editingClient ? (
+                  <span className="flex items-center gap-2">
+                    Client:
+                    <input
+                      autoFocus
+                      className="input text-xs py-0.5 px-1.5 w-36"
+                      value={clientValue}
+                      onChange={e => setClientValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') saveClientName(); if (e.key === 'Escape') setEditingClient(false) }}
+                    />
+                    <button onClick={saveClientName} className="text-brand-600 hover:underline">Simpan</button>
+                    <button onClick={() => setEditingClient(false)} className="text-gray-400 hover:underline">Batal</button>
+                  </span>
+                ) : (
+                  <span>Client: <strong>{project.client?.name || '—'}</strong>
+                    {isManager && project.client?.id && (
+                      <button onClick={() => { setClientValue(project.client.name); setEditingClient(true) }} className="ml-1 text-gray-300 hover:text-brand-600" title="Edit nama client">✏️</button>
+                    )}
+                  </span>
+                )}
                 <span>PIC: <strong>{project.pic?.name || '—'}</strong></span>
                 {project.startDate && <span>Event: <strong>{new Date(project.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></span>}
                 {project.budgetTier && <span>Budget: <strong>{project.budgetTier}</strong></span>}
