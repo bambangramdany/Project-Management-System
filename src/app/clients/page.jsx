@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -205,8 +205,8 @@ export default function ClientsPage() {
                 <tr><td colSpan={4} className="text-center py-10 text-gray-400 text-sm">Tidak ada klien ditemukan</td></tr>
               )}
               {filtered.map(c => (
-                <>
-                  <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
+                <Fragment key={c.id}>
+                  <tr className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-800">
                       {editId === c.id ? (
                         <div className="flex items-center gap-2">
@@ -274,7 +274,7 @@ export default function ClientsPage() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
