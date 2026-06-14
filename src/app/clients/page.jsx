@@ -19,6 +19,8 @@ export default function ClientsPage() {
   const [error, setError] = useState('')
   const [expandedId, setExpandedId] = useState(null)
   const [contactForm, setContactForm] = useState(null) // { clientId, contactId|null, ...EMPTY_CONTACT }
+  const [newClientName, setNewClientName] = useState('')
+  const [addingClient, setAddingClient] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -99,6 +101,38 @@ export default function ClientsPage() {
     }
   }
 
+  const addClient = async () => {
+    const value = newClientName.trim()
+    if (!value) return
+    setAddingClient(true)
+    setError('')
+    const res = await fetch('/api/clients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: value }),
+    })
+    setAddingClient(false)
+    if (res.ok) {
+      setNewClientName('')
+      load()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      setError(d.error || 'Gagal menambahkan klien')
+    }
+  }
+
+  const deleteClient = async (c) => {
+    if (!confirm(`Hapus klien "${c.name}"? Tindakan ini tidak bisa dibatalkan.`)) return
+    setError('')
+    const res = await fetch(`/api/clients/${c.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      load()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      setError(d.error || 'Gagal menghapus klien')
+    }
+  }
+
   const deleteContact = async (contactId) => {
     if (!confirm('Hapus PIC ini?')) return
     const res = await fetch(`/api/client-contacts/${contactId}`, { method: 'DELETE' })
@@ -133,12 +167,26 @@ export default function ClientsPage() {
           </p>
         </div>
 
-        <input
-          className="input max-w-sm"
-          placeholder="Cari nama klien..."
-          value={q}
-          onChange={e => setQ(e.target.value)}
-        />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            className="input max-w-sm"
+            placeholder="Cari nama klien..."
+            value={q}
+            onChange={e => setQ(e.target.value)}
+          />
+          <div className="flex items-center gap-2">
+            <input
+              className="input max-w-sm"
+              placeholder="Nama klien baru..."
+              value={newClientName}
+              onChange={e => setNewClientName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addClient() }}
+            />
+            <button onClick={addClient} disabled={addingClient || !newClientName.trim()} className="btn-primary text-sm px-3 py-2 shrink-0">
+              {addingClient ? 'Menambah...' : '+ Tambah Klien'}
+            </button>
+          </div>
+        </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -182,7 +230,10 @@ export default function ClientsPage() {
                     <td className="px-4 py-3 text-gray-500">{c.contacts?.length || 0}</td>
                     <td className="px-4 py-3 text-right space-x-3 whitespace-nowrap">
                       {editId !== c.id && (
-                        <button onClick={() => startEdit(c)} className="text-xs text-brand-600 hover:underline">Edit Nama</button>
+                        <>
+                          <button onClick={() => startEdit(c)} className="text-xs text-brand-600 hover:underline">Edit Nama</button>
+                          <button onClick={() => deleteClient(c)} className="text-xs text-red-500 hover:underline">Hapus</button>
+                        </>
                       )}
                     </td>
                   </tr>

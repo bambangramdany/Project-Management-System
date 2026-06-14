@@ -23,9 +23,15 @@ export async function POST(req) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const client = await prisma.client.create({
-    data: { name: body.name, industry: body.industry || null, contact: body.contact || null, notes: body.notes || null },
-  })
+  if (!body.name?.trim()) return NextResponse.json({ error: 'Nama klien tidak boleh kosong' }, { status: 400 })
 
-  return NextResponse.json(client, { status: 201 })
+  try {
+    const client = await prisma.client.create({
+      data: { name: body.name.trim(), industry: body.industry || null, contact: body.contact || null, notes: body.notes || null },
+    })
+    return NextResponse.json(client, { status: 201 })
+  } catch (e) {
+    if (e.code === 'P2002') return NextResponse.json({ error: 'Klien dengan nama ini sudah ada' }, { status: 400 })
+    throw e
+  }
 }
