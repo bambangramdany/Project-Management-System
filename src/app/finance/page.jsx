@@ -1227,27 +1227,27 @@ function RevenueClientTable({ rows }) {
         <thead>
           <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
             <th className="py-2 pr-2">Klien</th>
-            <th className="py-2 pr-2 text-right">Jumlah Project</th>
+            <th className="hidden sm:table-cell py-2 pr-2 text-right">Jumlah Project</th>
             <th className="py-2 pr-2 text-right">Total Revenue</th>
-            <th className="py-2 text-right">% dari Total</th>
+            <th className="hidden sm:table-cell py-2 text-right">% dari Total</th>
           </tr>
         </thead>
         <tbody>
           {sorted.map(r => (
             <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50">
-              <td className="py-2 pr-2 font-medium text-gray-800">{r.label}</td>
-              <td className="py-2 pr-2 text-right text-gray-600">{r.count}</td>
-              <td className="py-2 pr-2 text-right font-semibold text-gray-800">{formatRupiah(r.totalValue)}</td>
-              <td className="py-2 text-right text-gray-500">{grandTotal ? ((r.totalValue / grandTotal) * 100).toFixed(1) : 0}%</td>
+              <td className="py-2 pr-2 font-medium text-gray-800 max-w-[140px] sm:max-w-none truncate">{r.label}</td>
+              <td className="hidden sm:table-cell py-2 pr-2 text-right text-gray-600">{r.count}</td>
+              <td className="py-2 pr-2 text-right font-semibold text-gray-800 whitespace-nowrap">{formatRupiah(r.totalValue)}</td>
+              <td className="hidden sm:table-cell py-2 text-right text-gray-500">{grandTotal ? ((r.totalValue / grandTotal) * 100).toFixed(1) : 0}%</td>
             </tr>
           ))}
         </tbody>
         <tfoot>
           <tr className="border-t border-gray-200">
-            <td className="py-2 pr-2 font-semibold text-gray-800">Total</td>
-            <td className="py-2 pr-2 text-right font-semibold text-gray-800">{sorted.reduce((s, r) => s + r.count, 0)}</td>
-            <td className="py-2 pr-2 text-right font-bold text-gray-900">{formatRupiah(grandTotal)}</td>
-            <td className="py-2 text-right text-gray-500">100%</td>
+            <td className="py-2 pr-2 font-semibold text-gray-800">Total ({sorted.reduce((s, r) => s + r.count, 0)} project)</td>
+            <td className="hidden sm:table-cell py-2 pr-2 text-right font-semibold text-gray-800">{sorted.reduce((s, r) => s + r.count, 0)}</td>
+            <td className="py-2 pr-2 text-right font-bold text-gray-900 whitespace-nowrap">{formatRupiah(grandTotal)}</td>
+            <td className="hidden sm:table-cell py-2 text-right text-gray-500">100%</td>
           </tr>
         </tfoot>
       </table>
