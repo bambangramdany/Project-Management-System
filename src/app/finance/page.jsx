@@ -1040,7 +1040,7 @@ export default function FinancePage() {
 
         {/* Revenue summary per client — total revenue across all won projects */}
         {profitability && profitability.byClient.length > 0 && (
-          <RevenuePerClientCard rows={profitability.byClient} />
+          <RevenuePerClientCard rows={profitability.byClient} rowsByDivision={profitability.byClientDivision} />
         )}
 
         {/* Profitability per project */}
@@ -1218,12 +1218,26 @@ function ProfitabilityCard({ title, rows, labelMap }) {
   )
 }
 
-function RevenuePerClientCard({ rows }) {
-  const sorted = [...rows].sort((a, b) => b.totalValue - a.totalValue)
+function RevenuePerClientCard({ rows, rowsByDivision }) {
+  const [division, setDivision] = useState('ALL')
+  const divisionOptions = ['ALL', ...Object.keys(DIVISION_LABEL).filter(d => (rowsByDivision || []).some(r => r.division === d))]
+  const source = division === 'ALL' ? rows : (rowsByDivision || []).filter(r => r.division === division)
+  const sorted = [...source].sort((a, b) => b.totalValue - a.totalValue)
   const grandTotal = sorted.reduce((s, r) => s + r.totalValue, 0)
   return (
     <div className="card p-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">Summary Revenue per Klien</h3>
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+        <h3 className="text-sm font-semibold text-gray-700">Summary Revenue per Klien</h3>
+        <select
+          className="select w-auto text-xs py-1"
+          value={division}
+          onChange={e => setDivision(e.target.value)}
+        >
+          {divisionOptions.map(d => (
+            <option key={d} value={d}>{d === 'ALL' ? 'Semua Divisi' : (DIVISION_LABEL[d] || d)}</option>
+          ))}
+        </select>
+      </div>
       <p className="text-xs text-gray-400 mb-3">Akumulasi nilai project (yang sudah/sedang berjalan) dari seluruh klien yang masuk ke Watermark.</p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

@@ -98,7 +98,7 @@ export async function getProfitability() {
   const projects = await prisma.project.findMany({
     where,
     select: {
-      id: true, code: true, name: true, category: true, projectValue: true,
+      id: true, code: true, name: true, category: true, projectValue: true, division: true,
       client: { select: { id: true, name: true } },
       budgetItems: { select: { quotedAmount: true, actualAmount: true } },
     },
@@ -115,6 +115,7 @@ export async function getProfitability() {
       clientId: p.client?.id || 'unknown',
       clientName: p.client?.name || 'Tanpa Klien',
       category: p.category,
+      division: p.division,
       projectValue: p.projectValue || 0,
       actualCost,
       margin,
@@ -139,10 +140,11 @@ export async function getProfitability() {
   }
 
   const byClient = groupBy(r => ({ id: r.clientId, label: r.clientName }))
+  const byClientDivision = groupBy(r => ({ id: `${r.division}|${r.clientId}`, label: r.clientName, division: r.division }))
   const byCategory = groupBy(r => ({ id: r.category, label: r.category }))
   const byProject = [...rows].sort((a, b) => b.margin - a.margin)
 
-  return { byClient, byCategory, byProject }
+  return { byClient, byClientDivision, byCategory, byProject }
 }
 
 // Receivables (piutang) list + totals.
