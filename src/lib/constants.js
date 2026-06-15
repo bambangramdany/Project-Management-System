@@ -29,6 +29,21 @@ export const STATUS_COLOR = {
   CANCELED: 'bg-slate-100 text-slate-500',
 }
 
+// Bolder, high-contrast versions used for stage/phase group headers — so
+// the current phase is immediately obvious at a glance.
+export const STATUS_GROUP_COLOR = {
+  HOLD: 'bg-gray-500 text-white',
+  PITCHING: 'bg-blue-500 text-white',
+  WAITING_PITCH_RESULT: 'bg-yellow-500 text-white',
+  PREPARATION: 'bg-orange-500 text-white',
+  EVENT_DAY: 'bg-purple-500 text-white',
+  REPORTING: 'bg-indigo-500 text-white',
+  INVOICING: 'bg-teal-500 text-white',
+  DONE: 'bg-green-500 text-white',
+  FAILED: 'bg-red-500 text-white',
+  CANCELED: 'bg-slate-400 text-white',
+}
+
 export const PITCH_RESULT_COLOR = {
   WIN: 'bg-green-100 text-green-700',
   LOSE: 'bg-red-100 text-red-700',

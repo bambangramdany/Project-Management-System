@@ -3,8 +3,9 @@ import { Suspense, useEffect, useState, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
-import { StatusBadge, CategoryBadge, PitchResultBadge } from '@/components/StatusBadge'
-import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, DIVISION_LABEL, EO_CATEGORIES, PH_CATEGORIES } from '@/lib/constants'
+import clsx from 'clsx'
+import { PitchResultBadge } from '@/components/StatusBadge'
+import { STATUS_PIPELINE, STATUS_LABEL, STATUS_GROUP_COLOR, CATEGORY_LABEL, DIVISION_LABEL, EO_CATEGORIES, PH_CATEGORIES } from '@/lib/constants'
 import { canViewAllProjects, canQuickEditProjects, canDeleteProject } from '@/lib/rbac'
 import { HEALTH_LABEL, HEALTH_DOT } from '@/lib/health'
 import Link from 'next/link'
@@ -412,13 +413,24 @@ function ProjectsContent() {
           {!loading && visibleProjects.length === 0 && (
             <div className="text-center py-12 text-gray-400 text-sm">Tidak ada project</div>
           )}
-          {visibleProjects.map(p => (
+          {!loading && visibleProjects.length > 0 && STATUS_PIPELINE.filter(s => visibleProjects.some(p => p.status === s)).map(s => {
+            const group = visibleProjects.filter(p => p.status === s)
+            return (
+            <details key={s} open className="group rounded-xl overflow-hidden border border-gray-100">
+              <summary className={clsx('px-4 py-2.5 flex items-center justify-between gap-2 cursor-pointer select-none list-none', STATUS_GROUP_COLOR[s] || 'bg-gray-500 text-white')}>
+                <span className="flex items-center gap-2 text-sm font-bold">
+                  {STATUS_LABEL[s] || s}
+                  <span className="text-xs font-normal opacity-80">({group.length})</span>
+                </span>
+                <span className="text-xs group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <div className="space-y-2 p-2 bg-gray-50">
+          {group.map(p => (
             <Link key={p.id} href={`/projects/${p.id}`} className="card flex flex-col gap-3 p-4 hover:shadow-md hover:border-brand-200 hover:-translate-y-0.5 transition-all duration-200 block">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-xs text-gray-400 font-mono">{p.code}</span>
-                    <CategoryBadge category={p.category} />
+                    <span className="text-xs text-gray-400 font-mono">{p.code} · {CATEGORY_LABEL[p.category] || p.category}</span>
                     {p.recommendation === 'PRIORITIZE' && <span className="text-xs">🔥</span>}
                     {p.recommendation === 'EVALUATE' && <span className="text-xs">⚠️</span>}
                     {p.health && p.health.level !== 'gray' && p.health.level !== 'green' && (
@@ -443,7 +455,6 @@ function ProjectsContent() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <PitchResultBadge result={p.pitchResult} />
-                  <StatusBadge status={p.status} />
                   {canQuickEdit && (
                     <button
                       onClick={(e) => {
@@ -527,6 +538,9 @@ function ProjectsContent() {
               )}
             </Link>
           ))}
+              </div>
+            </details>
+          )})}
         </div>
 
       </main>

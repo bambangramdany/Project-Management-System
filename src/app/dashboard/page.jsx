@@ -2,9 +2,10 @@
 import { useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import clsx from 'clsx'
 import Navbar from '@/components/Navbar'
 import { StatusBadge } from '@/components/StatusBadge'
-import { STATUS_LABEL, ACTIVE_STATUSES, WON_STATUSES, CATEGORY_LABEL } from '@/lib/constants'
+import { STATUS_LABEL, ACTIVE_STATUSES, WON_STATUSES, CATEGORY_LABEL, STATUS_GROUP_COLOR } from '@/lib/constants'
 import { HEALTH_LABEL, HEALTH_COLOR, HEALTH_DOT } from '@/lib/health'
 import { isFinanceDirector } from '@/lib/rbac'
 import Link from 'next/link'
@@ -213,13 +214,12 @@ function DivisionSection({ title, projects, session, onChanged }) {
             const projectsInStatus = briefingActive.filter(p => p.status === s)
             return (
               <details key={s} open className="group">
-                <summary className="px-5 py-2.5 flex items-center justify-between gap-2 cursor-pointer select-none hover:bg-gray-50 list-none">
-                  <span className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                    <StatusBadge status={s} />
+                <summary className={clsx('px-5 py-2.5 flex items-center justify-between gap-2 cursor-pointer select-none list-none', STATUS_GROUP_COLOR[s] || 'bg-gray-500 text-white')}>
+                  <span className="flex items-center gap-2 text-sm font-bold">
                     {STATUS_LABEL[s] || s}
-                    <span className="text-xs text-gray-400 font-normal">({projectsInStatus.length})</span>
+                    <span className="text-xs font-normal opacity-80">({projectsInStatus.length})</span>
                   </span>
-                  <span className="text-gray-400 text-xs group-open:rotate-180 transition-transform">▼</span>
+                  <span className="text-xs group-open:rotate-180 transition-transform">▼</span>
                 </summary>
                 <div className="divide-y divide-gray-50 border-t border-gray-50">
                   {projectsInStatus.map(p => (
