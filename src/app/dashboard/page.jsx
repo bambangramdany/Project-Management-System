@@ -205,13 +205,30 @@ function DivisionSection({ title, projects, session, onChanged }) {
           <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs">📋</span>Project Aktif (urutan briefing)</h3>
           <Link href="/projects" className="text-xs text-orange-500 hover:text-orange-600">Lihat semua →</Link>
         </div>
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-gray-100">
           {briefingActive.length === 0 && (
             <p className="text-sm text-gray-400 text-center py-8">Tidak ada project aktif</p>
           )}
-          {briefingActive.map(p => (
-            <ProjectRow key={p.id} project={p} canEdit={canEditBase || (role === 'DIRECTOR' && p.division === session?.user?.divisi)} onChanged={onChanged} />
-          ))}
+          {ACTIVE_STATUSES.filter(s => briefingActive.some(p => p.status === s)).map(s => {
+            const projectsInStatus = briefingActive.filter(p => p.status === s)
+            return (
+              <details key={s} open className="group">
+                <summary className="px-5 py-2.5 flex items-center justify-between gap-2 cursor-pointer select-none hover:bg-gray-50 list-none">
+                  <span className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                    <StatusBadge status={s} />
+                    {STATUS_LABEL[s] || s}
+                    <span className="text-xs text-gray-400 font-normal">({projectsInStatus.length})</span>
+                  </span>
+                  <span className="text-gray-400 text-xs group-open:rotate-180 transition-transform">▼</span>
+                </summary>
+                <div className="divide-y divide-gray-50 border-t border-gray-50">
+                  {projectsInStatus.map(p => (
+                    <ProjectRow key={p.id} project={p} canEdit={canEditBase || (role === 'DIRECTOR' && p.division === session?.user?.divisi)} onChanged={onChanged} />
+                  ))}
+                </div>
+              </details>
+            )
+          })}
         </div>
       </div>
     </div>
@@ -248,12 +265,11 @@ function ProjectRow({ project: p, canEdit, onChanged }) {
     <div className="px-5 py-3.5 hover:bg-gray-50 transition-colors">
       <div className="flex items-start gap-3">
         <Link href={`/projects/${p.id}`} className="flex-1 min-w-0">
-          <span className="text-xs text-gray-400 font-mono">{p.code}</span>
-          <p className="text-sm font-medium text-gray-900 mt-0.5 truncate">{p.name} <span className="text-gray-400 font-normal">- {CATEGORY_LABEL[p.category] || p.category}</span></p>
+          <span className="text-xs text-gray-400 font-mono">{p.code} · {CATEGORY_LABEL[p.category] || p.category}</span>
+          <p className="text-sm font-medium text-gray-900 mt-0.5 truncate">{p.name}</p>
           <p className="text-xs text-gray-500">{p.client?.name} · PIC: {p.pic?.name || '—'}</p>
         </Link>
         <div className="shrink-0 mt-0.5 flex items-center gap-2">
-          <StatusBadge status={p.status} />
           {canEdit && (
             <button onClick={() => setOpen(v => !v)} className="text-xs text-gray-400 hover:text-orange-500 border border-gray-200 rounded px-1.5 py-0.5">
               {open ? 'Tutup' : 'Update'}
