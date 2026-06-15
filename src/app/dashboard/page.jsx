@@ -3,8 +3,8 @@ import { useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
-import { StatusBadge, CategoryBadge } from '@/components/StatusBadge'
-import { STATUS_LABEL, ACTIVE_STATUSES, WON_STATUSES } from '@/lib/constants'
+import { StatusBadge } from '@/components/StatusBadge'
+import { STATUS_LABEL, ACTIVE_STATUSES, WON_STATUSES, CATEGORY_LABEL } from '@/lib/constants'
 import { HEALTH_LABEL, HEALTH_COLOR, HEALTH_DOT } from '@/lib/health'
 import { isFinanceDirector } from '@/lib/rbac'
 import Link from 'next/link'
@@ -248,11 +248,8 @@ function ProjectRow({ project: p, canEdit, onChanged }) {
     <div className="px-5 py-3.5 hover:bg-gray-50 transition-colors">
       <div className="flex items-start gap-3">
         <Link href={`/projects/${p.id}`} className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-gray-400 font-mono">{p.code}</span>
-            <CategoryBadge category={p.category} />
-          </div>
-          <p className="text-sm font-medium text-gray-900 mt-0.5 truncate">{p.name}</p>
+          <span className="text-xs text-gray-400 font-mono">{p.code}</span>
+          <p className="text-sm font-medium text-gray-900 mt-0.5 truncate">{p.name} <span className="text-gray-400 font-normal">- {CATEGORY_LABEL[p.category] || p.category}</span></p>
           <p className="text-xs text-gray-500">{p.client?.name} · PIC: {p.pic?.name || '—'}</p>
         </Link>
         <div className="shrink-0 mt-0.5 flex items-center gap-2">
