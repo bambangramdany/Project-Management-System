@@ -617,7 +617,7 @@ function LoadingScreen() {
   return (
     <div className="min-h-screen bg-brand-50 flex items-center justify-center">
       <div className="text-center">
-        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-sm text-gray-500 mt-3">Memuat...</p>
       </div>
     </div>

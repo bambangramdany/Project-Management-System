@@ -215,7 +215,7 @@ export default function VendorsPage() {
 
         {!loading && (
           <div className="bg-white rounded-xl shadow overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="text-left text-gray-500 border-b">
                   <th className="px-3 py-2">Nama Vendor</th>

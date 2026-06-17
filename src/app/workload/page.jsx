@@ -140,7 +140,7 @@ export default function WorkloadPage() {
                     onClick={() => setSelectedUser(selectedUser?.user.id === w.user.id ? null : w)}
                     className={clsx(
                       'rounded-xl p-3 text-left transition-all duration-200 border-2 hover:shadow-md hover:-translate-y-0.5',
-                      selectedUser?.user.id === w.user.id ? 'border-orange-400 shadow-md' : 'border-transparent',
+                      selectedUser?.user.id === w.user.id ? 'border-brand-500 shadow-md' : 'border-transparent',
                       LOAD_COLOR(w.loadScore)
                     )}
                   >
@@ -241,7 +241,7 @@ function WorkloadWeightsEditor() {
   }
 
   return (
-    <div className="card p-5 border-t-4 border-orange-400">
+    <div className="card p-5 border-t-4 border-brand-400">
       <button onClick={() => setOpen(o => !o)} className="flex items-center justify-between w-full text-left">
         <h3 className="text-sm font-semibold text-gray-700">Pengaturan Skor Beban Kerja</h3>
         <span className="text-xs text-gray-400">{open ? 'Tutup' : 'Atur'}</span>
@@ -305,7 +305,7 @@ function TeamColumn({ title, members, onSelect, selectedId, accentClass = 'borde
             onClick={() => onSelect(w)}
             className={clsx(
               'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors',
-              selectedId === w.user.id ? 'bg-orange-50 ring-1 ring-orange-200' : 'hover:bg-gray-50'
+              selectedId === w.user.id ? 'bg-brand-50 ring-1 ring-brand-200' : 'hover:bg-gray-50'
             )}
           >
             <div className={clsx('w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0', LOAD_COLOR(w.loadScore))}>
@@ -356,7 +356,7 @@ function UserDetail({ data, session, teamList = [], canReassign = false }) {
   return (
     <div className="card p-5 border-t-4 border-pink-400">
       <div className="flex items-center gap-3 mb-4 pb-2 border-b border-gray-100">
-        <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold">
+        <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold">
           {data.user.name[0]}
         </div>
         <div>
@@ -365,7 +365,7 @@ function UserDetail({ data, session, teamList = [], canReassign = false }) {
         </div>
         <div className="ml-auto flex gap-4 text-center">
           <div>
-            <p className="text-lg font-bold text-orange-600">{data.activeCount}</p>
+            <p className="text-lg font-bold text-brand-600">{data.activeCount}</p>
             <p className="text-xs text-gray-400">Aktif</p>
           </div>
           <div>
@@ -427,7 +427,7 @@ function UserDetail({ data, session, teamList = [], canReassign = false }) {
         <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
           {showAll ? 'Semua Project' : 'Project Aktif'}
         </h3>
-        <button onClick={() => setShowAll(!showAll)} className="text-xs text-orange-500 hover:text-orange-600">
+        <button onClick={() => setShowAll(!showAll)} className="text-xs text-brand-500 hover:text-brand-600">
           {showAll ? 'Tampilkan aktif saja' : `Tampilkan semua (${data.totalProjects})`}
         </button>
       </div>
@@ -438,7 +438,7 @@ function UserDetail({ data, session, teamList = [], canReassign = false }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400 font-mono">{p.code}</span>
-                {p.isPic && <span className="text-xs bg-orange-100 text-orange-700 px-1.5 rounded font-medium">PIC</span>}
+                {p.isPic && <span className="text-xs bg-brand-100 text-brand-700 px-1.5 rounded font-medium">PIC</span>}
               </div>
               <p className="text-sm text-gray-800 truncate">{p.name}</p>
               {p.startDate && (

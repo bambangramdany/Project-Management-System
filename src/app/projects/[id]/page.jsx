@@ -441,7 +441,7 @@ export default function ProjectDetailPage() {
                 <span>{doneTasks}/{totalTasks} selesai ({progress}%)</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-1.5">
-                <div className="bg-orange-500 h-1.5 rounded-full transition-all" style={{ width: `${progress}%` }} />
+                <div className="bg-brand-500 h-1.5 rounded-full transition-all" style={{ width: `${progress}%` }} />
               </div>
             </div>
           )}
@@ -458,7 +458,7 @@ export default function ProjectDetailPage() {
                     disabled={saving || s === project.status}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-all active:scale-95 ${
                       s === project.status
-                        ? 'bg-orange-500 text-white shadow-sm'
+                        ? 'bg-brand-500 text-white shadow-sm'
                         : i < currentStageIndex
                         ? 'bg-green-50 text-green-600 hover:bg-green-100'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -489,7 +489,7 @@ export default function ProjectDetailPage() {
                 }
               }}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-all whitespace-nowrap shrink-0 ${
-                activeTab === tab ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
+                activeTab === tab ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
               }`}
             >
               {tab === 'tasks' ? `Tasks (${totalTasks})` : tab === 'team' ? `Tim (${(project.members?.length || 0) + (project.pic ? 1 : 0)})` : tab === 'bonus' ? 'Penilaian Tim' : tab === 'activity' ? 'Aktivitas' : 'Info'}
@@ -507,14 +507,14 @@ export default function ProjectDetailPage() {
                   onClick={() => toggleTask(task.id, task.status)}
                   className={`mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all active:scale-90 ${
                     task.status === 'DONE' ? 'bg-green-500 border-green-500' :
-                    task.status === 'IN_PROGRESS' ? 'border-orange-500' :
+                    task.status === 'IN_PROGRESS' ? 'border-brand-500' :
                     task.status === 'BLOCKED' ? 'border-gray-300 cursor-not-allowed' :
-                    'border-gray-300 hover:border-orange-400'
+                    'border-gray-300 hover:border-brand-400'
                   }`}
                   disabled={task.status === 'BLOCKED'}
                 >
                   {task.status === 'DONE' && <span className="text-white text-xs">✓</span>}
-                  {task.status === 'IN_PROGRESS' && <span className="w-2 h-2 bg-orange-500 rounded-full" />}
+                  {task.status === 'IN_PROGRESS' && <span className="w-2 h-2 bg-brand-500 rounded-full" />}
                   {task.status === 'BLOCKED' && <span className="text-gray-400 text-xs">🔒</span>}
                 </button>
                 <div className="flex-1 min-w-0">
@@ -537,7 +537,7 @@ export default function ProjectDetailPage() {
                 <div className="flex items-center gap-2 shrink-0">
                   <span className={`text-xs px-1.5 py-0.5 rounded ${
                     task.priority === 'URGENT' ? 'bg-red-100 text-red-600' :
-                    task.priority === 'HIGH' ? 'bg-orange-100 text-orange-600' :
+                    task.priority === 'HIGH' ? 'bg-brand-100 text-brand-600' :
                     'bg-gray-100 text-gray-500'
                   }`}>{task.priority}</span>
                   {isManager && (
@@ -548,7 +548,7 @@ export default function ProjectDetailPage() {
 
               {/* Comments / discussion */}
               <div className="mt-2 pl-8">
-                <button onClick={() => toggleComments(task.id)} className="text-xs text-gray-400 hover:text-orange-500">
+                <button onClick={() => toggleComments(task.id)} className="text-xs text-gray-400 hover:text-brand-500">
                   💬 {openCommentsTaskId === task.id ? 'Tutup diskusi' : `Diskusi${task._count?.comments ? ` (${task._count.comments})` : ''}`}
                 </button>
 
@@ -587,7 +587,7 @@ export default function ProjectDetailPage() {
                               <button
                                 key={u.id}
                                 onClick={() => insertMention(task.id, u.name)}
-                                className="block w-full text-left px-3 py-1.5 text-sm hover:bg-orange-50 text-gray-700"
+                                className="block w-full text-left px-3 py-1.5 text-sm hover:bg-brand-50 text-gray-700"
                               >
                                 {u.name}
                               </button>
@@ -602,7 +602,7 @@ export default function ProjectDetailPage() {
             ))}
 
             {isManager && !showTaskForm && (
-              <button onClick={() => setShowTaskForm(true)} className="w-full card px-4 py-3 text-sm text-gray-400 hover:text-orange-500 text-left hover:bg-orange-50 transition-colors">
+              <button onClick={() => setShowTaskForm(true)} className="w-full card px-4 py-3 text-sm text-gray-400 hover:text-brand-500 text-left hover:bg-brand-50 transition-colors">
                 + Tambah task...
               </button>
             )}
@@ -658,14 +658,14 @@ export default function ProjectDetailPage() {
             {/* PIC */}
             {project.pic && (
               <div className="card px-4 py-3 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold text-sm shrink-0">
+                <div className="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold text-sm shrink-0">
                   {project.pic.name[0]}
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">{project.pic.name}</p>
                   <p className="text-xs text-gray-500">{project.pic.jobTitle || project.pic.role}</p>
                 </div>
-                <span className="ml-auto text-xs font-medium bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">PIC</span>
+                <span className="ml-auto text-xs font-medium bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full">PIC</span>
               </div>
             )}
 
@@ -706,7 +706,7 @@ export default function ProjectDetailPage() {
 
         {/* TAB: Activity feed */}
         {activeTab === 'activity' && (
-          <div className="card divide-y divide-gray-50 border-t-4 border-orange-400">
+          <div className="card divide-y divide-gray-50 border-t-4 border-brand-400">
             {!activityLoaded && <p className="text-sm text-gray-400 text-center py-8">Memuat...</p>}
             {activityLoaded && activity.length === 0 && (
               <p className="text-sm text-gray-400 text-center py-8">Belum ada aktivitas tercatat</p>
@@ -1101,7 +1101,7 @@ function InfoRow({ label, value }) {
 function LoadingScreen() {
   return (
     <div className="min-h-screen bg-brand-50 flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
     </div>
   )
 }

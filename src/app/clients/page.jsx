@@ -190,8 +190,8 @@ export default function ClientsPage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <div className="card overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="card overflow-x-auto">
+          <table className="w-full text-sm min-w-[480px]">
             <thead>
               <tr className="text-left text-gray-400 text-xs border-b border-gray-100">
                 <th className="px-4 py-2.5">Nama Klien</th>

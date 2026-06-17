@@ -642,6 +642,8 @@ export default function FinancePage() {
                   </div>
                 )}
               </div>
+              <div className="overflow-x-auto -mx-1">
+              <div className="min-w-[900px]">
               <div className="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-2 text-xs font-semibold text-gray-500 px-1">
                 <span className="col-span-2">Komponen (sesuai quotation)</span>
                 <span className="col-span-1">Qty</span>
@@ -774,6 +776,8 @@ export default function FinancePage() {
                   )}
                 </span>
               </div>
+              </div>{/* min-w */}
+              </div>{/* overflow-x-auto */}
 
               {budgetMeta.canViewMargin && (
                 <div className="pt-2 border-t border-gray-100 grid grid-cols-2 gap-y-1 text-sm">
@@ -1402,7 +1406,7 @@ function ProfitabilityByProjectCard({ rows }) {
 function LoadingScreen() {
   return (
     <div className="min-h-screen bg-brand-50 flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
     </div>
   )
 }

@@ -149,7 +149,7 @@ export default function ScoresPage() {
           const kpiDefs = KPI_BY_ROLE[session.user.role] || []
           const overall = myKpi.reduce((s, a) => s + a.score, 0) / myKpi.length
           return (
-            <div className="card p-4 border-t-4 border-orange-400">
+            <div className="card p-4 border-t-4 border-brand-400">
               <p className="text-sm font-semibold text-ink-800 mb-3">Kinerja General Saya (Bulanan)</p>
               <div className="grid sm:grid-cols-3 gap-3 mb-2">
                 {kpiDefs.map(def => {
@@ -193,7 +193,7 @@ export default function ScoresPage() {
 
         {/* Penilaian Bulanan (KPI) — Tim Saya */}
         {team.length > 0 && (
-          <div className="card p-4 border-t-4 border-orange-400">
+          <div className="card p-4 border-t-4 border-brand-400">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
               <p className="text-sm font-semibold text-ink-800">Penilaian Bulanan (KPI) — Tim Saya</p>
               <input type="month" className="input w-auto" value={teamKpiPeriod} onChange={e => setTeamKpiPeriod(e.target.value)} />
