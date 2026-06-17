@@ -19,6 +19,7 @@ export default function NewProjectPage() {
     briefDate: '', startDate: '', endDate: '', loadInDays: '', status: 'HOLD', pitchStatus: 'PITCH', notes: '', quotationNumber: '',
     applySopTemplate: true,
   })
+  const [customCategory, setCustomCategory] = useState('')
   const [multiDay, setMultiDay] = useState(false)
 
   useEffect(() => {
@@ -39,11 +40,16 @@ export default function NewProjectPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    // resolve custom category
+    const finalCategory = form.category === '__CUSTOM__'
+      ? customCategory.trim()
+      : form.category
+    if (!finalCategory) { alert('Kategori tidak boleh kosong'); return }
     setLoading(true)
     const res = await fetch('/api/projects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, category: finalCategory }),
     })
     if (res.ok) {
       const project = await res.json()
@@ -98,8 +104,10 @@ export default function NewProjectPage() {
             <label className="label">Divisi</label>
             <select className="select" value={form.division} onChange={e => {
               const division = e.target.value
-              const validCategories = division === 'EVENT' ? EO_CATEGORIES : division === 'PH' ? PH_CATEGORIES : Object.keys(CATEGORY_LABEL)
-              setForm(f => ({ ...f, division, category: validCategories.includes(f.category) ? f.category : validCategories[0] }))
+              const validCategories = division === 'EVENT' ? EO_CATEGORIES : division === 'PH' ? PH_CATEGORIES : EO_CATEGORIES
+              const keepCat = validCategories.includes(form.category)
+              setCustomCategory('')
+              setForm(f => ({ ...f, division, category: keepCat ? f.category : validCategories[0] }))
             }}>
               <option value="EVENT">Event (EO)</option>
               <option value="PH">Production House</option>
@@ -111,11 +119,21 @@ export default function NewProjectPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="label">Kategori *</label>
-              <select className="select" value={form.category} onChange={e => set('category', e.target.value)} required>
-                {(form.division === 'EVENT' ? EO_CATEGORIES : form.division === 'PH' ? PH_CATEGORIES : Object.keys(CATEGORY_LABEL)).map(k => (
+              <select className="select" value={form.category} onChange={e => { set('category', e.target.value); setCustomCategory('') }} required>
+                {(form.division === 'PH' ? PH_CATEGORIES : EO_CATEGORIES).map(k => (
                   <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>
                 ))}
+                <option value="__CUSTOM__">+ Kategori lain (custom)…</option>
               </select>
+              {form.category === '__CUSTOM__' && (
+                <input
+                  className="input mt-2 text-sm"
+                  placeholder="Tulis nama kategori baru…"
+                  value={customCategory}
+                  onChange={e => setCustomCategory(e.target.value)}
+                  required
+                />
+              )}
               <label className="mt-2 flex items-center gap-2 text-sm text-gray-600">
                 <input type="checkbox" checked={form.applySopTemplate} onChange={e => set('applySopTemplate', e.target.checked)} />
                 Terapkan SOP checklist standar untuk kategori ini

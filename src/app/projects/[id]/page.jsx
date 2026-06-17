@@ -265,12 +265,9 @@ export default function ProjectDetailPage() {
                       value={categoryValue}
                       onChange={e => { setCategoryValue(e.target.value); setCustomCategory('') }}
                     >
-                      <optgroup label="EO / Event">
-                        {EO_CATEGORIES.map(k => <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>)}
-                      </optgroup>
-                      <optgroup label="Production House (PH)">
-                        {PH_CATEGORIES.map(k => <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>)}
-                      </optgroup>
+                      {(project.division === 'PH' ? PH_CATEGORIES : EO_CATEGORIES).map(k => (
+                        <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>
+                      ))}
                       <option value="__CUSTOM__">+ Kategori lain (custom)…</option>
                     </select>
                     {categoryValue === '__CUSTOM__' && (
