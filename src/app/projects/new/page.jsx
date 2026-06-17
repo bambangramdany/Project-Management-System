@@ -31,7 +31,7 @@ export default function NewProjectPage() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      fetch('/api/clients').then(r => r.json()).then(setClients)
+      fetch('/api/clients?simple=1').then(r => r.json()).then(setClients)
       fetch('/api/team').then(r => r.json()).then(setTeam)
     }
   }, [status])

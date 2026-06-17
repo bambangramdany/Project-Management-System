@@ -491,6 +491,8 @@ model Project {
   @@index([status])
   @@index([division])
   @@index([picId])
+  @@index([updatedAt])
+  @@index([clientId])
 }
 
 model ProjectBriefItem {

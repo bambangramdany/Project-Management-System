@@ -19,5 +19,7 @@ export async function GET() {
     orderBy: [{ divisi: 'asc' }, { teamOrder: 'asc' }, { name: 'asc' }],
   })
 
-  return NextResponse.json(members)
+  return NextResponse.json(members, {
+    headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=300' },
+  })
 }

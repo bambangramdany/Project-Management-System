@@ -14,9 +14,10 @@ export async function GET(req) {
   const status = searchParams.get('status')
   const category = searchParams.get('category')
   const search = searchParams.get('search')
-  // Lightweight mode: skip tasks/budgetItems/health computation for pages that
-  // only need basic project info (finance dropdowns, calendar, scores list).
+  // light=1 : hanya data dasar, tanpa tasks/budget/health (untuk dropdown, finance, scores)
+  // list=1  : untuk halaman list project — include tasks (health) tapi skip budgetItems (paling berat)
   const light = searchParams.get('light') === '1'
+  const listMode = searchParams.get('list') === '1'
 
   const where = {}
   if (status) where.status = status
@@ -36,11 +37,15 @@ export async function GET(req) {
     include: {
       client: { select: { id: true, name: true, industry: true } },
       pic: { select: { id: true, name: true } },
-      members: { include: { user: { select: { id: true, name: true, role: true } } } },
+      // list mode: cukup userId saja (untuk filter "project saya"), bukan full user object
+      members: listMode
+        ? { select: { userId: true } }
+        : { include: { user: { select: { id: true, name: true, role: true } } } },
       ...(light ? {} : {
         _count: { select: { tasks: true } },
         tasks: { select: { status: true, dueDate: true } },
-        budgetItems: { select: { quotedAmount: true, actualAmount: true } },
+        // list mode: skip budgetItems (berat, hanya dipakai untuk finance health detail)
+        ...(listMode ? {} : { budgetItems: { select: { quotedAmount: true, actualAmount: true } } }),
       }),
     },
     orderBy: { updatedAt: 'desc' },
@@ -50,7 +55,11 @@ export async function GET(req) {
 
   const withHealth = projects.map(p => {
     const { tasks, budgetItems, ...rest } = p
-    return { ...rest, health: computeProjectHealth(p) }
+    // list mode: normalise members → array of {user: {id}} compatible with client code
+    if (listMode) {
+      rest.members = (rest.members || []).map(m => ({ user: { id: m.userId } }))
+    }
+    return { ...rest, health: computeProjectHealth({ ...p, budgetItems: budgetItems ?? [] }) }
   })
 
   return NextResponse.json(withHealth)

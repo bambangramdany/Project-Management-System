@@ -64,7 +64,7 @@ function ProjectsContent() {
     if (filterCategory) params.set('category', filterCategory)
     if (search) params.set('search', search)
     setLoading(true)
-    fetch(`/api/projects?${params}`).then(r => r.json()).then(data => {
+    fetch(`/api/projects?${params}&list=1`).then(r => r.json()).then(data => {
       setProjects(Array.isArray(data) ? data : [])
       setLoading(false)
     })

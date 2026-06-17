@@ -3,9 +3,23 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(req) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // ?simple=1 → hanya id+name, untuk dropdown (jauh lebih cepat)
+  const { searchParams } = new URL(req.url)
+  const simple = searchParams.get('simple') === '1'
+
+  if (simple) {
+    const clients = await prisma.client.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    })
+    return NextResponse.json(clients, {
+      headers: { 'Cache-Control': 'private, max-age=120, stale-while-revalidate=600' },
+    })
+  }
 
   const clients = await prisma.client.findMany({
     include: {
@@ -15,7 +29,9 @@ export async function GET() {
     orderBy: { name: 'asc' },
   })
 
-  return NextResponse.json(clients)
+  return NextResponse.json(clients, {
+    headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=300' },
+  })
 }
 
 export async function POST(req) {

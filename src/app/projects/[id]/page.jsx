@@ -54,7 +54,7 @@ export default function ProjectDetailPage() {
     if (status === 'authenticated') {
       fetchProject()
       fetch('/api/team').then(r => r.json()).then(setTeam)
-      fetch('/api/clients').then(r => r.json()).then(setAllClients)
+      fetch('/api/clients?simple=1').then(r => r.json()).then(setAllClients)
     }
   }, [status, id])
 
