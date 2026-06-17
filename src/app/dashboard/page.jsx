@@ -9,6 +9,8 @@ import { STATUS_LABEL, ACTIVE_STATUSES, WON_STATUSES, CATEGORY_LABEL, STATUS_GRO
 import { HEALTH_LABEL, HEALTH_COLOR, HEALTH_DOT } from '@/lib/health'
 import { isFinanceDirector } from '@/lib/rbac'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+const RevenueTrendCharts = dynamic(() => import('@/components/RevenueTrendChart'), { ssr: false })
 
 const PIPELINE_STAGES = [
   { key: 'HOLD', label: 'Hold' },
@@ -33,6 +35,8 @@ export default function DashboardPage() {
   const [cashSummary, setCashSummary] = useState(null)
   const [overview, setOverview] = useState(null)
   const [overviewRange, setOverviewRange] = useState(null) // { from: 'YYYY-MM', to: 'YYYY-MM' }
+  const [trendsData, setTrendsData] = useState(null)
+  const [trendsYear, setTrendsYear] = useState(new Date().getFullYear())
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -72,6 +76,16 @@ export default function DashboardPage() {
     fetch(`/api/finance/overview?${params}`).then(r => r.ok ? r.json() : null).then(data => { if (data) setOverview(data) })
   }, [overviewRange])
 
+  // Fetch trend charts (Owner/Finance/Director only)
+  useEffect(() => {
+    if (status !== 'authenticated') return
+    const role = session?.user?.role
+    if (!['OWNER', 'FINANCE', 'DIRECTOR'].includes(role) && !isFinanceDirector(session?.user)) return
+    fetch(`/api/dashboard/trends?year=${trendsYear}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setTrendsData(data) })
+  }, [status, trendsYear, session])
+
   if (status === 'loading' || loading) return <LoadingScreen />
 
   const activeProjects = projects.filter(p => ACTIVE_STATUSES.includes(p.status))
@@ -104,6 +118,15 @@ export default function DashboardPage() {
         {/* Finance overview — Owner / Finance / Directors only */}
         {overview && overviewRange && (
           <FinanceOverviewCard data={overview} range={overviewRange} setRange={setOverviewRange} />
+        )}
+
+        {/* Trend Charts — Owner / Finance / Directors only */}
+        {trendsData && (
+          <RevenueTrendCharts
+            data={trendsData}
+            year={trendsYear}
+            onYearChange={setTrendsYear}
+          />
         )}
 
         {/* Stats cards */}
