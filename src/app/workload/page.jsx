@@ -40,7 +40,32 @@ export default function WorkloadPage() {
   const [filterDivisi, setFilterDivisi] = useState('')
   const [teamList, setTeamList] = useState([])
   const now = new Date()
-  const [filterMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+
+  const toDateStr = (d) => d.toISOString().slice(0, 10)
+  const defaultTo = toDateStr(now)
+  const defaultFrom = toDateStr(new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000))
+
+  const [dateFrom, setDateFrom] = useState(defaultFrom)
+  const [dateTo, setDateTo] = useState(defaultTo)
+
+  const fetchWorkload = (from, to) => {
+    if (status !== 'authenticated') return
+    setLoading(true)
+    const isManager = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR'].includes(session?.user.role)
+    const params = `dateFrom=${from}&dateTo=${to}`
+    fetch(`/api/workload?${params}`).then(r => r.json()).then(data => {
+      if (Array.isArray(data)) {
+        if (isManager) {
+          setWorkload(data.filter(w => w.user.id !== session.user.id))
+        } else {
+          const mine = data.filter(w => w.user.id === session.user.id)
+          setWorkload(mine)
+          if (mine.length > 0) setSelectedUser(mine[0])
+        }
+      }
+      setLoading(false)
+    })
+  }
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -49,25 +74,7 @@ export default function WorkloadPage() {
   useEffect(() => {
     if (status !== 'authenticated') return
     fetch('/api/team').then(r => r.json()).then(data => setTeamList(Array.isArray(data) ? data : []))
-    const isManager = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR'].includes(session.user.role)
-
-    if (isManager) {
-      fetch(`/api/workload?year=${now.getFullYear()}`).then(r => r.json()).then(data => {
-        const list = Array.isArray(data) ? data.filter(w => w.user.id !== session.user.id) : []
-        setWorkload(list)
-        setLoading(false)
-      })
-    } else {
-      // Non-managers: show only their own workload
-      fetch(`/api/workload?year=${now.getFullYear()}`).then(r => r.json()).then(data => {
-        if (Array.isArray(data)) {
-          const mine = data.filter(w => w.user.id === session.user.id)
-          setWorkload(mine)
-          if (mine.length > 0) setSelectedUser(mine[0])
-        }
-        setLoading(false)
-      })
-    }
+    fetchWorkload(dateFrom, dateTo)
   }, [status])
 
   const isManager = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR'].includes(session?.user.role)
@@ -83,20 +90,40 @@ export default function WorkloadPage() {
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Workload Tim</h1>
-            <p className="text-sm text-gray-500">{now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })} · {totalActive} project aktif total</p>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Workload Tim</h1>
+              <p className="text-sm text-gray-500">{totalActive} project aktif dalam periode ini</p>
+            </div>
+            {isManager && (
+              <select className="select w-auto" value={filterDivisi} onChange={e => setFilterDivisi(e.target.value)}>
+                <option value="">Semua Divisi</option>
+                <option value="EVENT">Event</option>
+                <option value="CREATIVE">Creative</option>
+                <option value="PH">Production House</option>
+                <option value="FINANCE_HRGA">Finance / HR / GA</option>
+              </select>
+            )}
           </div>
-          {isManager && (
-            <select className="select w-auto" value={filterDivisi} onChange={e => setFilterDivisi(e.target.value)}>
-              <option value="">Semua Divisi</option>
-              <option value="EVENT">Event</option>
-              <option value="CREATIVE">Creative</option>
-              <option value="PH">Production House</option>
-              <option value="FINANCE_HRGA">Finance / HR / GA</option>
-            </select>
-          )}
+          <div className="card p-3 flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">Dari</label>
+              <input type="date" className="input text-sm py-1.5" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">Sampai</label>
+              <input type="date" className="input text-sm py-1.5" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+            </div>
+            <button
+              onClick={() => fetchWorkload(dateFrom, dateTo)}
+              className="btn-primary text-sm py-1.5 px-4"
+            >Tampilkan</button>
+            <button
+              onClick={() => { setDateFrom(defaultFrom); setDateTo(defaultTo); fetchWorkload(defaultFrom, defaultTo) }}
+              className="text-sm text-gray-400 hover:text-brand-600 underline"
+            >Reset (30 hari)</button>
+          </div>
         </div>
 
         {loading && <div className="text-center py-12 text-gray-400 text-sm">Memuat workload...</div>}

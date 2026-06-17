@@ -11,6 +11,8 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url)
   const month = searchParams.get('month') // format: YYYY-MM
   const year = searchParams.get('year') || new Date().getFullYear()
+  const dateFrom = searchParams.get('dateFrom') // YYYY-MM-DD
+  const dateTo = searchParams.get('dateTo')     // YYYY-MM-DD
 
   // Akun sistem internal yang disembunyikan dari workload & semua proses project
   const HIDDEN_EMAILS = ['hrdwatermark@gmail.com']
@@ -22,27 +24,42 @@ export async function GET(req) {
     orderBy: [{ divisi: 'asc' }, { name: 'asc' }],
   })
 
-  // Projects in scope — active OR have event in current year
-  const projectWhere = {
-    OR: [
-      { status: { in: ACTIVE_STATUSES } },
-      {
-        AND: [
-          { startDate: { gte: new Date(`${year}-01-01`) } },
-          { startDate: { lt: new Date(`${parseInt(year) + 1}-01-01`) } },
-        ],
-      },
-    ],
-  }
+  // Projects in scope — based on date range or fallback to year/month
+  let projectWhere = {}
 
-  if (month) {
+  if (dateFrom || dateTo) {
+    const from = dateFrom ? new Date(dateFrom) : new Date('2000-01-01')
+    const to = dateTo ? new Date(new Date(dateTo).setHours(23, 59, 59, 999)) : new Date()
+    // Include: active projects OR projects with startDate within range OR currently spanning the range
+    projectWhere = {
+      OR: [
+        { status: { in: ACTIVE_STATUSES } },
+        { startDate: { gte: from, lte: to } },
+        { AND: [{ startDate: { lte: to } }, { OR: [{ endDate: { gte: from } }, { endDate: null }] }] },
+      ],
+    }
+  } else if (month) {
     const [y, m] = month.split('-').map(Number)
     const start = new Date(y, m - 1, 1)
     const end = new Date(y, m, 1)
-    projectWhere.OR = [
-      { status: { in: ACTIVE_STATUSES }, startDate: { gte: start, lt: end } },
-      { startDate: { gte: start, lt: end } },
-    ]
+    projectWhere = {
+      OR: [
+        { status: { in: ACTIVE_STATUSES }, startDate: { gte: start, lt: end } },
+        { startDate: { gte: start, lt: end } },
+      ],
+    }
+  } else {
+    projectWhere = {
+      OR: [
+        { status: { in: ACTIVE_STATUSES } },
+        {
+          AND: [
+            { startDate: { gte: new Date(`${year}-01-01`) } },
+            { startDate: { lt: new Date(`${parseInt(year) + 1}-01-01`) } },
+          ],
+        },
+      ],
+    }
   }
 
   const projects = await prisma.project.findMany({
