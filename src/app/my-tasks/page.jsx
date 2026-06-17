@@ -188,7 +188,7 @@ export default function MyTasksPage() {
 
   if (status !== 'authenticated' || loading || !data) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-brand-50">
         <Navbar />
         <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
           <p className="text-sm text-gray-400 text-center py-8">Memuat...</p>
@@ -202,7 +202,7 @@ export default function MyTasksPage() {
   const pendingToday = data.items.filter(i => !i.hasTodayUpdate)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-50">
       <Navbar />
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-5">
         <div>

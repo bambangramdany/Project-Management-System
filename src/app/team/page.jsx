@@ -63,7 +63,7 @@ export default function TeamPage() {
   const others = team.filter(u => !u.divisi && u.role !== 'OWNER').sort(byHierarchy)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-50">
       <Navbar />
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
 

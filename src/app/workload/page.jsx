@@ -86,7 +86,7 @@ export default function WorkloadPage() {
   const totalActive = workload.reduce((sum, w) => sum + w.activeCount, 0)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-50">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 

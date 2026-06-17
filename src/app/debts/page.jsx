@@ -144,7 +144,7 @@ export default function DebtsPage() {
 
   if (status !== 'authenticated' || !canView) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-brand-50 flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     )
@@ -153,7 +153,7 @@ export default function DebtsPage() {
   const now = new Date()
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-50">
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-4">
         <div className="flex items-center justify-between gap-3">

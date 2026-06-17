@@ -46,7 +46,7 @@ export default function ProfilePage() {
 
   if (status !== 'authenticated') {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-brand-50">
         <Navbar />
         <main className="max-w-md mx-auto px-4 sm:px-6 py-6">
           <p className="text-sm text-gray-400 text-center py-8">Memuat...</p>
@@ -56,7 +56,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-50">
       <Navbar />
       <main className="max-w-md mx-auto px-4 sm:px-6 py-6 space-y-5">
         <div>

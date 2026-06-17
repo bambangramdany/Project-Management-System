@@ -10,7 +10,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="id">
-      <body className="bg-gray-50 text-gray-900 antialiased">
+      <body className="bg-brand-50 text-gray-900 antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
