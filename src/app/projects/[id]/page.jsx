@@ -30,6 +30,7 @@ export default function ProjectDetailPage() {
   const [titleValue, setTitleValue] = useState('')
   const [editingClient, setEditingClient] = useState(false)
   const [clientValue, setClientValue] = useState('')
+  const [allClients, setAllClients] = useState([])
   const [editingPic, setEditingPic] = useState(false)
   const [picValue, setPicValue] = useState('')
 
@@ -48,6 +49,7 @@ export default function ProjectDetailPage() {
     if (status === 'authenticated') {
       fetchProject()
       fetch('/api/team').then(r => r.json()).then(setTeam)
+      fetch('/api/clients').then(r => r.json()).then(setAllClients)
     }
   }, [status, id])
 
@@ -68,14 +70,13 @@ export default function ProjectDetailPage() {
     fetchProject()
   }
 
-  async function saveClientName() {
-    const value = clientValue.trim()
-    if (!project.client?.id || !value || value === project.client?.name) { setEditingClient(false); return }
+  async function saveClient() {
+    if (!clientValue || clientValue === project.client?.id) { setEditingClient(false); return }
     setSaving(true)
-    await fetch(`/api/clients/${project.client.id}`, {
+    await fetch(`/api/projects/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: value }),
+      body: JSON.stringify({ clientId: clientValue }),
     })
     setEditingClient(false)
     setSaving(false)
@@ -268,20 +269,24 @@ export default function ProjectDetailPage() {
                 {editingClient ? (
                   <span className="flex items-center gap-2">
                     Client:
-                    <input
+                    <select
                       autoFocus
-                      className="input text-xs py-0.5 px-1.5 w-36"
+                      className="select text-xs py-0.5 px-1.5 w-44"
                       value={clientValue}
                       onChange={e => setClientValue(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') saveClientName(); if (e.key === 'Escape') setEditingClient(false) }}
-                    />
-                    <button onClick={saveClientName} className="text-brand-600 hover:underline">Simpan</button>
+                    >
+                      <option value="">— Pilih client —</option>
+                      {allClients.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                    <button onClick={saveClient} className="text-brand-600 hover:underline">Simpan</button>
                     <button onClick={() => setEditingClient(false)} className="text-gray-400 hover:underline">Batal</button>
                   </span>
                 ) : (
                   <span>Client: <strong>{project.client?.name || '—'}</strong>
-                    {isManager && project.client?.id && (
-                      <button onClick={() => { setClientValue(project.client.name); setEditingClient(true) }} className="ml-1 text-gray-300 hover:text-brand-600" title="Edit nama client">✏️</button>
+                    {isManager && (
+                      <button onClick={() => { setClientValue(project.client?.id || ''); setEditingClient(true) }} className="ml-1 text-gray-300 hover:text-brand-600" title="Ganti client">✏️</button>
                     )}
                   </span>
                 )}
