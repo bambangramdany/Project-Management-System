@@ -1194,21 +1194,24 @@ function PaymentStepper({ status, hasOwnerStage }) {
 function ProfitabilityCard({ title, rows, labelMap }) {
   const top = rows.slice(0, 5)
   return (
-    <div className="card p-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">{title}</h3>
+    <div className="card p-5">
+      <h3 className="text-base font-bold text-gray-900 tracking-tight mb-4">{title}</h3>
       {top.length === 0 ? (
         <p className="text-sm text-gray-400">Belum ada data project menang.</p>
       ) : (
         <div className="space-y-2">
-          {top.map(r => (
-            <div key={r.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-100">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-800 truncate">{labelMap ? (labelMap[r.label] || r.label) : r.label}</p>
-                <p className="text-xs text-gray-400">{r.count} project · Nilai {formatRupiah(r.totalValue)}</p>
+          {top.map((r, i) => (
+            <div key={r.id} className="flex items-center gap-3 px-3 py-3 rounded-xl border border-gray-100 hover:border-violet-200 hover:bg-violet-50/30 transition-all group">
+              <span className="w-7 h-7 rounded-lg bg-gray-100 text-gray-400 text-xs font-black flex items-center justify-center shrink-0 group-hover:bg-violet-100 group-hover:text-violet-600 transition-colors">
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-gray-900 truncate">{labelMap ? (labelMap[r.label] || r.label) : r.label}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{r.count} project · {formatRupiah(r.totalValue)}</p>
               </div>
               <div className="text-right shrink-0">
-                <p className={clsx('text-sm font-bold', r.totalMargin >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(r.totalMargin)}</p>
-                <p className="text-xs text-gray-400">{r.marginPct.toFixed(1)}% margin</p>
+                <p className={clsx('text-sm font-black whitespace-nowrap', r.totalMargin >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(r.totalMargin)}</p>
+                <span className="inline-block text-[10px] font-semibold bg-emerald-50 text-emerald-600 rounded-full px-2 py-0.5 mt-0.5">{r.marginPct.toFixed(1)}% margin</span>
               </div>
             </div>
           ))}
@@ -1218,42 +1221,72 @@ function ProfitabilityCard({ title, rows, labelMap }) {
   )
 }
 
-function RevenueClientTable({ rows }) {
+function RevenueClientTable({ rows, accentColor = 'violet' }) {
   const sorted = [...rows].sort((a, b) => b.totalValue - a.totalValue)
   const grandTotal = sorted.reduce((s, r) => s + r.totalValue, 0)
+  const totalProjects = sorted.reduce((s, r) => s + r.count, 0)
+  const hoverRow = accentColor === 'blue' ? 'hover:bg-blue-50/40' : accentColor === 'amber' ? 'hover:bg-amber-50/40' : 'hover:bg-violet-50/40'
+  const rankHover = accentColor === 'blue' ? 'group-hover:bg-blue-100 group-hover:text-blue-600' : accentColor === 'amber' ? 'group-hover:bg-amber-100 group-hover:text-amber-600' : 'group-hover:bg-violet-100 group-hover:text-violet-600'
+  const barColor = accentColor === 'blue' ? 'bg-blue-400' : accentColor === 'amber' ? 'bg-amber-400' : 'bg-violet-400'
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs sm:text-sm">
+    <div className="overflow-x-auto rounded-xl border border-gray-100 mt-3">
+      <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-[11px] sm:text-xs text-gray-400 border-b border-gray-100">
-            <th className="py-1.5 sm:py-2 pr-1 sm:pr-2">Klien</th>
-            <th className="hidden sm:table-cell py-2 pr-2 text-right">Jumlah Project</th>
-            <th className="py-1.5 sm:py-2 pr-0 text-right">Total Revenue</th>
-            <th className="hidden sm:table-cell py-2 text-right">% dari Total</th>
+          <tr className="text-left border-b-2 border-gray-200 bg-gray-50">
+            <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-gray-400">Klien</th>
+            <th className="hidden sm:table-cell py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right">Project</th>
+            <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right">Total Revenue</th>
+            <th className="hidden sm:table-cell py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right">Porsi</th>
           </tr>
         </thead>
         <tbody>
-          {sorted.map(r => (
-            <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50">
-              <td className="py-1.5 sm:py-2 pr-1 sm:pr-2 font-medium text-gray-800 max-w-[120px] sm:max-w-none truncate">{r.label}</td>
-              <td className="hidden sm:table-cell py-2 pr-2 text-right text-gray-600">{r.count}</td>
-              <td className="py-1.5 sm:py-2 pr-0 text-right font-semibold text-gray-800 whitespace-nowrap">{formatRupiah(r.totalValue)}</td>
-              <td className="hidden sm:table-cell py-2 text-right text-gray-500">{grandTotal ? ((r.totalValue / grandTotal) * 100).toFixed(1) : 0}%</td>
-            </tr>
-          ))}
+          {sorted.map((r, i) => {
+            const pct = grandTotal ? ((r.totalValue / grandTotal) * 100) : 0
+            return (
+              <tr key={r.id} className={clsx('border-b border-gray-100 transition-colors group', hoverRow)}>
+                <td className="py-2.5 px-3">
+                  <div className="flex items-center gap-2">
+                    <span className={clsx('w-5 h-5 rounded-full bg-gray-100 text-gray-400 text-[10px] font-bold flex items-center justify-center shrink-0 transition-colors', rankHover)}>{i + 1}</span>
+                    <span className="font-semibold text-gray-800 text-sm truncate max-w-[140px] sm:max-w-none">{r.label}</span>
+                  </div>
+                </td>
+                <td className="hidden sm:table-cell py-2.5 px-3 text-right">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-600 text-xs font-semibold">{r.count}</span>
+                </td>
+                <td className="py-2.5 px-3 text-right font-bold text-gray-900 whitespace-nowrap text-sm">{formatRupiah(r.totalValue)}</td>
+                <td className="hidden sm:table-cell py-2.5 px-3 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <div className="w-16 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                      <div className={clsx('h-full rounded-full', barColor)} style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-xs font-semibold text-gray-500 w-10 text-right">{pct.toFixed(1)}%</span>
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
         <tfoot>
-          <tr className="border-t border-gray-200">
-            <td className="py-1.5 sm:py-2 pr-1 sm:pr-2 font-semibold text-gray-800">Total <span className="text-gray-400 font-normal">({sorted.reduce((s, r) => s + r.count, 0)})</span></td>
-            <td className="hidden sm:table-cell py-2 pr-2 text-right font-semibold text-gray-800">{sorted.reduce((s, r) => s + r.count, 0)}</td>
-            <td className="py-1.5 sm:py-2 pr-0 text-right font-bold text-gray-900 whitespace-nowrap">{formatRupiah(grandTotal)}</td>
-            <td className="hidden sm:table-cell py-2 text-right text-gray-500">100%</td>
+          <tr className="border-t-2 border-gray-200 bg-gray-50">
+            <td className="py-3 px-3 font-bold text-gray-900 text-sm">
+              Total <span className="ml-1 text-xs font-normal text-gray-400 bg-gray-200 rounded-full px-2 py-0.5">{sorted.length} klien</span>
+            </td>
+            <td className="hidden sm:table-cell py-3 px-3 text-right font-bold text-gray-900">{totalProjects}</td>
+            <td className="py-3 px-3 text-right font-black text-gray-900 text-sm whitespace-nowrap">{formatRupiah(grandTotal)}</td>
+            <td className="hidden sm:table-cell py-3 px-3 text-right font-bold text-gray-500">100%</td>
           </tr>
         </tfoot>
       </table>
     </div>
   )
 }
+
+const DIV_STYLE = {
+  EVENT:   { gradient: 'from-blue-600 to-cyan-500',   border: 'border-blue-100',   bg: 'from-blue-50/50',   accent: 'blue',   icon: '🎪' },
+  PH:      { gradient: 'from-amber-500 to-orange-500', border: 'border-amber-100',  bg: 'from-amber-50/50',  accent: 'amber',  icon: '🎬' },
+  CREATIVE:{ gradient: 'from-purple-600 to-pink-500',  border: 'border-purple-100', bg: 'from-purple-50/50', accent: 'violet', icon: '🎨' },
+}
+const DIV_DEFAULT_STYLE = { gradient: 'from-gray-600 to-gray-500', border: 'border-gray-100', bg: 'from-gray-50/50', accent: 'violet', icon: '📁' }
 
 function RevenuePerClientCard({ rows, rowsByDivision }) {
   const grandTotal = rows.reduce((s, r) => s + r.totalValue, 0)
@@ -1269,33 +1302,42 @@ function RevenuePerClientCard({ rows, rowsByDivision }) {
   })
 
   return (
-    <div className="card p-4 space-y-3">
+    <div className="card p-5 space-y-4">
       <div>
-        <h3 className="text-sm font-semibold text-gray-700">Summary Revenue per Klien</h3>
-        <p className="text-xs text-gray-400">Akumulasi nilai project (yang sudah/sedang berjalan) dari seluruh klien yang masuk ke Watermark.</p>
+        <h3 className="text-base font-bold text-gray-900 tracking-tight">Summary Revenue per Klien</h3>
+        <p className="text-xs text-gray-400 mt-0.5">Akumulasi nilai project (yang sudah/sedang berjalan) dari seluruh klien yang masuk ke Watermark.</p>
       </div>
 
-      <details open className="rounded-xl border border-gray-100 p-3">
-        <summary className="cursor-pointer select-none flex items-center justify-between gap-2 text-sm font-semibold text-gray-800">
-          <span>Semua Divisi (Total)</span>
-          <span className="text-xs font-bold text-gray-900">{formatRupiah(grandTotal)}</span>
+      {/* Semua Divisi */}
+      <details open className="rounded-xl border border-violet-100 bg-gradient-to-r from-violet-50/50 to-white overflow-hidden shadow-sm">
+        <summary className="cursor-pointer select-none flex items-center justify-between gap-3 px-4 py-3 bg-gradient-to-r from-violet-600 to-purple-500 text-white list-none">
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-md bg-white/20 flex items-center justify-center text-xs">📊</span>
+            <span className="text-sm font-bold tracking-tight">Semua Divisi (Total)</span>
+          </div>
+          <span className="text-base font-black">{formatRupiah(grandTotal)}</span>
         </summary>
-        <div className="mt-2">
-          <RevenueClientTable rows={rows} />
+        <div className="px-4 pb-4">
+          <RevenueClientTable rows={rows} accentColor="violet" />
         </div>
       </details>
 
+      {/* Per Divisi (EO / PH / dll) */}
       {divisionKeys.map(div => {
         const divRows = byDivision[div]
         const divTotal = divRows.reduce((s, r) => s + r.totalValue, 0)
+        const s = DIV_STYLE[div] || DIV_DEFAULT_STYLE
         return (
-          <details key={div} className="rounded-xl border border-gray-100 p-3">
-            <summary className="cursor-pointer select-none flex items-center justify-between gap-2 text-sm font-semibold text-gray-800">
-              <span>{DIVISION_LABEL[div] || div}</span>
-              <span className="text-xs font-bold text-gray-900">{formatRupiah(divTotal)}</span>
+          <details key={div} className={clsx('rounded-xl border overflow-hidden shadow-sm bg-gradient-to-r to-white', s.border, s.bg)}>
+            <summary className={clsx('cursor-pointer select-none flex items-center justify-between gap-3 px-4 py-3 text-white list-none bg-gradient-to-r', s.gradient)}>
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-md bg-white/20 flex items-center justify-center text-xs">{s.icon}</span>
+                <span className="text-sm font-bold tracking-tight">{DIVISION_LABEL[div] || div}</span>
+              </div>
+              <span className="text-base font-black">{formatRupiah(divTotal)}</span>
             </summary>
-            <div className="mt-2">
-              <RevenueClientTable rows={divRows} />
+            <div className="px-4 pb-4">
+              <RevenueClientTable rows={divRows} accentColor={s.accent} />
             </div>
           </details>
         )
@@ -1306,31 +1348,48 @@ function RevenuePerClientCard({ rows, rowsByDivision }) {
 
 function ProfitabilityByProjectCard({ rows }) {
   return (
-    <div className="card p-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">Profitabilitas per Project</h3>
-      <div className="overflow-x-auto">
+    <div className="card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-base font-bold text-gray-900 tracking-tight">Profitabilitas per Project</h3>
+        <span className="text-xs text-gray-400 bg-gray-100 rounded-full px-3 py-1 font-medium">{rows.length} project</span>
+      </div>
+      <div className="overflow-x-auto rounded-xl border border-gray-100">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
-              <th className="py-2 pr-2">Project</th>
-              <th className="py-2 pr-2">Klien</th>
-              <th className="py-2 pr-2 text-right">Nilai Project</th>
-              <th className="py-2 pr-2 text-right">Biaya Aktual</th>
-              <th className="py-2 pr-2 text-right">Margin</th>
-              <th className="py-2 text-right">% Margin</th>
+            <tr className="bg-gray-50 border-b-2 border-gray-200">
+              <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-left">Project</th>
+              <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-left hidden sm:table-cell">Klien</th>
+              <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right hidden md:table-cell">Nilai Project</th>
+              <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right hidden md:table-cell">Biaya Aktual</th>
+              <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right">Margin</th>
+              <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right">%</th>
             </tr>
           </thead>
           <tbody>
             {rows.map(r => (
-              <tr key={r.projectId} className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="py-2 pr-2">
-                  <Link href={`/projects/${r.projectId}`} className="font-medium text-gray-800 hover:text-brand">{r.projectCode} · {r.projectName}</Link>
+              <tr key={r.projectId} className="border-b border-gray-100 hover:bg-violet-50/30 transition-colors">
+                <td className="py-3 px-4">
+                  <Link href={`/projects/${r.projectId}`} className="hover:text-violet-700 transition-colors">
+                    <span className="text-[10px] font-bold text-violet-500 bg-violet-50 rounded px-1.5 py-0.5 mr-1.5 font-mono">{r.projectCode}</span>
+                    <span className="text-sm font-semibold text-gray-800">{r.projectName}</span>
+                  </Link>
                 </td>
-                <td className="py-2 pr-2 text-gray-600">{r.clientName}</td>
-                <td className="py-2 pr-2 text-right text-gray-700">{formatRupiah(r.projectValue)}</td>
-                <td className="py-2 pr-2 text-right text-gray-700">{formatRupiah(r.actualCost)}</td>
-                <td className={clsx('py-2 pr-2 text-right font-semibold', r.margin >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(r.margin)}</td>
-                <td className="py-2 text-right text-gray-500">{r.marginPct.toFixed(1)}%</td>
+                <td className="py-3 px-4 hidden sm:table-cell">
+                  <span className="inline-flex items-center text-xs font-medium text-gray-600 bg-gray-100 rounded-full px-2.5 py-1">{r.clientName}</span>
+                </td>
+                <td className="py-3 px-4 text-right font-semibold text-gray-800 text-sm whitespace-nowrap hidden md:table-cell">{formatRupiah(r.projectValue)}</td>
+                <td className="py-3 px-4 text-right text-sm hidden md:table-cell">
+                  {r.actualCost === 0
+                    ? <span className="text-gray-300 italic text-xs">—</span>
+                    : <span className="font-semibold text-gray-800">{formatRupiah(r.actualCost)}</span>
+                  }
+                </td>
+                <td className={clsx('py-3 px-4 text-right font-bold text-sm whitespace-nowrap', r.margin >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(r.margin)}</td>
+                <td className="py-3 px-4 text-right">
+                  <span className={clsx('inline-flex items-center justify-center text-[11px] font-bold rounded-full px-2.5 py-1', r.marginPct >= 50 ? 'bg-emerald-50 text-emerald-700' : r.marginPct >= 20 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600')}>
+                    {r.marginPct.toFixed(1)}%
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>
