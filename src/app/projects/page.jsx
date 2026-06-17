@@ -426,11 +426,11 @@ function ProjectsContent() {
               </summary>
               <div className="space-y-2 p-2 bg-gray-50">
           {group.map(p => (
-            <Link key={p.id} href={`/projects/${p.id}`} className="card flex flex-col gap-3 p-4 hover:shadow-md hover:border-brand-200 hover:-translate-y-0.5 transition-all duration-200 block">
+            <div key={p.id} className="card flex flex-col gap-3 p-4 hover:shadow-md hover:border-brand-200 transition-all duration-200">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="flex-1 min-w-0">
+                <Link href={`/projects/${p.id}`} className="flex-1 min-w-0 block hover:-translate-y-0.5 transition-transform">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-xs text-gray-400 font-mono">{p.code} · {CATEGORY_LABEL[p.category] || p.category}</span>
+                    <span className="text-xs text-gray-400 font-mono">{p.code} · {CATEGORY_LABEL[p.category] || p.category?.replace(/_/g, ' ')}</span>
                     {p.recommendation === 'PRIORITIZE' && <span className="text-xs">🔥</span>}
                     {p.recommendation === 'EVALUATE' && <span className="text-xs">⚠️</span>}
                     {p.health && p.health.level !== 'gray' && p.health.level !== 'green' && (
@@ -452,21 +452,18 @@ function ProjectsContent() {
                     {p.startDate && <span>· {new Date(p.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
                     {p.members?.length > 0 && <span>· {p.members.length} anggota</span>}
                   </div>
-                </div>
+                </Link>
                 <div className="flex items-center gap-2 shrink-0">
                   {p.pitchResult && (
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-400 flex items-center gap-1">
                       Pitch: <PitchResultBadge result={p.pitchResult} />
                     </span>
                   )}
                   {canQuickEdit && (
                     <button
                       onClick={(e) => {
-                        if (editId === p.id) {
-                          e.preventDefault(); e.stopPropagation(); setEditId(null)
-                        } else {
-                          openQuickEdit(e, p)
-                        }
+                        e.stopPropagation()
+                        if (editId === p.id) { setEditId(null) } else { openQuickEdit(e, p) }
                       }}
                       title="Edit cepat"
                       className="text-xs px-2 py-1 rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-brand-600"
@@ -489,7 +486,6 @@ function ProjectsContent() {
               {editId === p.id && (
                 <div
                   className="border-t border-gray-100 pt-3 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
                 >
                   <div>
                     <label className="label">Divisi</label>
@@ -540,7 +536,7 @@ function ProjectsContent() {
                   </div>
                 </div>
               )}
-            </Link>
+            </div>
           ))}
               </div>
             </details>
