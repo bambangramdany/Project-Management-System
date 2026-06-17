@@ -32,7 +32,7 @@ export default function NewProjectPage() {
   useEffect(() => {
     if (status === 'authenticated') {
       fetch('/api/clients').then(r => r.json()).then(setClients)
-      fetch('/api/team').then(r => r.json()).then(data => setTeam((Array.isArray(data) ? data : []).filter(u => u.divisi !== 'FINANCE_HRGA')))
+      fetch('/api/team').then(r => r.json()).then(setTeam)
     }
   }, [status])
 
