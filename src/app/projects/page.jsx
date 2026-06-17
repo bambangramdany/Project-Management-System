@@ -81,7 +81,7 @@ function ProjectsContent() {
 
   useEffect(() => {
     if (status === 'authenticated' && canQuickEditProjects(session?.user)) {
-      fetch('/api/team').then(r => r.ok ? r.json() : []).then(data => setAllUsers(Array.isArray(data) ? data : []))
+      fetch('/api/team').then(r => r.ok ? r.json() : []).then(data => setAllUsers((Array.isArray(data) ? data : []).filter(u => u.divisi !== 'FINANCE_HRGA')))
     }
   }, [status, session])
 
