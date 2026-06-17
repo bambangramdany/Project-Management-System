@@ -454,7 +454,11 @@ function ProjectsContent() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <PitchResultBadge result={p.pitchResult} />
+                  {p.pitchResult && (
+                    <span className="text-xs text-gray-400">
+                      Pitch: <PitchResultBadge result={p.pitchResult} />
+                    </span>
+                  )}
                   {canQuickEdit && (
                     <button
                       onClick={(e) => {
