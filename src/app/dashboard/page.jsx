@@ -515,45 +515,74 @@ function CashConditionCard({ data }) {
 
 function DebtSummaryCard({ data }) {
   const dueItems = [...data.overdue, ...data.dueThisMonth]
-  return (
-    <div className="card p-5 border-t-4 border-teal-400">
-      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center text-xs">📉</span>Kewajiban Hutang</h3>
-        <Link href="/debts" className="text-xs font-medium text-brand hover:underline">Kelola Hutang →</Link>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-        <div className="p-3 rounded-lg bg-gray-50">
-          <p className="text-xs text-gray-500">Sisa Pokok Hutang</p>
-          <p className="text-lg sm:text-xl font-bold text-gray-900 break-words">{formatRupiah(data.outstandingPrincipal)}</p>
-          <p className="text-xs text-gray-400">{data.activeDebtCount} pinjaman aktif</p>
-        </div>
-        <div className="p-3 rounded-lg bg-orange-50">
-          <p className="text-xs text-gray-500">Wajib Dibayar Bulan Ini</p>
-          <p className="text-lg sm:text-xl font-bold text-orange-600 break-words">{formatRupiah(data.monthlyObligation)}</p>
-          <p className="text-xs text-gray-400">{dueItems.length} cicilan</p>
-        </div>
-      </div>
+  const overdueCount = data.overdue?.length || 0
+  const [expanded, setExpanded] = useState(false)
 
-      {dueItems.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Cicilan Jatuh Tempo</p>
-          <div className="space-y-2">
-            {dueItems.map(item => {
-              const overdue = new Date(item.dueDate) < new Date()
-              const total = item.principalAmount + item.interestAmount
-              return (
-                <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 p-2.5 rounded-lg bg-gray-50">
-                  <div className="min-w-0">
-                    <p className="text-sm text-gray-800">
-                      <span className="break-words">{item.lenderName} · cicilan ke-{item.installmentNo}</span>
-                      {overdue && <span className="ml-2 inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-medium align-middle">Lewat Tenggat</span>}
-                    </p>
-                    <p className="text-xs text-gray-400">Jatuh tempo {new Date(item.dueDate).toLocaleDateString('id-ID', { dateStyle: 'medium' })}</p>
-                  </div>
-                  <p className="text-sm font-semibold text-gray-800 shrink-0">{formatRupiah(total)}</p>
-                </div>
-              )
-            })}
+  return (
+    <div className="card border-t-4 border-teal-400 overflow-hidden">
+      {/* Header — always visible, clickable to expand/collapse */}
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="w-full p-5 flex items-center justify-between text-left hover:bg-gray-50/60 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <span className="w-7 h-7 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center text-sm">📉</span>
+          <div>
+            <p className="text-sm font-semibold text-gray-700">Kewajiban Hutang</p>
+            <p className="text-xs text-gray-400">{data.activeDebtCount} pinjaman · {dueItems.length} cicilan jatuh tempo{overdueCount > 0 && <span className="ml-1 text-red-500 font-medium">({overdueCount} lewat tenggat)</span>}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0 ml-4">
+          <div className="text-right hidden sm:block">
+            <p className="text-xs text-gray-400">Sisa pokok</p>
+            <p className="text-sm font-bold text-gray-900">{formatRupiah(data.outstandingPrincipal)}</p>
+          </div>
+          <span className={`text-gray-400 transition-transform duration-200 text-lg leading-none ${expanded ? 'rotate-180' : ''}`}>⌄</span>
+        </div>
+      </button>
+
+      {/* Expandable body */}
+      {expanded && (
+        <div className="px-5 pb-5 border-t border-gray-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 mb-4">
+            <div className="p-3 rounded-xl bg-gray-50">
+              <p className="text-xs text-gray-500">Sisa Pokok Hutang</p>
+              <p className="text-lg font-bold text-gray-900 break-words">{formatRupiah(data.outstandingPrincipal)}</p>
+              <p className="text-xs text-gray-400">{data.activeDebtCount} pinjaman aktif</p>
+            </div>
+            <div className="p-3 rounded-xl bg-orange-50">
+              <p className="text-xs text-gray-500">Wajib Dibayar Bulan Ini</p>
+              <p className="text-lg font-bold text-orange-600 break-words">{formatRupiah(data.monthlyObligation)}</p>
+              <p className="text-xs text-gray-400">{dueItems.length} cicilan</p>
+            </div>
+          </div>
+
+          {dueItems.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Cicilan Jatuh Tempo</p>
+              <div className="space-y-2">
+                {dueItems.map(item => {
+                  const overdue = new Date(item.dueDate) < new Date()
+                  const total = item.principalAmount + item.interestAmount
+                  return (
+                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 p-2.5 rounded-lg bg-gray-50">
+                      <div className="min-w-0">
+                        <p className="text-sm text-gray-800">
+                          <span className="break-words">{item.lenderName} · cicilan ke-{item.installmentNo}</span>
+                          {overdue && <span className="ml-2 inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-medium align-middle">Lewat Tenggat</span>}
+                        </p>
+                        <p className="text-xs text-gray-400">Jatuh tempo {new Date(item.dueDate).toLocaleDateString('id-ID', { dateStyle: 'medium' })}</p>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-800 shrink-0">{formatRupiah(total)}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 pt-3 border-t border-gray-100">
+            <Link href="/debts" className="text-xs font-medium text-brand hover:underline">Kelola Hutang →</Link>
           </div>
         </div>
       )}
