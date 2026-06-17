@@ -57,12 +57,14 @@ export async function GET() {
   let team = []
   let allUsers = null
 
+  const HIDDEN_EMAILS = ['hrdwatermark@gmail.com']
+
   if (canViewAllScores(me) || me.role === 'OWNER') {
-    allUsers = await prisma.user.findMany({ where: { role: { notIn: ['OWNER', 'DIRECTOR'] } }, select: { id: true, name: true, jobTitle: true, role: true, divisi: true } })
+    allUsers = await prisma.user.findMany({ where: { role: { notIn: ['OWNER', 'DIRECTOR'] }, email: { notIn: HIDDEN_EMAILS } }, select: { id: true, name: true, jobTitle: true, role: true, divisi: true } })
   } else if (me.email === CROSS_TEAM_PM_EMAIL) {
-    allUsers = await prisma.user.findMany({ where: { role: { notIn: ['OWNER', 'DIRECTOR'] }, id: { not: me.id } }, select: { id: true, name: true, jobTitle: true, role: true, divisi: true } })
+    allUsers = await prisma.user.findMany({ where: { role: { notIn: ['OWNER', 'DIRECTOR'] }, id: { not: me.id }, email: { notIn: HIDDEN_EMAILS } }, select: { id: true, name: true, jobTitle: true, role: true, divisi: true } })
   } else if (me.role === 'DIRECTOR') {
-    allUsers = await prisma.user.findMany({ where: { divisi: me.divisi, role: { notIn: ['OWNER', 'DIRECTOR'] } }, select: { id: true, name: true, jobTitle: true, role: true, divisi: true } })
+    allUsers = await prisma.user.findMany({ where: { divisi: me.divisi, role: { notIn: ['OWNER', 'DIRECTOR'] }, email: { notIn: HIDDEN_EMAILS } }, select: { id: true, name: true, jobTitle: true, role: true, divisi: true } })
   } else if (me.role === 'PROJECT_MANAGER') {
     // members of projects where I'm PIC
     const myProjects = await prisma.project.findMany({

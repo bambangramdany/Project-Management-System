@@ -12,9 +12,12 @@ export async function GET(req) {
   const month = searchParams.get('month') // format: YYYY-MM
   const year = searchParams.get('year') || new Date().getFullYear()
 
+  // Akun sistem internal yang disembunyikan dari workload & semua proses project
+  const HIDDEN_EMAILS = ['hrdwatermark@gmail.com']
+
   // All active team members
   const users = await prisma.user.findMany({
-    where: { employeeStatus: 'ACTIVE' },
+    where: { employeeStatus: 'ACTIVE', email: { notIn: HIDDEN_EMAILS } },
     select: { id: true, name: true, role: true, jobTitle: true, divisi: true },
     orderBy: [{ divisi: 'asc' }, { name: 'asc' }],
   })
