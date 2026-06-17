@@ -261,7 +261,9 @@ function ProjectsContent() {
     setEditForm({
       division: p.division || 'EVENT',
       status: p.status,
+      briefDate: p.briefDate ? p.briefDate.slice(0, 10) : '',
       startDate: p.startDate ? p.startDate.slice(0, 10) : '',
+      endDate: p.endDate ? p.endDate.slice(0, 10) : '',
       picId: p.picId || '',
       memberIds: (p.members?.map(m => m.user?.id).filter(Boolean)) || [],
     })
@@ -284,7 +286,9 @@ function ProjectsContent() {
       body: JSON.stringify({
         division: editForm.division,
         status: editForm.status,
+        briefDate: editForm.briefDate || null,
         startDate: editForm.startDate || null,
+        endDate: editForm.endDate || null,
         picId: editForm.picId || null,
         memberIds: editForm.memberIds,
       }),
@@ -485,7 +489,7 @@ function ProjectsContent() {
 
               {editId === p.id && (
                 <div
-                  className="border-t border-gray-100 pt-3 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end"
+                  className="border-t border-gray-100 pt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end"
                 >
                   <div>
                     <label className="label">Divisi</label>
@@ -501,8 +505,16 @@ function ProjectsContent() {
                     </select>
                   </div>
                   <div>
-                    <label className="label">Waktu Pelaksanaan</label>
+                    <label className="label">Tgl Brief</label>
+                    <input type="date" className="input text-sm" value={editForm.briefDate} onChange={e => setEditForm(f => ({ ...f, briefDate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="label">Tgl Event / Mulai</label>
                     <input type="date" className="input text-sm" value={editForm.startDate} onChange={e => setEditForm(f => ({ ...f, startDate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="label">Tgl Selesai</label>
+                    <input type="date" className="input text-sm" value={editForm.endDate} onChange={e => setEditForm(f => ({ ...f, endDate: e.target.value }))} />
                   </div>
                   <div>
                     <label className="label">PIC / Project Manager</label>
@@ -513,7 +525,7 @@ function ProjectsContent() {
                       ))}
                     </select>
                   </div>
-                  <div className="sm:col-span-3">
+                  <div className="col-span-2 sm:col-span-3 lg:col-span-6">
                     <label className="label">Anggota Tim</label>
                     <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 border border-gray-200 rounded-lg">
                       {allUsers.map(u => (
