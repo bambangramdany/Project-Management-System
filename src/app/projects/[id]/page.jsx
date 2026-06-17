@@ -337,98 +337,95 @@ export default function ProjectDetailPage() {
                   )}
                 </h1>
               )}
-              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
-                {editingClient ? (
-                  <span className="flex items-center gap-2">
-                    Client:
-                    <select
-                      autoFocus
-                      className="select text-xs py-0.5 px-1.5 w-44"
-                      value={clientValue}
-                      onChange={e => setClientValue(e.target.value)}
-                    >
-                      <option value="">— Pilih client —</option>
-                      {allClients.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                    <button onClick={saveClient} className="text-brand-600 hover:underline">Simpan</button>
-                    <button onClick={() => setEditingClient(false)} className="text-gray-400 hover:underline">Batal</button>
+              {/* Info baris — view mode */}
+              {!editingClient && !editingPic && !editingDates && (
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
+                  <span>Client: <strong>{project.client?.name || '—'}</strong></span>
+                  <span>PIC: <strong>{project.pic?.name || '—'}</strong></span>
+                  <span>Brief: <strong>{project.briefDate ? new Date(project.briefDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</strong></span>
+                  <span>
+                    Event: <strong>{project.startDate ? new Date(project.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</strong>
+                    {project.endDate && <> s/d <strong>{new Date(project.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></>}
                   </span>
-                ) : (
-                  <span>Client: <strong>{project.client?.name || '—'}</strong>
-                    {isManager && (
-                      <button onClick={() => { setClientValue(project.client?.id || ''); setEditingClient(true) }} className="ml-1 text-gray-300 hover:text-brand-600" title="Ganti client">✏️</button>
-                    )}
-                  </span>
-                )}
-                {editingPic ? (
-                  <span className="flex items-center gap-2">
-                    PIC:
-                    <select
-                      autoFocus
-                      className="select text-xs py-0.5 px-1.5 w-auto"
-                      value={picValue}
-                      onChange={e => setPicValue(e.target.value)}
-                    >
-                      {team.map(u => (
-                        <option key={u.id} value={u.id}>{u.name}</option>
-                      ))}
-                    </select>
-                    <button onClick={savePic} className="text-brand-600 hover:underline">Simpan</button>
-                    <button onClick={() => setEditingPic(false)} className="text-gray-400 hover:underline">Batal</button>
-                  </span>
-                ) : (
-                  <span>PIC: <strong>{project.pic?.name || '—'}</strong>
-                    {isManager && (
-                      <button onClick={() => { setPicValue(project.pic?.id || ''); setEditingPic(true) }} className="ml-1 text-gray-300 hover:text-brand-600" title="Edit PIC">✏️</button>
-                    )}
-                  </span>
-                )}
-                {editingDates ? (
-                  <span className="flex flex-wrap items-end gap-3 col-span-full">
-                    <span className="flex flex-col gap-0.5">
-                      <label className="text-[10px] text-gray-400 uppercase tracking-wide">Tgl Brief</label>
-                      <input type="date" className="input text-xs py-0.5 px-1.5" value={datesForm.briefDate} onChange={e => setDatesForm(f => ({ ...f, briefDate: e.target.value }))} />
-                    </span>
-                    <span className="flex flex-col gap-0.5">
-                      <label className="text-[10px] text-gray-400 uppercase tracking-wide">Tgl Event / Mulai</label>
-                      <input type="date" className="input text-xs py-0.5 px-1.5" value={datesForm.startDate} onChange={e => setDatesForm(f => ({ ...f, startDate: e.target.value }))} />
-                    </span>
-                    <span className="flex flex-col gap-0.5">
-                      <label className="text-[10px] text-gray-400 uppercase tracking-wide">Tgl Selesai (opsional)</label>
-                      <input type="date" className="input text-xs py-0.5 px-1.5" value={datesForm.endDate} onChange={e => setDatesForm(f => ({ ...f, endDate: e.target.value }))} />
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <button onClick={saveDates} className="text-brand-600 hover:underline text-xs">Simpan</button>
-                      <button onClick={() => setEditingDates(false)} className="text-gray-400 hover:underline text-xs">Batal</button>
-                    </span>
-                  </span>
-                ) : (
-                  <span className="flex flex-wrap gap-x-4 gap-y-1">
-                    <span>
-                      Brief: <strong>{project.briefDate ? new Date(project.briefDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</strong>
-                    </span>
-                    <span>
-                      Event: <strong>{project.startDate ? new Date(project.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</strong>
-                      {project.endDate && <> s/d <strong>{new Date(project.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></>}
-                    </span>
-                    {isManager && (
-                      <button
-                        onClick={() => setDatesForm({
+                  {project.budgetTier && <span>Budget: <strong>{project.budgetTier}</strong></span>}
+                  {isManager && (
+                    <button
+                      onClick={() => {
+                        setClientValue(project.client?.id || '')
+                        setPicValue(project.pic?.id || '')
+                        setDatesForm({
                           briefDate: project.briefDate ? project.briefDate.slice(0, 10) : '',
                           startDate: project.startDate ? project.startDate.slice(0, 10) : '',
                           endDate: project.endDate ? project.endDate.slice(0, 10) : '',
-                        }) || setEditingDates(true)}
-                        className="text-gray-300 hover:text-brand-600"
-                        title="Edit tanggal"
-                      >✏️</button>
-                    )}
-                  </span>
-                )}
-                {project.budgetTier && <span>Budget: <strong>{project.budgetTier}</strong></span>}
-                {project.eventComplexity && <span>Kompleksitas: <strong>{project.eventComplexity}</strong></span>}
-              </div>
+                        })
+                        setEditingClient(true)
+                        setEditingPic(true)
+                        setEditingDates(true)
+                      }}
+                      className="text-gray-300 hover:text-brand-600"
+                      title="Edit info"
+                    >✏️</button>
+                  )}
+                </div>
+              )}
+
+              {/* Edit form terpadu — semua field sekaligus */}
+              {isManager && (editingClient || editingPic || editingDates) && (
+                <div className="mt-3 p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="label">Client</label>
+                      <select className="select" value={clientValue} onChange={e => setClientValue(e.target.value)}>
+                        <option value="">— Pilih client —</option>
+                        {allClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">PIC</label>
+                      <select className="select" value={picValue} onChange={e => setPicValue(e.target.value)}>
+                        <option value="">— Belum ada PIC —</option>
+                        {team.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">Tgl Brief</label>
+                      <input type="date" className="input" value={datesForm.briefDate} onChange={e => setDatesForm(f => ({ ...f, briefDate: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="label">Tgl Event / Mulai</label>
+                      <input type="date" className="input" value={datesForm.startDate} onChange={e => setDatesForm(f => ({ ...f, startDate: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="label">Tgl Selesai (opsional)</label>
+                      <input type="date" className="input" value={datesForm.endDate} onChange={e => setDatesForm(f => ({ ...f, endDate: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={async () => {
+                        setSaving(true)
+                        const tasks = []
+                        if (clientValue !== (project.client?.id || '')) tasks.push(fetch(`/api/projects/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: clientValue || null }) }))
+                        if (picValue !== (project.pic?.id || '')) tasks.push(fetch(`/api/projects/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ picId: picValue || null }) }))
+                        const dateChanged = datesForm.briefDate !== (project.briefDate?.slice(0,10)||'') || datesForm.startDate !== (project.startDate?.slice(0,10)||'') || datesForm.endDate !== (project.endDate?.slice(0,10)||'')
+                        if (dateChanged) tasks.push(fetch(`/api/projects/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ briefDate: datesForm.briefDate||null, startDate: datesForm.startDate||null, endDate: datesForm.endDate||null }) }))
+                        await Promise.all(tasks)
+                        setEditingClient(false); setEditingPic(false); setEditingDates(false)
+                        setSaving(false)
+                        fetchProject()
+                      }}
+                      disabled={saving}
+                      className="btn-primary flex-1"
+                    >
+                      {saving ? 'Menyimpan...' : 'Simpan'}
+                    </button>
+                    <button
+                      onClick={() => { setEditingClient(false); setEditingPic(false); setEditingDates(false) }}
+                      className="btn-secondary"
+                    >Batal</button>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <PitchResultBadge result={project.pitchResult} />
