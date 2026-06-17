@@ -3,15 +3,37 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
+const HIDDEN_EMAILS = ['hrdwatermark@gmail.com']
+const DIRECTOR_ROLES = ['OWNER', 'DIRECTOR']
+
 function startOfTodayUTC() {
   const now = new Date()
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
 }
 
-// Past 20:00 WIB (UTC+7) == past 13:00 UTC
 function isPastDeadlineWIB() {
   const now = new Date()
   return now.getUTCHours() >= 13
+}
+
+function shapeItem(item, kind, today, userId) {
+  const uid = userId || item.assigneeId || item.userId
+  const latest = (item.progressUpdates || []).find(u => u.userId === uid) || item.progressUpdates?.[0] || null
+  const hasToday = latest && new Date(latest.date).getTime() === today.getTime()
+  return {
+    id: item.id,
+    kind,
+    title: item.title,
+    description: item.description,
+    dueDate: item.dueDate,
+    status: item.status,
+    project: item.project || null,
+    clientName: item.clientName || item.project?.client?.name || null,
+    projectName: item.projectName || item.project?.name || null,
+    assignee: item.assignee || item.user || null,
+    latestUpdate: latest ? { status: latest.status, note: latest.note, date: latest.date } : null,
+    hasTodayUpdate: !!hasToday,
+  }
 }
 
 export async function GET() {
@@ -19,64 +41,121 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const userId = session.user.id
+  const role = session.user.role
   const today = startOfTodayUTC()
+  const isDirector = DIRECTOR_ROLES.includes(role)
 
-  const tasks = await prisma.task.findMany({
-    where: { assigneeId: userId, status: { not: 'DONE' } },
-    include: {
-      project: { select: { id: true, code: true, name: true, status: true, client: { select: { name: true } } } },
-      progressUpdates: { where: { userId }, orderBy: { date: 'desc' }, take: 1 },
-    },
-    orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
-  })
+  // === DIRECTOR / OWNER: lihat semua tugas tim, dikelompokkan per divisi ===
+  if (isDirector) {
+    const [allTasks, allPersonalTasks, allUsers] = await Promise.all([
+      prisma.task.findMany({
+        where: {
+          status: { not: 'DONE' },
+          assignee: { email: { notIn: HIDDEN_EMAILS } },
+        },
+        include: {
+          project: { select: { id: true, code: true, name: true, status: true, division: true, client: { select: { name: true } } } },
+          assignee: { select: { id: true, name: true, divisi: true, role: true } },
+          progressUpdates: { orderBy: { date: 'desc' }, take: 5 },
+        },
+        orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
+      }),
+      prisma.personalTask.findMany({
+        where: {
+          status: { not: 'DONE' },
+          user: { email: { notIn: HIDDEN_EMAILS } },
+        },
+        include: {
+          project: { select: { id: true, code: true, name: true, status: true, division: true, client: { select: { name: true } } } },
+          user: { select: { id: true, name: true, divisi: true, role: true } },
+          progressUpdates: { orderBy: { date: 'desc' }, take: 5 },
+        },
+        orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
+      }),
+      prisma.user.findMany({
+        where: { employeeStatus: 'ACTIVE', email: { notIn: HIDDEN_EMAILS } },
+        select: { id: true, name: true, divisi: true, role: true },
+        orderBy: [{ divisi: 'asc' }, { name: 'asc' }],
+      }),
+    ])
 
-  const personalTasks = await prisma.personalTask.findMany({
-    where: { userId, status: { not: 'DONE' } },
-    include: {
-      project: { select: { id: true, code: true, name: true, status: true, client: { select: { name: true } } } },
-      progressUpdates: { where: { userId }, orderBy: { date: 'desc' }, take: 1 },
-    },
-    orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
-  })
-
-  // Projects the user is involved in (PIC or member), or assigned a task in —
-  // used to populate the project dropdown for manual to-do items.
-  const memberProjects = await prisma.project.findMany({
-    where: {
-      OR: [
-        { picId: userId },
-        { members: { some: { userId } } },
-        { tasks: { some: { assigneeId: userId } } },
-      ],
-    },
-    select: { id: true, code: true, name: true, client: { select: { name: true } } },
-    orderBy: { updatedAt: 'desc' },
-  })
-
-  function shape(item, kind) {
-    const latest = item.progressUpdates[0] || null
-    const hasToday = latest && new Date(latest.date).getTime() === today.getTime()
-    return {
-      id: item.id,
-      kind,
-      title: item.title,
-      description: item.description,
-      dueDate: item.dueDate,
-      status: item.status,
-      project: item.project || null,
-      clientName: item.clientName || item.project?.client?.name || null,
-      projectName: item.projectName || item.project?.name || null,
-      latestUpdate: latest ? { status: latest.status, note: latest.note, date: latest.date } : null,
-      hasTodayUpdate: !!hasToday,
+    // Kelompokkan per divisi
+    const DIV_ORDER = ['EVENT', 'CREATIVE', 'PH', 'FINANCE_HRGA']
+    const DIV_LABEL = {
+      EVENT: 'Event Organizer (EO)',
+      CREATIVE: 'Creative',
+      PH: 'Production House (PH)',
+      FINANCE_HRGA: 'Finance / HR & GA',
     }
+
+    // Map userId → divisi
+    const userDivMap = {}
+    for (const u of allUsers) userDivMap[u.id] = u.divisi || 'EVENT'
+
+    // Gabungkan tasks + personal tasks, assign divisi
+    const shapeTask = (item, kind) => {
+      const uid = kind === 'task' ? item.assigneeId : item.userId
+      return { ...shapeItem(item, kind, today, uid), _divisi: userDivMap[uid] || 'EVENT' }
+    }
+
+    const allItems = [
+      ...allTasks.map(t => shapeTask(t, 'task')),
+      ...allPersonalTasks.map(t => shapeTask(t, 'personal')),
+    ]
+
+    // Group per divisi
+    const groups = DIV_ORDER.map(div => ({
+      divisi: div,
+      label: DIV_LABEL[div] || div,
+      items: allItems.filter(i => i._divisi === div),
+    })).filter(g => g.items.length > 0)
+
+    return NextResponse.json({
+      mode: 'director',
+      groups,
+      deadlinePassed: isPastDeadlineWIB(),
+      today: today.toISOString(),
+    })
   }
 
+  // === USER BIASA: hanya tugas sendiri ===
+  const [tasks, personalTasks, memberProjects] = await Promise.all([
+    prisma.task.findMany({
+      where: { assigneeId: userId, status: { not: 'DONE' } },
+      include: {
+        project: { select: { id: true, code: true, name: true, status: true, client: { select: { name: true } } } },
+        progressUpdates: { where: { userId }, orderBy: { date: 'desc' }, take: 1 },
+      },
+      orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
+    }),
+    prisma.personalTask.findMany({
+      where: { userId, status: { not: 'DONE' } },
+      include: {
+        project: { select: { id: true, code: true, name: true, status: true, client: { select: { name: true } } } },
+        progressUpdates: { where: { userId }, orderBy: { date: 'desc' }, take: 1 },
+      },
+      orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
+    }),
+    prisma.project.findMany({
+      where: {
+        OR: [
+          { picId: userId },
+          { members: { some: { userId } } },
+          { tasks: { some: { assigneeId: userId } } },
+        ],
+      },
+      select: { id: true, code: true, name: true, client: { select: { name: true } } },
+      orderBy: { updatedAt: 'desc' },
+    }),
+  ])
+
   const items = [
-    ...tasks.map(t => shape(t, 'task')),
-    ...personalTasks.map(t => shape(t, 'personal')),
+    ...tasks.map(t => shapeItem(t, 'task', today, userId)),
+    ...personalTasks.map(t => shapeItem(t, 'personal', today, userId)),
   ]
 
   return NextResponse.json({
+    mode: 'personal',
     items,
     deadlinePassed: isPastDeadlineWIB(),
     today: today.toISOString(),
@@ -85,7 +164,6 @@ export async function GET() {
 }
 
 export async function POST(req) {
-  // Create a personal (manual) to-do item
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
