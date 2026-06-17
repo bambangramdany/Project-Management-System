@@ -35,6 +35,8 @@ export default function ProjectDetailPage() {
   const [categoryValue, setCategoryValue] = useState('')
   const [customCategory, setCustomCategory] = useState('')
   const [editingPic, setEditingPic] = useState(false)
+  const [editingDates, setEditingDates] = useState(false)
+  const [datesForm, setDatesForm] = useState({ briefDate: '', startDate: '', endDate: '' })
   const [picValue, setPicValue] = useState('')
 
   useEffect(() => {
@@ -96,6 +98,22 @@ export default function ProjectDetailPage() {
       body: JSON.stringify({ category: value }),
     })
     setEditingCategory(false)
+    setSaving(false)
+    fetchProject()
+  }
+
+  async function saveDates() {
+    setSaving(true)
+    await fetch(`/api/projects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        briefDate: datesForm.briefDate || null,
+        startDate: datesForm.startDate || null,
+        endDate: datesForm.endDate || null,
+      }),
+    })
+    setEditingDates(false)
     setSaving(false)
     fetchProject()
   }
@@ -367,7 +385,47 @@ export default function ProjectDetailPage() {
                     )}
                   </span>
                 )}
-                {project.startDate && <span>Event: <strong>{new Date(project.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></span>}
+                {editingDates ? (
+                  <span className="flex flex-wrap items-end gap-3 col-span-full">
+                    <span className="flex flex-col gap-0.5">
+                      <label className="text-[10px] text-gray-400 uppercase tracking-wide">Tgl Brief</label>
+                      <input type="date" className="input text-xs py-0.5 px-1.5" value={datesForm.briefDate} onChange={e => setDatesForm(f => ({ ...f, briefDate: e.target.value }))} />
+                    </span>
+                    <span className="flex flex-col gap-0.5">
+                      <label className="text-[10px] text-gray-400 uppercase tracking-wide">Tgl Event / Mulai</label>
+                      <input type="date" className="input text-xs py-0.5 px-1.5" value={datesForm.startDate} onChange={e => setDatesForm(f => ({ ...f, startDate: e.target.value }))} />
+                    </span>
+                    <span className="flex flex-col gap-0.5">
+                      <label className="text-[10px] text-gray-400 uppercase tracking-wide">Tgl Selesai (opsional)</label>
+                      <input type="date" className="input text-xs py-0.5 px-1.5" value={datesForm.endDate} onChange={e => setDatesForm(f => ({ ...f, endDate: e.target.value }))} />
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <button onClick={saveDates} className="text-brand-600 hover:underline text-xs">Simpan</button>
+                      <button onClick={() => setEditingDates(false)} className="text-gray-400 hover:underline text-xs">Batal</button>
+                    </span>
+                  </span>
+                ) : (
+                  <span className="flex flex-wrap gap-x-4 gap-y-1">
+                    <span>
+                      Brief: <strong>{project.briefDate ? new Date(project.briefDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</strong>
+                    </span>
+                    <span>
+                      Event: <strong>{project.startDate ? new Date(project.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</strong>
+                      {project.endDate && <> s/d <strong>{new Date(project.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></>}
+                    </span>
+                    {isManager && (
+                      <button
+                        onClick={() => setDatesForm({
+                          briefDate: project.briefDate ? project.briefDate.slice(0, 10) : '',
+                          startDate: project.startDate ? project.startDate.slice(0, 10) : '',
+                          endDate: project.endDate ? project.endDate.slice(0, 10) : '',
+                        }) || setEditingDates(true)}
+                        className="text-gray-300 hover:text-brand-600"
+                        title="Edit tanggal"
+                      >✏️</button>
+                    )}
+                  </span>
+                )}
                 {project.budgetTier && <span>Budget: <strong>{project.budgetTier}</strong></span>}
                 {project.eventComplexity && <span>Kompleksitas: <strong>{project.eventComplexity}</strong></span>}
               </div>
