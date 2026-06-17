@@ -1,4 +1,4 @@
-import { STATUS_LABEL, STATUS_COLOR, PITCH_RESULT_COLOR } from '@/lib/constants'
+import { STATUS_LABEL, STATUS_COLOR, PITCH_RESULT_COLOR, CATEGORY_LABEL } from '@/lib/constants'
 import clsx from 'clsx'
 
 export function StatusBadge({ status }) {
@@ -20,17 +20,13 @@ export function PitchResultBadge({ result }) {
 }
 
 export function CategoryBadge({ category }) {
-  const labels = {
-    MEETING_CONFERENCE: 'M&C',
-    ACTIVATION: 'Activation',
-    LAUNCHING: 'Launching',
-    EXHIBITION: 'Exhibition',
-    INCENTIVE_GATHERING: 'Incentive',
-    SPONSORSHIP: 'Sponsorship',
-  }
+  if (!category) return null
+  // Use CATEGORY_LABEL for known keys, otherwise show the raw value (custom categories)
+  // Replace underscores so raw values are still readable
+  const label = CATEGORY_LABEL[category] || category.replace(/_/g, ' ')
   return (
     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
-      {labels[category] || category}
+      {label}
     </span>
   )
 }

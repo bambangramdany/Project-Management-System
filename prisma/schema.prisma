@@ -444,7 +444,7 @@ model Project {
   code            String          @unique
   name            String
   clientId        String?
-  category        ProjectCategory
+  category        String
   budgetTier      BudgetTier?
   eventComplexity EventComplexity?
   recommendation  Recommendation?

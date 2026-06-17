@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { StatusBadge, CategoryBadge, PitchResultBadge } from '@/components/StatusBadge'
-import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, RECOMMENDATION_ICON, DIVISION_LABEL, PROJECT_SCORE_CRITERIA, KPI_SCORE_LABEL, LOSE_REASON_OPTIONS, CLIENT_BRIEF_TEMPLATES } from '@/lib/constants'
+import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, EO_CATEGORIES, PH_CATEGORIES, RECOMMENDATION_ICON, DIVISION_LABEL, PROJECT_SCORE_CRITERIA, KPI_SCORE_LABEL, LOSE_REASON_OPTIONS, CLIENT_BRIEF_TEMPLATES } from '@/lib/constants'
 import { canScoreProject } from '@/lib/rbac'
 import ProjectBonusTab from '@/components/ProjectBonusTab'
 import Link from 'next/link'
@@ -31,6 +31,9 @@ export default function ProjectDetailPage() {
   const [editingClient, setEditingClient] = useState(false)
   const [clientValue, setClientValue] = useState('')
   const [allClients, setAllClients] = useState([])
+  const [editingCategory, setEditingCategory] = useState(false)
+  const [categoryValue, setCategoryValue] = useState('')
+  const [customCategory, setCustomCategory] = useState('')
   const [editingPic, setEditingPic] = useState(false)
   const [picValue, setPicValue] = useState('')
 
@@ -79,6 +82,20 @@ export default function ProjectDetailPage() {
       body: JSON.stringify({ clientId: clientValue }),
     })
     setEditingClient(false)
+    setSaving(false)
+    fetchProject()
+  }
+
+  async function saveCategory() {
+    const value = (categoryValue === '__CUSTOM__' ? customCategory.trim() : categoryValue)
+    if (!value || value === project.category) { setEditingCategory(false); return }
+    setSaving(true)
+    await fetch(`/api/projects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category: value }),
+    })
+    setEditingCategory(false)
     setSaving(false)
     fetchProject()
   }
@@ -240,7 +257,47 @@ export default function ProjectDetailPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <span className="text-xs text-gray-400 font-mono">{project.code}</span>
-                <CategoryBadge category={project.category} />
+                {editingCategory ? (
+                  <span className="flex items-center gap-1.5 flex-wrap">
+                    <select
+                      autoFocus
+                      className="select text-xs py-0.5 px-1.5 w-auto"
+                      value={categoryValue}
+                      onChange={e => { setCategoryValue(e.target.value); setCustomCategory('') }}
+                    >
+                      <optgroup label="EO / Event">
+                        {EO_CATEGORIES.map(k => <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>)}
+                      </optgroup>
+                      <optgroup label="Production House (PH)">
+                        {PH_CATEGORIES.map(k => <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>)}
+                      </optgroup>
+                      <option value="__CUSTOM__">+ Kategori lain (custom)…</option>
+                    </select>
+                    {categoryValue === '__CUSTOM__' && (
+                      <input
+                        autoFocus
+                        className="input text-xs py-0.5 px-1.5 w-36"
+                        placeholder="Tulis nama kategori…"
+                        value={customCategory}
+                        onChange={e => setCustomCategory(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') saveCategory(); if (e.key === 'Escape') setEditingCategory(false) }}
+                      />
+                    )}
+                    <button onClick={saveCategory} className="text-xs text-brand-600 hover:underline">Simpan</button>
+                    <button onClick={() => setEditingCategory(false)} className="text-xs text-gray-400 hover:underline">Batal</button>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <CategoryBadge category={project.category} />
+                    {isManager && (
+                      <button
+                        onClick={() => { setCategoryValue(project.category || ''); setCustomCategory(''); setEditingCategory(true) }}
+                        className="text-gray-300 hover:text-brand-600"
+                        title="Ganti kategori"
+                      >✏️</button>
+                    )}
+                  </span>
+                )}
                 {project.recommendation && (
                   <span className="text-xs text-gray-500">{RECOMMENDATION_ICON[project.recommendation]}</span>
                 )}
