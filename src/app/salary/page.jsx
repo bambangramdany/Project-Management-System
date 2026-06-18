@@ -216,7 +216,7 @@ export default function SalaryPage() {
 
   useEffect(() => {
     if (status==='unauthenticated') router.push('/login')
-    if (status==='authenticated' && !['OWNER','DIRECTOR'].includes(session.user.role)) router.push('/dashboard')
+    if (status==='authenticated' && !['OWNER','DIRECTOR','FINANCE'].includes(session.user.role)) router.push('/dashboard')
   }, [status, session, router])
 
   const load = useCallback(() => {
@@ -255,13 +255,15 @@ export default function SalaryPage() {
     filled: g.rows.filter(r=>r.thp!==null).length,
   }]))
 
-  if (status==='loading' || !session || !['OWNER','DIRECTOR'].includes(session?.user?.role)) {
+  if (status==='loading' || !session || !['OWNER','DIRECTOR','FINANCE'].includes(session?.user?.role)) {
     return (
       <div className="min-h-screen bg-brand-50 flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
+
+  const canEditSalary = ['OWNER', 'DIRECTOR'].includes(session?.user?.role)
 
   return (
     <div className="min-h-screen bg-brand-50">
@@ -423,16 +425,18 @@ export default function SalaryPage() {
                               : <span className="text-gray-300">—</span>}
                           </td>
                           <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                            <button
-                              onClick={() => setEditingUserId(isEditing ? null : row.userId)}
-                              className={`text-xs hover:underline ${isEditing ? 'text-gray-400' : 'text-brand-600'}`}
-                            >{isEditing ? 'Tutup' : 'Edit'}</button>
+                            {canEditSalary && (
+                              <button
+                                onClick={() => setEditingUserId(isEditing ? null : row.userId)}
+                                className={`text-xs hover:underline ${isEditing ? 'text-gray-400' : 'text-brand-600'}`}
+                              >{isEditing ? 'Tutup' : 'Edit'}</button>
+                            )}
                           </td>
                         </tr>
                       )
 
-                      // Edit panel
-                      if (isEditing) {
+                      // Edit panel (hanya OWNER/DIRECTOR)
+                      if (isEditing && canEditSalary) {
                         rows.push(
                           <EditPanel key={`edit-${row.userId}`} row={row} period={period}
                             onSaved={() => { setEditingUserId(null); load() }}

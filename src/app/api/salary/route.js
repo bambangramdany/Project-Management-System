@@ -3,7 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
-const ALLOWED_ROLES = ['OWNER', 'DIRECTOR']
+const ALLOWED_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE']
 const HIDDEN_EMAILS = ['hrdwatermark@gmail.com']
 
 // Urutan divisi sesuai sistem

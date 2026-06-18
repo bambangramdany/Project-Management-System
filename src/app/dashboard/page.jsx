@@ -365,7 +365,7 @@ function MonthYearSelect({ value, onChange }) {
   )
 }
 
-const DEBT_ROLES = ['OWNER', 'DIRECTOR'] // Hutang hanya untuk direksi/owner
+const DEBT_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE'] // Hutang termasuk Finance (PPh 21)
 
 function FinanceOverviewCard({ data, range, setRange, role }) {
   const showDebt = DEBT_ROLES.includes(role)
