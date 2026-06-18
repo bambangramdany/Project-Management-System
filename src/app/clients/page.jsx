@@ -17,6 +17,7 @@ export default function ClientsPage() {
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [deleteError, setDeleteError] = useState({}) // { [clientId]: errorMsg }
   const [expandedId, setExpandedId] = useState(null)
   const [contactForm, setContactForm] = useState(null) // { clientId, contactId|null, ...EMPTY_CONTACT }
   const [newClientName, setNewClientName] = useState('')
@@ -125,14 +126,15 @@ export default function ClientsPage() {
 
   const deleteClient = async (c) => {
     setError('')
+    setDeleteError(prev => ({ ...prev, [c.id]: null }))
     const res = await fetch(`/api/clients/${c.id}`, { method: 'DELETE' })
     if (res.ok) {
       setConfirmDeleteId(null)
       load()
     } else {
       const d = await res.json().catch(() => ({}))
-      setConfirmDeleteId(null)
-      setError(d.error || 'Gagal menghapus klien')
+      const msg = d.error || 'Gagal menghapus klien'
+      setDeleteError(prev => ({ ...prev, [c.id]: msg }))
     }
   }
 
@@ -237,17 +239,22 @@ export default function ClientsPage() {
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       {editId !== c.id && (
                         confirmDeleteId === c.id ? (
-                          <span className="inline-flex items-center gap-2">
-                            <span className="text-xs text-gray-500">Yakin hapus?</span>
-                            <button
-                              onClick={() => deleteClient(c)}
-                              className="text-xs px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600"
-                            >Ya, Hapus</button>
-                            <button
-                              onClick={() => setConfirmDeleteId(null)}
-                              className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            >Batal</button>
-                          </span>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="inline-flex items-center gap-2">
+                              <span className="text-xs text-gray-500">Yakin hapus?</span>
+                              <button
+                                onClick={() => deleteClient(c)}
+                                className="text-xs px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600"
+                              >Ya, Hapus</button>
+                              <button
+                                onClick={() => { setConfirmDeleteId(null); setDeleteError(prev => ({ ...prev, [c.id]: null })) }}
+                                className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              >Batal</button>
+                            </span>
+                            {deleteError[c.id] && (
+                              <p className="text-[10px] text-red-600 text-right max-w-[220px] leading-tight">{deleteError[c.id]}</p>
+                            )}
+                          </div>
                         ) : (
                           <span className="inline-flex items-center gap-3">
                             <button onClick={() => startEdit(c)} className="text-xs text-brand-600 hover:underline py-1">Edit Nama</button>
