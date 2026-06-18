@@ -185,7 +185,7 @@ export default function OpexPage() {
               <div>
                 <label className="label">Kategori</label>
                 <select className="select" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-                  {OPEX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  {OPEX_CATEGORIES.filter(c => c !== 'Beban Project Reguler').map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
@@ -212,28 +212,45 @@ export default function OpexPage() {
           {!loading && data?.entries.length === 0 && (
             <div className="text-center py-12 text-gray-400 text-sm">Tidak ada opex untuk bulan ini</div>
           )}
-          {!loading && data?.entries.map(e => (
-            <div key={e.id} className="px-5 py-3.5 flex items-start gap-3 hover:bg-gray-50 transition-colors">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-800">{e.description}</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {e.category} · {new Date(e.date).toLocaleDateString('id-ID', { dateStyle: 'medium' })}
-                  {e.recordedBy && ` · dicatat oleh ${e.recordedBy.name}`}
-                </p>
+          {!loading && data?.entries.map(e => {
+            const isAuto = e.isAutoSalary === true
+            return (
+              <div key={e.id} className={`px-5 py-3.5 flex items-start gap-3 transition-colors ${isAuto ? 'bg-violet-50 hover:bg-violet-100/60' : 'hover:bg-gray-50'}`}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium text-gray-800">{e.description}</p>
+                    {isAuto && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 font-semibold border border-violet-200">
+                        ⚙ otomatis · cut-off tgl 24
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {e.category}
+                    {e.date && ` · ${new Date(e.date).toLocaleDateString('id-ID', { dateStyle: 'medium' })}`}
+                    {!isAuto && e.recordedBy && ` · dicatat oleh ${e.recordedBy.name}`}
+                    {isAuto && ' · sumber: halaman Gaji'}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className={`text-sm font-semibold ${isAuto ? 'text-violet-700' : 'text-red-600'}`}>
+                    -{formatRupiah(e.amount)}
+                  </p>
+                  {!isAuto && (
+                    confirmDeleteId === e.id ? (
+                      <span className="inline-flex items-center gap-1 mt-1">
+                        <button onClick={() => remove(e.id)} className="text-[10px] px-1.5 py-0.5 rounded bg-red-500 text-white">Hapus</button>
+                        <button onClick={() => setConfirmDeleteId(null)} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">Batal</button>
+                      </span>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteId(e.id)} className="text-[10px] text-gray-400 hover:text-red-500">Hapus</button>
+                    )
+                  )}
+                  {isAuto && <p className="text-[10px] text-violet-400 mt-0.5">tidak dapat dihapus</p>}
+                </div>
               </div>
-              <div className="text-right shrink-0">
-                <p className="text-sm font-semibold text-red-600">-{formatRupiah(e.amount)}</p>
-                {confirmDeleteId === e.id ? (
-                  <span className="inline-flex items-center gap-1 mt-1">
-                    <button onClick={() => remove(e.id)} className="text-[10px] px-1.5 py-0.5 rounded bg-red-500 text-white">Hapus</button>
-                    <button onClick={() => setConfirmDeleteId(null)} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">Batal</button>
-                  </span>
-                ) : (
-                  <button onClick={() => setConfirmDeleteId(e.id)} className="text-[10px] text-gray-400 hover:text-red-500">Hapus</button>
-                )}
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </main>
     </div>

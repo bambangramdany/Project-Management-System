@@ -210,8 +210,6 @@ export default function SalaryPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editingUserId, setEditingUserId] = useState(null)
-  const [pushingOpex, setPushingOpex] = useState(false)
-  const [opexPushed, setOpexPushed] = useState(false)
 
   const [py, pm] = period.split('-').map(Number)
   const nowY = new Date().getFullYear()
@@ -223,7 +221,6 @@ export default function SalaryPage() {
 
   const load = useCallback(() => {
     setLoading(true)
-    setOpexPushed(false)
     fetch(`/api/salary?period=${period}`)
       .then(r=>r.ok?r.json():null)
       .then(d=>{ if(d) setData(d); setLoading(false) })
@@ -237,28 +234,6 @@ export default function SalaryPage() {
     setPeriod(`${y}-${String(m).padStart(2,'0')}`)
   }
 
-  // Push total THP ke Opex sebagai "Beban Project Reguler"
-  const pushToOpex = async () => {
-    if (!data?.summary?.totalTHP || data.summary.totalTHP <= 0) {
-      alert('Total THP masih 0. Isi data gaji terlebih dahulu.'); return
-    }
-    if (!confirm(`Masukkan total Rp ${data.summary.totalTHP.toLocaleString('id-ID')} ke Opex sebagai "Beban Project Reguler" ${MONTHS[pm-1]} ${py}?`)) return
-    setPushingOpex(true)
-    const date = `${py}-${String(pm).padStart(2,'0')}-01`
-    const res = await fetch('/api/opex', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        category: 'Beban Project Reguler',
-        amount: Math.round(data.summary.totalTHP),
-        description: `Beban Project Reguler ${MONTHS[pm-1]} ${py}`,
-        date,
-      }),
-    })
-    setPushingOpex(false)
-    if (res.ok) { setOpexPushed(true) }
-    else { const d=await res.json().catch(()=>({})); alert(d.error||'Gagal memasukkan ke Opex') }
-  }
 
   const summary = data?.summary
   const groups = data?.groups || []
@@ -334,26 +309,16 @@ export default function SalaryPage() {
           </div>
         )}
 
-        {/* Push ke Opex */}
+        {/* Info otomatis ke Opex */}
         {summary && summary.totalTHP > 0 && (
-          <div className={`card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-l-4 ${opexPushed ? 'border-emerald-400 bg-emerald-50' : 'border-amber-400 bg-amber-50'}`}>
+          <div className="card p-4 flex items-start gap-3 border-l-4 border-violet-400 bg-violet-50">
+            <span className="text-lg shrink-0">⚙</span>
             <div>
-              <p className="text-sm font-semibold text-gray-800">
-                {opexPushed ? '✅ Sudah dimasukkan ke Opex' : '📤 Masukkan Total ke Opex'}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Total beban gaji <strong>{fmtK(summary.totalTHP)}</strong> akan dicatat di Opex sebagai <strong>"Beban Project Reguler"</strong> — Antoni &amp; Bima hanya melihat angka totalnya saja
+              <p className="text-sm font-semibold text-violet-800">Otomatis tercatat di Opex</p>
+              <p className="text-xs text-violet-600 mt-0.5">
+                Total <strong>{fmtK(summary.totalTHP)}</strong> sudah otomatis muncul di halaman Opex sebagai <strong>"Beban Project Reguler"</strong> dengan cut-off tanggal 24 — Antoni &amp; Bima hanya melihat angka totalnya.
               </p>
             </div>
-            {!opexPushed && (
-              <button
-                onClick={pushToOpex}
-                disabled={pushingOpex}
-                className="btn-primary text-sm shrink-0 whitespace-nowrap"
-              >
-                {pushingOpex ? 'Memproses...' : `Catat ${fmtK(summary.totalTHP)} ke Opex`}
-              </button>
-            )}
           </div>
         )}
 
