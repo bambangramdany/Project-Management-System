@@ -117,7 +117,7 @@ export default function DashboardPage() {
 
         {/* Finance overview — Owner / Finance / Directors only */}
         {overview && overviewRange && (
-          <FinanceOverviewCard data={overview} range={overviewRange} setRange={setOverviewRange} />
+          <FinanceOverviewCard data={overview} range={overviewRange} setRange={setOverviewRange} role={session?.user?.role} />
         )}
 
         {/* Trend Charts — Owner / Finance / Directors only */}
@@ -365,7 +365,10 @@ function MonthYearSelect({ value, onChange }) {
   )
 }
 
-function FinanceOverviewCard({ data, range, setRange }) {
+const DEBT_ROLES = ['OWNER', 'DIRECTOR'] // Hutang hanya untuk direksi/owner
+
+function FinanceOverviewCard({ data, range, setRange, role }) {
+  const showDebt = DEBT_ROLES.includes(role)
   const cards = [
     { key: 'omset', label: 'Total Omset', value: formatCompactRupiah(data.totalOmset), sub: `${MONTH_LABEL[Number(range.from.split('-')[1]) - 1]} ${range.from.split('-')[0]} – ${MONTH_LABEL[Number(range.to.split('-')[1]) - 1]} ${range.to.split('-')[0]}`, icon: '📈', color: 'blue' },
     { key: 'ekspektasi', label: 'Ekspektasi Profit', value: formatCompactRupiah(data.ekspektasiProfit), sub: 'estimasi margin vs forecast', icon: '📊', color: 'emerald' },
@@ -374,7 +377,7 @@ function FinanceOverviewCard({ data, range, setRange }) {
     { key: 'piutang', label: 'Piutang', value: formatCompactRupiah(data.piutang.amount), sub: `${data.piutang.count} project invoicing`, icon: '📄', color: 'orange' },
     { key: 'pitchgagal', label: 'Pitch Gagal', value: formatCompactRupiah(data.pitchGagal.value), sub: `Profit hilang: ${formatCompactRupiah(data.pitchGagal.lostProfit)}`, icon: '📉', color: 'rose' },
     { key: 'aset', label: 'Total Nilai Aset', value: formatCompactRupiah(data.totalNilaiAset.value), sub: `${data.totalNilaiAset.count} aset tercatat`, icon: '🗂️', color: 'blue' },
-    { key: 'hutang', label: 'Total Hutang Aktif', value: formatCompactRupiah(data.totalHutangAktif.value), sub: `Bunga/bln: ${formatCompactRupiah(data.totalHutangAktif.monthlyInterest)}`, icon: '🏦', color: 'rose' },
+    ...(showDebt ? [{ key: 'hutang', label: 'Total Hutang Aktif', value: formatCompactRupiah(data.totalHutangAktif.value), sub: `Bunga/bln: ${formatCompactRupiah(data.totalHutangAktif.monthlyInterest)}`, icon: '🏦', color: 'rose' }] : []),
   ]
   const colorMap = {
     blue: { border: 'border-blue-400', bg: 'bg-blue-100', text: 'text-blue-600' },
