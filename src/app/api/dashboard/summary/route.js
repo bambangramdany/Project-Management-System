@@ -52,8 +52,8 @@ export async function GET(req) {
     tasks.cashSummary = getCashSummary()
   }
 
-  // Hutang hanya untuk OWNER/DIRECTOR — staff finance tidak perlu lihat ini
-  if (role === 'OWNER' || role === 'DIRECTOR' || finDirector) {
+  // Hutang: OWNER, DIRECTOR, FINANCE (untuk keperluan PPh 21 dan laporan keuangan)
+  if (role === 'OWNER' || role === 'DIRECTOR' || role === 'FINANCE' || finDirector) {
     tasks.debtSummary = getDebtSummary()
     const now = new Date()
     const from = searchParams.get('from') || `${now.getFullYear()}-01`
