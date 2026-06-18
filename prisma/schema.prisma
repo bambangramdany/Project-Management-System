@@ -95,6 +95,8 @@ model CashTransaction {
   paymentRequest PaymentRequest? @relation(fields: [paymentRequestId], references: [id], onDelete: SetNull)
   debtPayment    DebtPayment?
   opexEntry      OpexEntry?
+  receivableIn   Receivable?     @relation("ReceivableKasMasuk")
+  receivableOut  Receivable?     @relation("ReceivableKasKeluar")
 
   @@index([date])
 }
@@ -172,22 +174,33 @@ enum ReceivableStatus {
 // Outstanding invoices to clients (piutang) — tracked so Direksi/Finance can
 // monitor how much revenue is invoiced but not yet collected.
 model Receivable {
-  id            String           @id @default(cuid())
-  projectId     String?
-  invoiceNumber String?
-  clientName    String
-  amount        Float
-  issueDate     DateTime?
-  dueDate       DateTime?
-  status        ReceivableStatus @default(UNPAID)
-  paidAt        DateTime?
-  notes         String?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  id                 String           @id @default(cuid())
+  projectId          String?
+  invoiceNumber      String?
+  poNumber           String?          // Nomor PO dari klien (opsional)
+  taxInvoiceNumber   String?          // Nomor faktur pajak (opsional)
+  clientName         String           // Nama klien (versi finance — bisa beda dengan nama di sistem)
+  financeProjectName String?          // Nama project versi klien/finance (untuk invoice)
+  amount             Float            // Nilai invoice
+  issueDate          DateTime?
+  dueDate            DateTime?
+  status             ReceivableStatus @default(UNPAID)
+  paidAt             DateTime?
+  paidAmount         Float?           // Nominal aktual yang diterima (setelah PPh/penyesuaian)
+  pphAmount          Float    @default(0)  // PPh yang dipotong klien → jadi Kas Keluar
+  isDraft            Boolean  @default(false)  // true = otomatis dari project, belum dikonfirmasi finance
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project                  Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  kasTransactionIn         CashTransaction? @relation("ReceivableKasMasuk",  fields: [kasTransactionInId],  references: [id])
+  kasTransactionInId       String?          @unique
+  kasTransactionOut        CashTransaction? @relation("ReceivableKasKeluar", fields: [kasTransactionOutId], references: [id])
+  kasTransactionOutId      String?          @unique
 
   @@index([status])
+  @@index([projectId])
 }
 
 // Company debt/loan obligations (e.g. from investors, banks, profit-sharing

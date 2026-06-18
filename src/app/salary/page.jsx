@@ -311,18 +311,6 @@ export default function SalaryPage() {
           </div>
         )}
 
-        {/* Info otomatis ke Opex */}
-        {summary && summary.totalTHP > 0 && (
-          <div className="card p-4 flex items-start gap-3 border-l-4 border-violet-400 bg-violet-50">
-            <span className="text-lg shrink-0">⚙</span>
-            <div>
-              <p className="text-sm font-semibold text-violet-800">Otomatis tercatat di Opex</p>
-              <p className="text-xs text-violet-600 mt-0.5">
-                Total <strong>{fmtK(summary.totalTHP)}</strong> sudah otomatis muncul di halaman Opex sebagai <strong>"Beban Project Reguler"</strong> dengan cut-off tanggal 24 — Antoni &amp; Bima hanya melihat angka totalnya.
-              </p>
-            </div>
-          </div>
-        )}
 
         {loading && (
           <div className="flex items-center justify-center py-20">

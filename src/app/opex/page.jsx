@@ -217,19 +217,11 @@ export default function OpexPage() {
             return (
               <div key={e.id} className={`px-5 py-3.5 flex items-start gap-3 transition-colors ${isAuto ? 'bg-violet-50 hover:bg-violet-100/60' : 'hover:bg-gray-50'}`}>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-medium text-gray-800">{e.description}</p>
-                    {isAuto && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 font-semibold border border-violet-200">
-                        ⚙ otomatis · cut-off tgl 24
-                      </span>
-                    )}
-                  </div>
+                  <p className="text-sm font-medium text-gray-800">{e.description}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {e.category}
                     {e.date && ` · ${new Date(e.date).toLocaleDateString('id-ID', { dateStyle: 'medium' })}`}
                     {!isAuto && e.recordedBy && ` · dicatat oleh ${e.recordedBy.name}`}
-                    {isAuto && ' · sumber: halaman Gaji'}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
@@ -246,7 +238,6 @@ export default function OpexPage() {
                       <button onClick={() => setConfirmDeleteId(e.id)} className="text-[10px] text-gray-400 hover:text-red-500">Hapus</button>
                     )
                   )}
-                  {isAuto && <p className="text-[10px] text-violet-400 mt-0.5">tidak dapat dihapus</p>}
                 </div>
               </div>
             )

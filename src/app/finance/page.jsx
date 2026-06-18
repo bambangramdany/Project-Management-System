@@ -105,9 +105,12 @@ export default function FinancePage() {
   const [profitability, setProfitability] = useState(null)
   const [receivables, setReceivables] = useState(null)
   const [showReceivableForm, setShowReceivableForm] = useState(false)
-  const [receivableForm, setReceivableForm] = useState({ clientName: '', invoiceNumber: '', amount: '', issueDate: '', dueDate: '', notes: '' })
+  const EMPTY_REC_FORM = { projectId: '', clientName: '', financeProjectName: '', invoiceNumber: '', poNumber: '', taxInvoiceNumber: '', amount: '', issueDate: '', dueDate: '', notes: '' }
+  const [receivableForm, setReceivableForm] = useState(EMPTY_REC_FORM)
   const [savingReceivable, setSavingReceivable] = useState(false)
   const [confirmDeleteReceivableId, setConfirmDeleteReceivableId] = useState(null)
+  // Modal bayar: { receivable, paidAmount, pphAmount, paidAt }
+  const [payModal, setPayModal] = useState(null)
   const [confirmDeleteQuotation, setConfirmDeleteQuotation] = useState(false)
   const [confirmLockBudget, setConfirmLockBudget] = useState(false)
   const [confirmDeleteBudgetIdx, setConfirmDeleteBudgetIdx] = useState(null)
@@ -156,7 +159,7 @@ export default function FinancePage() {
     })
     setSavingReceivable(false)
     if (res.ok) {
-      setReceivableForm({ clientName: '', invoiceNumber: '', amount: '', issueDate: '', dueDate: '', notes: '' })
+      setReceivableForm(EMPTY_REC_FORM)
       setShowReceivableForm(false)
       fetchReceivables()
     } else {
@@ -165,17 +168,46 @@ export default function FinancePage() {
     }
   }
 
-  async function toggleReceivablePaid(r) {
+  // Konfirmasi draft dari project — simpan ke DB lalu buka form edit
+  async function confirmDraft(r) {
+    const res = await fetch('/api/receivables', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId: r.projectId,
+        clientName: r.clientName,
+        financeProjectName: r.financeProjectName || '',
+        amount: r.amount,
+        isDraft: false,
+      }),
+    })
+    if (res.ok) fetchReceivables()
+  }
+
+  // Buka modal pembayaran
+  function openPayModal(r) {
+    setPayModal({ receivable: r, paidAmount: String(r.amount), pphAmount: '0', paidAt: new Date().toISOString().slice(0, 10) })
+  }
+
+  async function submitPay() {
+    const { receivable, paidAmount, pphAmount, paidAt } = payModal
+    const res = await fetch(`/api/receivables/${receivable.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'mark_paid', paidAmount, pphAmount, paidAt }),
+    })
+    if (res.ok) { setPayModal(null); fetchReceivables() }
+    else { const err = await res.json(); alert(err.error || 'Gagal menyimpan') }
+  }
+
+  async function markUnpaid(r) {
     const res = await fetch(`/api/receivables/${r.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: r.status === 'PAID' ? 'mark_unpaid' : 'mark_paid' }),
+      body: JSON.stringify({ action: 'mark_unpaid' }),
     })
     if (res.ok) fetchReceivables()
-    else {
-      const err = await res.json()
-      alert(err.error || 'Gagal menyimpan')
-    }
+    else { const err = await res.json(); alert(err.error || 'Gagal menyimpan') }
   }
 
   async function removeReceivable(id) {
@@ -1023,6 +1055,39 @@ export default function FinancePage() {
           </div>
         )}
 
+        {/* Modal Pembayaran */}
+        {payModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+              <h3 className="text-base font-bold text-gray-900">Konfirmasi Pembayaran</h3>
+              <p className="text-sm text-gray-500">
+                <span className="font-medium text-gray-800">{payModal.receivable.clientName}</span>
+                {payModal.receivable.invoiceNumber && <span className="text-gray-400"> — {payModal.receivable.invoiceNumber}</span>}
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <label className="label">Tanggal Pembayaran *</label>
+                  <input type="date" className="input" value={payModal.paidAt} onChange={e => setPayModal(m => ({ ...m, paidAt: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="label">Nominal Diterima (Rp) *</label>
+                  <ThousandsInput className="input" value={payModal.paidAmount} onChange={v => setPayModal(m => ({ ...m, paidAmount: v }))} />
+                  <p className="text-[11px] text-gray-400 mt-0.5">Nilai invoice: {formatRupiah(payModal.receivable.amount)}</p>
+                </div>
+                <div>
+                  <label className="label">PPh Dipotong Klien (Rp)</label>
+                  <ThousandsInput className="input" value={payModal.pphAmount} onChange={v => setPayModal(m => ({ ...m, pphAmount: v }))} placeholder="0 jika tidak ada pemotongan" />
+                  <p className="text-[11px] text-gray-400 mt-0.5">Akan dicatat sebagai Kas Keluar (beban pajak)</p>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button onClick={submitPay} className="btn-primary text-sm flex-1">Konfirmasi Lunas → Catat ke Kas</button>
+                <button onClick={() => setPayModal(null)} className="btn-secondary text-sm">Batal</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Receivables / Piutang (Owner/Finance/Direksi only) */}
         {receivables && (
           <div className="card p-4 space-y-3 border-t-4 border-cyan-400">
@@ -1042,7 +1107,7 @@ export default function FinancePage() {
               <div className="p-3 rounded-lg bg-orange-50">
                 <p className="text-xs text-gray-500">Belum Dibayar</p>
                 <p className="text-lg font-bold text-orange-600">{formatRupiah(receivables.totalUnpaid)}</p>
-                <p className="text-xs text-gray-400">{receivables.receivables.filter(r => r.status === 'UNPAID').length} invoice</p>
+                <p className="text-xs text-gray-400">{receivables.receivables.filter(r => r.status === 'UNPAID' && !r.isVirtual).length} invoice</p>
               </div>
               <div className="p-3 rounded-lg bg-emerald-50">
                 <p className="text-xs text-gray-500">Sudah Dibayar</p>
@@ -1053,13 +1118,25 @@ export default function FinancePage() {
 
             {showReceivableForm && (role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && (
               <form onSubmit={submitReceivable} className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
-                <div>
-                  <label className="label">Nama Klien *</label>
-                  <input className="input" value={receivableForm.clientName} onChange={e => setReceivableForm(f => ({ ...f, clientName: e.target.value }))} required />
+                <div className="sm:col-span-2">
+                  <label className="label">Nama Klien (versi finance) *</label>
+                  <input className="input" value={receivableForm.clientName} onChange={e => setReceivableForm(f => ({ ...f, clientName: e.target.value }))} required placeholder="Nama klien seperti di invoice" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="label">Nama Project (versi finance)</label>
+                  <input className="input" value={receivableForm.financeProjectName} onChange={e => setReceivableForm(f => ({ ...f, financeProjectName: e.target.value }))} placeholder="Nama project seperti di invoice klien (opsional)" />
                 </div>
                 <div>
                   <label className="label">No. Invoice</label>
                   <input className="input" value={receivableForm.invoiceNumber} onChange={e => setReceivableForm(f => ({ ...f, invoiceNumber: e.target.value }))} placeholder="cth. WTM/EVENT/INV/2026/021/25" />
+                </div>
+                <div>
+                  <label className="label">No. PO Klien</label>
+                  <input className="input" value={receivableForm.poNumber} onChange={e => setReceivableForm(f => ({ ...f, poNumber: e.target.value }))} placeholder="opsional" />
+                </div>
+                <div>
+                  <label className="label">No. Faktur Pajak</label>
+                  <input className="input" value={receivableForm.taxInvoiceNumber} onChange={e => setReceivableForm(f => ({ ...f, taxInvoiceNumber: e.target.value }))} placeholder="opsional" />
                 </div>
                 <div>
                   <label className="label">Nominal (Rp) *</label>
@@ -1087,44 +1164,79 @@ export default function FinancePage() {
             {receivables.receivables.length === 0 ? (
               <p className="text-sm text-gray-400 text-center py-4">Belum ada catatan piutang</p>
             ) : (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {receivables.receivables.map(r => {
-                  const overdue = r.status === 'UNPAID' && r.dueDate && new Date(r.dueDate) < new Date()
+                  const overdue = r.status === 'UNPAID' && !r.isVirtual && r.dueDate && new Date(r.dueDate) < new Date()
+                  const canAct = role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)
                   return (
-                    <div key={r.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50">
-                      <div className="min-w-0">
-                        <p className="text-sm text-gray-800 truncate">
-                          {r.clientName}{r.invoiceNumber ? ` · ${r.invoiceNumber}` : ''}
-                          {r.project && <span className="text-gray-400"> — {r.project.code}</span>}
-                          {overdue && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">Lewat Tenggat</span>}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {r.dueDate ? `Jatuh tempo ${new Date(r.dueDate).toLocaleDateString('id-ID', { dateStyle: 'medium' })}` : 'Tanpa jatuh tempo'}
-                          {r.notes ? ` · ${r.notes}` : ''}
-                        </p>
+                    <div key={r.id} className={`rounded-xl border p-3 transition-colors ${r.isVirtual ? 'border-dashed border-cyan-300 bg-cyan-50/60' : r.status === 'PAID' ? 'border-emerald-100 bg-emerald-50/40' : 'border-gray-100 hover:bg-gray-50'}`}>
+                      {/* Baris atas — nama klien + badge + nominal */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {r.isVirtual && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-100 text-cyan-700 font-semibold border border-cyan-200">Draft</span>
+                            )}
+                            {r.status === 'PAID' && !r.isVirtual && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">Lunas ✓</span>
+                            )}
+                            {overdue && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">Lewat Tenggat</span>}
+                            <p className="text-sm font-semibold text-gray-800">{r.clientName}</p>
+                          </div>
+                          {/* Nama project */}
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {r.financeProjectName || (r.project?.name)}
+                            {r.project && <span className="text-gray-400"> · {r.project.code}</span>}
+                          </p>
+                          {/* Nomor-nomor */}
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                            {r.invoiceNumber && <span className="text-[11px] text-gray-500">Invoice: <span className="font-medium">{r.invoiceNumber}</span></span>}
+                            {r.poNumber && <span className="text-[11px] text-gray-500">PO: <span className="font-medium">{r.poNumber}</span></span>}
+                            {r.taxInvoiceNumber && <span className="text-[11px] text-gray-500">Faktur Pajak: <span className="font-medium">{r.taxInvoiceNumber}</span></span>}
+                          </div>
+                          {/* Tanggal & catatan */}
+                          <p className="text-[11px] text-gray-400 mt-0.5">
+                            {r.dueDate ? `Jatuh tempo ${new Date(r.dueDate).toLocaleDateString('id-ID', { dateStyle: 'medium' })}` : ''}
+                            {r.status === 'PAID' && r.paidAt ? `${r.dueDate ? ' · ' : ''}Dibayar ${new Date(r.paidAt).toLocaleDateString('id-ID', { dateStyle: 'medium' })}` : ''}
+                            {r.notes ? ` · ${r.notes}` : ''}
+                            {r.pphAmount > 0 && <span className="text-orange-500"> · PPh {formatRupiah(r.pphAmount)}</span>}
+                          </p>
+                        </div>
+                        {/* Nominal */}
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-bold text-gray-800">{formatRupiah(r.amount)}</p>
+                          {r.status === 'PAID' && r.paidAmount && r.paidAmount !== r.amount && (
+                            <p className="text-[11px] text-emerald-600">Diterima {formatRupiah(r.paidAmount)}</p>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <p className="text-sm font-semibold text-gray-800">{formatRupiah(r.amount)}</p>
-                        {(role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) ? (
-                          <>
-                            <button onClick={() => toggleReceivablePaid(r)} className={`text-xs px-2 py-1 rounded-md font-medium ${r.status === 'PAID' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                              {r.status === 'PAID' ? 'Lunas ✓' : 'Tandai Lunas'}
+
+                      {/* Baris aksi */}
+                      {canAct && (
+                        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100/80">
+                          {r.isVirtual ? (
+                            <button onClick={() => confirmDraft(r)} className="text-xs px-2.5 py-1 rounded-md bg-cyan-100 text-cyan-700 hover:bg-cyan-200 font-medium">
+                              + Buat Invoice
                             </button>
-                            {confirmDeleteReceivableId === r.id ? (
-                              <span className="inline-flex items-center gap-1">
+                          ) : r.status === 'PAID' ? (
+                            <button onClick={() => markUnpaid(r)} className="text-xs text-gray-400 hover:text-orange-500">Batalkan Lunas</button>
+                          ) : (
+                            <button onClick={() => openPayModal(r)} className="text-xs px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-medium">
+                              Tandai Lunas
+                            </button>
+                          )}
+                          {!r.isVirtual && (
+                            confirmDeleteReceivableId === r.id ? (
+                              <span className="inline-flex items-center gap-1 ml-auto">
                                 <button onClick={() => removeReceivable(r.id)} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Hapus</button>
                                 <button onClick={() => setConfirmDeleteReceivableId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
                               </span>
                             ) : (
-                              <button onClick={() => setConfirmDeleteReceivableId(r.id)} className="text-xs text-gray-400 hover:text-red-500">Hapus</button>
-                            )}
-                          </>
-                        ) : (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${r.status === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                            {r.status === 'PAID' ? 'Lunas' : 'Belum'}
-                          </span>
-                        )}
-                      </div>
+                              <button onClick={() => setConfirmDeleteReceivableId(r.id)} className="text-xs text-gray-400 hover:text-red-500 ml-auto">Hapus</button>
+                            )
+                          )}
+                        </div>
+                      )}
                     </div>
                   )
                 })}

@@ -38,7 +38,6 @@ export async function GET(req) {
   // Hitung total THP dari salary records untuk period ini (auto-inject sebagai virtual entry)
   let salaryTotal = 0
   if (period) {
-    const [py, pm] = period.split('-').map(Number)
     const salaryRecords = await prisma.salaryRecord.findMany({
       where: { period },
       include: { user: { select: { email: true } } },
@@ -54,7 +53,7 @@ export async function GET(req) {
     id: `__salary_${period}`,
     isAutoSalary: true,
     category: 'Beban Project Reguler',
-    description: `Beban Project Reguler — otomatis dari data gaji`,
+    description: `Beban Project Reguler`,
     amount: Math.round(salaryTotal),
     date: py && pm ? new Date(py, pm - 1, 24).toISOString() : null,
     period,
