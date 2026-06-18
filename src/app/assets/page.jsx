@@ -30,7 +30,7 @@ export default function AssetsPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   const allowed = status === 'authenticated' &&
-    (session.user.role === 'OWNER' || session.user.role === 'FINANCE' || isFinanceDirector(session.user))
+    (session.user.role === 'OWNER' || session.user.role === 'FINANCE' || session.user.role === 'FINANCE_STAFF' || isFinanceDirector(session.user))
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')

@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
 
 function canManageOpex(user) {
-  return user.role === 'OWNER' || user.role === 'FINANCE' || isFinanceDirector(user)
+  return user.role === 'OWNER' || user.role === 'FINANCE' || user.role === 'FINANCE_STAFF' || isFinanceDirector(user)
 }
 
 // Accepts an .xlsx/.xls/.csv file with columns (header names, case-insensitive,

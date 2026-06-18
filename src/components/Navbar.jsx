@@ -13,7 +13,7 @@ const NAV_ITEMS = [
   { href: '/projects', label: 'Projects' },
   { href: '/workload', label: 'Workload Tim' },
   { href: '/scores', label: 'Nilai Tim' },
-  { href: '/finance', label: 'Finance', roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'PRODUCTION'] },
+  { href: '/finance', label: 'Finance', roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PRODUCTION'] },
   { href: '/targets', label: 'Target', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/salary', label: 'Gaji', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/debts', label: 'Hutang', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
@@ -21,8 +21,8 @@ const NAV_ITEMS = [
   { href: '/clients', label: 'Klien' },
   { href: '/team', label: 'Tim' },
   { href: '/cashflow', label: 'Kas', cashOnly: true },
-  { href: '/opex', label: 'Opex', cashOnly: true },
-  { href: '/assets', label: 'Aset', cashOnly: true },
+  { href: '/opex', label: 'Opex', financeStaffOk: true },
+  { href: '/assets', label: 'Aset', financeStaffOk: true },
   { href: '/settings', label: 'Pengaturan', settingsOnly: true },
 ]
 
@@ -32,9 +32,11 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const canSeeAudit = session?.user.role === 'OWNER' || isFinanceDirector(session?.user)
   const canSeeCash = session?.user.role === 'OWNER' || session?.user.role === 'FINANCE' || isFinanceDirector(session?.user)
+  const canSeeFinanceStaff = canSeeCash || session?.user.role === 'FINANCE_STAFF'
   const visibleItems = NAV_ITEMS.filter(item => {
     if (item.settingsOnly) return session?.user.role === 'OWNER' || canSeeAudit
     if (item.cashOnly) return canSeeCash
+    if (item.financeStaffOk) return canSeeFinanceStaff
     return !item.roles || item.roles.includes(session?.user.role)
   })
 

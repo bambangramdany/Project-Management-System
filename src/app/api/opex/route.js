@@ -6,7 +6,7 @@ import { logAudit } from '@/lib/audit'
 import { NextResponse } from 'next/server'
 
 function canManageOpex(user) {
-  return user.role === 'OWNER' || user.role === 'FINANCE' || isFinanceDirector(user)
+  return user.role === 'OWNER' || user.role === 'FINANCE' || user.role === 'FINANCE_STAFF' || isFinanceDirector(user)
 }
 
 const HIDDEN_EMAILS = ['hrdwatermark@gmail.com']

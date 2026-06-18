@@ -62,9 +62,9 @@ export async function GET(req, { params }) {
     const base = item.actualAmount ?? item.quotedAmount
     return { ...item, requestedTotal: requested, paidTotal: paid, remaining: base - paid, paymentStatus }
   })
-  const canNote = ['OWNER', 'FINANCE', 'DIRECTOR'].includes(session.user.role)
+  const canNote = ['OWNER', 'FINANCE', 'FINANCE_STAFF', 'DIRECTOR'].includes(session.user.role)
   // Titipan hanya visible untuk Owner/Director/Finance/PM
-  const canSeeTitipan = ['OWNER', 'DIRECTOR', 'FINANCE', 'PROJECT_MANAGER'].includes(session.user.role)
+  const canSeeTitipan = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER'].includes(session.user.role)
 
   // Sembunyikan flag titipan dari role lain
   const budgetItemsFinal = budgetItems.map(item => {
@@ -101,8 +101,8 @@ export async function PUT(req, { params }) {
   if (!project) return NextResponse.json({ error: 'Tidak ditemukan' }, { status: 404 })
 
   const canEdit = canEditBudget(session.user, project)
-  const canNote = ['OWNER', 'FINANCE', 'DIRECTOR'].includes(session.user.role)
-  const canSeeTitipan = ['OWNER', 'DIRECTOR', 'FINANCE', 'PROJECT_MANAGER'].includes(session.user.role)
+  const canNote = ['OWNER', 'FINANCE', 'FINANCE_STAFF', 'DIRECTOR'].includes(session.user.role)
+  const canSeeTitipan = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER'].includes(session.user.role)
   if (!canEdit && !canNote) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }

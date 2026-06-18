@@ -6,7 +6,7 @@ import { logAudit } from '@/lib/audit'
 import { NextResponse } from 'next/server'
 
 function canManageReceivables(user) {
-  return user.role === 'OWNER' || user.role === 'FINANCE' || isFinanceDirector(user)
+  return user.role === 'OWNER' || user.role === 'FINANCE' || user.role === 'FINANCE_STAFF' || isFinanceDirector(user)
 }
 
 export async function PATCH(req, { params }) {

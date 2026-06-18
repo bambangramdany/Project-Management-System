@@ -12,7 +12,7 @@ import {
 } from '@/lib/constants'
 import { isFinanceDirector } from '@/lib/rbac'
 
-const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'PRODUCTION']
+const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PRODUCTION']
 
 const BUDGET_ITEM_STATUS_LABEL = {
   BELUM_DIAJUKAN: 'Belum Diajukan',
@@ -131,7 +131,7 @@ export default function FinancePage() {
       fetch('/api/projects?light=1').then(r => r.json()).then(data => setProjects(Array.isArray(data) ? data : []))
       fetchPayments()
     }
-    if (status === 'authenticated' && ['OWNER', 'FINANCE', 'DIRECTOR'].includes(session.user.role)) {
+    if (status === 'authenticated' && ['OWNER', 'FINANCE', 'FINANCE_STAFF', 'DIRECTOR'].includes(session.user.role)) {
       fetch('/api/finance/summary').then(r => r.ok ? r.json() : null).then(data => {
         if (!data) return
         setCashflow(data.cashflow)

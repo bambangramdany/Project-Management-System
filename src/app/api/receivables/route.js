@@ -7,7 +7,7 @@ import { getReceivables } from '@/lib/financeData'
 import { NextResponse } from 'next/server'
 
 function canManageReceivables(user) {
-  return user.role === 'OWNER' || user.role === 'FINANCE' || isFinanceDirector(user)
+  return user.role === 'OWNER' || user.role === 'FINANCE' || user.role === 'FINANCE_STAFF' || isFinanceDirector(user)
 }
 
 function canViewReceivables(user) {

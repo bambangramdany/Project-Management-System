@@ -57,9 +57,9 @@ export default function DebtsPage() {
   const [savingEdit, setSavingEdit] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
-  // Hutang hanya untuk level direksi/owner — staff finance tidak perlu akses ini
+  // Hutang: Owner & Finance Director bisa manage; Director & FINANCE (Antoni) bisa view
   const canManage = status === 'authenticated' &&
-    (session.user.role === 'OWNER' || isFinanceDirector(session.user))
+    (session.user.role === 'OWNER' || session.user.role === 'FINANCE' || isFinanceDirector(session.user))
   const canView = canManage || (status === 'authenticated' && session.user.role === 'DIRECTOR')
 
   useEffect(() => {

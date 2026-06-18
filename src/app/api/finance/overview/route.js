@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server'
 
 // High-level company-wide financial overview for Direksi/Management — shown
 // only to Owner, Finance, and Directors (incl. Finance Director).
-const ALLOWED_ROLES = ['OWNER', 'FINANCE', 'DIRECTOR']
+const ALLOWED_ROLES = ['OWNER', 'FINANCE', 'FINANCE_STAFF', 'DIRECTOR']
 
 export async function GET(req) {
   const session = await getServerSession(authOptions)

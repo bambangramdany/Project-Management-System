@@ -6,7 +6,7 @@ import { computeProjectHealth } from '@/lib/health'
 import { getCashflowForecast, getMarginReport, getProfitability, getReceivables } from '@/lib/financeData'
 import { NextResponse } from 'next/server'
 
-const ALLOWED_ROLES = ['OWNER', 'FINANCE', 'DIRECTOR']
+const ALLOWED_ROLES = ['OWNER', 'FINANCE', 'FINANCE_STAFF', 'DIRECTOR']
 
 // Combined Finance page payload for Owner/Finance/Direksi — cashflow forecast,
 // margin report, profitability, and receivables in one request instead of four.

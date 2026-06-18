@@ -18,7 +18,7 @@ async function findApprovers(stage, project) {
     })
   }
   if (stage === 'APPROVED_BY_DIRECTOR') {
-    return prisma.user.findMany({ where: { role: { in: ['OWNER', 'FINANCE'] } }, select: { id: true } })
+    return prisma.user.findMany({ where: { role: { in: ['OWNER', 'FINANCE', 'FINANCE_STAFF'] } }, select: { id: true } })
   }
   if (stage === 'PENDING_DIRECTOR') {
     return prisma.user.findMany({

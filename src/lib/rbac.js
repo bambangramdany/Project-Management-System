@@ -2,7 +2,7 @@
 export const MANAGER_ROLES = ['OWNER', 'PROJECT_MANAGER']
 
 export function canViewAllProjects(role) {
-  return MANAGER_ROLES.includes(role) || ['DIRECTOR', 'FINANCE'].includes(role)
+  return MANAGER_ROLES.includes(role) || ['DIRECTOR', 'FINANCE', 'FINANCE_STAFF'].includes(role)
 }
 
 // Team leads who maintain the project list (divisi/status/tanggal pelaksanaan)
@@ -48,7 +48,7 @@ export function isFinanceDirector(user) {
 // Can view a project's budget forecast & payment amounts
 export function canViewBudget(user, project) {
   if (!user || !project) return false
-  if (user.role === 'OWNER' || user.role === 'FINANCE') return true
+  if (user.role === 'OWNER' || user.role === 'FINANCE' || user.role === 'FINANCE_STAFF') return true
   if (isFinanceDirector(user)) return true
   if (user.role === 'DIRECTOR' && user.divisi === project.division) return true
   if (project.picId === user.id) return true
@@ -87,14 +87,14 @@ export function canApproveAsFinanceDirector(user) {
 // Stage 2: Can mark a payment as PAID (Finance team / Anung as backup / Owner)
 export function canProcessPayment(user) {
   if (!user) return false
-  if (user.role === 'FINANCE' || user.role === 'OWNER') return true
+  if (user.role === 'FINANCE' || user.role === 'FINANCE_STAFF' || user.role === 'OWNER') return true
   return isFinanceDirector(user)
 }
 
 // Can edit budget forecast figures
 export function canEditBudget(user, project) {
   if (!user || !project) return false
-  if (user.role === 'OWNER' || user.role === 'FINANCE') return true
+  if (user.role === 'OWNER' || user.role === 'FINANCE' || user.role === 'FINANCE_STAFF') return true
   if (isFinanceDirector(user)) return true
   if (user.role === 'DIRECTOR' && user.divisi === project.division) return true
   if (project.picId === user.id) return true
@@ -105,7 +105,7 @@ export function canEditBudget(user, project) {
 // Margin / project-value forecast: visible only to PM (PIC), Finance team, and Direksi/Owner.
 export function canViewMargin(user, project) {
   if (!user || !project) return false
-  if (user.role === 'OWNER' || user.role === 'FINANCE') return true
+  if (user.role === 'OWNER' || user.role === 'FINANCE' || user.role === 'FINANCE_STAFF') return true
   if (user.role === 'DIRECTOR') return true
   if (project.picId === user.id) return true
   return false
@@ -114,7 +114,7 @@ export function canViewMargin(user, project) {
 // Editing project value (contract value): PM (PIC) and Production roles, plus Finance/Owner.
 export function canEditProjectValue(user, project) {
   if (!user || !project) return false
-  if (user.role === 'OWNER' || user.role === 'FINANCE') return true
+  if (user.role === 'OWNER' || user.role === 'FINANCE' || user.role === 'FINANCE_STAFF') return true
   if (isFinanceDirector(user)) return true
   if (project.picId === user.id) return true
   if (user.role === 'PRODUCTION') return true
@@ -125,7 +125,7 @@ export function canEditProjectValue(user, project) {
 // Once locked, only actual amounts and notes can still be edited (until unlocked).
 export function canLockBudget(user, project) {
   if (!user || !project) return false
-  if (user.role === 'OWNER' || user.role === 'FINANCE') return true
+  if (user.role === 'OWNER' || user.role === 'FINANCE' || user.role === 'FINANCE_STAFF') return true
   if (isFinanceDirector(user)) return true
   if (user.role === 'DIRECTOR' && user.divisi === project.division) return true
   return false
