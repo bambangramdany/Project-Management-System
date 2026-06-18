@@ -415,6 +415,7 @@ export const PAYMENT_STATUS_COLOR = {
 export const OPEX_CATEGORIES = [
   'Sewa & Utilitas',
   'Gaji & Tunjangan',
+  'Beban Project Reguler',
   'Operasional Kantor',
   'Marketing',
   'Transportasi',
