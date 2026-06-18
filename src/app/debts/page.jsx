@@ -55,6 +55,7 @@ export default function DebtsPage() {
   const [editId, setEditId] = useState(null)
   const [editForm, setEditForm] = useState({ lenderName: '', interestRate: '' })
   const [savingEdit, setSavingEdit] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   const canManage = status === 'authenticated' &&
     (session.user.role === 'OWNER' || session.user.role === 'FINANCE' || isFinanceDirector(session.user))
@@ -133,11 +134,11 @@ export default function DebtsPage() {
   }
 
   const removeDebt = async (id) => {
-    if (!confirm('Hapus catatan hutang ini beserta seluruh jadwal cicilannya?')) return
     const res = await fetch(`/api/debts/${id}`, { method: 'DELETE' })
-    if (res.ok) load()
+    if (res.ok) { setConfirmDeleteId(null); load() }
     else {
       const d = await res.json().catch(() => ({}))
+      setConfirmDeleteId(null)
       alert(d.error || 'Gagal menghapus')
     }
   }
@@ -233,7 +234,14 @@ export default function DebtsPage() {
                           ) : (
                             <div className="flex gap-2">
                               <button onClick={() => startEdit(debt)} className="text-xs text-brand-600 hover:underline font-medium">Edit</button>
-                              <button onClick={() => removeDebt(debt.id)} className="text-xs text-red-500 hover:underline">Hapus</button>
+                              {confirmDeleteId === debt.id ? (
+                                <>
+                                  <button onClick={() => removeDebt(debt.id)} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Ya</button>
+                                  <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
+                                </>
+                              ) : (
+                                <button onClick={() => setConfirmDeleteId(debt.id)} className="text-xs text-red-500 hover:underline">Hapus</button>
+                              )}
                             </div>
                           )}
                         </td>
@@ -320,7 +328,14 @@ export default function DebtsPage() {
                   {debt.notes && <p className="text-xs text-gray-400 mt-0.5">{debt.notes}</p>}
                 </div>
                 {canManage && (
-                  <button onClick={() => removeDebt(debt.id)} className="text-xs text-gray-400 hover:text-red-500 shrink-0">Hapus</button>
+                  confirmDeleteId === debt.id ? (
+                    <span className="inline-flex items-center gap-1 shrink-0">
+                      <button onClick={() => removeDebt(debt.id)} className="text-xs px-2 py-0.5 rounded bg-red-500 text-white">Hapus</button>
+                      <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setConfirmDeleteId(debt.id)} className="text-xs text-gray-400 hover:text-red-500 shrink-0">Hapus</button>
+                  )
                 )}
               </div>
 

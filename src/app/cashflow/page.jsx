@@ -16,6 +16,7 @@ export default function CashflowPage() {
   const [form, setForm] = useState({ type: 'IN', amount: '', description: '', date: '' })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   const allowed = status === 'authenticated' &&
     (session.user.role === 'OWNER' || session.user.role === 'FINANCE' || isFinanceDirector(session.user))
@@ -60,11 +61,11 @@ export default function CashflowPage() {
   }
 
   const remove = async (id) => {
-    if (!confirm('Hapus catatan kas ini?')) return
     const res = await fetch(`/api/cashflow/transactions/${id}`, { method: 'DELETE' })
-    if (res.ok) load()
+    if (res.ok) { setConfirmDeleteId(null); load() }
     else {
       const d = await res.json().catch(() => ({}))
+      setConfirmDeleteId(null)
       alert(d.error || 'Gagal menghapus')
     }
   }
@@ -160,7 +161,14 @@ export default function CashflowPage() {
                   {tx.type === 'IN' ? '+' : '-'}{formatRupiah(tx.amount)}
                 </p>
                 {!tx.paymentRequestId && (
-                  <button onClick={() => remove(tx.id)} className="text-[10px] text-gray-400 hover:text-red-500">Hapus</button>
+                  confirmDeleteId === tx.id ? (
+                    <span className="inline-flex items-center gap-1 mt-1">
+                      <button onClick={() => remove(tx.id)} className="text-[10px] px-1.5 py-0.5 rounded bg-red-500 text-white">Hapus</button>
+                      <button onClick={() => setConfirmDeleteId(null)} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">Batal</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setConfirmDeleteId(tx.id)} className="text-[10px] text-gray-400 hover:text-red-500">Hapus</button>
+                  )
                 )}
               </div>
             </div>

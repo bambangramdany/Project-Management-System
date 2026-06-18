@@ -39,6 +39,7 @@ function ProjectsContent() {
   const [editForm, setEditForm] = useState({})
   const [savingEdit, setSavingEdit] = useState(false)
   const [allUsers, setAllUsers] = useState([])
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -89,14 +90,14 @@ function ProjectsContent() {
   const canQuickEdit = canQuickEditProjects(session?.user)
   const canDelete = canDeleteProject(session?.user?.role)
 
-  async function deleteProject(e, p) {
-    e.preventDefault(); e.stopPropagation()
-    if (!confirm(`Hapus project "${p.name}" (${p.code})? Tindakan ini tidak bisa dibatalkan.`)) return
-    const res = await fetch(`/api/projects/${p.id}`, { method: 'DELETE' })
+  async function deleteProject(id) {
+    const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' })
     if (res.ok) {
-      setProjects(prev => prev.filter(x => x.id !== p.id))
+      setConfirmDeleteId(null)
+      setProjects(prev => prev.filter(x => x.id !== id))
     } else {
       const err = await res.json().catch(() => ({}))
+      setConfirmDeleteId(null)
       alert(err.error || 'Gagal menghapus project')
     }
   }
@@ -476,13 +477,26 @@ function ProjectsContent() {
                     </button>
                   )}
                   {canDelete && (
-                    <button
-                      onClick={(e) => deleteProject(e, p)}
-                      title="Hapus project"
-                      className="text-xs px-2 py-1 rounded-md border border-gray-200 text-gray-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-                    >
-                      🗑️
-                    </button>
+                    confirmDeleteId === p.id ? (
+                      <span className="inline-flex items-center gap-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteProject(p.id) }}
+                          className="text-xs px-2 py-1 rounded-md bg-red-500 text-white"
+                        >Hapus</button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null) }}
+                          className="text-xs px-2 py-1 rounded-md border border-gray-200 text-gray-500"
+                        >Batal</button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(p.id) }}
+                        title="Hapus project"
+                        className="text-xs px-2 py-1 rounded-md border border-gray-200 text-gray-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                      >
+                        🗑️
+                      </button>
+                    )
                   )}
                 </div>
               </div>

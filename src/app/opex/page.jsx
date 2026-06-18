@@ -31,6 +31,7 @@ export default function OpexPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [importing, setImporting] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [importResult, setImportResult] = useState(null)
   const fileInputRef = useRef(null)
 
@@ -77,11 +78,11 @@ export default function OpexPage() {
   }
 
   const remove = async (id) => {
-    if (!confirm('Hapus catatan opex ini? Catatan kas terkait juga akan dihapus.')) return
     const res = await fetch(`/api/opex/${id}`, { method: 'DELETE' })
-    if (res.ok) load()
+    if (res.ok) { setConfirmDeleteId(null); load() }
     else {
       const d = await res.json().catch(() => ({}))
+      setConfirmDeleteId(null)
       alert(d.error || 'Gagal menghapus')
     }
   }
@@ -222,7 +223,14 @@ export default function OpexPage() {
               </div>
               <div className="text-right shrink-0">
                 <p className="text-sm font-semibold text-red-600">-{formatRupiah(e.amount)}</p>
-                <button onClick={() => remove(e.id)} className="text-[10px] text-gray-400 hover:text-red-500">Hapus</button>
+                {confirmDeleteId === e.id ? (
+                  <span className="inline-flex items-center gap-1 mt-1">
+                    <button onClick={() => remove(e.id)} className="text-[10px] px-1.5 py-0.5 rounded bg-red-500 text-white">Hapus</button>
+                    <button onClick={() => setConfirmDeleteId(null)} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">Batal</button>
+                  </span>
+                ) : (
+                  <button onClick={() => setConfirmDeleteId(e.id)} className="text-[10px] text-gray-400 hover:text-red-500">Hapus</button>
+                )}
               </div>
             </div>
           ))}

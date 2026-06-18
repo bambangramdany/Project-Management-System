@@ -35,6 +35,8 @@ export default function ProjectDetailPage() {
   const [categoryValue, setCategoryValue] = useState('')
   const [customCategory, setCustomCategory] = useState('')
   const [editingPic, setEditingPic] = useState(false)
+  const [confirmDeleteTaskId, setConfirmDeleteTaskId] = useState(null)
+  const [confirmRemoveMemberId, setConfirmRemoveMemberId] = useState(null)
   const [editingDates, setEditingDates] = useState(false)
   const [datesForm, setDatesForm] = useState({ briefDate: '', startDate: '', endDate: '' })
   const [picValue, setPicValue] = useState('')
@@ -173,8 +175,8 @@ export default function ProjectDetailPage() {
   }
 
   async function deleteTask(taskId) {
-    if (!confirm('Hapus task ini?')) return
     await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' })
+    setConfirmDeleteTaskId(null)
     fetchProject()
   }
 
@@ -541,7 +543,14 @@ export default function ProjectDetailPage() {
                     'bg-gray-100 text-gray-500'
                   }`}>{task.priority}</span>
                   {isManager && (
-                    <button onClick={() => deleteTask(task.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
+                    confirmDeleteTaskId === task.id ? (
+                      <span className="inline-flex items-center gap-1">
+                        <button onClick={() => deleteTask(task.id)} className="text-[10px] px-1.5 py-0.5 rounded bg-red-500 text-white">Hapus</button>
+                        <button onClick={() => setConfirmDeleteTaskId(null)} className="text-[10px] text-gray-400 hover:underline">Batal</button>
+                      </span>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteTaskId(task.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
+                    )
                   )}
                 </div>
               </div>
@@ -679,7 +688,14 @@ export default function ProjectDetailPage() {
                   <p className="text-xs text-gray-500">{user.jobTitle || user.role} · {user.divisi}</p>
                 </div>
                 {isManager && (
-                  <button onClick={() => { if (confirm(`Hapus ${user.name} dari project ini?`)) removeMember(user.id) }} className="text-gray-300 hover:text-red-400 text-xs shrink-0">✕</button>
+                  confirmRemoveMemberId === user.id ? (
+                    <span className="inline-flex items-center gap-1 shrink-0">
+                      <button onClick={() => { removeMember(user.id); setConfirmRemoveMemberId(null) }} className="text-[10px] px-1.5 py-0.5 rounded bg-red-500 text-white">Ya</button>
+                      <button onClick={() => setConfirmRemoveMemberId(null)} className="text-[10px] text-gray-400 hover:underline">Batal</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setConfirmRemoveMemberId(user.id)} className="text-gray-300 hover:text-red-400 text-xs shrink-0">✕</button>
+                  )
                 )}
               </div>
             ))}

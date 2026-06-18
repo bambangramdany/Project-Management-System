@@ -201,6 +201,7 @@ export default function MyTasksPage() {
   const [newClientName, setNewClientName] = useState('')
   const [newProjectName, setNewProjectName] = useState('')
   const [adding, setAdding] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -257,8 +258,8 @@ export default function MyTasksPage() {
   }
 
   async function removePersonalTask(id) {
-    if (!confirm('Hapus item ini?')) return
     await fetch(`/api/my-tasks/personal/${id}`, { method: 'DELETE' })
+    setConfirmDeleteId(null)
     load()
   }
 
@@ -389,11 +390,19 @@ export default function MyTasksPage() {
           {personalTasks.map(item => (
             <div key={item.id} className="relative">
               <TaskRow item={item} onSave={saveProgress} />
-              <button
-                onClick={() => removePersonalTask(item.id)}
-                className="absolute top-3 right-3 text-xs text-gray-300 hover:text-red-500"
-                title="Hapus"
-              >✕</button>
+              {confirmDeleteId === item.id ? (
+                <div className="absolute top-2 right-2 flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1 shadow-sm">
+                  <span className="text-xs text-gray-500">Hapus?</span>
+                  <button onClick={() => removePersonalTask(item.id)} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Ya</button>
+                  <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmDeleteId(item.id)}
+                  className="absolute top-3 right-3 text-xs text-gray-300 hover:text-red-500"
+                  title="Hapus"
+                >✕</button>
+              )}
             </div>
           ))}
         </section>

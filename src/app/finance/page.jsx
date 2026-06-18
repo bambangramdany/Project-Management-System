@@ -107,6 +107,10 @@ export default function FinancePage() {
   const [showReceivableForm, setShowReceivableForm] = useState(false)
   const [receivableForm, setReceivableForm] = useState({ clientName: '', invoiceNumber: '', amount: '', issueDate: '', dueDate: '', notes: '' })
   const [savingReceivable, setSavingReceivable] = useState(false)
+  const [confirmDeleteReceivableId, setConfirmDeleteReceivableId] = useState(null)
+  const [confirmDeleteQuotation, setConfirmDeleteQuotation] = useState(false)
+  const [confirmLockBudget, setConfirmLockBudget] = useState(false)
+  const [confirmDeleteBudgetIdx, setConfirmDeleteBudgetIdx] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -175,8 +179,8 @@ export default function FinancePage() {
   }
 
   async function removeReceivable(id) {
-    if (!confirm('Hapus catatan piutang ini?')) return
     const res = await fetch(`/api/receivables/${id}`, { method: 'DELETE' })
+    setConfirmDeleteReceivableId(null)
     if (res.ok) fetchReceivables()
     else {
       const err = await res.json()
@@ -363,8 +367,8 @@ export default function FinancePage() {
   }
 
   async function removeQuotationFile() {
-    if (!confirm('Hapus file quotation yang sudah diunggah?')) return
     const res = await fetch(`/api/projects/${budgetProjectId}/quotation`, { method: 'DELETE' })
+    setConfirmDeleteQuotation(false)
     if (res.ok) {
       setQuotationFileUrl(null)
       setQuotationFileName(null)
@@ -401,12 +405,17 @@ export default function FinancePage() {
   }
 
   async function toggleLockBudget(lock) {
-    if (lock && !confirm('Kunci forecast budget ini? Setelah dikunci, hanya nilai aktual & catatan yang bisa diubah sampai dibuka kembali.')) return
+    if (lock) { setConfirmLockBudget(true); return }
+    await doLockBudget('unlock')
+  }
+
+  async function doLockBudget(lockAction) {
+    setConfirmLockBudget(false)
     setSavingBudget(true)
     const res = await fetch(`/api/projects/${budgetProjectId}/budget`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: budgetItems, lockAction: lock ? 'lock' : 'unlock' }),
+      body: JSON.stringify({ items: budgetItems, lockAction }),
     })
     setSavingBudget(false)
     if (res.ok) {
@@ -565,7 +574,15 @@ export default function FinancePage() {
                 budgetMeta.canLockBudget && budgetItems.length > 0 && (
                   <div className="flex items-center justify-between gap-3 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-gray-600">
                     <span>Forecast belum dikunci — masih bisa diubah bebas.</span>
-                    <button onClick={() => toggleLockBudget(true)} className="btn-secondary text-xs shrink-0">🔒 Kunci Forecast</button>
+                    {confirmLockBudget ? (
+                      <span className="inline-flex items-center gap-2 shrink-0">
+                        <span className="text-amber-700">Yakin kunci?</span>
+                        <button onClick={() => doLockBudget('lock')} className="px-2 py-1 rounded bg-amber-500 text-white text-xs">Ya, Kunci</button>
+                        <button onClick={() => setConfirmLockBudget(false)} className="px-2 py-1 rounded bg-gray-100 text-gray-600 text-xs">Batal</button>
+                      </span>
+                    ) : (
+                      <button onClick={() => toggleLockBudget(true)} className="btn-secondary text-xs shrink-0">🔒 Kunci Forecast</button>
+                    )}
                   </div>
                 )
               )}
@@ -607,7 +624,14 @@ export default function FinancePage() {
                         <input type="file" accept=".pdf,.png,.jpg,.jpeg" className="hidden" onChange={handleQuotationFileUpload} disabled={uploadingQuotation} />
                       </label>
                       {quotationFileUrl && (
-                        <button type="button" onClick={removeQuotationFile} className="text-xs text-red-500 hover:underline">Hapus</button>
+                        confirmDeleteQuotation ? (
+                          <span className="inline-flex items-center gap-1">
+                            <button type="button" onClick={removeQuotationFile} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Hapus</button>
+                            <button type="button" onClick={() => setConfirmDeleteQuotation(false)} className="text-xs text-gray-400 hover:underline">Batal</button>
+                          </span>
+                        ) : (
+                          <button type="button" onClick={() => setConfirmDeleteQuotation(true)} className="text-xs text-red-500 hover:underline">Hapus</button>
+                        )
                       )}
                     </>
                   )}
@@ -728,7 +752,14 @@ export default function FinancePage() {
                     disabled={!budgetMeta.canNote}
                   />
                   {budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && !forecastLocked && (
-                    <button onClick={() => { if (confirm('Hapus komponen forecast ini?')) removeBudgetRow(idx) }} className="col-span-1 text-red-500 text-xs hover:underline">Hapus</button>
+                    confirmDeleteBudgetIdx === idx ? (
+                      <span className="col-span-1 inline-flex items-center gap-1">
+                        <button onClick={() => { removeBudgetRow(idx); setConfirmDeleteBudgetIdx(null) }} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Ya</button>
+                        <button onClick={() => setConfirmDeleteBudgetIdx(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
+                      </span>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteBudgetIdx(idx)} className="col-span-1 text-red-500 text-xs hover:underline">Hapus</button>
+                    )
                   )}
                   {item.id && (
                     <div className="col-span-16 -mt-1 flex items-center gap-2 flex-wrap text-xs text-gray-500">
@@ -953,7 +984,14 @@ export default function FinancePage() {
                             <button onClick={() => toggleReceivablePaid(r)} className={`text-xs px-2 py-1 rounded-md font-medium ${r.status === 'PAID' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                               {r.status === 'PAID' ? 'Lunas ✓' : 'Tandai Lunas'}
                             </button>
-                            <button onClick={() => removeReceivable(r.id)} className="text-xs text-gray-400 hover:text-red-500">Hapus</button>
+                            {confirmDeleteReceivableId === r.id ? (
+                              <span className="inline-flex items-center gap-1">
+                                <button onClick={() => removeReceivable(r.id)} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Hapus</button>
+                                <button onClick={() => setConfirmDeleteReceivableId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
+                              </span>
+                            ) : (
+                              <button onClick={() => setConfirmDeleteReceivableId(r.id)} className="text-xs text-gray-400 hover:text-red-500">Hapus</button>
+                            )}
                           </>
                         ) : (
                           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${r.status === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>

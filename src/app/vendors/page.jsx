@@ -30,6 +30,7 @@ export default function VendorsPage() {
   const [saving, setSaving] = useState(false)
   const [detail, setDetail] = useState(null)
   const [uploading, setUploading] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -92,9 +93,9 @@ export default function VendorsPage() {
   }
 
   const remove = async (v) => {
-    if (!confirm(`Hapus vendor "${v.name}"?`)) return
     const res = await fetch(`/api/vendors/${v.id}`, { method: 'DELETE' })
     if (res.ok) {
+      setConfirmDeleteId(null)
       if (detail?.id === v.id) setDetail(null)
       load()
     }
@@ -242,7 +243,14 @@ export default function VendorsPage() {
                     <td className="px-3 py-2 text-gray-500">{v.enteredBy?.name || v.enteredByName || '-'}</td>
                     <td className="px-3 py-2 text-right">
                       <button onClick={(e) => { e.stopPropagation(); openEdit(v) }} className="text-blue-600 hover:underline text-xs mr-2">Edit</button>
-                      <button onClick={(e) => { e.stopPropagation(); remove(v) }} className="text-red-500 hover:underline text-xs">Hapus</button>
+                      {confirmDeleteId === v.id ? (
+                        <>
+                          <button onClick={(e) => { e.stopPropagation(); remove(v) }} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white mr-1">Ya</button>
+                          <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null) }} className="text-xs text-gray-400 hover:underline">Batal</button>
+                        </>
+                      ) : (
+                        <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(v.id) }} className="text-red-500 hover:underline text-xs">Hapus</button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -352,7 +360,14 @@ export default function VendorsPage() {
 
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => { setDetail(null); openEdit(detail) }} className="px-4 py-2 text-sm rounded-lg border">Edit</button>
-              <button onClick={() => remove(detail)} className="px-4 py-2 text-sm rounded-lg border border-red-200 text-red-600">Hapus</button>
+              {confirmDeleteId === detail?.id ? (
+                <>
+                  <button onClick={() => remove(detail)} className="px-4 py-2 text-sm rounded-lg bg-red-500 text-white">Ya, Hapus</button>
+                  <button onClick={() => setConfirmDeleteId(null)} className="px-4 py-2 text-sm rounded-lg border">Batal</button>
+                </>
+              ) : (
+                <button onClick={() => setConfirmDeleteId(detail?.id)} className="px-4 py-2 text-sm rounded-lg border border-red-200 text-red-600">Hapus</button>
+              )}
             </div>
           </div>
         </div>

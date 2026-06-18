@@ -22,6 +22,7 @@ export default function ClientsPage() {
   const [newClientName, setNewClientName] = useState('')
   const [addingClient, setAddingClient] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null) // inline confirm state
+  const [confirmDeleteContactId, setConfirmDeleteContactId] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -136,8 +137,8 @@ export default function ClientsPage() {
   }
 
   const deleteContact = async (contactId) => {
-    if (!confirm('Hapus PIC ini?')) return
     const res = await fetch(`/api/client-contacts/${contactId}`, { method: 'DELETE' })
+    setConfirmDeleteContactId(null)
     if (res.ok) load()
     else alert('Gagal menghapus')
   }
@@ -281,7 +282,14 @@ export default function ClientsPage() {
                                 </div>
                                 <div className="flex flex-col gap-1 shrink-0 text-xs">
                                   <button onClick={() => startEditContact(c.id, contact)} className="text-brand-600 hover:underline">Edit</button>
-                                  <button onClick={() => deleteContact(contact.id)} className="text-red-500 hover:underline">Hapus</button>
+                                  {confirmDeleteContactId === contact.id ? (
+                                    <span className="inline-flex items-center gap-1">
+                                      <button onClick={() => deleteContact(contact.id)} className="px-1.5 py-0.5 rounded bg-red-500 text-white text-[10px]">Ya</button>
+                                      <button onClick={() => setConfirmDeleteContactId(null)} className="text-gray-400 hover:underline text-[10px]">Batal</button>
+                                    </span>
+                                  ) : (
+                                    <button onClick={() => setConfirmDeleteContactId(contact.id)} className="text-red-500 hover:underline">Hapus</button>
+                                  )}
                                 </div>
                               </div>
                             )

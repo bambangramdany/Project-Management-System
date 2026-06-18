@@ -27,6 +27,7 @@ export default function AssetsPage() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   const allowed = status === 'authenticated' &&
     (session.user.role === 'OWNER' || session.user.role === 'FINANCE' || isFinanceDirector(session.user))
@@ -72,11 +73,11 @@ export default function AssetsPage() {
   }
 
   const remove = async (id) => {
-    if (!confirm('Hapus aset ini?')) return
     const res = await fetch(`/api/assets/${id}`, { method: 'DELETE' })
-    if (res.ok) load()
+    if (res.ok) { setConfirmDeleteId(null); load() }
     else {
       const d = await res.json().catch(() => ({}))
+      setConfirmDeleteId(null)
       alert(d.error || 'Gagal menghapus')
     }
   }
@@ -216,7 +217,14 @@ export default function AssetsPage() {
                   <td className="px-4 py-3 text-right font-semibold text-brand-700">{formatRupiah(a.currentValue)}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{new Date(a.acquisitionDate).toLocaleDateString('id-ID', { dateStyle: 'medium' })}</td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => remove(a.id)} className="text-xs text-gray-400 hover:text-red-500">Hapus</button>
+                    {confirmDeleteId === a.id ? (
+                      <span className="inline-flex items-center gap-1">
+                        <button onClick={() => remove(a.id)} className="text-xs px-2 py-0.5 rounded bg-red-500 text-white">Hapus</button>
+                        <button onClick={() => setConfirmDeleteId(null)} className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">Batal</button>
+                      </span>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteId(a.id)} className="text-xs text-gray-400 hover:text-red-500">Hapus</button>
+                    )}
                   </td>
                 </tr>
               ))}
