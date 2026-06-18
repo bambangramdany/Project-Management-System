@@ -15,14 +15,14 @@ const NAV_ITEMS = [
   { href: '/scores', label: 'Nilai Tim' },
   { href: '/finance', label: 'Finance', roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'PRODUCTION'] },
   { href: '/targets', label: 'Target', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
+  { href: '/salary', label: 'Gaji', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
+  { href: '/debts', label: 'Hutang', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/vendors', label: 'Vendor' },
   { href: '/clients', label: 'Klien' },
   { href: '/team', label: 'Tim' },
   { href: '/cashflow', label: 'Kas', cashOnly: true },
   { href: '/opex', label: 'Opex', cashOnly: true },
   { href: '/assets', label: 'Aset', cashOnly: true },
-  { href: '/debts', label: 'Hutang', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
-  { href: '/salary', label: 'Gaji', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/settings', label: 'Pengaturan', settingsOnly: true },
 ]
 
