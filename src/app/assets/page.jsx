@@ -182,15 +182,15 @@ export default function AssetsPage() {
         </div>
 
         <div className="card overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[600px]">
             <thead>
               <tr className="text-left text-gray-400 text-xs border-b border-gray-100">
                 <th className="px-4 py-2.5">Nama Aset</th>
-                <th className="px-4 py-2.5">Kategori</th>
+                <th className="px-4 py-2.5 hidden sm:table-cell">Kategori</th>
                 <th className="px-4 py-2.5">Kondisi</th>
                 <th className="px-4 py-2.5 text-right">Harga Perolehan</th>
                 <th className="px-4 py-2.5 text-right">Nilai Saat Ini</th>
-                <th className="px-4 py-2.5">Tanggal</th>
+                <th className="px-4 py-2.5 hidden sm:table-cell">Tanggal</th>
                 <th className="px-4 py-2.5"></th>
               </tr>
             </thead>
@@ -206,17 +206,18 @@ export default function AssetsPage() {
                   <td className="px-4 py-3 font-medium text-gray-800">
                     {a.name}
                     {a.notes && <p className="text-xs text-gray-400 font-normal mt-0.5">{a.notes}</p>}
+                    <p className="text-[10px] text-gray-400 sm:hidden mt-0.5">{new Date(a.acquisitionDate).toLocaleDateString('id-ID', { dateStyle: 'medium' })}</p>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 hidden sm:table-cell">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{ASSET_CATEGORY_LABEL[a.category]}</span>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${CONDITION_COLOR[a.condition]}`}>{ASSET_CONDITION_LABEL[a.condition]}</span>
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-700">{formatRupiah(a.acquisitionCost)}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-brand-700">{formatRupiah(a.currentValue)}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{new Date(a.acquisitionDate).toLocaleDateString('id-ID', { dateStyle: 'medium' })}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right text-gray-700 whitespace-nowrap">{formatRupiah(a.acquisitionCost)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-brand-700 whitespace-nowrap">{formatRupiah(a.currentValue)}</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs hidden sm:table-cell">{new Date(a.acquisitionDate).toLocaleDateString('id-ID', { dateStyle: 'medium' })}</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     {confirmDeleteId === a.id ? (
                       <span className="inline-flex items-center gap-1">
                         <button onClick={() => remove(a.id)} className="text-xs px-2 py-0.5 rounded bg-red-500 text-white">Hapus</button>

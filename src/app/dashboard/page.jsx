@@ -205,18 +205,18 @@ function DivisionSection({ title, projects, session, onChanged }) {
       {/* Pipeline overview, ordered to end with Reporting & Invoicing for morning briefing */}
       <div className="card p-5 border-t-4 border-orange-400">
         <h3 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-xs">📈</span>Pipeline Project</h3>
-        <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
           {PIPELINE_STAGES.map((stage, i) => (
-            <Link key={stage.key} href={`/projects?status=${stage.key}`} className="group text-center">
+            <Link key={stage.key} href={`/projects?status=${stage.key}`} className="group text-center shrink-0 min-w-[60px]">
               <div className="relative">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-50 border-2 border-orange-200 flex items-center justify-center mx-auto text-lg font-bold text-orange-600 group-hover:bg-orange-100 group-hover:scale-110 group-hover:border-orange-300 transition-all duration-200">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-50 border-2 border-orange-200 flex items-center justify-center mx-auto text-base font-bold text-orange-600 group-hover:bg-orange-100 group-hover:scale-110 group-hover:border-orange-300 transition-all duration-200">
                   {countByStatus[stage.key]}
                 </div>
                 {i < PIPELINE_STAGES.length - 1 && (
                   <div className="hidden sm:block absolute top-1/2 -right-1 w-2 h-0.5 bg-gray-200" />
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-1 leading-tight">{stage.label}</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 mt-1 leading-tight">{stage.label}</p>
             </Link>
           ))}
         </div>

@@ -561,7 +561,7 @@ export default function FinancePage() {
           {budgetProjectId && !budgetLoading && (
             <div className="space-y-2">
               {budgetMeta.budgetLockedAt ? (
-                <div className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
                   <span>
                     🔒 Forecast dikunci oleh <strong>{budgetMeta.budgetLockedBy?.name || '-'}</strong> pada{' '}
                     {new Date(budgetMeta.budgetLockedAt).toLocaleDateString('id-ID')}. Hanya nilai aktual & catatan yang bisa diubah.
@@ -572,7 +572,7 @@ export default function FinancePage() {
                 </div>
               ) : (
                 budgetMeta.canLockBudget && budgetItems.length > 0 && (
-                  <div className="flex items-center justify-between gap-3 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-gray-600">
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-gray-600">
                     <span>Forecast belum dikunci — masih bisa diubah bebas.</span>
                     {confirmLockBudget ? (
                       <span className="inline-flex items-center gap-2 shrink-0">
@@ -587,7 +587,7 @@ export default function FinancePage() {
                 )
               )}
               {forecastLocked && (
-                <div className="flex items-center justify-between gap-3 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-700">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-700">
                   <span>✓ Forecast budget tersimpan dan terkunci. Klik "Edit" untuk mengubah.</span>
                   <button onClick={() => setBudgetEditing(true)} className="btn-secondary text-xs shrink-0">Edit</button>
                 </div>
@@ -965,7 +965,7 @@ export default function FinancePage() {
                 {receivables.receivables.map(r => {
                   const overdue = r.status === 'UNPAID' && r.dueDate && new Date(r.dueDate) < new Date()
                   return (
-                    <div key={r.id} className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50">
+                    <div key={r.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50">
                       <div className="min-w-0">
                         <p className="text-sm text-gray-800 truncate">
                           {r.clientName}{r.invoiceNumber ? ` · ${r.invoiceNumber}` : ''}
