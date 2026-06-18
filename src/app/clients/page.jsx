@@ -21,6 +21,7 @@ export default function ClientsPage() {
   const [contactForm, setContactForm] = useState(null) // { clientId, contactId|null, ...EMPTY_CONTACT }
   const [newClientName, setNewClientName] = useState('')
   const [addingClient, setAddingClient] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null) // inline confirm state
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -122,13 +123,14 @@ export default function ClientsPage() {
   }
 
   const deleteClient = async (c) => {
-    if (!confirm(`Hapus klien "${c.name}"? Tindakan ini tidak bisa dibatalkan.`)) return
     setError('')
     const res = await fetch(`/api/clients/${c.id}`, { method: 'DELETE' })
     if (res.ok) {
+      setConfirmDeleteId(null)
       load()
     } else {
       const d = await res.json().catch(() => ({}))
+      setConfirmDeleteId(null)
       setError(d.error || 'Gagal menghapus klien')
     }
   }
@@ -231,12 +233,29 @@ export default function ClientsPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-500">{c._count?.projects ?? 0}</td>
                     <td className="px-4 py-3 text-gray-500">{c.contacts?.length || 0}</td>
-                    <td className="px-4 py-3 text-right space-x-3 whitespace-nowrap">
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
                       {editId !== c.id && (
-                        <>
-                          <button onClick={() => startEdit(c)} className="text-xs text-brand-600 hover:underline">Edit Nama</button>
-                          <button onClick={() => deleteClient(c)} className="text-xs text-red-500 hover:underline">Hapus</button>
-                        </>
+                        confirmDeleteId === c.id ? (
+                          <span className="inline-flex items-center gap-2">
+                            <span className="text-xs text-gray-500">Yakin hapus?</span>
+                            <button
+                              onClick={() => deleteClient(c)}
+                              className="text-xs px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600"
+                            >Ya, Hapus</button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            >Batal</button>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-3">
+                            <button onClick={() => startEdit(c)} className="text-xs text-brand-600 hover:underline py-1">Edit Nama</button>
+                            <button
+                              onClick={() => setConfirmDeleteId(c.id)}
+                              className="text-xs text-red-500 hover:underline py-1"
+                            >Hapus</button>
+                          </span>
+                        )
                       )}
                     </td>
                   </tr>
