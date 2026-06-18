@@ -293,16 +293,16 @@ export default function SalaryPage() {
         {summary && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { label: 'Total THP', value: fmtK(summary.totalTHP), sub: `${summary.recordCount} karyawan`, cls: 'border-brand-400 text-brand-700 col-span-2 sm:col-span-1' },
-              { label: 'Gaji Pokok', value: fmtK(summary.totalGajiPokok), sub: 'sebelum tunjangan', cls: 'border-gray-300 text-gray-700' },
-              { label: 'Total Tunjangan', value: fmtK(summary.totalTunjangan), sub: 'jabatan + kinerja', cls: 'border-emerald-400 text-emerald-700' },
-              { label: 'Bonus Project', value: fmtK(summary.totalBonusProject), sub: 'invoice bulan ini', cls: 'border-blue-400 text-blue-700' },
-              { label: 'Total Potongan', value: fmtK(summary.totalPotongan), sub: 'BPJS + pajak', cls: 'border-red-300 text-red-600' },
-              { label: 'Diisi', value: `${summary.recordCount}/${allRows.length}`, sub: 'karyawan diinput', cls: 'border-gray-200 text-gray-600' },
+              { label: 'Total THP', value: fmtK(summary.totalTHP), sub: `${summary.recordCount} karyawan`, border: 'border-brand-400', color: 'text-brand-700', span: 'col-span-2 sm:col-span-1' },
+              { label: 'Gaji Pokok', value: fmtK(summary.totalGajiPokok), sub: 'sebelum tunjangan', border: 'border-gray-300', color: 'text-gray-700' },
+              { label: 'Total Tunjangan', value: fmtK(summary.totalTunjangan), sub: 'jabatan + kinerja', border: 'border-emerald-400', color: 'text-emerald-700' },
+              { label: 'Bonus Project', value: fmtK(summary.totalBonusProject), sub: 'invoice bulan ini', border: 'border-blue-400', color: 'text-blue-700' },
+              { label: 'Total Potongan', value: fmtK(summary.totalPotongan), sub: 'BPJS + pajak', border: 'border-red-300', color: 'text-red-600' },
+              { label: 'Diisi', value: `${summary.recordCount}/${allRows.length}`, sub: 'karyawan diinput', border: 'border-gray-200', color: 'text-gray-600' },
             ].map(c=>(
-              <div key={c.label} className={`card p-3 sm:p-4 border-t-4 ${c.cls.split(' ')[0]} ${c.cls.split(' ')[2] || ''}`}>
+              <div key={c.label} className={`card p-3 sm:p-4 border-t-4 ${c.border} ${c.span || ''}`}>
                 <p className="text-[10px] sm:text-xs text-gray-500 truncate">{c.label}</p>
-                <p className={`text-base sm:text-lg font-bold mt-0.5 ${c.cls.split(' ')[1]}`}>{c.value}</p>
+                <p className={`text-base sm:text-lg font-bold mt-0.5 ${c.color}`}>{c.value}</p>
                 <p className="text-[10px] text-gray-400 mt-0.5 truncate">{c.sub}</p>
               </div>
             ))}
