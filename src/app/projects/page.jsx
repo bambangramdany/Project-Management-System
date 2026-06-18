@@ -502,34 +502,39 @@ function ProjectsContent() {
               </div>
 
               {editId === p.id && (
-                <div
-                  className="border-t border-gray-100 pt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-end"
-                >
-                  <div>
-                    <label className="label">Divisi</label>
-                    <select className="select text-sm" value={editForm.division} onChange={e => setEditForm(f => ({ ...f, division: e.target.value }))}>
-                      <option value="EVENT">EO (Event)</option>
-                      <option value="PH">PH (Production House)</option>
-                    </select>
+                <div className="border-t border-gray-100 pt-3 space-y-3">
+                  {/* Baris 1: Divisi + Status */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="label">Divisi</label>
+                      <select className="select text-sm" value={editForm.division} onChange={e => setEditForm(f => ({ ...f, division: e.target.value }))}>
+                        <option value="EVENT">EO (Event)</option>
+                        <option value="PH">PH (Production House)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">Status</label>
+                      <select className="select text-sm" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
+                        {STATUS_PIPELINE.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className="label">Status</label>
-                    <select className="select text-sm" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
-                      {STATUS_PIPELINE.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-                    </select>
+                  {/* Baris 2: Tanggal */}
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <div>
+                      <label className="label">Tgl Brief</label>
+                      <input type="date" className="input text-sm" value={editForm.briefDate} onChange={e => setEditForm(f => ({ ...f, briefDate: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="label">Tgl Mulai</label>
+                      <input type="date" className="input text-sm" value={editForm.startDate} onChange={e => setEditForm(f => ({ ...f, startDate: e.target.value }))} />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="label">Tgl Selesai</label>
+                      <input type="date" className="input text-sm" value={editForm.endDate} onChange={e => setEditForm(f => ({ ...f, endDate: e.target.value }))} />
+                    </div>
                   </div>
-                  <div>
-                    <label className="label">Tgl Brief</label>
-                    <input type="date" className="input text-sm" value={editForm.briefDate} onChange={e => setEditForm(f => ({ ...f, briefDate: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="label">Tgl Event / Mulai</label>
-                    <input type="date" className="input text-sm" value={editForm.startDate} onChange={e => setEditForm(f => ({ ...f, startDate: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="label">Tgl Selesai</label>
-                    <input type="date" className="input text-sm" value={editForm.endDate} onChange={e => setEditForm(f => ({ ...f, endDate: e.target.value }))} />
-                  </div>
+                  {/* Baris 3: PIC */}
                   <div>
                     <label className="label">PIC / Project Manager</label>
                     <select className="select text-sm" value={editForm.picId} onChange={e => setEditForm(f => ({ ...f, picId: e.target.value }))}>
@@ -539,7 +544,8 @@ function ProjectsContent() {
                       ))}
                     </select>
                   </div>
-                  <div className="col-span-2 sm:col-span-3 lg:col-span-6">
+                  {/* Baris 4: Anggota Tim */}
+                  <div>
                     <label className="label">Anggota Tim</label>
                     <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 border border-gray-200 rounded-lg">
                       {allUsers.map(u => (
@@ -554,7 +560,8 @@ function ProjectsContent() {
                       ))}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  {/* Tombol aksi */}
+                  <div className="flex items-center gap-2 pt-1">
                     <button onClick={(e) => saveQuickEdit(e, p.id)} disabled={savingEdit} className="btn-primary text-sm">
                       {savingEdit ? 'Menyimpan...' : 'Simpan'}
                     </button>
