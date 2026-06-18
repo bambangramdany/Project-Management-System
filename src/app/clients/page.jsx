@@ -31,7 +31,7 @@ export default function ClientsPage() {
 
   const load = () => {
     setLoading(true)
-    fetch('/api/clients').then(r => r.ok ? r.json() : []).then(data => {
+    fetch('/api/clients', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then(data => {
       setClients(Array.isArray(data) ? data : [])
       setLoading(false)
     })
@@ -127,8 +127,12 @@ export default function ClientsPage() {
   const deleteClient = async (c) => {
     setError('')
     setDeleteError(prev => ({ ...prev, [c.id]: null }))
-    const res = await fetch(`/api/clients/${c.id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/clients/${c.id}`, { method: 'DELETE', cache: 'no-store' })
     if (res.ok) {
+      setConfirmDeleteId(null)
+      load()
+    } else if (res.status === 404) {
+      // Klien sudah tidak ada di DB (mungkin cache stale) — refresh list saja
       setConfirmDeleteId(null)
       load()
     } else {
