@@ -69,6 +69,31 @@ export async function PATCH(req, { params }) {
     }
   }
 
+  // ── Auto-sinkronisasi pitchResult ↔ status ──────────────────────────────
+  // Jika pitchResult diubah, sesuaikan status secara otomatis
+  if ('pitchResult' in fields) {
+    const currentStatus = existingProject.status
+    if (fields.pitchResult === 'WIN') {
+      // Menang pitch → jangan biarkan di FAILED/CANCELED; pindah ke PREPARATION
+      if (['FAILED', 'CANCELED'].includes(data.status ?? currentStatus)) {
+        data.status = 'PREPARATION'
+      }
+    } else if (fields.pitchResult === 'LOSE') {
+      // Kalah pitch → status jadi FAILED (kecuali sudah DONE)
+      if (!['DONE'].includes(data.status ?? currentStatus)) {
+        data.status = 'FAILED'
+      }
+    }
+  }
+  // Jika status diubah ke FAILED tapi pitchResult masih WIN → clear pitchResult
+  if (('status' in fields) && fields.status === 'FAILED') {
+    const currentPitchResult = existingProject.pitchResult
+    if ((data.pitchResult ?? currentPitchResult) === 'WIN') {
+      data.pitchResult = null
+    }
+  }
+  // ────────────────────────────────────────────────────────────────────────
+
   const project = await prisma.project.update({
     where: { id: params.id },
     data,

@@ -459,6 +459,9 @@ function ProjectsContent() {
                   </div>
                 </Link>
                 <div className="flex items-center gap-2 shrink-0">
+                  {p.pitchResult === 'WIN' && p.status === 'FAILED' && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold" title="Status tidak sinkron: Pitch menang tapi project berstatus Failed">⚠ Cek Status</span>
+                  )}
                   {p.pitchResult && (
                     <span className="text-xs text-gray-400 flex items-center gap-1">
                       Pitch: <PitchResultBadge result={p.pitchResult} />
