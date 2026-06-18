@@ -21,8 +21,8 @@ const NAV_ITEMS = [
   { href: '/cashflow', label: 'Kas', cashOnly: true },
   { href: '/opex', label: 'Opex', cashOnly: true },
   { href: '/assets', label: 'Aset', cashOnly: true },
-  { href: '/debts', label: 'Hutang', roles: ['OWNER', 'DIRECTOR'] },
-  { href: '/salary', label: 'Gaji', roles: ['OWNER', 'DIRECTOR'] },
+  { href: '/debts', label: 'Hutang', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
+  { href: '/salary', label: 'Gaji', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/settings', label: 'Pengaturan', settingsOnly: true },
 ]
 
