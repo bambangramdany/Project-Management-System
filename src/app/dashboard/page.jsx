@@ -137,9 +137,8 @@ export default function DashboardPage() {
           <StatCard label="Project Selesai" value={projects.filter(p => p.status === 'DONE').length} sub="sudah lunas" color="text-blue-600" />
         </div>
 
-        {/* Breakdown overall / EO / PH */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <DivisionSummaryCard title="Overall" projects={projects} />
+        {/* Breakdown EO / PH */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <DivisionSummaryCard title="Event Organizer (EO)" projects={eoProjects} />
           <DivisionSummaryCard title="Production House (PH)" projects={phProjects} />
         </div>
