@@ -101,10 +101,36 @@ export default function VendorsPage() {
     }
   }
 
+  // Kompresi gambar pakai Canvas sebelum upload (max 1200px, quality 0.80)
+  const compressImage = (file) => new Promise((resolve) => {
+    // Non-image (PDF, dll) → skip kompresi
+    if (!file.type.startsWith('image/')) { resolve(file); return }
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const MAX = 1200
+      let { width, height } = img
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+        else { width = Math.round(width * MAX / height); height = MAX }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => {
+        resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
+      }, 'image/jpeg', 0.80)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+    img.src = url
+  })
+
   const uploadPhoto = async (vendorId, file) => {
     setUploading(true)
+    const compressed = await compressImage(file)
     const fd = new FormData()
-    fd.append('file', file)
+    fd.append('file', compressed)
     const res = await fetch(`/api/vendors/${vendorId}/photos`, { method: 'POST', body: fd })
     setUploading(false)
     if (res.ok) {
@@ -341,21 +367,57 @@ export default function VendorsPage() {
             )}
 
             <div>
-              <div className="text-xs text-gray-500 mb-1">Foto / Dokumen</div>
-              <div className="flex flex-wrap gap-2">
-                {(Array.isArray(detail.photos) ? detail.photos : []).map((p, i) => (
-                  <div key={i} className="relative group">
-                    <a href={p.url} target="_blank" rel="noreferrer">
-                      <img src={p.url} alt={p.name} className="w-20 h-20 object-cover rounded border" />
-                    </a>
-                    <button onClick={() => removePhoto(detail.id, p.url)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs">✕</button>
-                  </div>
-                ))}
-                <label className="w-20 h-20 border-2 border-dashed rounded flex items-center justify-center text-xs text-gray-400 cursor-pointer hover:bg-gray-50">
-                  {uploading ? '...' : '+ Foto'}
-                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={e => e.target.files[0] && uploadPhoto(detail.id, e.target.files[0])} />
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs text-gray-500 font-medium">Foto / Dokumen</div>
+                <label className={`text-xs px-3 py-1.5 rounded-lg border cursor-pointer transition-colors ${uploading ? 'opacity-50 pointer-events-none bg-gray-50 text-gray-400' : 'border-brand-300 text-brand-600 hover:bg-brand-50'}`}>
+                  {uploading ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 border border-brand-400 border-t-transparent rounded-full animate-spin inline-block" />
+                      Mengompres...
+                    </span>
+                  ) : '+ Lampirkan File'}
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
+                    className="hidden"
+                    disabled={uploading}
+                    onChange={e => e.target.files[0] && uploadPhoto(detail.id, e.target.files[0])}
+                  />
                 </label>
               </div>
+              <p className="text-[10px] text-gray-400 mb-2">Gambar akan otomatis dikompres. Maks. file PDF/dokumen 10 MB.</p>
+              {(Array.isArray(detail.photos) ? detail.photos : []).length === 0 ? (
+                <p className="text-xs text-gray-400 italic">Belum ada file terlampir.</p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {(Array.isArray(detail.photos) ? detail.photos : []).map((p, i) => {
+                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(p.name || p.url)
+                    return (
+                      <div key={i} className="relative group rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                        {isImage ? (
+                          <a href={p.url} target="_blank" rel="noreferrer">
+                            <img src={p.url} alt={p.name} className="w-full h-20 object-cover" />
+                          </a>
+                        ) : (
+                          <a href={p.url} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center h-20 p-2 hover:bg-gray-100 transition-colors">
+                            <span className="text-2xl mb-1">{/\.pdf$/i.test(p.name || '') ? '📄' : '📎'}</span>
+                            <span className="text-[10px] text-gray-500 text-center leading-tight line-clamp-2">{p.name || 'Buka file'}</span>
+                          </a>
+                        )}
+                        <button
+                          onClick={() => removePhoto(detail.id, p.url)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                        >✕</button>
+                        {isImage && (
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-[9px] px-1 py-0.5 truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                            {p.name}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
