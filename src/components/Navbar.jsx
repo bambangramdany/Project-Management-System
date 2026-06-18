@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { href: '/opex', label: 'Opex', cashOnly: true },
   { href: '/assets', label: 'Aset', cashOnly: true },
   { href: '/debts', label: 'Hutang', roles: ['OWNER', 'DIRECTOR'] },
+  { href: '/salary', label: 'Gaji', roles: ['OWNER', 'DIRECTOR'] },
   { href: '/settings', label: 'Pengaturan', settingsOnly: true },
 ]
 
