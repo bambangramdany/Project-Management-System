@@ -32,6 +32,11 @@ export async function POST(req, { params }) {
     return NextResponse.json({ error: 'File tidak ditemukan' }, { status: 400 })
   }
 
+  const MAX_BYTES = 1 * 1024 * 1024 // 1 MB
+  if (file.size > MAX_BYTES) {
+    return NextResponse.json({ error: `Ukuran file terlalu besar (${(file.size / 1024 / 1024).toFixed(1)} MB). Maksimal 1 MB.` }, { status: 400 })
+  }
+
   const path = `${params.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`
   const buffer = Buffer.from(await file.arrayBuffer())
 

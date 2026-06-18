@@ -101,9 +101,11 @@ export default function VendorsPage() {
     }
   }
 
+  const MAX_FILE_BYTES = 1 * 1024 * 1024 // 1 MB
+
   // Kompresi gambar pakai Canvas sebelum upload (max 1200px, quality 0.80)
-  const compressImage = (file) => new Promise((resolve) => {
-    // Non-image (PDF, dll) → skip kompresi
+  // Jika setelah kompres masih > 1MB, turunkan quality secara bertahap sampai muat
+  const compressImage = (file) => new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) { resolve(file); return }
     const img = new Image()
     const url = URL.createObjectURL(file)
@@ -118,17 +120,37 @@ export default function VendorsPage() {
       const canvas = document.createElement('canvas')
       canvas.width = width; canvas.height = height
       canvas.getContext('2d').drawImage(img, 0, 0, width, height)
-      canvas.toBlob(blob => {
-        resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
-      }, 'image/jpeg', 0.80)
+
+      // Coba kompres mulai quality 0.80, turun terus sampai < 1MB
+      const tryCompress = (quality) => {
+        canvas.toBlob(blob => {
+          if (blob.size <= MAX_FILE_BYTES || quality <= 0.30) {
+            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
+          } else {
+            tryCompress(Math.round((quality - 0.10) * 100) / 100)
+          }
+        }, 'image/jpeg', quality)
+      }
+      tryCompress(0.80)
     }
     img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
     img.src = url
   })
 
   const uploadPhoto = async (vendorId, file) => {
+    // Validasi ukuran file non-gambar sebelum upload
+    if (!file.type.startsWith('image/') && file.size > MAX_FILE_BYTES) {
+      alert(`Ukuran file terlalu besar (${(file.size / 1024 / 1024).toFixed(1)} MB). Maksimal 1 MB untuk PDF/dokumen.`)
+      return
+    }
     setUploading(true)
     const compressed = await compressImage(file)
+    // Cek ulang setelah kompresi (edge case gambar sangat detail)
+    if (compressed.size > MAX_FILE_BYTES) {
+      setUploading(false)
+      alert(`File masih terlalu besar setelah dikompres (${(compressed.size / 1024 / 1024).toFixed(1)} MB). Coba foto dengan resolusi lebih rendah.`)
+      return
+    }
     const fd = new FormData()
     fd.append('file', compressed)
     const res = await fetch(`/api/vendors/${vendorId}/photos`, { method: 'POST', body: fd })
@@ -385,7 +407,7 @@ export default function VendorsPage() {
                   />
                 </label>
               </div>
-              <p className="text-[10px] text-gray-400 mb-2">Gambar akan otomatis dikompres. Maks. file PDF/dokumen 10 MB.</p>
+              <p className="text-[10px] text-gray-400 mb-2">Gambar otomatis dikompres hingga &lt;1 MB. PDF/dokumen maks. 1 MB.</p>
               {(Array.isArray(detail.photos) ? detail.photos : []).length === 0 ? (
                 <p className="text-xs text-gray-400 italic">Belum ada file terlampir.</p>
               ) : (
