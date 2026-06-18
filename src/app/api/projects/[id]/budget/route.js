@@ -6,6 +6,25 @@ import { logAudit } from '@/lib/audit'
 import { EXPENSE_CATEGORIES } from '@/lib/constants'
 import { NextResponse } from 'next/server'
 
+// Replace semua titipan entries untuk satu budget item
+async function upsertTitipanEntries(budgetItemId, entries) {
+  const keepIds = entries.filter(e => e.id).map(e => e.id)
+  await prisma.projectBudgetItemTitipanEntry.deleteMany({
+    where: { budgetItemId, id: { notIn: keepIds.length ? keepIds : ['__none__'] } },
+  })
+  await Promise.all(entries.map(e => {
+    const data = {
+      vendorName: e.vendorName || '',
+      amount: parseFloat(e.amount) || 0,
+      note: e.note || null,
+      isPaid: !!e.isPaid,
+      paidAt: e.isPaid && e.paidAt ? new Date(e.paidAt) : (e.isPaid ? new Date() : null),
+    }
+    if (e.id) return prisma.projectBudgetItemTitipanEntry.update({ where: { id: e.id }, data })
+    return prisma.projectBudgetItemTitipanEntry.create({ data: { ...data, budgetItemId } })
+  }))
+}
+
 export async function GET(req, { params }) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -23,7 +42,10 @@ export async function GET(req, { params }) {
   const items = await prisma.projectBudgetItem.findMany({
     where: { projectId: params.id },
     orderBy: { order: 'asc' },
-    include: { payments: { select: { id: true, amount: true, status: true, vendor: true, createdAt: true } } },
+    include: {
+      payments: { select: { id: true, amount: true, status: true, vendor: true, createdAt: true } },
+      titipanEntries: { orderBy: { createdAt: 'asc' } },
+    },
   })
   // Status of each forecast item is derived from its linked payment requests
   const budgetItems = items.map(item => {
@@ -41,8 +63,20 @@ export async function GET(req, { params }) {
     return { ...item, requestedTotal: requested, paidTotal: paid, remaining: base - paid, paymentStatus }
   })
   const canNote = ['OWNER', 'FINANCE', 'DIRECTOR'].includes(session.user.role)
+  // Titipan hanya visible untuk Owner/Director/Finance/PM
+  const canSeeTitipan = ['OWNER', 'DIRECTOR', 'FINANCE', 'PROJECT_MANAGER'].includes(session.user.role)
+
+  // Sembunyikan flag titipan dari role lain
+  const budgetItemsFinal = budgetItems.map(item => {
+    if (!canSeeTitipan) {
+      const { isTitipan, titipanNote, titipanEntries, ...rest } = item
+      return rest
+    }
+    return item
+  })
+
   return NextResponse.json({
-    budgetItems,
+    budgetItems: budgetItemsFinal,
     projectValue: project.projectValue,
     includesPpn: project.includesPpn,
     quotationNumber: project.quotationNumber,
@@ -52,6 +86,7 @@ export async function GET(req, { params }) {
     canEditProjectValue: canEditProjectValue(session.user, project),
     canEditBudget: canEditBudget(session.user, project),
     canNote,
+    canSeeTitipan,
     canLockBudget: canLockBudget(session.user, project),
     budgetLockedAt: project.budgetLockedAt,
     budgetLockedBy: project.budgetLockedBy,
@@ -67,6 +102,7 @@ export async function PUT(req, { params }) {
 
   const canEdit = canEditBudget(session.user, project)
   const canNote = ['OWNER', 'FINANCE', 'DIRECTOR'].includes(session.user.role)
+  const canSeeTitipan = ['OWNER', 'DIRECTOR', 'FINANCE', 'PROJECT_MANAGER'].includes(session.user.role)
   if (!canEdit && !canNote) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
@@ -103,7 +139,7 @@ export async function PUT(req, { params }) {
       where: { projectId: params.id, id: { notIn: keepIds.length ? keepIds : ['__none__'] } },
     })
 
-    await Promise.all(items.map((item, idx) => {
+    await Promise.all(items.map(async (item, idx) => {
       const data = {
         label: item.label || '',
         category: EXPENSE_CATEGORIES.includes(item.category) ? item.category : 'OPERATIONAL_OTHER',
@@ -116,12 +152,25 @@ export async function PUT(req, { params }) {
         order: idx,
       }
       if (canNote) data.note = item.note || null
+      // Titipan fields — hanya bisa diubah oleh role yang berhak
+      if (canSeeTitipan) {
+        data.isTitipan = !!item.isTitipan
+        data.titipanNote = item.titipanNote || null
+      }
       // Reset reminder flag whenever the row is edited so date changes get a fresh reminder
       data.reminderSentAt = null
+
+      // Upsert titipan entries setelah item disimpan
+      const titipanEntries = canSeeTitipan && Array.isArray(item.titipanEntries) ? item.titipanEntries : null
+
       if (item.id) {
-        return prisma.projectBudgetItem.update({ where: { id: item.id }, data })
+        const saved = await prisma.projectBudgetItem.update({ where: { id: item.id }, data })
+        if (titipanEntries !== null) await upsertTitipanEntries(saved.id, titipanEntries)
+        return saved
       }
-      return prisma.projectBudgetItem.create({ data: { ...data, projectId: params.id } })
+      const created = await prisma.projectBudgetItem.create({ data: { ...data, projectId: params.id } })
+      if (titipanEntries !== null) await upsertTitipanEntries(created.id, titipanEntries)
+      return created
     }))
 
     if (body.projectValue !== undefined && canEditProjectValue(session.user, project)) {

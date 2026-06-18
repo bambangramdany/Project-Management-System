@@ -250,7 +250,7 @@ export default function FinancePage() {
     if (res.ok) {
       const data = await res.json()
       const items = data.budgetItems || []
-      setBudgetItems(items.map(b => ({ ...b, neededDate: b.neededDate ? b.neededDate.slice(0, 10) : '' })))
+      setBudgetItems(items.map(b => ({ ...b, neededDate: b.neededDate ? b.neededDate.slice(0, 10) : '', titipanEntries: b.titipanEntries || [] })))
       setProjectValue(data.projectValue ?? '')
       setIncludesPpn(!!data.includesPpn)
       setQuotationFileUrl(data.quotationFileUrl || null)
@@ -263,6 +263,7 @@ export default function FinancePage() {
         canEditBudget: !!data.canEditBudget,
         canNote: !!data.canNote,
         canLockBudget: !!data.canLockBudget,
+        canSeeTitipan: !!data.canSeeTitipan,
         budgetLockedAt: data.budgetLockedAt || null,
         budgetLockedBy: data.budgetLockedBy || null,
       })
@@ -271,7 +272,7 @@ export default function FinancePage() {
   }
 
   function addBudgetRow() {
-    setBudgetItems(items => [...items, { label: '', qty: '', unitPrice: '', quotedAmount: 0, needsUpfrontFunding: false, actualAmount: '', neededDate: '', note: '' }])
+    setBudgetItems(items => [...items, { label: '', qty: '', unitPrice: '', quotedAmount: 0, needsUpfrontFunding: false, actualAmount: '', neededDate: '', note: '', isTitipan: false, titipanNote: '', titipanEntries: [] }])
   }
 
   // Parse a CSV exported from the legacy quotation template (label, kategori, forecast,
@@ -394,7 +395,7 @@ export default function FinancePage() {
     setSavingBudget(false)
     if (res.ok) {
       const data = await res.json()
-      setBudgetItems((data.budgetItems || []).map(b => ({ ...b, neededDate: b.neededDate ? b.neededDate.slice(0, 10) : '' })))
+      await loadBudget(budgetProjectId)
       setBudgetSaved(true)
       setBudgetEditing(false)
       setBudgetConfirming(false)
@@ -769,6 +770,106 @@ export default function FinancePage() {
                       <span>Diajukan: {formatRupiah(item.requestedTotal || 0)}</span>
                       <span>Dibayar: {formatRupiah(item.paidTotal || 0)}</span>
                       <span>Sisa: {formatRupiah(item.remaining)}</span>
+                      {budgetMeta.canSeeTitipan && item.isTitipan && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold">⚠ Titipan Klien</span>
+                      )}
+                    </div>
+                  )}
+                  {/* Panel titipan — hanya visible untuk role yang berhak */}
+                  {budgetMeta.canSeeTitipan && (
+                    <div className="col-span-16 pl-1">
+                      <label className="inline-flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={!!item.isTitipan}
+                          onChange={e => updateBudgetRow(idx, { isTitipan: e.target.checked, titipanEntries: item.titipanEntries || [] })}
+                          disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                        />
+                        <span className="text-amber-700 font-medium">Titipan Klien</span>
+                        <span className="text-gray-400">(tidak masuk margin Watermark)</span>
+                      </label>
+                      {item.isTitipan && (
+                        <div className="mt-1.5 ml-4 space-y-2">
+                          <input
+                            className="input text-xs w-full"
+                            value={item.titipanNote || ''}
+                            onChange={e => updateBudgetRow(idx, { titipanNote: e.target.value })}
+                            placeholder="Catatan umum titipan (mis: hutang klien ke vendor lama)"
+                            disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                          />
+                          {/* Daftar vendor titipan */}
+                          <div className="space-y-1">
+                            {(item.titipanEntries || []).map((te, tIdx) => (
+                              <div key={te.id || tIdx} className="flex gap-2 items-center flex-wrap">
+                                <input
+                                  className="input text-xs flex-1 min-w-[120px]"
+                                  value={te.vendorName || ''}
+                                  onChange={e => {
+                                    const entries = [...(item.titipanEntries || [])]
+                                    entries[tIdx] = { ...entries[tIdx], vendorName: e.target.value }
+                                    updateBudgetRow(idx, { titipanEntries: entries })
+                                  }}
+                                  placeholder="Nama vendor"
+                                  disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                                />
+                                <ThousandsInput
+                                  className="input text-xs w-32"
+                                  value={te.amount || ''}
+                                  onChange={v => {
+                                    const entries = [...(item.titipanEntries || [])]
+                                    entries[tIdx] = { ...entries[tIdx], amount: v }
+                                    updateBudgetRow(idx, { titipanEntries: entries })
+                                  }}
+                                  placeholder="Nominal"
+                                  disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                                />
+                                <input
+                                  className="input text-xs flex-1 min-w-[120px]"
+                                  value={te.note || ''}
+                                  onChange={e => {
+                                    const entries = [...(item.titipanEntries || [])]
+                                    entries[tIdx] = { ...entries[tIdx], note: e.target.value }
+                                    updateBudgetRow(idx, { titipanEntries: entries })
+                                  }}
+                                  placeholder="Keterangan (mis: hutang dari project Agustus 2025)"
+                                  disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                                />
+                                <label className="inline-flex items-center gap-1 text-xs text-gray-500">
+                                  <input
+                                    type="checkbox"
+                                    checked={!!te.isPaid}
+                                    onChange={e => {
+                                      const entries = [...(item.titipanEntries || [])]
+                                      entries[tIdx] = { ...entries[tIdx], isPaid: e.target.checked }
+                                      updateBudgetRow(idx, { titipanEntries: entries })
+                                    }}
+                                    disabled={!budgetMeta.canEditBudget}
+                                  />
+                                  Lunas
+                                </label>
+                                {budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && !forecastLocked && (
+                                  <button
+                                    onClick={() => {
+                                      const entries = (item.titipanEntries || []).filter((_, i) => i !== tIdx)
+                                      updateBudgetRow(idx, { titipanEntries: entries })
+                                    }}
+                                    className="text-red-400 text-xs hover:text-red-600"
+                                  >✕</button>
+                                )}
+                              </div>
+                            ))}
+                            {budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && !forecastLocked && (
+                              <button
+                                onClick={() => {
+                                  const entries = [...(item.titipanEntries || []), { vendorName: '', amount: '', note: '', isPaid: false }]
+                                  updateBudgetRow(idx, { titipanEntries: entries })
+                                }}
+                                className="text-xs text-amber-600 hover:underline"
+                              >+ Tambah Vendor Titipan</button>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -784,44 +885,69 @@ export default function FinancePage() {
                 </div>
               )}
 
-              <div className="pt-2 border-t border-gray-100 grid grid-cols-2 gap-y-1 text-sm">
-                <span className="font-semibold text-gray-900">Total Forecast (Quotation)</span>
-                <span className="font-bold text-gray-900 text-right">
-                  {formatRupiah(budgetItems.reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0))}
-                </span>
-                <span className="font-semibold text-gray-900">Total Aktual Modal</span>
-                <span className="font-bold text-gray-900 text-right">
-                  {formatRupiah(budgetItems.reduce((sum, b) => sum + (parseFloat(b.actualAmount) || 0), 0))}
-                </span>
-                <span className="font-semibold text-amber-700">Selisih Forecast vs Aktual</span>
-                <span className="font-bold text-amber-700 text-right">
-                  {formatRupiah(
-                    budgetItems.reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0) -
-                    budgetItems.reduce((sum, b) => sum + (parseFloat(b.actualAmount) || 0), 0)
-                  )}
-                </span>
-                <span className="font-semibold text-sky-700">Total Kebutuhan Modal Awal</span>
-                <span className="font-bold text-sky-700 text-right">
-                  {formatRupiah(
-                    budgetItems.filter(b => b.needsUpfrontFunding).reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0)
-                  )}
-                </span>
-              </div>
+              {(() => {
+                const murni = budgetItems.filter(b => !b.isTitipan)
+                const titipanItems = budgetItems.filter(b => b.isTitipan)
+                const titipanTotal = titipanItems.reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0)
+                const forecastMurni = murni.reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0)
+                const aktualMurni = murni.reduce((sum, b) => sum + (parseFloat(b.actualAmount) || 0), 0)
+                const pv = parseFloat(projectValue) || 0
+                const revenueRiil = pv - titipanTotal
+                return (
+                  <div className="pt-2 border-t border-gray-100 grid grid-cols-2 gap-y-1 text-sm">
+                    <span className="font-semibold text-gray-900">Total Forecast (Quotation)</span>
+                    <span className="font-bold text-gray-900 text-right">
+                      {formatRupiah(budgetItems.reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0))}
+                    </span>
+                    {budgetMeta.canSeeTitipan && titipanTotal > 0 && (<>
+                      <span className="text-amber-700 pl-3 text-xs">↳ Budget Murni Watermark</span>
+                      <span className="text-amber-700 text-right text-xs">{formatRupiah(forecastMurni)}</span>
+                      <span className="text-amber-700 pl-3 text-xs">↳ Pass-through Titipan Klien</span>
+                      <span className="text-amber-700 text-right text-xs">{formatRupiah(titipanTotal)}</span>
+                    </>)}
+                    <span className="font-semibold text-gray-900">Total Aktual Modal</span>
+                    <span className="font-bold text-gray-900 text-right">
+                      {formatRupiah(budgetItems.reduce((sum, b) => sum + (parseFloat(b.actualAmount) || 0), 0))}
+                    </span>
+                    <span className="font-semibold text-amber-700">Selisih Forecast vs Aktual</span>
+                    <span className="font-bold text-amber-700 text-right">
+                      {formatRupiah(forecastMurni - aktualMurni)}
+                    </span>
+                    <span className="font-semibold text-sky-700">Total Kebutuhan Modal Awal</span>
+                    <span className="font-bold text-sky-700 text-right">
+                      {formatRupiah(
+                        budgetItems.filter(b => b.needsUpfrontFunding).reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0)
+                      )}
+                    </span>
+                  </div>
+                )
+              })()}
               </div>{/* min-w */}
               </div>{/* overflow-x-auto */}
 
-              {budgetMeta.canViewMargin && (
-                <div className="pt-2 border-t border-gray-100 grid grid-cols-2 gap-y-1 text-sm">
-                  <span className="font-semibold text-emerald-700">Estimasi Margin (vs Forecast)</span>
-                  <span className="font-bold text-emerald-700 text-right">
-                    {formatRupiah((parseFloat(projectValue) || 0) - budgetItems.reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0))}
-                  </span>
-                  <span className="font-semibold text-emerald-700">Estimasi Margin (vs Aktual)</span>
-                  <span className="font-bold text-emerald-700 text-right">
-                    {formatRupiah((parseFloat(projectValue) || 0) - budgetItems.reduce((sum, b) => sum + (parseFloat(b.actualAmount) || 0), 0))}
-                  </span>
-                </div>
-              )}
+              {budgetMeta.canViewMargin && (() => {
+                const murni = budgetItems.filter(b => !b.isTitipan)
+                const titipanTotal = budgetItems.filter(b => b.isTitipan).reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0)
+                const forecastMurni = murni.reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0)
+                const aktualMurni = murni.reduce((sum, b) => sum + (parseFloat(b.actualAmount) || 0), 0)
+                const pv = parseFloat(projectValue) || 0
+                const revenueRiil = pv - titipanTotal
+                return (
+                  <div className="pt-2 border-t border-gray-100 grid grid-cols-2 gap-y-1 text-sm">
+                    {titipanTotal > 0 && budgetMeta.canSeeTitipan && (
+                      <><span className="text-xs text-gray-400 col-span-2">Revenue riil = Nilai Project − Titipan Klien ({formatRupiah(pv)} − {formatRupiah(titipanTotal)})</span></>
+                    )}
+                    <span className="font-semibold text-emerald-700">Estimasi Margin (vs Forecast)</span>
+                    <span className="font-bold text-emerald-700 text-right">
+                      {formatRupiah(revenueRiil - forecastMurni)}
+                    </span>
+                    <span className="font-semibold text-emerald-700">Estimasi Margin (vs Aktual)</span>
+                    <span className="font-bold text-emerald-700 text-right">
+                      {formatRupiah(revenueRiil - aktualMurni)}
+                    </span>
+                  </div>
+                )
+              })()}
 
               {(budgetMeta.canEditBudget || budgetMeta.canNote) && !forecastLocked && (
                 budgetEditing && budgetSaved ? (

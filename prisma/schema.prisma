@@ -752,13 +752,33 @@ model ProjectBudgetItem {
   note          String?
   reminderSentAt DateTime?
   order         Int       @default(0)
+  // Titipan klien: budget pass-through yang tidak dihitung sebagai revenue Watermark
+  isTitipan     Boolean   @default(false)
+  titipanNote   String?   // catatan umum (mis: "titipan hutang klien ke vendor lama")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  project  Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  payments PaymentRequest[]
+  project         Project                        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  payments        PaymentRequest[]
+  titipanEntries  ProjectBudgetItemTitipanEntry[]
 
   @@index([projectId])
+}
+
+// Rincian vendor per item titipan — satu item bisa mencakup banyak vendor
+model ProjectBudgetItemTitipanEntry {
+  id           String    @id @default(cuid())
+  budgetItemId String
+  vendorName   String
+  amount       Float     @default(0)
+  note         String?   // mis: "hutang dari project Agustus 2025 – invoice #INV-123"
+  isPaid       Boolean   @default(false)
+  paidAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  budgetItem ProjectBudgetItem @relation(fields: [budgetItemId], references: [id], onDelete: Cascade)
+
+  @@index([budgetItemId])
 }
 
 model PaymentRequest {

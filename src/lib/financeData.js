@@ -58,21 +58,29 @@ export async function getMarginReport(user) {
     where,
     select: {
       id: true, code: true, name: true, division: true, status: true, projectValue: true,
-      budgetItems: { select: { quotedAmount: true, actualAmount: true } },
+      budgetItems: { select: { quotedAmount: true, actualAmount: true, isTitipan: true } },
     },
     orderBy: { code: 'asc' },
   })
 
   const rows = projects.map(p => {
-    const forecastCost = p.budgetItems.reduce((sum, b) => sum + (b.quotedAmount || 0), 0)
-    const actualCost = p.budgetItems.reduce((sum, b) => sum + (b.actualAmount ?? b.quotedAmount ?? 0), 0)
+    // Pisahkan budget murni vs titipan klien (pass-through)
+    const murni = p.budgetItems.filter(b => !b.isTitipan)
+    const titipan = p.budgetItems.filter(b => b.isTitipan)
+    const titipanTotal = titipan.reduce((sum, b) => sum + (b.quotedAmount || 0), 0)
+    // Revenue riil = project value - dana titipan klien
+    const revenueRiil = (p.projectValue || 0) - titipanTotal
+    const forecastCost = murni.reduce((sum, b) => sum + (b.quotedAmount || 0), 0)
+    const actualCost = murni.reduce((sum, b) => sum + (b.actualAmount ?? b.quotedAmount ?? 0), 0)
     return {
       id: p.id, code: p.code, name: p.name, division: p.division, status: p.status,
       projectValue: p.projectValue,
+      revenueRiil,
+      titipanTotal,
       forecastCost,
       actualCost,
-      marginForecast: p.projectValue - forecastCost,
-      marginActual: p.projectValue - actualCost,
+      marginForecast: revenueRiil - forecastCost,
+      marginActual: revenueRiil - actualCost,
     }
   })
 
@@ -82,6 +90,8 @@ export async function getMarginReport(user) {
     const d = divisions[r.division]
     d.projects.push(r)
     d.totalValue += r.projectValue
+    d.totalRevenueRiil = (d.totalRevenueRiil || 0) + r.revenueRiil
+    d.totalTitipan = (d.totalTitipan || 0) + r.titipanTotal
     d.totalForecastCost += r.forecastCost
     d.totalActualCost += r.actualCost
     d.totalMarginForecast += r.marginForecast
@@ -100,14 +110,17 @@ export async function getProfitability() {
     select: {
       id: true, code: true, name: true, category: true, projectValue: true, division: true,
       client: { select: { id: true, name: true } },
-      budgetItems: { select: { quotedAmount: true, actualAmount: true } },
+      budgetItems: { select: { quotedAmount: true, actualAmount: true, isTitipan: true } },
     },
   })
 
   const rows = projects.map(p => {
-    const actualCost = p.budgetItems.reduce((sum, b) => sum + (b.actualAmount ?? b.quotedAmount ?? 0), 0)
-    const margin = (p.projectValue || 0) - actualCost
-    const marginPct = p.projectValue ? (margin / p.projectValue) * 100 : 0
+    const murni = p.budgetItems.filter(b => !b.isTitipan)
+    const titipanTotal = p.budgetItems.filter(b => b.isTitipan).reduce((sum, b) => sum + (b.quotedAmount || 0), 0)
+    const revenueRiil = (p.projectValue || 0) - titipanTotal
+    const actualCost = murni.reduce((sum, b) => sum + (b.actualAmount ?? b.quotedAmount ?? 0), 0)
+    const margin = revenueRiil - actualCost
+    const marginPct = revenueRiil ? (margin / revenueRiil) * 100 : 0
     return {
       projectId: p.id,
       projectCode: p.code,
