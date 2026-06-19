@@ -110,17 +110,59 @@ export async function getProfitability() {
     select: {
       id: true, code: true, name: true, category: true, projectValue: true, division: true,
       client: { select: { id: true, name: true } },
-      budgetItems: { select: { quotedAmount: true, actualAmount: true, isTitipan: true } },
+      // Budget items: used for forecast + fallback actual if no real payments
+      budgetItems: {
+        select: { id: true, quotedAmount: true, actualAmount: true, isTitipan: true,
+          payments: { where: { status: 'PAID' }, select: { amount: true } } }
+      },
+      // Confirmed paid payment requests → actual confirmed spend
+      payments: {
+        where: { status: 'PAID' },
+        select: { amount: true, category: true, budgetItemId: true },
+      },
+      // Direct expenses (petty cash, historical, reimburse, etc.)
+      directExpenses: {
+        select: { amount: true, category: true },
+      },
     },
   })
 
   const rows = projects.map(p => {
     const murni = p.budgetItems.filter(b => !b.isTitipan)
-    const titipanTotal = p.budgetItems.filter(b => b.isTitipan).reduce((sum, b) => sum + (b.quotedAmount || 0), 0)
+    const titipanTotal = p.budgetItems.filter(b => b.isTitipan).reduce((s, b) => s + (b.quotedAmount || 0), 0)
     const revenueRiil = (p.projectValue || 0) - titipanTotal
-    const actualCost = murni.reduce((sum, b) => sum + (b.actualAmount ?? b.quotedAmount ?? 0), 0)
+
+    // ── Actual cost: 3 sources, no double-counting ──────────────────────────
+    // 1. Paid PaymentRequests (confirmed approved expenditures)
+    const paidPRTotal = p.payments.reduce((s, pr) => s + pr.amount, 0)
+    // Budget items that have linked paid PRs — their budgetItemId is already counted above
+    const budgetItemsWithPR = new Set(p.payments.filter(pr => pr.budgetItemId).map(pr => pr.budgetItemId))
+    // 2. Budget items with actualAmount but NO linked paid PR (manual actual / historical)
+    const manualActualTotal = murni
+      .filter(b => !budgetItemsWithPR.has(b.id) && b.actualAmount != null)
+      .reduce((s, b) => s + b.actualAmount, 0)
+    // 3. Direct expenses (petty cash, reimburse, import)
+    const directTotal = p.directExpenses.reduce((s, e) => s + e.amount, 0)
+
+    const actualCost = paidPRTotal + manualActualTotal + directTotal
+
+    // Forecast cost (from budget quotedAmount, for forecast margin)
+    const forecastCost = murni.reduce((s, b) => s + (b.quotedAmount || 0), 0)
+
     const margin = revenueRiil - actualCost
     const marginPct = revenueRiil ? (margin / revenueRiil) * 100 : 0
+    const forecastMargin = revenueRiil - forecastCost
+    const forecastMarginPct = revenueRiil ? (forecastMargin / revenueRiil) * 100 : 0
+
+    // Cost breakdown by source (for insight)
+    const costByCategory = {}
+    for (const pr of p.payments) {
+      costByCategory[pr.category] = (costByCategory[pr.category] || 0) + pr.amount
+    }
+    for (const de of p.directExpenses) {
+      costByCategory[de.category] = (costByCategory[de.category] || 0) + de.amount
+    }
+
     return {
       projectId: p.id,
       projectCode: p.code,
@@ -130,9 +172,18 @@ export async function getProfitability() {
       category: p.category,
       division: p.division,
       projectValue: p.projectValue || 0,
+      revenueRiil,
+      forecastCost,
       actualCost,
+      // Sources breakdown
+      paidPRTotal,
+      manualActualTotal,
+      directTotal,
+      costByCategory,
       margin,
       marginPct,
+      forecastMargin,
+      forecastMarginPct,
     }
   })
 

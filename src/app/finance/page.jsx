@@ -91,6 +91,16 @@ export default function FinancePage() {
   const [budgetLoading, setBudgetLoading] = useState(false)
   const [linkedQuotation, setLinkedQuotation] = useState(null)   // Quotation WON linked to selected project
   const [importingQuotation, setImportingQuotation] = useState(false)
+  // Direct expenses panel (inside budget section)
+  const [budgetActiveTab, setBudgetActiveTab] = useState('forecast') // 'forecast' | 'expenses'
+  const [directExpenses, setDirectExpenses] = useState([])
+  const [expenseLoading, setExpenseLoading] = useState(false)
+  const [expenseForm, setExpenseForm] = useState({ description: '', category: 'OPERATIONAL_OTHER', amount: '', date: '', vendor: '', notes: '' })
+  const [savingExpense, setSavingExpense] = useState(false)
+  const [showExpenseForm, setShowExpenseForm] = useState(false)
+  const [confirmDeleteExpenseId, setConfirmDeleteExpenseId] = useState(null)
+  const [expenseImportFile, setExpenseImportFile] = useState(null)
+  const [importingExpenses, setImportingExpenses] = useState(false)
   const [savingBudget, setSavingBudget] = useState(false)
   const [projectValue, setProjectValue] = useState('')
   const [includesPpn, setIncludesPpn] = useState(false)
@@ -279,8 +289,11 @@ export default function FinancePage() {
     setQuotationNumber('')
     setBudgetEditing(false)
     setBudgetConfirming(false)
+    setBudgetActiveTab('forecast')
+    setDirectExpenses([])
     if (!projectId) return
     setBudgetLoading(true)
+    loadDirectExpenses(projectId)
     const res = await fetch(`/api/projects/${projectId}/budget`)
     if (res.ok) {
       const data = await res.json()
@@ -356,6 +369,86 @@ export default function FinancePage() {
       }
     }
     setImportingQuotation(false)
+  }
+
+  async function loadDirectExpenses(projectId) {
+    if (!projectId) { setDirectExpenses([]); return }
+    setExpenseLoading(true)
+    const res = await fetch(`/api/projects/${projectId}/expenses`)
+    if (res.ok) {
+      const data = await res.json()
+      setDirectExpenses(data.expenses || [])
+    }
+    setExpenseLoading(false)
+  }
+
+  async function saveExpense(e) {
+    e.preventDefault()
+    if (!budgetProjectId) return
+    setSavingExpense(true)
+    const res = await fetch(`/api/projects/${budgetProjectId}/expenses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...expenseForm, amount: parseFloat(String(expenseForm.amount).replace(/\./g, '').replace(',', '.')) }),
+    })
+    if (res.ok) {
+      setExpenseForm({ description: '', category: 'OPERATIONAL_OTHER', amount: '', date: '', vendor: '', notes: '' })
+      setShowExpenseForm(false)
+      await loadDirectExpenses(budgetProjectId)
+    }
+    setSavingExpense(false)
+  }
+
+  async function deleteExpense(id) {
+    await fetch(`/api/projects/${budgetProjectId}/expenses?expenseId=${id}`, { method: 'DELETE' })
+    setConfirmDeleteExpenseId(null)
+    await loadDirectExpenses(budgetProjectId)
+  }
+
+  async function importExpensesFromExcel(file) {
+    if (!file || !budgetProjectId) return
+    setImportingExpenses(true)
+    // Parse client-side with xlsx
+    const XLSX = await import('xlsx')
+    const buf = await file.arrayBuffer()
+    const wb = XLSX.read(buf, { type: 'array', raw: false })
+    const ws = wb.Sheets[wb.SheetNames[0]]
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+    if (rows.length < 2) { alert('File kosong atau tidak terbaca'); setImportingExpenses(false); return }
+
+    const header = rows[0].map(c => String(c).toLowerCase().trim())
+    const ci = k => header.findIndex(h => h.includes(k))
+    const colDesc   = ci('deskripsi') !== -1 ? ci('deskripsi') : ci('description') !== -1 ? ci('description') : ci('item')
+    const colAmt    = ci('nominal') !== -1 ? ci('nominal') : ci('amount') !== -1 ? ci('amount') : ci('jumlah') !== -1 ? ci('jumlah') : ci('total')
+    const colCat    = ci('kategori') !== -1 ? ci('kategori') : ci('category')
+    const colDate   = ci('tanggal') !== -1 ? ci('tanggal') : ci('date')
+    const colVendor = ci('vendor') !== -1 ? ci('vendor') : ci('nama vendor')
+    const colNotes  = ci('catatan') !== -1 ? ci('catatan') : ci('notes')
+
+    const CAT_MAP = { 'tiket': 'TICKET_TRANSPORT', 'transport': 'TICKET_TRANSPORT', 'akomodasi': 'ACCOMMODATION', 'venue dp': 'VENUE_DP', 'venue final': 'VENUE_FINAL', 'vendor dp': 'VENDOR_DP', 'vendor final': 'VENDOR_FINAL', 'talent': 'TALENT_HONOR', 'honor': 'TALENT_HONOR' }
+    const expenses = rows.slice(1).map(row => {
+      const get = idx => idx >= 0 ? String(row[idx] ?? '').trim() : ''
+      const desc = get(colDesc)
+      const amtRaw = colAmt >= 0 ? row[colAmt] : null
+      const amt = typeof amtRaw === 'number' ? amtRaw : parseFloat(String(amtRaw).replace(/[^0-9.]/g, '')) || 0
+      if (!desc || amt <= 0) return null
+      const catRaw = get(colCat).toLowerCase()
+      const category = Object.entries(CAT_MAP).find(([k]) => catRaw.includes(k))?.[1] || 'OPERATIONAL_OTHER'
+      return { description: desc, amount: amt, category, date: get(colDate) || null, vendor: get(colVendor) || null, notes: get(colNotes) || null, source: 'import' }
+    }).filter(Boolean)
+
+    if (expenses.length === 0) { alert('Tidak ada baris valid yang ditemukan'); setImportingExpenses(false); return }
+    const res = await fetch(`/api/projects/${budgetProjectId}/expenses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(expenses),
+    })
+    if (res.ok) {
+      const d = await res.json()
+      alert(`${d.created} pengeluaran berhasil diimport`)
+      await loadDirectExpenses(budgetProjectId)
+    }
+    setImportingExpenses(false)
   }
 
   function addBudgetRow() {
@@ -1086,8 +1179,185 @@ export default function FinancePage() {
 
           {budgetProjectId && budgetLoading && <p className="text-sm text-gray-400">Memuat...</p>}
 
+          {/* ── Tab selector: Forecast | Pengeluaran Aktual ── */}
+          {budgetProjectId && !budgetLoading && (
+            <div className="flex rounded-xl overflow-hidden border border-gray-200 w-fit">
+              {[['forecast','📋 Forecast Budget'], ['expenses','💸 Pengeluaran Aktual']].map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setBudgetActiveTab(key)}
+                  className={`px-4 py-2 text-xs font-semibold transition-colors ${budgetActiveTab === key ? 'bg-violet-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                >
+                  {label}
+                  {key === 'expenses' && directExpenses.length > 0 && (
+                    <span className="ml-1.5 bg-violet-100 text-violet-700 rounded-full px-1.5 py-0.5 text-[10px]">{directExpenses.length}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* ── PANEL: Pengeluaran Aktual (Direct Expenses) ── */}
+          {budgetProjectId && !budgetLoading && budgetActiveTab === 'expenses' && (
+            <div className="space-y-3">
+              {/* Summary: total pengeluaran vs forecast */}
+              {(() => {
+                const totalDE   = directExpenses.reduce((s, e) => s + e.amount, 0)
+                const totalFore = budgetItems.filter(b => !b.isTitipan).reduce((s, b) => s + (b.quotedAmount || 0), 0)
+                const totalPaid = budgetItems.reduce((s, b) => s + (b.paidTotal || 0), 0)
+                const totalAll  = totalDE + totalPaid
+                return (
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
+                      <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Forecast Budget</p>
+                      <p className="text-lg font-bold text-blue-700 mt-0.5">{formatRupiah(totalFore)}</p>
+                    </div>
+                    <div className="rounded-xl bg-amber-50 border border-amber-100 p-3">
+                      <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Dibayar via PR</p>
+                      <p className="text-lg font-bold text-amber-700 mt-0.5">{formatRupiah(totalPaid)}</p>
+                    </div>
+                    <div className="rounded-xl bg-purple-50 border border-purple-100 p-3">
+                      <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Input Manual / Import</p>
+                      <p className="text-lg font-bold text-purple-700 mt-0.5">{formatRupiah(totalDE)}</p>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Action bar */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button onClick={() => setShowExpenseForm(v => !v)} className="btn-secondary text-xs">
+                  {showExpenseForm ? 'Tutup Form' : '+ Tambah Pengeluaran'}
+                </button>
+                <label className="text-xs text-brand-600 hover:underline cursor-pointer font-medium">
+                  {importingExpenses ? 'Mengimport...' : '⬆ Import dari Excel'}
+                  <input type="file" accept=".xlsx,.xls,.csv" className="hidden"
+                    onChange={e => { if (e.target.files[0]) importExpensesFromExcel(e.target.files[0]); e.target.value = '' }}
+                    disabled={importingExpenses}
+                  />
+                </label>
+                {directExpenses.length > 0 && (
+                  <button
+                    onClick={() => exportCsv(`pengeluaran-${budgetProjectId}.csv`, directExpenses.map(e => ({
+                      Tanggal: e.date ? new Date(e.date).toLocaleDateString('id-ID') : '',
+                      Deskripsi: e.description, Kategori: EXPENSE_CATEGORY_LABEL[e.category] || e.category,
+                      Nominal: e.amount, Vendor: e.vendor || '', Catatan: e.notes || '',
+                      Sumber: e.source, Dicatat: e.createdBy?.name || '',
+                    })))}
+                    className="text-xs text-gray-400 hover:text-brand-600 hover:underline ml-auto"
+                  >Export CSV</button>
+                )}
+              </div>
+
+              {/* Form tambah pengeluaran */}
+              {showExpenseForm && (
+                <form onSubmit={saveExpense} className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl bg-gray-50 border border-gray-200 p-4">
+                  <div className="sm:col-span-2">
+                    <label className="label">Deskripsi *</label>
+                    <input className="input" value={expenseForm.description} onChange={e => setExpenseForm(f => ({...f, description: e.target.value}))} placeholder="cth. Sewa mobil operasional, catering tim, dll" required />
+                  </div>
+                  <div>
+                    <label className="label">Nominal (Rp) *</label>
+                    <ThousandsInput className="input" value={expenseForm.amount} onChange={v => setExpenseForm(f => ({...f, amount: v}))} placeholder="0" />
+                  </div>
+                  <div>
+                    <label className="label">Kategori</label>
+                    <select className="select" value={expenseForm.category} onChange={e => setExpenseForm(f => ({...f, category: e.target.value}))}>
+                      {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{EXPENSE_CATEGORY_LABEL[c]}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Tanggal Pengeluaran</label>
+                    <input type="date" className="input" value={expenseForm.date} onChange={e => setExpenseForm(f => ({...f, date: e.target.value}))} />
+                  </div>
+                  <div>
+                    <label className="label">Vendor / Penerima</label>
+                    <input className="input" value={expenseForm.vendor} onChange={e => setExpenseForm(f => ({...f, vendor: e.target.value}))} placeholder="opsional" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="label">Catatan</label>
+                    <input className="input" value={expenseForm.notes} onChange={e => setExpenseForm(f => ({...f, notes: e.target.value}))} placeholder="opsional" />
+                  </div>
+                  <div className="sm:col-span-2 flex gap-2">
+                    <button className="btn-primary text-sm" disabled={savingExpense}>{savingExpense ? 'Menyimpan...' : 'Simpan'}</button>
+                    <button type="button" onClick={() => setShowExpenseForm(false)} className="btn-secondary text-sm">Batal</button>
+                  </div>
+                </form>
+              )}
+
+              {/* List pengeluaran */}
+              {expenseLoading && <p className="text-sm text-gray-400">Memuat...</p>}
+              {!expenseLoading && directExpenses.length === 0 && !showExpenseForm && (
+                <div className="rounded-xl border-2 border-dashed border-gray-200 p-8 text-center">
+                  <p className="text-sm text-gray-400">Belum ada pengeluaran dicatat</p>
+                  <p className="text-xs text-gray-300 mt-1">Tambah manual atau import dari Excel</p>
+                </div>
+              )}
+              {directExpenses.length > 0 && (
+                <div className="space-y-1.5">
+                  {/* Group by category */}
+                  {Object.entries(
+                    directExpenses.reduce((acc, e) => {
+                      const cat = e.category || 'OPERATIONAL_OTHER'
+                      if (!acc[cat]) acc[cat] = []
+                      acc[cat].push(e)
+                      return acc
+                    }, {})
+                  ).map(([cat, items]) => (
+                    <div key={cat}>
+                      <div className="flex items-center justify-between px-2 py-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{EXPENSE_CATEGORY_LABEL[cat] || cat}</span>
+                        <span className="text-xs font-semibold text-gray-600">{formatRupiah(items.reduce((s,e) => s + e.amount, 0))}</span>
+                      </div>
+                      {items.map(e => (
+                        <div key={e.id} className={`flex items-start justify-between gap-2 rounded-lg border px-3 py-2 text-xs ${e.source === 'import' ? 'border-blue-100 bg-blue-50/40' : e.source === 'historical' ? 'border-amber-100 bg-amber-50/40' : 'border-gray-100'}`}>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-gray-800">{e.description}</span>
+                              {e.source !== 'manual' && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 font-medium">{e.source}</span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-x-3 text-gray-400 mt-0.5">
+                              {e.date && <span>{new Date(e.date).toLocaleDateString('id-ID', { dateStyle: 'medium' })}</span>}
+                              {e.vendor && <span>· {e.vendor}</span>}
+                              {e.notes && <span>· {e.notes}</span>}
+                              <span className="text-gray-300">· {e.createdBy?.name}</span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="font-bold text-gray-900">{formatRupiah(e.amount)}</p>
+                            {confirmDeleteExpenseId === e.id ? (
+                              <span className="inline-flex gap-1 mt-0.5">
+                                <button onClick={() => deleteExpense(e.id)} className="text-[10px] px-1.5 py-0.5 rounded bg-red-500 text-white">Hapus</button>
+                                <button onClick={() => setConfirmDeleteExpenseId(null)} className="text-[10px] text-gray-400 hover:underline">Batal</button>
+                              </span>
+                            ) : (
+                              <button onClick={() => setConfirmDeleteExpenseId(e.id)} className="text-[10px] text-gray-300 hover:text-red-400 mt-0.5">hapus</button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-200 font-bold text-sm">
+                    <span className="text-gray-700">Total Pengeluaran Manual/Import</span>
+                    <span className="text-purple-700">{formatRupiah(directExpenses.reduce((s,e) => s + e.amount, 0))}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Tip: import Excel */}
+              <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
+                <p className="text-xs font-bold text-blue-800 mb-1">💡 Format Excel untuk import pengeluaran</p>
+                <p className="text-xs text-blue-700">Buat file Excel dengan kolom: <strong>Deskripsi | Nominal | Kategori | Tanggal | Vendor | Catatan</strong>. Satu baris = satu pengeluaran. Kategori: Tiket Transport / Akomodasi / Venue DP / Vendor Final / Talent Honor / dll.</p>
+              </div>
+            </div>
+          )}
+
           {/* Banner: Quotation WON ditemukan → tawarkan auto-import */}
-          {budgetProjectId && !budgetLoading && linkedQuotation && budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && !forecastLocked && (
+          {budgetProjectId && !budgetLoading && budgetActiveTab === 'forecast' && linkedQuotation && budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && !forecastLocked && (
+
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-violet-50 border border-violet-200 px-4 py-3">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-lg shrink-0">📄</span>
@@ -1111,7 +1381,7 @@ export default function FinancePage() {
             </div>
           )}
 
-          {budgetProjectId && !budgetLoading && (
+          {budgetProjectId && !budgetLoading && budgetActiveTab === 'forecast' && (
             <div className="space-y-2">
               {budgetMeta.budgetLockedAt ? (
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">

@@ -24,7 +24,8 @@ model User {
   picProjects    Project[]       @relation("PICRelation")
   memberships    ProjectMember[]
   assignedTasks  Task[]
-  budgetRequests PaymentRequest[] @relation("PaymentRequestedBy")
+  budgetRequests   PaymentRequest[] @relation("PaymentRequestedBy")
+  directExpenses   DirectExpense[]  @relation("DirectExpenseCreator")
   ownerApprovals PaymentRequest[] @relation("PaymentOwner")
   directorApprovals PaymentRequest[] @relation("PaymentDirector")
   financeDirectorApprovals PaymentRequest[] @relation("PaymentFinanceDirector")
@@ -508,9 +509,10 @@ model Project {
   tasks     Task[]
   personalTasks PersonalTask[]
   budgets   ProjectBudget[]
-  budgetItems ProjectBudgetItem[]
-  payments  PaymentRequest[]
-  receivables Receivable[]
+  budgetItems     ProjectBudgetItem[]
+  payments        PaymentRequest[]
+  receivables     Receivable[]
+  directExpenses  DirectExpense[]
   quotations  Quotation[]
   scores    ProjectScore[]
   briefItems ProjectBriefItem[]
@@ -846,6 +848,31 @@ model PaymentRequest {
   cashTransaction CashTransaction?
 
   @@index([status])
+  @@index([projectId])
+  @@index([createdAt])
+}
+
+// Direct expense — records actual money spent on a project that did NOT go through
+// the PaymentRequest approval flow (petty cash, reimburse, historical import, etc.).
+// Combined with paid PaymentRequests, this gives the true actual cost per project.
+model DirectExpense {
+  id          String          @id @default(cuid())
+  projectId   String
+  description String
+  category    ExpenseCategory @default(OPERATIONAL_OTHER)
+  amount      Float
+  date        DateTime?       // tanggal pengeluaran aktual
+  vendor      String?         // nama vendor / penerima
+  receiptUrl  String?         // URL bukti / kwitansi (optional)
+  notes       String?
+  source      String          @default("manual") // 'manual' | 'import' | 'historical'
+  createdById String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User    @relation("DirectExpenseCreator", fields: [createdById], references: [id])
+
   @@index([projectId])
   @@index([createdAt])
 }
