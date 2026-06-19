@@ -714,88 +714,96 @@ export default function FinancePage() {
                 <span className="col-span-1"></span>
               </div>
               {budgetItems.map((item, idx) => (
-                <div key={item.id || idx} className="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-2 items-center">
-                  <input
-                    className="input col-span-2"
-                    value={item.label}
-                    onChange={e => updateBudgetRow(idx, { label: e.target.value })}
-                    placeholder="cth. Sewa Venue"
-                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
-                  />
-                  <input
-                    type="number"
-                    className="input col-span-1"
-                    value={item.qty ?? ''}
-                    onChange={e => updateBudgetRow(idx, { qty: e.target.value })}
-                    placeholder="1"
-                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
-                  />
-                  <ThousandsInput
-                    className="input col-span-2"
-                    value={item.unitPrice ?? ''}
-                    onChange={v => updateBudgetRow(idx, { unitPrice: v })}
-                    placeholder="0"
-                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
-                  />
-                  <select
-                    className="select col-span-2"
-                    value={item.category || 'OPERATIONAL_OTHER'}
-                    onChange={e => updateBudgetRow(idx, { category: e.target.value })}
-                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
-                  >
-                    {EXPENSE_CATEGORIES.map(c => (
-                      <option key={c} value={c}>{EXPENSE_CATEGORY_LABEL[c]}</option>
-                    ))}
-                  </select>
-                  <ThousandsInput
-                    className="input col-span-2"
-                    value={item.quotedAmount || ''}
-                    onChange={v => updateBudgetRow(idx, { quotedAmount: v })}
-                    placeholder="0"
-                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
-                  />
-                  <ThousandsInput
-                    className="input col-span-2"
-                    value={item.actualAmount ?? ''}
-                    onChange={v => updateBudgetRow(idx, { actualAmount: v })}
-                    placeholder="0"
-                    disabled={!budgetMeta.canEditBudget}
-                  />
-                  <input
-                    type="date"
-                    className="input col-span-1"
-                    value={item.neededDate || ''}
-                    onChange={e => updateBudgetRow(idx, { neededDate: e.target.value })}
-                    disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
-                  />
-                  <div className="col-span-1 flex items-center justify-center">
+                <div key={item.id || idx} className="border-b border-gray-50 py-1 last:border-0">
+                  {/* ── Baris input utama ── */}
+                  <div className="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-2 items-center">
                     <input
-                      type="checkbox"
-                      title="Tandai jika komponen ini butuh dana awal/modal kerja sebelum project berjalan"
-                      checked={!!item.needsUpfrontFunding}
-                      onChange={e => updateBudgetRow(idx, { needsUpfrontFunding: e.target.checked })}
+                      className="input col-span-2"
+                      value={item.label}
+                      onChange={e => updateBudgetRow(idx, { label: e.target.value })}
+                      placeholder="cth. Sewa Venue"
                       disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
                     />
+                    <input
+                      type="number"
+                      className="input col-span-1"
+                      value={item.qty ?? ''}
+                      onChange={e => updateBudgetRow(idx, { qty: e.target.value })}
+                      placeholder="1"
+                      disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                    />
+                    <ThousandsInput
+                      className="input col-span-2"
+                      value={item.unitPrice ?? ''}
+                      onChange={v => updateBudgetRow(idx, { unitPrice: v })}
+                      placeholder="0"
+                      disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                    />
+                    <select
+                      className="select col-span-2"
+                      value={item.category || 'OPERATIONAL_OTHER'}
+                      onChange={e => updateBudgetRow(idx, { category: e.target.value })}
+                      disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                    >
+                      {EXPENSE_CATEGORIES.map(c => (
+                        <option key={c} value={c}>{EXPENSE_CATEGORY_LABEL[c]}</option>
+                      ))}
+                    </select>
+                    <ThousandsInput
+                      className="input col-span-2"
+                      value={item.quotedAmount || ''}
+                      onChange={v => updateBudgetRow(idx, { quotedAmount: v })}
+                      placeholder="0"
+                      disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                    />
+                    <ThousandsInput
+                      className="input col-span-2"
+                      value={item.actualAmount ?? ''}
+                      onChange={v => updateBudgetRow(idx, { actualAmount: v })}
+                      placeholder="0"
+                      disabled={!budgetMeta.canEditBudget}
+                    />
+                    <input
+                      type="date"
+                      className="input col-span-1"
+                      value={item.neededDate || ''}
+                      onChange={e => updateBudgetRow(idx, { neededDate: e.target.value })}
+                      disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                    />
+                    <div className="col-span-1 flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        title="Tandai jika komponen ini butuh dana awal/modal kerja sebelum project berjalan"
+                        checked={!!item.needsUpfrontFunding}
+                        onChange={e => updateBudgetRow(idx, { needsUpfrontFunding: e.target.checked })}
+                        disabled={!budgetMeta.canEditBudget || !!budgetMeta.budgetLockedAt || forecastLocked}
+                      />
+                    </div>
+                    <input
+                      className="input col-span-2"
+                      value={item.note || ''}
+                      onChange={e => updateBudgetRow(idx, { note: e.target.value })}
+                      placeholder="cth. selisih melebihi forecast"
+                      disabled={!budgetMeta.canNote}
+                    />
+                    {/* Kolom Hapus — selalu 1 slot agar grid selalu 16 kolom */}
+                    <div className="col-span-1 flex items-center">
+                      {budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && !forecastLocked && (
+                        confirmDeleteBudgetIdx === idx ? (
+                          <span className="inline-flex items-center gap-1">
+                            <button onClick={() => { removeBudgetRow(idx); setConfirmDeleteBudgetIdx(null) }} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Ya</button>
+                            <button onClick={() => setConfirmDeleteBudgetIdx(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
+                          </span>
+                        ) : (
+                          <button onClick={() => setConfirmDeleteBudgetIdx(idx)} className="text-red-500 text-xs hover:underline">Hapus</button>
+                        )
+                      )}
+                    </div>
                   </div>
-                  <input
-                    className="input col-span-2"
-                    value={item.note || ''}
-                    onChange={e => updateBudgetRow(idx, { note: e.target.value })}
-                    placeholder="cth. selisih melebihi forecast"
-                    disabled={!budgetMeta.canNote}
-                  />
-                  {budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && !forecastLocked && (
-                    confirmDeleteBudgetIdx === idx ? (
-                      <span className="col-span-1 inline-flex items-center gap-1">
-                        <button onClick={() => { removeBudgetRow(idx); setConfirmDeleteBudgetIdx(null) }} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Ya</button>
-                        <button onClick={() => setConfirmDeleteBudgetIdx(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
-                      </span>
-                    ) : (
-                      <button onClick={() => setConfirmDeleteBudgetIdx(idx)} className="col-span-1 text-red-500 text-xs hover:underline">Hapus</button>
-                    )
-                  )}
+
+                  {/* ── Status pembayaran (di bawah baris input, full width) ── */}
                   {item.id && (
-                    <div className="col-span-16 -mt-1 flex items-center gap-2 flex-wrap text-xs text-gray-500">
+                    <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500 mt-1 px-0.5">
                       <span className={clsx('px-2 py-0.5 rounded-full font-medium', BUDGET_ITEM_STATUS_COLOR[item.paymentStatus] || 'bg-gray-100 text-gray-600')}>
                         {BUDGET_ITEM_STATUS_LABEL[item.paymentStatus] || item.paymentStatus}
                       </span>
@@ -807,9 +815,10 @@ export default function FinancePage() {
                       )}
                     </div>
                   )}
-                  {/* Panel titipan — hanya visible untuk role yang berhak */}
+
+                  {/* ── Panel titipan — hanya visible untuk role yang berhak ── */}
                   {budgetMeta.canSeeTitipan && (
-                    <div className="col-span-16 pl-1">
+                    <div className="mt-1 px-0.5">
                       <label className="inline-flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none">
                         <input
                           type="checkbox"
