@@ -147,7 +147,8 @@ export default function FinancePage() {
       fetch('/api/projects?light=1').then(r => r.json()).then(data => setProjects(Array.isArray(data) ? data : []))
       fetchPayments()
     }
-    if (status === 'authenticated' && ['OWNER', 'FINANCE', 'FINANCE_STAFF', 'DIRECTOR'].includes(session.user.role)) {
+    // FINANCE_STAFF (Bima) hanya perlu proses PR/invoice/quotation — tidak perlu analytics
+    if (status === 'authenticated' && ['OWNER', 'FINANCE', 'DIRECTOR'].includes(session.user.role)) {
       fetch('/api/finance/summary').then(r => r.ok ? r.json() : null).then(data => {
         if (!data) return
         setCashflow(data.cashflow)
@@ -1133,10 +1134,11 @@ export default function FinancePage() {
         )}
 
         {/* ── 5. ANALYTICS: Revenue, Margin, Profitabilitas ── */}
-        {profitability && profitability.byClient.length > 0 && (
+        {/* Hanya OWNER, FINANCE (Antoni), dan DIRECTOR (termasuk Direktur Finance) */}
+        {(role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && profitability && profitability.byClient.length > 0 && (
           <RevenuePerClientCard rows={profitability.byClient} rowsByDivision={profitability.byClientDivision} />
         )}
-        {marginReport && marginReport.divisions.length > 0 && (
+        {(role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && marginReport && marginReport.divisions.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-200">
               <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
@@ -1181,13 +1183,13 @@ export default function FinancePage() {
             </div>
           </div>
         )}
-        {profitability && (profitability.byClient.length > 0 || profitability.byCategory.length > 0) && (
+        {(role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && profitability && (profitability.byClient.length > 0 || profitability.byCategory.length > 0) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ProfitabilityCard title="Profitabilitas per Klien" rows={profitability.byClient} labelMap={null} />
             <ProfitabilityCard title="Profitabilitas per Kategori" rows={profitability.byCategory} labelMap={CATEGORY_LABEL} />
           </div>
         )}
-        {profitability && profitability.byProject?.length > 0 && (
+        {(role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && profitability && profitability.byProject?.length > 0 && (
           <ProfitabilityByProjectCard rows={profitability.byProject} />
         )}
 
