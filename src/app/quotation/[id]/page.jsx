@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import QuotationForm from '@/components/QuotationForm'
+import CreateInvoiceModal from '@/components/CreateInvoiceModal'
 
 const fmt = (n) => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID')
 
@@ -47,6 +48,7 @@ export default function QuotationDetailPage() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [acting,  setActing]  = useState(false)
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -171,6 +173,12 @@ export default function QuotationDetailPage() {
                 </button>
               </>
             )}
+            {q.status === 'WON' && (canManage(user) || ['FINANCE','FINANCE_STAFF'].includes(user?.role)) && (
+              <button onClick={() => setShowInvoiceModal(true)}
+                className="btn-primary text-sm bg-emerald-600 hover:bg-emerald-700">
+                📄 Buat Invoice
+              </button>
+            )}
             {['DRAFT', 'LOST', 'CANCELLED'].includes(q.status) && canManage(user) && (
               <button onClick={deleteQ} className="text-xs text-red-400 hover:text-red-600 ml-2">Hapus</button>
             )}
@@ -293,18 +301,34 @@ export default function QuotationDetailPage() {
           <div className="card divide-y divide-gray-100">
             <p className="px-5 py-3 text-sm font-semibold text-gray-700">Invoice</p>
             {q.invoices.map(inv => (
-              <div key={inv.id} className="px-5 py-3 flex items-center justify-between text-sm">
-                <div>
+              <Link key={inv.id} href={`/invoice/${inv.id}`}
+                className="px-5 py-3 flex items-center justify-between text-sm hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-2">
                   <span className="font-mono text-xs text-gray-400">{inv.invoiceNumber}</span>
-                  <span className="ml-2 text-gray-700">{inv.isDP ? 'DP' : 'Full'} — Termin {inv.termNumber}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                    inv.status === 'PAID' ? 'bg-green-100 text-green-700' :
+                    inv.status === 'ISSUED' ? 'bg-blue-100 text-blue-700' :
+                    'bg-gray-100 text-gray-500'}`}>{inv.status}</span>
+                  {inv.isDP && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">DP</span>}
                 </div>
-                <span className="font-medium">{fmt(inv.totalAmount)}</span>
-              </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-medium">{fmt(inv.totalAmount)}</span>
+                  <span className="text-gray-400 text-xs">→</span>
+                </div>
+              </Link>
             ))}
           </div>
         )}
 
       </main>
+
+      {showInvoiceModal && q && (
+        <CreateInvoiceModal
+          quotation={q}
+          onClose={() => setShowInvoiceModal(false)}
+          onCreated={() => { setShowInvoiceModal(false); load() }}
+        />
+      )}
     </div>
   )
 }
