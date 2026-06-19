@@ -792,6 +792,16 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
+        {/* TAB: Info — Quotation & Invoice tracking (pre-launch data) */}
+        {activeTab === 'info' && (
+          <QuotationInvoiceInfoSection
+            project={project}
+            isManager={isManager}
+            canFinance={['OWNER','FINANCE','FINANCE_STAFF','DIRECTOR'].includes(session?.user?.role)}
+            fetchProject={fetchProject}
+          />
+        )}
+
         {/* TAB: Info — client brief */}
         {activeTab === 'info' && (
           <ClientBriefSection project={project} setProject={setProject} isManager={isManager} fetchProject={fetchProject} />
@@ -1126,6 +1136,123 @@ function InfoRow({ label, value }) {
     <div>
       <p className="text-xs text-gray-400">{label}</p>
       <p className="text-sm font-medium text-gray-800 mt-0.5">{value}</p>
+    </div>
+  )
+}
+
+// ── Quotation & Invoice tracking section (editable, shown in Info tab) ────────
+// Shows the legacy quotation/invoice numbers from pre-system data,
+// and lets Finance/Manager update them + fix pitchResult for DONE projects.
+function QuotationInvoiceInfoSection({ project, isManager, canFinance, fetchProject }) {
+  const canEdit = isManager || canFinance
+  const [editing, setEditing] = useState(false)
+  const [form, setForm]       = useState({
+    pitchResult:     project.pitchResult     || '',
+    quotationNumber: project.quotationNumber || '',
+    invoiceNumber:   project.invoiceNumber   || '',
+    projectValue:    project.projectValue    != null ? String(project.projectValue) : '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  async function save() {
+    setSaving(true)
+    const res = await fetch(`/api/projects/${project.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pitchResult:     form.pitchResult     || null,
+        quotationNumber: form.quotationNumber  || null,
+        invoiceNumber:   form.invoiceNumber    || null,
+        projectValue:    form.projectValue ? parseFloat(form.projectValue) : null,
+      }),
+    })
+    setSaving(false)
+    if (res.ok) { setEditing(false); fetchProject() }
+    else alert('Gagal menyimpan')
+  }
+
+  return (
+    <div className="card p-5 border-t-4 border-amber-400 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-700">Data Quotation & Invoice</p>
+          <p className="text-xs text-gray-400 mt-0.5">Nomor quotation dan invoice dari sistem lama / sebelum launching</p>
+        </div>
+        {canEdit && !editing && (
+          <button onClick={() => setEditing(true)} className="text-xs text-brand hover:underline">✏ Edit</button>
+        )}
+      </div>
+
+      {!editing ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div>
+            <p className="text-xs text-gray-400">Hasil Pitch</p>
+            <p className={`text-sm font-semibold mt-0.5 ${
+              project.pitchResult === 'WIN'  ? 'text-green-600' :
+              project.pitchResult === 'LOSE' ? 'text-red-500'   : 'text-gray-500'
+            }`}>
+              {project.pitchResult === 'WIN' ? '✓ Menang' : project.pitchResult === 'LOSE' ? '✗ Kalah' : project.pitchResult || '—'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Nilai Project</p>
+            <p className="text-sm font-semibold text-gray-800 mt-0.5">
+              {project.projectValue ? 'Rp ' + Math.round(project.projectValue).toLocaleString('id-ID') : '—'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">No. Quotation</p>
+            <p className="text-sm font-mono text-gray-700 mt-0.5">{project.quotationNumber || '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">No. Invoice</p>
+            <p className={`text-sm font-mono mt-0.5 ${project.invoiceNumber ? 'text-green-700 font-semibold' : 'text-gray-400'}`}>
+              {project.invoiceNumber || '— belum ada'}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="label">Hasil Pitch</label>
+              <select className="select" value={form.pitchResult} onChange={e => setForm(f => ({ ...f, pitchResult: e.target.value }))}>
+                <option value="">— Belum ada —</option>
+                <option value="WIN">✓ Menang (WIN)</option>
+                <option value="LOSE">✗ Kalah (LOSE)</option>
+                <option value="NOT_FINAL">Belum final</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Nilai Project (Rp)</label>
+              <input type="number" className="input" value={form.projectValue}
+                onChange={e => setForm(f => ({ ...f, projectValue: e.target.value }))}
+                placeholder="0" />
+            </div>
+            <div>
+              <label className="label">No. Quotation</label>
+              <input className="input font-mono text-sm" value={form.quotationNumber}
+                onChange={e => setForm(f => ({ ...f, quotationNumber: e.target.value }))}
+                placeholder="WTM/EO/QUOT/2026/073" />
+            </div>
+            <div>
+              <label className="label">
+                No. Invoice
+                <span className="ml-1 text-[11px] text-amber-600 font-medium">← isi ini = sudah diinvoice sebelum launching</span>
+              </label>
+              <input className="input font-mono text-sm" value={form.invoiceNumber}
+                onChange={e => setForm(f => ({ ...f, invoiceNumber: e.target.value }))}
+                placeholder="WTM/EO/INV/2026/073" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={save} disabled={saving} className="btn-primary text-sm">
+              {saving ? 'Menyimpan...' : 'Simpan'}
+            </button>
+            <button onClick={() => setEditing(false)} className="btn-secondary text-sm">Batal</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
