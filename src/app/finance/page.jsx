@@ -89,6 +89,8 @@ export default function FinancePage() {
   const [budgetProjectId, setBudgetProjectId] = useState('')
   const [budgetItems, setBudgetItems] = useState({})
   const [budgetLoading, setBudgetLoading] = useState(false)
+  const [linkedQuotation, setLinkedQuotation] = useState(null)   // Quotation WON linked to selected project
+  const [importingQuotation, setImportingQuotation] = useState(false)
   const [savingBudget, setSavingBudget] = useState(false)
   const [projectValue, setProjectValue] = useState('')
   const [includesPpn, setIncludesPpn] = useState(false)
@@ -300,8 +302,60 @@ export default function FinancePage() {
         budgetLockedAt: data.budgetLockedAt || null,
         budgetLockedBy: data.budgetLockedBy || null,
       })
+
+      // Fetch linked WON quotation(s) for this project
+      const qRes = await fetch(`/api/quotations?projectId=${projectId}`)
+      if (qRes.ok) {
+        const qData = await qRes.json()
+        const wonQ = (qData.quotations || []).find(q => q.status === 'WON')
+        setLinkedQuotation(wonQ || null)
+        // Auto-fill quotation number if not yet set
+        if (wonQ && !data.quotationNumber) {
+          setQuotationNumber(wonQ.quotationNumber)
+        }
+      }
     }
     setBudgetLoading(false)
+  }
+
+  async function importFromQuotation() {
+    if (!linkedQuotation) return
+    setImportingQuotation(true)
+    // Fetch full quotation with sections+items
+    const res = await fetch(`/api/quotations/${linkedQuotation.id}`)
+    if (res.ok) {
+      const q = await res.json()
+      const newItems = []
+      for (const sec of (q.sections || [])) {
+        for (const item of (sec.items || [])) {
+          newItems.push({
+            label: item.description,
+            qty: item.qty ?? 1,
+            unitPrice: item.rate ?? item.subtotal ?? '',
+            quotedAmount: item.subtotal || 0,
+            category: sec.category || 'OPERATIONAL_OTHER',
+            actualAmount: '',
+            neededDate: '',
+            note: '',
+            needsUpfrontFunding: false,
+            isTitipan: false,
+            titipanNote: '',
+            titipanEntries: [],
+          })
+        }
+      }
+      // Merge: keep existing items that were already saved (have id), append new ones
+      const existing = budgetItems.filter(b => b.id)
+      const existingLabels = new Set(existing.map(b => b.label.toLowerCase()))
+      const fresh = newItems.filter(n => !existingLabels.has(n.label.toLowerCase()))
+      setBudgetItems([...existing, ...fresh])
+      setQuotationNumber(q.quotationNumber)
+      // Also auto-set project value from quotation total if not yet set
+      if (!projectValue && q.totalAmount) {
+        setProjectValue(String(Math.round(q.totalAmount)))
+      }
+    }
+    setImportingQuotation(false)
   }
 
   function addBudgetRow() {
@@ -1032,6 +1086,31 @@ export default function FinancePage() {
 
           {budgetProjectId && budgetLoading && <p className="text-sm text-gray-400">Memuat...</p>}
 
+          {/* Banner: Quotation WON ditemukan → tawarkan auto-import */}
+          {budgetProjectId && !budgetLoading && linkedQuotation && budgetMeta.canEditBudget && !budgetMeta.budgetLockedAt && !forecastLocked && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-violet-50 border border-violet-200 px-4 py-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-lg shrink-0">📄</span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-violet-900">Quotation terhubung ditemukan</p>
+                  <p className="text-xs text-violet-600 truncate">
+                    {linkedQuotation.quotationNumber} · {linkedQuotation.clientName} · {linkedQuotation.eventName}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Link href={`/quotation/${linkedQuotation.id}`} target="_blank" className="text-xs text-violet-600 hover:text-violet-800 underline">Buka Quotation ↗</Link>
+                <button
+                  onClick={importFromQuotation}
+                  disabled={importingQuotation}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-violet-600 text-white hover:bg-violet-700 font-semibold disabled:opacity-60"
+                >
+                  {importingQuotation ? 'Mengimpor...' : '📥 Import Item dari Quotation'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {budgetProjectId && !budgetLoading && (
             <div className="space-y-2">
               {budgetMeta.budgetLockedAt ? (
@@ -1683,54 +1762,96 @@ function RevenuePerClientCard({ rows, rowsByDivision }) {
 }
 
 function ProfitabilityByProjectCard({ rows }) {
+  const [expanded, setExpanded] = useState(false)
+
+  // Summary totals for collapsed view
+  const totalValue  = rows.reduce((s, r) => s + r.projectValue, 0)
+  const totalActual = rows.reduce((s, r) => s + r.actualCost, 0)
+  const totalMargin = rows.reduce((s, r) => s + r.margin, 0)
+  const avgPct      = totalValue > 0 ? (totalMargin / totalValue) * 100 : 0
+
   return (
     <div className="card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-bold text-gray-900 tracking-tight">Profitabilitas per Project</h3>
-        <span className="text-xs text-gray-400 bg-gray-100 rounded-full px-3 py-1 font-medium">{rows.length} project</span>
+      {/* Header — always visible */}
+      <div
+        className="flex items-center justify-between cursor-pointer select-none"
+        onClick={() => setExpanded(v => !v)}
+      >
+        <div className="flex items-center gap-3">
+          <h3 className="text-base font-bold text-gray-900 tracking-tight">Profitabilitas per Project</h3>
+          <span className="text-xs text-gray-400 bg-gray-100 rounded-full px-3 py-1 font-medium">{rows.length} project</span>
+        </div>
+        <div className="flex items-center gap-4">
+          {/* Summary chips — always shown */}
+          <div className="hidden sm:flex items-center gap-3 text-xs">
+            <span className="text-gray-500">Nilai: <strong className="text-gray-800">{formatRupiah(totalValue)}</strong></span>
+            <span className={clsx('font-semibold', totalMargin >= 0 ? 'text-emerald-600' : 'text-red-500')}>
+              Margin: {formatRupiah(totalMargin)} ({avgPct.toFixed(1)}%)
+            </span>
+          </div>
+          <span className="text-gray-400 text-sm transition-transform duration-200" style={{ display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+        </div>
       </div>
-      <div className="overflow-x-auto rounded-xl border border-gray-100">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 border-b-2 border-gray-200">
-              <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-left">Project</th>
-              <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-left hidden sm:table-cell">Klien</th>
-              <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right hidden md:table-cell">Nilai Project</th>
-              <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right hidden md:table-cell">Biaya Aktual</th>
-              <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right">Margin</th>
-              <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right">%</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(r => (
-              <tr key={r.projectId} className="border-b border-gray-100 hover:bg-violet-50/30 transition-colors">
-                <td className="py-3 px-4">
-                  <Link href={`/projects/${r.projectId}`} className="hover:text-violet-700 transition-colors">
-                    <span className="text-[10px] font-bold text-violet-500 bg-violet-50 rounded px-1.5 py-0.5 mr-1.5 font-mono">{r.projectCode}</span>
-                    <span className="text-sm font-semibold text-gray-800">{r.projectName}</span>
-                  </Link>
-                </td>
-                <td className="py-3 px-4 hidden sm:table-cell">
-                  <span className="inline-flex items-center text-xs font-medium text-gray-600 bg-gray-100 rounded-full px-2.5 py-1">{r.clientName}</span>
-                </td>
-                <td className="py-3 px-4 text-right font-semibold text-gray-800 text-sm whitespace-nowrap hidden md:table-cell">{formatRupiah(r.projectValue)}</td>
-                <td className="py-3 px-4 text-right text-sm hidden md:table-cell">
-                  {r.actualCost === 0
-                    ? <span className="text-gray-300 italic text-xs">—</span>
-                    : <span className="font-semibold text-gray-800">{formatRupiah(r.actualCost)}</span>
-                  }
-                </td>
-                <td className={clsx('py-3 px-4 text-right font-bold text-sm whitespace-nowrap', r.margin >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(r.margin)}</td>
-                <td className="py-3 px-4 text-right">
-                  <span className={clsx('inline-flex items-center justify-center text-[11px] font-bold rounded-full px-2.5 py-1', r.marginPct >= 50 ? 'bg-emerald-50 text-emerald-700' : r.marginPct >= 20 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600')}>
-                    {r.marginPct.toFixed(1)}%
+
+      {/* Expandable table */}
+      {expanded && (
+        <div className="overflow-x-auto rounded-xl border border-gray-100 mt-4">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b-2 border-gray-200">
+                <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-left">Project</th>
+                <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-left hidden sm:table-cell">Klien</th>
+                <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right hidden md:table-cell">Nilai Project</th>
+                <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right hidden md:table-cell">Biaya Aktual</th>
+                <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right">Margin</th>
+                <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right">%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r.projectId} className="border-b border-gray-100 hover:bg-violet-50/30 transition-colors">
+                  <td className="py-3 px-4">
+                    <Link href={`/projects/${r.projectId}`} className="hover:text-violet-700 transition-colors">
+                      <span className="text-[10px] font-bold text-violet-500 bg-violet-50 rounded px-1.5 py-0.5 mr-1.5 font-mono">{r.projectCode}</span>
+                      <span className="text-sm font-semibold text-gray-800">{r.projectName}</span>
+                    </Link>
+                  </td>
+                  <td className="py-3 px-4 hidden sm:table-cell">
+                    <span className="inline-flex items-center text-xs font-medium text-gray-600 bg-gray-100 rounded-full px-2.5 py-1">{r.clientName}</span>
+                  </td>
+                  <td className="py-3 px-4 text-right font-semibold text-gray-800 text-sm whitespace-nowrap hidden md:table-cell">{formatRupiah(r.projectValue)}</td>
+                  <td className="py-3 px-4 text-right text-sm hidden md:table-cell">
+                    {r.actualCost === 0
+                      ? <span className="text-gray-300 italic text-xs">—</span>
+                      : <span className="font-semibold text-gray-800">{formatRupiah(r.actualCost)}</span>
+                    }
+                  </td>
+                  <td className={clsx('py-3 px-4 text-right font-bold text-sm whitespace-nowrap', r.margin >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(r.margin)}</td>
+                  <td className="py-3 px-4 text-right">
+                    <span className={clsx('inline-flex items-center justify-center text-[11px] font-bold rounded-full px-2.5 py-1', r.marginPct >= 50 ? 'bg-emerald-50 text-emerald-700' : r.marginPct >= 20 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600')}>
+                      {r.marginPct.toFixed(1)}%
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            {/* Footer totals */}
+            <tfoot>
+              <tr className="bg-gray-50 border-t-2 border-gray-200 font-bold">
+                <td className="py-2.5 px-4 text-xs text-gray-600" colSpan={2}>Total ({rows.length} project)</td>
+                <td className="py-2.5 px-4 text-right text-xs text-gray-800 hidden md:table-cell">{formatRupiah(totalValue)}</td>
+                <td className="py-2.5 px-4 text-right text-xs text-gray-800 hidden md:table-cell">{formatRupiah(totalActual)}</td>
+                <td className={clsx('py-2.5 px-4 text-right text-sm', totalMargin >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(totalMargin)}</td>
+                <td className="py-2.5 px-4 text-right">
+                  <span className={clsx('inline-flex items-center justify-center text-[11px] font-bold rounded-full px-2.5 py-1', avgPct >= 50 ? 'bg-emerald-50 text-emerald-700' : avgPct >= 20 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600')}>
+                    {avgPct.toFixed(1)}%
                   </span>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </tfoot>
+          </table>
+        </div>
+      )}
     </div>
   )
 }
