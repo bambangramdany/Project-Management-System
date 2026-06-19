@@ -90,6 +90,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
   const [dpEnabled,        setDpEnabled]        = useState(!!(initial?.dpPercent || initial?.dpAmount))
   const [dpPercent,        setDpPercent]        = useState(initial?.dpPercent        ?? '')
   const [notes,            setNotes]            = useState(initial?.notes            || '')
+  const [termsConditions,  setTermsConditions]  = useState(initial?.termsConditions  || '')
 
   // PIC & approvers — user IDs
   const [picQuotationId, setPicQuotationId] = useState(initial?.picQuotationId || '')
@@ -228,6 +229,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
       approver2Id:     approver2Id     || null,
       projectId:       initial?.projectId || null,
       notes:           notes           || null,
+      termsConditions: termsConditions || null,
       sections: sections.map((sec, si) => ({
         letter: sec.letter,
         name:   sec.name,
@@ -483,10 +485,36 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
         </div>
 
         {/* ── Section 6: Catatan ── */}
-        <div className="card p-5 border-t-4 border-gray-300">
-          <label className="label">Catatan Internal (tidak tampil di dokumen)</label>
-          <textarea className="input mt-1 h-24 resize-none" value={notes} onChange={e => setNotes(e.target.value)}
-            placeholder="Catatan untuk tim internal..." />
+        <div className="card p-5 border-t-4 border-gray-300 space-y-4">
+          <div>
+            <label className="label">Catatan Internal <span className="text-gray-400 font-normal">(tidak tampil di dokumen PDF)</span></label>
+            <textarea className="input mt-1 h-20 resize-none" value={notes} onChange={e => setNotes(e.target.value)}
+              placeholder="Catatan untuk tim internal..." />
+          </div>
+
+          {/* Terms & Conditions */}
+          <div>
+            <label className="label">
+              Terms &amp; Conditions
+              <span className="text-gray-400 font-normal ml-1">(ditampilkan di bagian bawah PDF — sesuaikan per klien)</span>
+            </label>
+            <textarea
+              className="input mt-1 h-40 resize-y font-mono text-xs"
+              value={termsConditions}
+              onChange={e => setTermsConditions(e.target.value)}
+              placeholder={
+                '1. Cancellation within 14 days of events will be subject to 50% of total payment.\n' +
+                '2. Any additional cost outside those mentioned above should be settled maximum 7 days after event.\n' +
+                '3. Payment can be transferred to:\n' +
+                '   Bank Central Asia (BCA) a/n PT SINEMATIK ANAK BANGSA\n' +
+                '   No. Rekening: 7061111011\n' +
+                '   Please send the receipt to watermark.indonesia@gmail.com'
+              }
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              💡 Tip: ketik bebas atau beri nomor manual. Contoh tambahan untuk PH: "Pembayaran penuh setelah konten diserahterimakan."
+            </p>
+          </div>
         </div>
 
         {/* ── Actions ── */}

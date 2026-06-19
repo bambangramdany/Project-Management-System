@@ -7,24 +7,34 @@ import { useState } from 'react'
 import NotificationBell from './NotificationBell'
 import { isFinanceDirector } from '@/lib/rbac'
 
+// ── Menu order: Daily → PM → Network → Commercial → Finance → Admin ──────────
 const NAV_ITEMS = [
+  // ── Harian & PM ──
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/my-tasks', label: 'Tugas Saya' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/workload', label: 'Workload Tim' },
-  { href: '/scores', label: 'Nilai Tim' },
-  { href: '/finance', label: 'Finance', roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PRODUCTION'] },
-  { href: '/targets', label: 'Target', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
-  { href: '/salary', label: 'Gaji', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
-  { href: '/debts', label: 'Hutang', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
-  { href: '/quotation', label: 'Quotation', roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'FINANCE', 'FINANCE_STAFF'] },
-  { href: '/invoice', label: 'Invoice', roles: ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'] },
+  { href: '/my-tasks',  label: 'Tugas Saya' },
+  { href: '/projects',  label: 'Projects' },
+  { href: '/workload',  label: 'Workload Tim' },
+  { href: '/scores',    label: 'Penilaian' },
+
+  // ── Network ──
   { href: '/vendors', label: 'Vendor' },
   { href: '/clients', label: 'Klien' },
-  { href: '/team', label: 'Tim' },
-  { href: '/cashflow', label: 'Kas', cashOnly: true },
-  { href: '/opex', label: 'Opex', financeStaffOk: true },
-  { href: '/assets', label: 'Aset', financeStaffOk: true },
+  { href: '/team',    label: 'Tim' },
+
+  // ── Commercial / Pipeline ──
+  { href: '/quotation', label: 'Quotation', roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'FINANCE', 'FINANCE_STAFF'] },
+  { href: '/invoice',   label: 'Invoice',   roles: ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'] },
+
+  // ── Finance & Operasional ──
+  { href: '/finance',  label: 'Finance',    roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PRODUCTION'] },
+  { href: '/targets',  label: 'Target',     roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
+  { href: '/cashflow', label: 'Kas',        cashOnly: true },
+  { href: '/opex',     label: 'Opex',       financeStaffOk: true },
+  { href: '/debts',    label: 'Hutang',     roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
+  { href: '/assets',   label: 'Aset',       financeStaffOk: true },
+  { href: '/salary',   label: 'Gaji',       roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
+
+  // ── Admin ──
   { href: '/settings', label: 'Pengaturan', settingsOnly: true },
 ]
 

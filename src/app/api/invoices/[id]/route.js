@@ -63,7 +63,7 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ error: 'Hanya invoice DRAFT yang bisa diedit' }, { status: 400 })
     }
     const fields = ['financeClientName','financeEventName','poNumber','taxInvoiceNumber',
-                    'picFinanceName','picFinancePhone','mode','notes']
+                    'picFinanceName','picFinancePhone','mode','notes','termsConditions']
     fields.forEach(f => { if (body[f] !== undefined) data[f] = body[f] || null })
 
     if (body.issueDate !== undefined) data.issueDate = body.issueDate ? new Date(body.issueDate) : null

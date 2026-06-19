@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import QuotationForm from '@/components/QuotationForm'
 import CreateInvoiceModal from '@/components/CreateInvoiceModal'
+import PDFPreviewModal from '@/components/PDFPreviewModal'
 
 const fmt = (n) => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID')
 
@@ -49,6 +50,7 @@ export default function QuotationDetailPage() {
   const [editing, setEditing] = useState(false)
   const [acting,  setActing]  = useState(false)
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+  const [showPreview,      setShowPreview]      = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -143,6 +145,21 @@ export default function QuotationDetailPage() {
             </div>
           </div>
           <div className="flex gap-2 flex-wrap justify-end">
+            {/* PDF actions — always visible */}
+            <button
+              onClick={() => setShowPreview(true)}
+              className="btn-secondary text-sm flex items-center gap-1.5"
+            >
+              👁 Preview PDF
+            </button>
+            <a
+              href={`/api/quotations/${q.id}/pdf`}
+              download
+              className="btn-secondary text-sm flex items-center gap-1.5"
+            >
+              ⬇ Download PDF
+            </a>
+
             {q.status === 'DRAFT' && canManage(user) && (
               <>
                 <button onClick={() => setEditing(true)} className="btn-secondary text-sm">✏ Edit</button>
@@ -296,6 +313,14 @@ export default function QuotationDetailPage() {
           </div>
         )}
 
+        {/* Terms & Conditions */}
+        {q.termsConditions && (
+          <div className="card p-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Terms &amp; Conditions (PDF)</p>
+            <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono leading-relaxed">{q.termsConditions}</pre>
+          </div>
+        )}
+
         {/* Invoices (if any) */}
         {q.invoices?.length > 0 && (
           <div className="card divide-y divide-gray-100">
@@ -327,6 +352,14 @@ export default function QuotationDetailPage() {
           quotation={q}
           onClose={() => setShowInvoiceModal(false)}
           onCreated={() => { setShowInvoiceModal(false); load() }}
+        />
+      )}
+
+      {showPreview && q && (
+        <PDFPreviewModal
+          url={`/api/quotations/${q.id}/pdf`}
+          title={q.quotationNumber}
+          onClose={() => setShowPreview(false)}
         />
       )}
     </div>

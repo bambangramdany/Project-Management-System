@@ -1099,8 +1099,9 @@ model Invoice {
 
   issueDate DateTime?
   dueDate   DateTime?
-  status    InvoiceStatus @default(DRAFT)
-  notes     String?
+  status          InvoiceStatus @default(DRAFT)
+  notes           String?
+  termsConditions String?  // custom T&C shown at bottom of PDF (null = use division default)
 
   createdById String
   createdBy   User   @relation("InvoiceCreator", fields: [createdById], references: [id])

@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import PDFPreviewModal from '@/components/PDFPreviewModal'
 
 const fmt = (n) => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID')
 
@@ -24,6 +25,7 @@ export default function InvoiceDetailPage() {
   const [editing,  setEditing]  = useState(false)
   const [saving,   setSaving]   = useState(false)
   const [form,     setForm]     = useState(null)
+  const [showPreview, setShowPreview] = useState(false)
 
   useEffect(() => { if (status === 'unauthenticated') router.push('/login') }, [status])
 
@@ -51,6 +53,7 @@ export default function InvoiceDetailPage() {
       dueDate:           d.dueDate   ? d.dueDate.slice(0,10)   : '',
       totalAmount:       String(d.totalAmount || ''),
       notes:             d.notes || '',
+      termsConditions:   d.termsConditions || '',
       items:             (d.items || []).map(it => ({ id: it.id, showInDetail: it.showInDetail })),
     }
   }
@@ -128,6 +131,21 @@ export default function InvoiceDetailPage() {
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
+            {/* PDF actions — always visible */}
+            <button
+              onClick={() => setShowPreview(true)}
+              className="btn-secondary text-sm flex items-center gap-1.5"
+            >
+              👁 Preview PDF
+            </button>
+            <a
+              href={`/api/invoices/${id}/pdf`}
+              download
+              className="btn-secondary text-sm flex items-center gap-1.5"
+            >
+              ⬇ Download PDF
+            </a>
+
             {isDraft && canEdit && (
               <>
                 <button onClick={() => setEditing(e => !e)} className="btn-secondary text-sm">
@@ -240,8 +258,17 @@ export default function InvoiceDetailPage() {
             </div>
             <div>
               <label className="label">Catatan</label>
-              <textarea className="input h-20 resize-none" value={form.notes}
+              <textarea className="input h-16 resize-none" value={form.notes}
                 onChange={e => setForm(f=>({...f, notes: e.target.value}))} />
+            </div>
+            <div>
+              <label className="label">
+                Terms &amp; Conditions
+                <span className="text-gray-400 font-normal ml-1">(ditampilkan di PDF)</span>
+              </label>
+              <textarea className="input h-36 resize-y font-mono text-xs" value={form.termsConditions}
+                onChange={e => setForm(f=>({...f, termsConditions: e.target.value}))}
+                placeholder={'1. Cancellation within 14 days of events will be subject to 50% of total payment.\n2. Any additional cost outside those mentioned above should be settled maximum 7 days after event.\n3. Payment can be transferred to:\n   Bank Central Asia (BCA) a/n PT SINEMATIK ANAK BANGSA\n   No. Rekening: 7061111011\n   Please send the receipt to watermark.indonesia@gmail.com'} />
             </div>
             <div className="flex gap-2">
               <button onClick={save} disabled={saving} className="btn-primary text-sm">
@@ -323,6 +350,14 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
 
+        {/* Terms & Conditions (read-only) */}
+        {!editing && inv.termsConditions && (
+          <div className="card p-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Terms &amp; Conditions</p>
+            <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono leading-relaxed">{inv.termsConditions}</pre>
+          </div>
+        )}
+
         {/* Receivable status */}
         {inv.receivables?.length > 0 && (
           <div className="card divide-y divide-gray-100">
@@ -347,6 +382,15 @@ export default function InvoiceDetailPage() {
         )}
 
       </main>
+
+      {/* PDF Preview Modal */}
+      {showPreview && (
+        <PDFPreviewModal
+          url={`/api/invoices/${id}/pdf`}
+          title={inv.invoiceNumber}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
     </div>
   )
 }
