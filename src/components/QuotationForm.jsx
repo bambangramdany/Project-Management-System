@@ -226,6 +226,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
       picQuotationId:  picQuotationId  || null,
       approver1Id:     approver1Id     || null,
       approver2Id:     approver2Id     || null,
+      projectId:       initial?.projectId || null,
       notes:           notes           || null,
       sections: sections.map((sec, si) => ({
         letter: sec.letter,

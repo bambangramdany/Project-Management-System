@@ -7,6 +7,7 @@ import { StatusBadge, CategoryBadge, PitchResultBadge } from '@/components/Statu
 import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, EO_CATEGORIES, PH_CATEGORIES, RECOMMENDATION_ICON, DIVISION_LABEL, PROJECT_SCORE_CRITERIA, KPI_SCORE_LABEL, LOSE_REASON_OPTIONS, CLIENT_BRIEF_TEMPLATES } from '@/lib/constants'
 import { canScoreProject } from '@/lib/rbac'
 import ProjectBonusTab from '@/components/ProjectBonusTab'
+import QuotationProjectTab from '@/components/QuotationProjectTab'
 import Link from 'next/link'
 
 export default function ProjectDetailPage() {
@@ -16,7 +17,13 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState(null)
   const [team, setTeam] = useState([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('tasks')
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search)
+      return p.get('tab') || 'tasks'
+    }
+    return 'tasks'
+  })
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [taskForm, setTaskForm] = useState({ title: '', assigneeId: '', priority: 'MEDIUM', openEnded: false, dueDate: '' })
   const [saving, setSaving] = useState(false)
@@ -478,7 +485,7 @@ export default function ProjectDetailPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-gray-200 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
-          {['tasks', 'team', 'activity', 'info', ...(canScoreProject(session?.user, project) ? ['bonus'] : [])].map(tab => (
+          {['tasks', 'quotation', 'team', 'activity', 'info', ...(canScoreProject(session?.user, project) ? ['bonus'] : [])].map(tab => (
             <button
               key={tab}
               onClick={() => {
@@ -494,7 +501,7 @@ export default function ProjectDetailPage() {
                 activeTab === tab ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
               }`}
             >
-              {tab === 'tasks' ? `Tasks (${totalTasks})` : tab === 'team' ? `Tim (${(project.members?.length || 0) + (project.pic ? 1 : 0)})` : tab === 'bonus' ? 'Penilaian Tim' : tab === 'activity' ? 'Aktivitas' : 'Info'}
+              {tab === 'tasks' ? `Tasks (${totalTasks})` : tab === 'quotation' ? 'Quotation' : tab === 'team' ? `Tim (${(project.members?.length || 0) + (project.pic ? 1 : 0)})` : tab === 'bonus' ? 'Penilaian Tim' : tab === 'activity' ? 'Aktivitas' : 'Info'}
             </button>
           ))}
         </div>
@@ -659,6 +666,15 @@ export default function ProjectDetailPage() {
               </form>
             )}
           </div>
+        )}
+
+        {/* TAB: Quotation */}
+        {activeTab === 'quotation' && (
+          <QuotationProjectTab
+            project={project}
+            session={session}
+            onProjectUpdated={fetchProject}
+          />
         )}
 
         {/* TAB: Team */}

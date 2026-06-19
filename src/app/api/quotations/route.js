@@ -31,12 +31,14 @@ export async function GET(req) {
   if (!canViewQuotations(session.user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { searchParams } = new URL(req.url)
-  const status = searchParams.get('status')
-  const division = searchParams.get('division')
+  const status    = searchParams.get('status')
+  const division  = searchParams.get('division')
+  const projectId = searchParams.get('projectId')
 
   const where = {}
-  if (status && status !== 'all') where.status = status
-  if (division && division !== 'all') where.division = division
+  if (status    && status    !== 'all') where.status    = status
+  if (division  && division  !== 'all') where.division  = division
+  if (projectId) where.projectId = projectId
 
   const quotations = await prisma.quotation.findMany({
     where,
