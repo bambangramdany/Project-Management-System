@@ -405,6 +405,51 @@ export default function FinancePage() {
     await loadDirectExpenses(budgetProjectId)
   }
 
+  async function downloadExpenseTemplate() {
+    const XLSX = await import('xlsx')
+    const headers = ['Deskripsi *', 'Nominal (Rp) *', 'Kategori', 'Tanggal (YYYY-MM-DD)', 'Vendor / Penerima', 'Catatan']
+    const categories = [
+      'Tiket & Transport', 'Akomodasi', 'DP Venue', 'Pelunasan Venue',
+      'DP Vendor', 'Pelunasan Vendor', 'Talent / Honor', 'Operasional Lain',
+    ]
+    const examples = [
+      ['Sewa mobil operasional H-1 s/d H+1', 3500000, 'Tiket & Transport', '2025-03-14', 'Rental Mobil ABC', 'Termasuk driver'],
+      ['Catering tim (50 orang)', 8750000, 'Operasional Lain', '2025-03-15', 'RM Padang Jaya', 'Makan siang + malam'],
+      ['DP Venue GBK Hall A', 50000000, 'DP Venue', '2025-02-20', 'GBK Arena', 'Invoice No. GBK/2025/021'],
+      ['Pelunasan Venue GBK Hall A', 50000000, 'Pelunasan Venue', '2025-03-10', 'GBK Arena', 'Sisa pembayaran'],
+      ['Honor Talent MC', 5000000, 'Talent / Honor', '2025-03-15', 'Budi Santoso', ''],
+      ['Hotel tim 2 malam x 5 kamar', 12000000, 'Akomodasi', '2025-03-14', 'Hotel Mulia', 'Check-in 14, Check-out 16 Maret'],
+    ]
+
+    // Sheet 1: Template utama
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...examples])
+    ws['!cols'] = [36, 18, 20, 22, 24, 30].map(w => ({ wch: w }))
+
+    // Freeze header row
+    ws['!freeze'] = { xSplit: 0, ySplit: 1 }
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Pengeluaran')
+
+    // Sheet 2: Referensi kategori
+    const catHeaders = ['Kode (isi persis seperti ini)', 'Label yang tampil di sistem']
+    const catRows = [
+      ['Tiket & Transport', 'Tiket & Transport — tiket pesawat, kereta, sewa kendaraan, bensin, dll'],
+      ['Akomodasi', 'Akomodasi — hotel, penginapan tim'],
+      ['DP Venue', 'DP Venue — uang muka sewa venue / lokasi acara'],
+      ['Pelunasan Venue', 'Pelunasan Venue — sisa pembayaran venue'],
+      ['DP Vendor', 'DP Vendor — uang muka ke vendor (catering, dekor, sound system, dll)'],
+      ['Pelunasan Vendor', 'Pelunasan Vendor — sisa pembayaran ke vendor'],
+      ['Talent / Honor', 'Talent / Honor — MC, talent, performer, narasumber'],
+      ['Operasional Lain', 'Operasional Lain — pengeluaran lain yang tidak masuk kategori di atas'],
+    ]
+    const wsCat = XLSX.utils.aoa_to_sheet([catHeaders, ...catRows])
+    wsCat['!cols'] = [24, 60].map(w => ({ wch: w }))
+    XLSX.utils.book_append_sheet(wb, wsCat, 'Referensi Kategori')
+
+    XLSX.writeFile(wb, 'template-pengeluaran-project.xlsx')
+  }
+
   async function importExpensesFromExcel(file) {
     if (!file || !budgetProjectId) return
     setImportingExpenses(true)
@@ -1229,6 +1274,9 @@ export default function FinancePage() {
                 <button onClick={() => setShowExpenseForm(v => !v)} className="btn-secondary text-xs">
                   {showExpenseForm ? 'Tutup Form' : '+ Tambah Pengeluaran'}
                 </button>
+                <button onClick={downloadExpenseTemplate} className="text-xs text-brand-600 hover:underline font-medium">
+                  ⬇ Unduh Template Excel
+                </button>
                 <label className="text-xs text-brand-600 hover:underline cursor-pointer font-medium">
                   {importingExpenses ? 'Mengimport...' : '⬆ Import dari Excel'}
                   <input type="file" accept=".xlsx,.xls,.csv" className="hidden"
@@ -1348,9 +1396,15 @@ export default function FinancePage() {
               )}
 
               {/* Tip: import Excel */}
-              <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
-                <p className="text-xs font-bold text-blue-800 mb-1">💡 Format Excel untuk import pengeluaran</p>
-                <p className="text-xs text-blue-700">Buat file Excel dengan kolom: <strong>Deskripsi | Nominal | Kategori | Tanggal | Vendor | Catatan</strong>. Satu baris = satu pengeluaran. Kategori: Tiket Transport / Akomodasi / Venue DP / Vendor Final / Talent Honor / dll.</p>
+              <div className="rounded-xl bg-blue-50 border border-blue-100 p-3 space-y-1.5">
+                <p className="text-xs font-bold text-blue-800">💡 Cara import pengeluaran dari Excel</p>
+                <ol className="text-xs text-blue-700 space-y-0.5 list-decimal list-inside">
+                  <li>Klik <strong>"⬇ Unduh Template Excel"</strong> di atas untuk mendapatkan file template</li>
+                  <li>Isi pengeluaran di sheet <strong>"Pengeluaran"</strong> — satu baris = satu item pengeluaran</li>
+                  <li>Lihat sheet <strong>"Referensi Kategori"</strong> untuk daftar kategori yang valid</li>
+                  <li>Klik <strong>"⬆ Import dari Excel"</strong> dan pilih file yang sudah diisi</li>
+                </ol>
+                <p className="text-[11px] text-blue-500">Kolom wajib: Deskripsi dan Nominal. Kolom lain opsional.</p>
               </div>
             </div>
           )}
