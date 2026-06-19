@@ -132,7 +132,6 @@ export default function ClientsPage() {
       setConfirmDeleteId(null)
       load()
     } else if (res.status === 404) {
-      // Klien sudah tidak ada di DB (mungkin cache stale) — refresh list saja
       setConfirmDeleteId(null)
       load()
     } else {
@@ -200,125 +199,127 @@ export default function ClientsPage() {
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <div className="card overflow-x-auto">
-          <table className="w-full text-sm min-w-[480px]">
-            <thead>
-              <tr className="text-left text-gray-400 text-xs border-b border-gray-100">
-                <th className="px-4 py-2.5">Nama Klien</th>
-                <th className="px-4 py-2.5">Jumlah Project</th>
-                <th className="px-4 py-2.5">PIC</th>
-                <th className="px-4 py-2.5"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 && (
-                <tr><td colSpan={4} className="text-center py-10 text-gray-400 text-sm">Tidak ada klien ditemukan</td></tr>
-              )}
-              {filtered.map(c => (
-                <Fragment key={c.id}>
-                  <tr className="border-b border-gray-50 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-800">
-                      {editId === c.id ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            autoFocus
-                            className="input text-sm py-1"
-                            value={editValue}
-                            onChange={e => setEditValue(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditId(null) }}
-                          />
-                          <button onClick={saveEdit} disabled={saving} className="text-xs text-brand-600 hover:underline shrink-0">{saving ? 'Menyimpan...' : 'Simpan'}</button>
-                          <button onClick={() => setEditId(null)} className="text-xs text-gray-400 hover:underline shrink-0">Batal</button>
-                        </div>
-                      ) : (
-                        <button onClick={() => toggleExpand(c.id)} className="text-left hover:text-brand-600 flex items-center gap-2 group">
-                          <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full border text-sm shrink-0 transition-colors ${expandedId === c.id ? 'bg-brand-100 border-brand-300 text-brand-600' : 'border-gray-300 text-gray-400 group-hover:border-brand-300 group-hover:text-brand-600'}`}>
-                            {expandedId === c.id ? '−' : '+'}
-                          </span>
-                          {c.name}
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">{c._count?.projects ?? 0}</td>
-                    <td className="px-4 py-3 text-gray-500">{c.contacts?.length || 0}</td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      {editId !== c.id && (
-                        confirmDeleteId === c.id ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <span className="inline-flex items-center gap-2">
-                              <span className="text-xs text-gray-500">Yakin hapus?</span>
-                              <button
-                                onClick={() => deleteClient(c)}
-                                className="text-xs px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600"
-                              >Ya, Hapus</button>
-                              <button
-                                onClick={() => { setConfirmDeleteId(null); setDeleteError(prev => ({ ...prev, [c.id]: null })) }}
-                                className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 hover:bg-gray-200"
-                              >Batal</button>
-                            </span>
-                            {deleteError[c.id] && (
-                              <p className="text-[10px] text-red-600 text-right max-w-[220px] leading-tight">{deleteError[c.id]}</p>
-                            )}
+          <div className="min-w-[480px]">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-400 text-xs border-b border-gray-100">
+                  <th className="px-4 py-2.5">Nama Klien</th>
+                  <th className="px-4 py-2.5">Jumlah Project</th>
+                  <th className="px-4 py-2.5">PIC</th>
+                  <th className="px-4 py-2.5"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 && (
+                  <tr><td colSpan={4} className="text-center py-10 text-gray-400 text-sm">Tidak ada klien ditemukan</td></tr>
+                )}
+                {filtered.map(c => (
+                  <Fragment key={c.id}>
+                    <tr className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-800">
+                        {editId === c.id ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              autoFocus
+                              className="input text-sm py-1"
+                              value={editValue}
+                              onChange={e => setEditValue(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditId(null) }}
+                            />
+                            <button onClick={saveEdit} disabled={saving} className="text-xs text-brand-600 hover:underline shrink-0">{saving ? 'Menyimpan...' : 'Simpan'}</button>
+                            <button onClick={() => setEditId(null)} className="text-xs text-gray-400 hover:underline shrink-0">Batal</button>
                           </div>
                         ) : (
-                          <span className="inline-flex items-center gap-3">
-                            <button onClick={() => startEdit(c)} className="text-xs text-brand-600 hover:underline py-1">Edit Nama</button>
-                            <button
-                              onClick={() => setConfirmDeleteId(c.id)}
-                              className="text-xs text-red-500 hover:underline py-1"
-                            >Hapus</button>
-                          </span>
-                        )
-                      )}
-                    </td>
-                  </tr>
-                  {expandedId === c.id && (
-                    <tr className="bg-gray-50/60 border-b border-gray-100">
-                      <td colSpan={4} className="px-4 py-3">
-                        <div className="space-y-2">
-                          {c.contacts?.length === 0 && !contactForm && (
-                            <p className="text-xs text-gray-400">Belum ada data PIC untuk klien ini.</p>
-                          )}
-                          {c.contacts?.map(contact => (
-                            contactForm?.contactId === contact.id ? (
-                              <ContactFormBlock key={contact.id} form={contactForm} setForm={setContactForm} onSave={saveContact} onCancel={() => setContactForm(null)} saving={saving} />
-                            ) : (
-                              <div key={contact.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-white border border-gray-100">
-                                <div className="text-xs text-gray-600 space-y-0.5">
-                                  <p className="text-sm font-semibold text-gray-800">{contact.name}{contact.jobTitle && <span className="text-gray-400 font-normal"> · {contact.jobTitle}</span>}</p>
-                                  {contact.email && <p>Email: {contact.email}</p>}
-                                  {contact.phone && <p>Telp: {contact.phone}</p>}
-                                  {contact.address && <p>Alamat: {contact.address}</p>}
-                                  {contact.religion && <p>Agama: {contact.religion}</p>}
-                                  {contact.notes && <p className="text-gray-400">Catatan: {contact.notes}</p>}
-                                </div>
-                                <div className="flex flex-col gap-1 shrink-0 text-xs">
-                                  <button onClick={() => startEditContact(c.id, contact)} className="text-brand-600 hover:underline">Edit</button>
-                                  {confirmDeleteContactId === contact.id ? (
-                                    <span className="inline-flex items-center gap-1">
-                                      <button onClick={() => deleteContact(contact.id)} className="px-1.5 py-0.5 rounded bg-red-500 text-white text-[10px]">Ya</button>
-                                      <button onClick={() => setConfirmDeleteContactId(null)} className="text-gray-400 hover:underline text-[10px]">Batal</button>
-                                    </span>
-                                  ) : (
-                                    <button onClick={() => setConfirmDeleteContactId(contact.id)} className="text-red-500 hover:underline">Hapus</button>
-                                  )}
-                                </div>
-                              </div>
-                            )
-                          ))}
-                          {contactForm?.clientId === c.id && contactForm.contactId === null && (
-                            <ContactFormBlock form={contactForm} setForm={setContactForm} onSave={saveContact} onCancel={() => setContactForm(null)} saving={saving} />
-                          )}
-                          {!(contactForm?.clientId === c.id) && (
-                            <button onClick={() => startAddContact(c.id)} className="text-xs text-brand-600 hover:underline">+ Tambah PIC</button>
-                          )}
-                        </div>
+                          <button onClick={() => toggleExpand(c.id)} className="text-left hover:text-brand-600 flex items-center gap-2 group">
+                            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full border text-sm shrink-0 transition-colors ${expandedId === c.id ? 'bg-brand-100 border-brand-300 text-brand-600' : 'border-gray-300 text-gray-400 group-hover:border-brand-300 group-hover:text-brand-600'}`}>
+                              {expandedId === c.id ? '−' : '+'}
+                            </span>
+                            {c.name}
+                          </button>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">{c._count?.projects ?? 0}</td>
+                      <td className="px-4 py-3 text-gray-500">{c.contacts?.length || 0}</td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        {editId !== c.id && (
+                          confirmDeleteId === c.id ? (
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="inline-flex items-center gap-2">
+                                <span className="text-xs text-gray-500">Yakin hapus?</span>
+                                <button
+                                  onClick={() => deleteClient(c)}
+                                  className="text-xs px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600"
+                                >Ya, Hapus</button>
+                                <button
+                                  onClick={() => { setConfirmDeleteId(null); setDeleteError(prev => ({ ...prev, [c.id]: null })) }}
+                                  className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                >Batal</button>
+                              </span>
+                              {deleteError[c.id] && (
+                                <p className="text-[10px] text-red-600 text-right max-w-[220px] leading-tight">{deleteError[c.id]}</p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-3">
+                              <button onClick={() => startEdit(c)} className="text-xs text-brand-600 hover:underline py-1">Edit Nama</button>
+                              <button
+                                onClick={() => setConfirmDeleteId(c.id)}
+                                className="text-xs text-red-500 hover:underline py-1"
+                              >Hapus</button>
+                            </span>
+                          )
+                        )}
                       </td>
                     </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
+                    {expandedId === c.id && (
+                      <tr className="bg-gray-50/60 border-b border-gray-100">
+                        <td colSpan={4} className="px-4 py-3">
+                          <div className="space-y-2">
+                            {c.contacts?.length === 0 && !contactForm && (
+                              <p className="text-xs text-gray-400">Belum ada data PIC untuk klien ini.</p>
+                            )}
+                            {c.contacts?.map(contact => (
+                              contactForm?.contactId === contact.id ? (
+                                <ContactFormBlock key={contact.id} form={contactForm} setForm={setContactForm} onSave={saveContact} onCancel={() => setContactForm(null)} saving={saving} />
+                              ) : (
+                                <div key={contact.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-white border border-gray-100">
+                                  <div className="text-xs text-gray-600 space-y-0.5">
+                                    <p className="text-sm font-semibold text-gray-800">{contact.name}{contact.jobTitle && <span className="text-gray-400 font-normal"> · {contact.jobTitle}</span>}</p>
+                                    {contact.email && <p>Email: {contact.email}</p>}
+                                    {contact.phone && <p>Telp: {contact.phone}</p>}
+                                    {contact.address && <p>Alamat: {contact.address}</p>}
+                                    {contact.religion && <p>Agama: {contact.religion}</p>}
+                                    {contact.notes && <p className="text-gray-400">Catatan: {contact.notes}</p>}
+                                  </div>
+                                  <div className="flex flex-col gap-1 shrink-0 text-xs">
+                                    <button onClick={() => startEditContact(c.id, contact)} className="text-brand-600 hover:underline">Edit</button>
+                                    {confirmDeleteContactId === contact.id ? (
+                                      <span className="inline-flex items-center gap-1">
+                                        <button onClick={() => deleteContact(contact.id)} className="px-1.5 py-0.5 rounded bg-red-500 text-white text-[10px]">Ya</button>
+                                        <button onClick={() => setConfirmDeleteContactId(null)} className="text-gray-400 hover:underline text-[10px]">Batal</button>
+                                      </span>
+                                    ) : (
+                                      <button onClick={() => setConfirmDeleteContactId(contact.id)} className="text-red-500 hover:underline">Hapus</button>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            ))}
+                            {contactForm?.clientId === c.id && contactForm.contactId === null && (
+                              <ContactFormBlock form={contactForm} setForm={setContactForm} onSave={saveContact} onCancel={() => setContactForm(null)} saving={saving} />
+                            )}
+                            {!(contactForm?.clientId === c.id) && (
+                              <button onClick={() => startAddContact(c.id)} className="text-xs text-brand-600 hover:underline">+ Tambah PIC</button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <p className="text-xs text-gray-400">

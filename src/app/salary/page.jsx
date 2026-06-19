@@ -340,16 +340,16 @@ export default function SalaryPage() {
                     <th className="px-3 py-2.5">Nama</th>
                     <th className="px-2 py-2.5">Divisi</th>
                     <th className="px-2 py-2.5 text-right">Gaji Pokok</th>
-                    <th className="px-2 py-2.5 text-right">Tj. Jabatan</th>
-                    <th className="px-2 py-2.5 text-right">Tj. Kinerja</th>
-                    <th className="px-2 py-2.5 text-right">Tj. Transport</th>
-                    <th className="px-2 py-2.5 text-right">Tj. Project</th>
-                    <th className="px-2 py-2.5 text-right text-emerald-700 font-semibold">Bonus Project</th>
-                    <th className="px-2 py-2.5 text-right text-blue-600">THR/Bonus</th>
-                    <th className="px-2 py-2.5 text-right text-red-500">Potongan</th>
+                    <th className="px-2 py-2.5 text-right hidden lg:table-cell">Tj. Jabatan</th>
+                    <th className="px-2 py-2.5 text-right hidden lg:table-cell">Tj. Kinerja</th>
+                    <th className="px-2 py-2.5 text-right hidden lg:table-cell">Tj. Transport</th>
+                    <th className="px-2 py-2.5 text-right hidden lg:table-cell">Tj. Project</th>
+                    <th className="px-2 py-2.5 text-right text-emerald-700 font-semibold hidden lg:table-cell">Bonus Project</th>
+                    <th className="px-2 py-2.5 text-right text-blue-600 hidden lg:table-cell">THR/Bonus</th>
+                    <th className="px-2 py-2.5 text-right text-red-500 hidden lg:table-cell">Potongan</th>
                     <th className="px-2 py-2.5 text-right font-bold text-gray-700 bg-gray-100">THP</th>
-                    <th className="px-2 py-2.5 text-center">Score</th>
-                    <th className="px-2 py-2.5 text-center">Kontribusi</th>
+                    <th className="px-2 py-2.5 text-center hidden lg:table-cell">Score</th>
+                    <th className="px-2 py-2.5 text-center hidden lg:table-cell">Kontribusi</th>
                     <th className="px-3 py-2.5"></th>
                   </tr>
                 </thead>
@@ -396,18 +396,18 @@ export default function SalaryPage() {
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${color.badge}`}>{row.divisi==='FINANCE_HRGA'?'Finance+GA':row.divisi}</span>
                           </td>
                           <td className="px-2 py-2.5 text-right text-gray-600">{row.gajiPokok ? fmt(row.gajiPokok) : <span className="text-gray-300">—</span>}</td>
-                          <td className="px-2 py-2.5 text-right text-gray-500">{row.tunjanganJabatan ? fmt(row.tunjanganJabatan) : <span className="text-gray-300">—</span>}</td>
-                          <td className="px-2 py-2.5 text-right text-gray-500">{row.tunjanganKinerja ? fmt(row.tunjanganKinerja) : <span className="text-gray-300">—</span>}</td>
-                          <td className="px-2 py-2.5 text-right text-gray-500">{row.tunjanganTransport ? fmt(row.tunjanganTransport) : <span className="text-gray-300">—</span>}</td>
-                          <td className="px-2 py-2.5 text-right text-gray-500">{row.tunjanganProject ? fmt(row.tunjanganProject) : <span className="text-gray-300">—</span>}</td>
-                          <td className="px-2 py-2.5 text-right font-semibold text-emerald-700">{row.bonusProject ? fmt(row.bonusProject) : <span className="text-gray-300">—</span>}</td>
-                          <td className="px-2 py-2.5 text-right text-blue-600">{row.thrBonus ? fmt(row.thrBonus) : <span className="text-gray-300">—</span>}</td>
-                          <td className="px-2 py-2.5 text-right text-red-500">{totalPotongan ? fmt(totalPotongan) : <span className="text-gray-300">—</span>}</td>
+                          <td className="px-2 py-2.5 text-right text-gray-500 hidden lg:table-cell">{row.tunjanganJabatan ? fmt(row.tunjanganJabatan) : <span className="text-gray-300">—</span>}</td>
+                          <td className="px-2 py-2.5 text-right text-gray-500 hidden lg:table-cell">{row.tunjanganKinerja ? fmt(row.tunjanganKinerja) : <span className="text-gray-300">—</span>}</td>
+                          <td className="px-2 py-2.5 text-right text-gray-500 hidden lg:table-cell">{row.tunjanganTransport ? fmt(row.tunjanganTransport) : <span className="text-gray-300">—</span>}</td>
+                          <td className="px-2 py-2.5 text-right text-gray-500 hidden lg:table-cell">{row.tunjanganProject ? fmt(row.tunjanganProject) : <span className="text-gray-300">—</span>}</td>
+                          <td className="px-2 py-2.5 text-right font-semibold text-emerald-700 hidden lg:table-cell">{row.bonusProject ? fmt(row.bonusProject) : <span className="text-gray-300">—</span>}</td>
+                          <td className="px-2 py-2.5 text-right text-blue-600 hidden lg:table-cell">{row.thrBonus ? fmt(row.thrBonus) : <span className="text-gray-300">—</span>}</td>
+                          <td className="px-2 py-2.5 text-right text-red-500 hidden lg:table-cell">{totalPotongan ? fmt(totalPotongan) : <span className="text-gray-300">—</span>}</td>
                           <td className="px-2 py-2.5 text-right font-bold bg-gray-50 text-gray-900 whitespace-nowrap">
                             {row.thp !== null ? fmt(row.thp) : <span className="text-gray-300 font-normal text-[10px]">Belum diisi</span>}
                           </td>
-                          <td className={`px-2 py-2.5 text-center ${scoreInfo.cls}`}>{scoreInfo.text}</td>
-                          <td className="px-2 py-2.5 text-center">
+                          <td className={`px-2 py-2.5 text-center hidden lg:table-cell ${scoreInfo.cls}`}>{scoreInfo.text}</td>
+                          <td className="px-2 py-2.5 text-center hidden lg:table-cell">
                             {assetInfo
                               ? <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${assetInfo.cls}`}>{assetInfo.text}</span>
                               : <span className="text-gray-300">—</span>}
@@ -439,15 +439,15 @@ export default function SalaryPage() {
                           <tr key={`sub-${row.divisi}`} className={`${color.header} border-b-2 text-xs font-bold`}>
                             <td colSpan={3} className="px-3 py-2 text-gray-600">Subtotal {DIV_LABEL[row.divisi]}</td>
                             <td className="px-2 py-2 text-right">{fmt(sub.gajiPokok)}</td>
-                            <td className="px-2 py-2 text-right">{fmt(sub.tunjanganJabatan)}</td>
-                            <td className="px-2 py-2 text-right">{fmt(sub.tunjanganKinerja)}</td>
-                            <td className="px-2 py-2 text-right">{fmt(sub.tunjanganTransport)}</td>
-                            <td className="px-2 py-2 text-right">{fmt(sub.tunjanganProject)}</td>
-                            <td className="px-2 py-2 text-right text-emerald-700">{fmt(sub.bonusProject)}</td>
-                            <td className="px-2 py-2 text-right text-blue-700">{fmt(sub.thrBonus)}</td>
-                            <td className="px-2 py-2 text-right text-red-600">{fmt(sub.potongan)}</td>
+                            <td className="px-2 py-2 text-right hidden lg:table-cell">{fmt(sub.tunjanganJabatan)}</td>
+                            <td className="px-2 py-2 text-right hidden lg:table-cell">{fmt(sub.tunjanganKinerja)}</td>
+                            <td className="px-2 py-2 text-right hidden lg:table-cell">{fmt(sub.tunjanganTransport)}</td>
+                            <td className="px-2 py-2 text-right hidden lg:table-cell">{fmt(sub.tunjanganProject)}</td>
+                            <td className="px-2 py-2 text-right text-emerald-700 hidden lg:table-cell">{fmt(sub.bonusProject)}</td>
+                            <td className="px-2 py-2 text-right text-blue-700 hidden lg:table-cell">{fmt(sub.thrBonus)}</td>
+                            <td className="px-2 py-2 text-right text-red-600 hidden lg:table-cell">{fmt(sub.potongan)}</td>
                             <td className="px-2 py-2 text-right bg-gray-200 text-gray-900">{fmt(sub.thp)}</td>
-                            <td colSpan={3} />
+                            <td colSpan={3} className="hidden lg:table-cell" />
                           </tr>
                         )
                       }
@@ -463,27 +463,27 @@ export default function SalaryPage() {
                         TOTAL BEBAN PERUSAHAAN — {MONTHS[pm-1].toUpperCase()} {py}
                       </td>
                       <td className="px-2 py-3 text-right">{fmt(summary.totalGajiPokok)}</td>
-                      <td className="px-2 py-3 text-right opacity-75">
+                      <td className="px-2 py-3 text-right opacity-75 hidden lg:table-cell">
                         {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+r.tunjanganJabatan,0))}
                       </td>
-                      <td className="px-2 py-3 text-right opacity-75">
+                      <td className="px-2 py-3 text-right opacity-75 hidden lg:table-cell">
                         {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+r.tunjanganKinerja,0))}
                       </td>
-                      <td className="px-2 py-3 text-right opacity-75">
+                      <td className="px-2 py-3 text-right opacity-75 hidden lg:table-cell">
                         {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+r.tunjanganTransport,0))}
                       </td>
-                      <td className="px-2 py-3 text-right opacity-75">
+                      <td className="px-2 py-3 text-right opacity-75 hidden lg:table-cell">
                         {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+r.tunjanganProject,0))}
                       </td>
-                      <td className="px-2 py-3 text-right text-emerald-300">{fmt(summary.totalBonusProject)}</td>
-                      <td className="px-2 py-3 text-right text-blue-200">
+                      <td className="px-2 py-3 text-right text-emerald-300 hidden lg:table-cell">{fmt(summary.totalBonusProject)}</td>
+                      <td className="px-2 py-3 text-right text-blue-200 hidden lg:table-cell">
                         {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+r.thrBonus,0))}
                       </td>
-                      <td className="px-2 py-3 text-right text-red-300">{fmt(summary.totalPotongan)}</td>
+                      <td className="px-2 py-3 text-right text-red-300 hidden lg:table-cell">{fmt(summary.totalPotongan)}</td>
                       <td className="px-2 py-3 text-right text-xl text-white bg-brand-700 whitespace-nowrap">
                         {fmtK(summary.totalTHP)}
                       </td>
-                      <td colSpan={3} className="px-2 py-3 text-center text-brand-300 text-[10px]">
+                      <td colSpan={3} className="px-2 py-3 text-center text-brand-300 text-[10px] hidden lg:table-cell">
                         → dicatat sebagai<br />"Beban Project Reguler"
                       </td>
                     </tr>

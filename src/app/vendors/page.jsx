@@ -264,16 +264,17 @@ export default function VendorsPage() {
 
         {!loading && (
           <div className="bg-white rounded-xl shadow overflow-x-auto">
-            <table className="w-full text-sm min-w-[600px]">
+            <div className="min-w-[900px]">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-500 border-b">
                   <th className="px-3 py-2">Nama Vendor</th>
                   <th className="px-3 py-2">Jenis</th>
-                  <th className="px-3 py-2">Kota / Area</th>
+                  <th className="px-3 py-2 hidden sm:table-cell">Kota / Area</th>
                   <th className="px-3 py-2">PIC / Kontak</th>
                   <th className="px-3 py-2">Harga</th>
                   <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2">Diisi oleh</th>
+                  <th className="px-3 py-2 hidden sm:table-cell">Diisi oleh</th>
                   <th className="px-3 py-2"></th>
                 </tr>
               </thead>
@@ -282,13 +283,13 @@ export default function VendorsPage() {
                   <tr key={v.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => setDetail(v)}>
                     <td className="px-3 py-2 font-medium text-gray-900">{v.name}</td>
                     <td className="px-3 py-2 text-gray-600">{v.vendorType}{v.subCategory && <span className="text-gray-400"> · {v.subCategory}</span>}</td>
-                    <td className="px-3 py-2 text-gray-600">{[v.city, v.area].filter(Boolean).join(' / ') || '-'}</td>
+                    <td className="px-3 py-2 text-gray-600 hidden sm:table-cell">{[v.city, v.area].filter(Boolean).join(' / ') || '-'}</td>
                     <td className="px-3 py-2 text-gray-600">{[v.picContact, v.phone].filter(Boolean).join(' - ') || '-'}</td>
                     <td className="px-3 py-2 text-gray-600">{fmtPrice(v)}</td>
                     <td className="px-3 py-2">
                       <span className={`px-2 py-0.5 rounded text-xs ${v.status === 'Active' ? 'bg-green-100 text-green-700' : v.status === 'Blacklist' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>{v.status}</span>
                     </td>
-                    <td className="px-3 py-2 text-gray-500">{v.enteredBy?.name || v.enteredByName || '-'}</td>
+                    <td className="px-3 py-2 text-gray-500 hidden sm:table-cell">{v.enteredBy?.name || v.enteredByName || '-'}</td>
                     <td className="px-3 py-2 text-right">
                       <button onClick={(e) => { e.stopPropagation(); openEdit(v) }} className="text-blue-600 hover:underline text-xs mr-2">Edit</button>
                       {confirmDeleteId === v.id ? (
@@ -307,6 +308,7 @@ export default function VendorsPage() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </main>

@@ -1544,17 +1544,17 @@ export default function FinancePage() {
                 )}
               </div>
               <div className="overflow-x-auto -mx-1">
-              <div className="min-w-[900px]">
+              <div className="min-w-[1000px]">
               <div className="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-2 text-xs font-semibold text-gray-500 px-1">
                 <span className="col-span-2">Komponen (sesuai quotation)</span>
                 <span className="col-span-1">Qty</span>
-                <span className="col-span-2">Harga Satuan (Rp)</span>
+                <span className="col-span-2">Harga Satuan</span>
                 <span className="col-span-2">Kategori</span>
-                <span className="col-span-2">Forecast / Quotation (Rp)</span>
+                <span className="col-span-2">Forecast (Rp)</span>
                 <span className="col-span-2">Aktual Modal (Rp)</span>
-                <span className="col-span-1">Tgl Dibutuhkan</span>
+                <span className="col-span-1">Tgl Butuh</span>
                 <span className="col-span-1 text-center">Modal Awal</span>
-                <span className="col-span-2">Catatan Finance/Direksi</span>
+                <span className="col-span-2">Catatan</span>
                 <span className="col-span-1"></span>
               </div>
               {budgetItems.map((item, idx) => (

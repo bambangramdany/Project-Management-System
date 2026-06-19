@@ -231,46 +231,50 @@ export default function QuotationDetailPage() {
                 <span className="text-sm font-bold text-indigo-700">{sec.letter}. {sec.name}</span>
               </div>
               {/* Items */}
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-[11px] text-gray-400 border-b border-gray-100">
-                    <th className="px-5 py-2 text-left w-6">#</th>
-                    <th className="px-2 py-2 text-left">Item</th>
-                    <th className="px-2 py-2 text-right w-28">Rate</th>
-                    <th className="px-2 py-2 text-center w-20">Unit</th>
-                    <th className="px-2 py-2 text-center w-14">Qty</th>
-                    <th className="px-2 py-2 text-center w-14">Days</th>
-                    <th className="px-5 py-2 text-right w-36">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(sec.items || []).map(item => (
-                    <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                      <td className="px-5 py-2 text-gray-400 align-top">{item.no}</td>
-                      <td className="px-2 py-2 align-top">
-                        <p className="font-medium text-gray-800">{item.description}</p>
-                        {item.detailText && (
-                          <p className="text-xs text-gray-400 whitespace-pre-line mt-0.5">{item.detailText}</p>
-                        )}
-                        <div className="flex gap-2 mt-0.5">
-                          {item.includeAgencyFee && q.agencyFeePercent > 0 && (
-                            <span className="text-[10px] text-purple-500">AF</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-2 py-2 text-right text-gray-700 align-top">
-                        {item.rate == null ? <span className="text-amber-600 font-medium text-xs">by client</span> : fmt(item.rate)}
-                      </td>
-                      <td className="px-2 py-2 text-center text-gray-500 align-top">{item.unitType}</td>
-                      <td className="px-2 py-2 text-center text-gray-700 align-top">{item.qty}</td>
-                      <td className="px-2 py-2 text-center text-gray-700 align-top">{item.days}</td>
-                      <td className="px-5 py-2 text-right font-medium text-gray-800 align-top">
-                        {item.rate == null ? '—' : fmt(item.subtotal)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <div className="min-w-[640px]">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-[11px] text-gray-400 border-b border-gray-100">
+                        <th className="px-5 py-2 text-left w-6">#</th>
+                        <th className="px-2 py-2 text-left">Item</th>
+                        <th className="px-2 py-2 text-right w-28 hidden md:table-cell">Rate</th>
+                        <th className="px-2 py-2 text-center w-20">Unit</th>
+                        <th className="px-2 py-2 text-center w-14">Qty</th>
+                        <th className="px-2 py-2 text-center w-14 hidden md:table-cell">Days</th>
+                        <th className="px-5 py-2 text-right w-36">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(sec.items || []).map(item => (
+                        <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                          <td className="px-5 py-2 text-gray-400 align-top">{item.no}</td>
+                          <td className="px-2 py-2 align-top">
+                            <p className="font-medium text-gray-800">{item.description}</p>
+                            {item.detailText && (
+                              <p className="text-xs text-gray-400 whitespace-pre-line mt-0.5">{item.detailText}</p>
+                            )}
+                            <div className="flex gap-2 mt-0.5">
+                              {item.includeAgencyFee && q.agencyFeePercent > 0 && (
+                                <span className="text-[10px] text-purple-500">AF</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-2 py-2 text-right text-gray-700 align-top hidden md:table-cell">
+                            {item.rate == null ? <span className="text-amber-600 font-medium text-xs">by client</span> : fmt(item.rate)}
+                          </td>
+                          <td className="px-2 py-2 text-center text-gray-500 align-top">{item.unitType}</td>
+                          <td className="px-2 py-2 text-center text-gray-700 align-top">{item.qty}</td>
+                          <td className="px-2 py-2 text-center text-gray-700 align-top hidden md:table-cell">{item.days}</td>
+                          <td className="px-5 py-2 text-right font-medium text-gray-800 align-top">
+                            {item.rate == null ? '—' : fmt(item.subtotal)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           ))}
 

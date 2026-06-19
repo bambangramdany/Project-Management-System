@@ -298,47 +298,51 @@ export default function InvoiceDetailPage() {
               <p className="text-xs text-gray-400">Toggle "Tampil di Detail" untuk mode DETAIL PDF</p>
             )}
           </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-[11px] text-gray-400 border-b border-gray-100 bg-gray-50/50">
-                <th className="px-4 py-2 text-left">Item</th>
-                <th className="px-2 py-2 text-right w-28">Rate</th>
-                <th className="px-2 py-2 text-center w-16">Qty</th>
-                <th className="px-2 py-2 text-center w-14">Days</th>
-                <th className="px-4 py-2 text-right w-32">Subtotal</th>
-                {isDraft && editing && <th className="px-3 py-2 text-center w-24">Detail PDF</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {inv.items.map(item => {
-                const showInDetail = itemDetail[item.id] !== undefined ? itemDetail[item.id] : item.showInDetail
-                return (
-                  <tr key={item.id} className={`border-b border-gray-50 ${!showInDetail && inv.mode === 'DETAIL' ? 'opacity-40' : ''}`}>
-                    <td className="px-4 py-2.5 align-top">
-                      <p className="font-medium text-gray-800">{item.description}</p>
-                      {item.detailText && <p className="text-xs text-gray-400 whitespace-pre-line mt-0.5">{item.detailText}</p>}
-                      {item.includeAgencyFee && <span className="text-[10px] text-purple-500 mt-0.5 block">AF</span>}
-                    </td>
-                    <td className="px-2 py-2.5 text-right text-gray-600 align-top">
-                      {item.rate == null ? <span className="text-amber-500 text-xs">by client</span> : fmt(item.rate)}
-                    </td>
-                    <td className="px-2 py-2.5 text-center text-gray-600 align-top">{item.qty}</td>
-                    <td className="px-2 py-2.5 text-center text-gray-600 align-top">{item.days}</td>
-                    <td className="px-4 py-2.5 text-right font-medium text-gray-800 align-top">
-                      {item.rate == null ? '—' : fmt(item.subtotal)}
-                    </td>
-                    {isDraft && editing && (
-                      <td className="px-3 py-2.5 text-center align-top">
-                        <input type="checkbox" checked={showInDetail}
-                          onChange={e => toggleItemDetail(item.id, e.target.checked)}
-                          className="w-4 h-4 cursor-pointer" />
-                      </td>
-                    )}
+          <div className="overflow-x-auto">
+            <div className="min-w-[640px]">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-[11px] text-gray-400 border-b border-gray-100 bg-gray-50/50">
+                    <th className="px-4 py-2 text-left">Item</th>
+                    <th className="px-2 py-2 text-right w-28 hidden md:table-cell">Rate</th>
+                    <th className="px-2 py-2 text-center w-16">Qty</th>
+                    <th className="px-2 py-2 text-center w-14 hidden md:table-cell">Days</th>
+                    <th className="px-4 py-2 text-right w-32">Subtotal</th>
+                    {isDraft && editing && <th className="px-3 py-2 text-center w-24">Detail PDF</th>}
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {inv.items.map(item => {
+                    const showInDetail = itemDetail[item.id] !== undefined ? itemDetail[item.id] : item.showInDetail
+                    return (
+                      <tr key={item.id} className={`border-b border-gray-50 ${!showInDetail && inv.mode === 'DETAIL' ? 'opacity-40' : ''}`}>
+                        <td className="px-4 py-2.5 align-top">
+                          <p className="font-medium text-gray-800">{item.description}</p>
+                          {item.detailText && <p className="text-xs text-gray-400 whitespace-pre-line mt-0.5">{item.detailText}</p>}
+                          {item.includeAgencyFee && <span className="text-[10px] text-purple-500 mt-0.5 block">AF</span>}
+                        </td>
+                        <td className="px-2 py-2.5 text-right text-gray-600 align-top hidden md:table-cell">
+                          {item.rate == null ? <span className="text-amber-500 text-xs">by client</span> : fmt(item.rate)}
+                        </td>
+                        <td className="px-2 py-2.5 text-center text-gray-600 align-top">{item.qty}</td>
+                        <td className="px-2 py-2.5 text-center text-gray-600 align-top hidden md:table-cell">{item.days}</td>
+                        <td className="px-4 py-2.5 text-right font-medium text-gray-800 align-top">
+                          {item.rate == null ? '—' : fmt(item.subtotal)}
+                        </td>
+                        {isDraft && editing && (
+                          <td className="px-3 py-2.5 text-center align-top">
+                            <input type="checkbox" checked={showInDetail}
+                              onChange={e => toggleItemDetail(item.id, e.target.checked)}
+                              className="w-4 h-4 cursor-pointer" />
+                          </td>
+                        )}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
           {/* Totals footer */}
           <div className="px-5 py-3 border-t border-gray-100 space-y-1 max-w-xs ml-auto">
             <div className="flex justify-between text-sm"><span className="text-gray-500">Sub Total</span><span>{fmt(inv.subtotal)}</span></div>
