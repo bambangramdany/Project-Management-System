@@ -955,7 +955,7 @@ export default function FinancePage() {
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-semibold animate-pulse">{overdueReceivables.length} lewat jatuh tempo</span>
                 )}
               </h2>
-              {(role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && (
+              {(role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)) && (
                 <button onClick={() => setShowReceivableForm(v => !v)} className="btn-secondary text-xs">
                   {showReceivableForm ? 'Tutup' : '+ Tambah Piutang'}
                 </button>
@@ -975,7 +975,7 @@ export default function FinancePage() {
               </div>
             </div>
 
-            {showReceivableForm && (role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && (
+            {showReceivableForm && (role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)) && (
               <form onSubmit={submitReceivable} className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
                 <div className="sm:col-span-2">
                   <label className="label">Nama Klien (versi finance) *</label>
@@ -1135,10 +1135,10 @@ export default function FinancePage() {
 
         {/* ── 5. ANALYTICS: Revenue, Margin, Profitabilitas ── */}
         {/* Hanya OWNER, FINANCE (Antoni), dan DIRECTOR (termasuk Direktur Finance) */}
-        {(role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && profitability && profitability.byClient.length > 0 && (
+        {(role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)) && profitability && profitability.byClient.length > 0 && (
           <RevenuePerClientCard rows={profitability.byClient} rowsByDivision={profitability.byClientDivision} />
         )}
-        {(role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && marginReport && marginReport.divisions.length > 0 && (
+        {(role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)) && marginReport && marginReport.divisions.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-200">
               <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
@@ -1183,13 +1183,13 @@ export default function FinancePage() {
             </div>
           </div>
         )}
-        {(role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && profitability && (profitability.byClient.length > 0 || profitability.byCategory.length > 0) && (
+        {(role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)) && profitability && (profitability.byClient.length > 0 || profitability.byCategory.length > 0) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ProfitabilityCard title="Profitabilitas per Klien" rows={profitability.byClient} labelMap={null} />
             <ProfitabilityCard title="Profitabilitas per Kategori" rows={profitability.byCategory} labelMap={CATEGORY_LABEL} />
           </div>
         )}
-        {(role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && profitability && profitability.byProject?.length > 0 && (
+        {(role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)) && profitability && profitability.byProject?.length > 0 && (
           <ProfitabilityByProjectCard rows={profitability.byProject} />
         )}
 
