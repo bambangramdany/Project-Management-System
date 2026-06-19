@@ -114,6 +114,7 @@ export default function FinancePage() {
   const [confirmDeleteQuotation, setConfirmDeleteQuotation] = useState(false)
   const [confirmLockBudget, setConfirmLockBudget] = useState(false)
   const [confirmDeleteBudgetIdx, setConfirmDeleteBudgetIdx] = useState(null)
+  const [paymentTab, setPaymentTab] = useState('urgent') // 'urgent' | 'all'
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -471,10 +472,39 @@ export default function FinancePage() {
     ? projects.filter(p => p.pic?.id === session.user.id || p.picId === session.user.id || p.members?.some(m => (m.user?.id || m.userId) === session.user.id))
     : projects
 
+  // ── Computed values for alert strip ────────────────────────────────────────
+  const urgentPayments = payments.filter(p => {
+    if (p.status === 'PENDING_OWNER')          return role === 'OWNER'
+    if (p.status === 'PENDING_DIRECTOR')       return role === 'OWNER' || (role === 'DIRECTOR' && session.user.divisi === p.project?.division)
+    if (p.status === 'PENDING_FINANCE_DIRECTOR') return role === 'OWNER' || (role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA')
+    if (p.status === 'APPROVED_BY_DIRECTOR')   return role === 'FINANCE' || role === 'OWNER' || (role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA')
+    return false
+  })
+  const overdueReceivables = (receivables?.receivables || []).filter(
+    r => r.status === 'UNPAID' && !r.isVirtual && r.dueDate && new Date(r.dueDate) < new Date()
+  )
+
+  // Sort receivables: overdue first, then by dueDate asc, then unpaid, then paid
+  const sortedReceivables = [...(receivables?.receivables || [])].sort((a, b) => {
+    const aOverdue = a.status === 'UNPAID' && !a.isVirtual && a.dueDate && new Date(a.dueDate) < new Date()
+    const bOverdue = b.status === 'UNPAID' && !b.isVirtual && b.dueDate && new Date(b.dueDate) < new Date()
+    if (aOverdue && !bOverdue) return -1
+    if (!aOverdue && bOverdue) return 1
+    if (a.status === 'PAID' && b.status !== 'PAID') return 1
+    if (a.status !== 'PAID' && b.status === 'PAID') return -1
+    if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate)
+    return 0
+  })
+
+  // Payments filtered by tab
+  const displayedPayments = paymentTab === 'urgent' ? urgentPayments : payments
+
   return (
     <div className="min-h-screen bg-brand-50">
       <Navbar />
       <main className="max-w-5xl mx-auto px-2 sm:px-6 lg:px-8 py-6 space-y-5 overflow-x-hidden">
+
+        {/* ── Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h1 className="text-xl font-bold text-gray-900">Finance</h1>
           {canCreate && (
@@ -484,7 +514,37 @@ export default function FinancePage() {
           )}
         </div>
 
-        {/* Create payment request form */}
+        {/* ── Alert Strip ── */}
+        {(urgentPayments.length > 0 || overdueReceivables.length > 0) && (
+          <div className="flex flex-wrap gap-2">
+            {urgentPayments.length > 0 && (
+              <button
+                onClick={() => { setPaymentTab('urgent'); document.getElementById('payment-section')?.scrollIntoView({ behavior: 'smooth' }) }}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors text-left"
+              >
+                <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-amber-500 text-white text-xs font-bold shrink-0">{urgentPayments.length}</span>
+                <div>
+                  <p className="text-xs font-semibold text-amber-800">Pengajuan menunggu tindakan</p>
+                  <p className="text-[10px] text-amber-600">Klik untuk langsung ke daftar →</p>
+                </div>
+              </button>
+            )}
+            {overdueReceivables.length > 0 && (
+              <button
+                onClick={() => document.getElementById('receivable-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-200 hover:bg-red-100 transition-colors text-left"
+              >
+                <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-red-500 text-white text-xs font-bold shrink-0">{overdueReceivables.length}</span>
+                <div>
+                  <p className="text-xs font-semibold text-red-800">Piutang lewat jatuh tempo</p>
+                  <p className="text-[10px] text-red-600">Total: {formatRupiah(overdueReceivables.reduce((s, r) => s + r.amount, 0))} →</p>
+                </div>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── 1. Form Ajukan Pembayaran ── */}
         {showForm && canCreate && (
           <form onSubmit={submitRequest} className="card p-4 space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -558,7 +618,388 @@ export default function FinancePage() {
           </form>
         )}
 
-        {/* Budget forecast section */}
+        {/* ── 2. PENGAJUAN PEMBAYARAN (dipindah ke atas) ── */}
+        <div id="payment-section" className="card p-4 space-y-3 border-t-4 border-purple-400">
+          <div className="flex items-center justify-between gap-3 flex-wrap pb-2 border-b border-gray-100">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xs">🧾</span>
+              Pengajuan Pembayaran
+            </h2>
+            <div className="flex items-center gap-3">
+              {payments.length > 0 && (
+                <button
+                  onClick={() => exportCsv('riwayat-pembayaran.csv', payments.map(p => ({
+                    Project: `${p.project?.code} - ${p.project?.name}`,
+                    Kategori: EXPENSE_CATEGORY_LABEL[p.category],
+                    Vendor: p.vendor || '',
+                    Nominal: p.amount,
+                    Status: PAYMENT_STATUS_LABEL[p.status],
+                    Diajukan: `${p.requestedBy?.name || ''} (${p.createdAt ? new Date(p.createdAt).toLocaleString('id-ID') : ''})`,
+                    DirekturUtama: p.owner ? `${p.owner.name} (${p.ownerApprovedAt ? new Date(p.ownerApprovedAt).toLocaleString('id-ID') : ''})` : '',
+                    DirekturDivisi: p.director ? `${p.director.name} (${p.approvedAt ? new Date(p.approvedAt).toLocaleString('id-ID') : ''})` : '',
+                    DirekturFinance: p.financeDirector ? `${p.financeDirector.name} (${p.financeApprovedAt ? new Date(p.financeApprovedAt).toLocaleString('id-ID') : ''})` : '',
+                    Dibayar: p.financeBy ? `${p.financeBy.name} (${p.paidAt ? new Date(p.paidAt).toLocaleString('id-ID') : ''})` : '',
+                    CatatanDirekturDivisi: p.directorNote || '',
+                    CatatanDirekturFinance: p.financeDirectorNote || '',
+                    CatatanFinance: p.financeNote || '',
+                  })))}
+                  className="text-xs text-brand-600 hover:text-brand-700 font-medium underline-offset-2 hover:underline"
+                >Export CSV</button>
+              )}
+            </div>
+          </div>
+
+          {/* Tabs: Perlu Ditindaki / Semua */}
+          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+            <button
+              onClick={() => setPaymentTab('urgent')}
+              className={`text-xs px-3 py-1.5 rounded-md font-medium transition-all ${paymentTab === 'urgent' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              🔴 Perlu Ditindaki
+              {urgentPayments.length > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold">{urgentPayments.length}</span>
+              )}
+            </button>
+            <button
+              onClick={() => { setPaymentTab('all'); setFilterStatus('') }}
+              className={`text-xs px-3 py-1.5 rounded-md font-medium transition-all ${paymentTab === 'all' ? 'bg-white text-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Semua Riwayat
+            </button>
+          </div>
+
+          {/* Filter status — hanya di tab Semua */}
+          {paymentTab === 'all' && (
+            <select className="select w-56" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+              <option value="">Semua Status</option>
+              {Object.entries(PAYMENT_STATUS_LABEL).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
+            </select>
+          )}
+
+          {loading && <p className="text-sm text-gray-400 text-center py-8">Memuat...</p>}
+          {!loading && displayedPayments.length === 0 && (
+            <div className="text-center py-10">
+              {paymentTab === 'urgent'
+                ? <p className="text-sm text-gray-400">✓ Tidak ada pengajuan yang perlu ditindaki saat ini</p>
+                : <p className="text-sm text-gray-400">Belum ada pengajuan</p>
+              }
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {displayedPayments.map(p => {
+              const canActOwner = p.status === 'PENDING_OWNER' && role === 'OWNER'
+              const canActDivision = p.status === 'PENDING_DIRECTOR' &&
+                (role === 'OWNER' || (role === 'DIRECTOR' && session.user.divisi === p.project?.division))
+              const canActFinanceDirector = p.status === 'PENDING_FINANCE_DIRECTOR' &&
+                (role === 'OWNER' || (role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA'))
+              const canActPay = p.status === 'APPROVED_BY_DIRECTOR' &&
+                (role === 'FINANCE' || role === 'OWNER' || (role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA'))
+              const isUrgentForMe = canActOwner || canActDivision || canActFinanceDirector || canActPay
+
+              return (
+                <div key={p.id} className={`border rounded-lg p-3 space-y-2 hover:shadow-sm transition-all ${isUrgentForMe ? 'border-amber-200 bg-amber-50/30 hover:border-amber-300' : 'border-gray-100 hover:border-brand-200'}`}>
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{p.project?.code} — {p.project?.name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{EXPENSE_CATEGORY_LABEL[p.category]} · {p.vendor || '—'}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${PAYMENT_STATUS_COLOR[p.status]}`}>
+                      {PAYMENT_STATUS_LABEL[p.status]}
+                    </span>
+                  </div>
+
+                  {p.status !== 'REJECTED' && <PaymentStepper status={p.status} hasOwnerStage={!!p.owner || p.status === 'PENDING_OWNER'} />}
+
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                    <span>Nominal: <strong className="text-gray-800">{formatRupiah(p.amount)}</strong></span>
+                    <span>Termin: {PAYMENT_TERM_LABEL[p.paymentTerm] || PAYMENT_TERM_LABEL.FULL}</span>
+                    <span>Diajukan: {p.requestedBy?.name}</span>
+                    {p.neededDate && <span className={new Date(p.neededDate) < new Date() && !['PAID','REJECTED'].includes(p.status) ? 'text-red-500 font-semibold' : ''}>Dibutuhkan: {new Date(p.neededDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                  </div>
+                  {(p.recipientName || p.recipientAccount) && (
+                    <p className="text-xs text-gray-500">Penerima: {p.recipientName || '—'}{p.recipientAccount ? ` · ${p.recipientAccount}` : ''}</p>
+                  )}
+                  {p.description && <p className="text-xs text-gray-600">{p.description}</p>}
+                  <div className="text-[11px] text-gray-400 space-y-0.5">
+                    {p.owner && <p>✓ Direktur Utama: {p.owner.name} · {new Date(p.ownerApprovedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
+                    {p.director && <p>✓ Direktur Divisi: {p.director.name} · {new Date(p.approvedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
+                    {p.financeDirector && <p>✓ Direktur Finance: {p.financeDirector.name} · {new Date(p.financeApprovedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
+                    {p.financeBy && <p>✓ Dibayar oleh: {p.financeBy.name} · {new Date(p.paidAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
+                  </div>
+                  {p.ownerNote && <p className="text-xs text-amber-600">Catatan Direktur Utama: {p.ownerNote}</p>}
+                  {p.directorNote && <p className="text-xs text-amber-600">Catatan Direktur Divisi{p.director ? ` (${p.director.name})` : ''}: {p.directorNote}</p>}
+                  {p.financeDirectorNote && <p className="text-xs text-amber-600">Catatan Direktur Finance{p.financeDirector ? ` (${p.financeDirector.name})` : ''}: {p.financeDirectorNote}</p>}
+                  {p.financeNote && <p className="text-xs text-amber-600">Catatan Finance{p.financeBy ? ` (${p.financeBy.name})` : ''}: {p.financeNote}</p>}
+
+                  {(canActOwner || canActDivision || canActFinanceDirector) && (
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={() => doAction(p.id, 'approve')} className="text-xs px-3 py-1 rounded-full bg-green-50 text-green-600 hover:bg-green-100 active:scale-95 font-medium transition-all">✓ Setujui</button>
+                      <button onClick={() => doAction(p.id, 'reject')} className="text-xs px-3 py-1 rounded-full bg-red-50 text-red-500 hover:bg-red-100 active:scale-95 font-medium transition-all">✕ Tolak</button>
+                    </div>
+                  )}
+                  {canActPay && (
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={() => doAction(p.id, 'mark_paid')} className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 active:scale-95 font-medium transition-all">💳 Tandai Sudah Dibayar</button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ── 3. PIUTANG / INVOICE KLIEN ── */}
+        {receivables && (
+          <div id="receivable-section" className="card p-4 space-y-3 border-t-4 border-cyan-400">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-100">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-cyan-100 text-cyan-600 flex items-center justify-center text-xs">📄</span>
+                Piutang / Invoice Klien
+                {overdueReceivables.length > 0 && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-semibold animate-pulse">{overdueReceivables.length} lewat jatuh tempo</span>
+                )}
+              </h2>
+              {(role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && (
+                <button onClick={() => setShowReceivableForm(v => !v)} className="btn-secondary text-xs">
+                  {showReceivableForm ? 'Tutup' : '+ Tambah Piutang'}
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-lg bg-orange-50">
+                <p className="text-xs text-gray-500">Belum Dibayar</p>
+                <p className="text-lg font-bold text-orange-600">{formatRupiah(receivables.totalUnpaid)}</p>
+                <p className="text-xs text-gray-400">{receivables.receivables.filter(r => r.status === 'UNPAID' && !r.isVirtual).length} invoice</p>
+              </div>
+              <div className="p-3 rounded-lg bg-emerald-50">
+                <p className="text-xs text-gray-500">Sudah Dibayar</p>
+                <p className="text-lg font-bold text-emerald-600">{formatRupiah(receivables.totalPaid)}</p>
+                <p className="text-xs text-gray-400">{receivables.receivables.filter(r => r.status === 'PAID').length} invoice</p>
+              </div>
+            </div>
+
+            {showReceivableForm && (role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && (
+              <form onSubmit={submitReceivable} className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                <div className="sm:col-span-2">
+                  <label className="label">Nama Klien (versi finance) *</label>
+                  <input className="input" value={receivableForm.clientName} onChange={e => setReceivableForm(f => ({ ...f, clientName: e.target.value }))} required placeholder="Nama klien seperti di invoice" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="label">Nama Project (versi finance)</label>
+                  <input className="input" value={receivableForm.financeProjectName} onChange={e => setReceivableForm(f => ({ ...f, financeProjectName: e.target.value }))} placeholder="Nama project seperti di invoice klien (opsional)" />
+                </div>
+                <div>
+                  <label className="label">No. Invoice</label>
+                  <input className="input" value={receivableForm.invoiceNumber} onChange={e => setReceivableForm(f => ({ ...f, invoiceNumber: e.target.value }))} placeholder="cth. WTM/EVENT/INV/2026/021/25" />
+                </div>
+                <div>
+                  <label className="label">No. PO Klien</label>
+                  <input className="input" value={receivableForm.poNumber} onChange={e => setReceivableForm(f => ({ ...f, poNumber: e.target.value }))} placeholder="opsional" />
+                </div>
+                <div>
+                  <label className="label">No. Faktur Pajak</label>
+                  <input className="input" value={receivableForm.taxInvoiceNumber} onChange={e => setReceivableForm(f => ({ ...f, taxInvoiceNumber: e.target.value }))} placeholder="opsional" />
+                </div>
+                <div>
+                  <label className="label">Nominal (Rp) *</label>
+                  <ThousandsInput className="input" value={receivableForm.amount} onChange={v => setReceivableForm(f => ({ ...f, amount: v }))} placeholder="0" />
+                </div>
+                <div>
+                  <label className="label">Tanggal Invoice</label>
+                  <input type="date" className="input" value={receivableForm.issueDate} onChange={e => setReceivableForm(f => ({ ...f, issueDate: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="label">Jatuh Tempo</label>
+                  <input type="date" className="input" value={receivableForm.dueDate} onChange={e => setReceivableForm(f => ({ ...f, dueDate: e.target.value }))} />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="label">Catatan</label>
+                  <input className="input" value={receivableForm.notes} onChange={e => setReceivableForm(f => ({ ...f, notes: e.target.value }))} placeholder="opsional" />
+                </div>
+                <div className="sm:col-span-2 flex gap-2">
+                  <button className="btn-primary text-sm" disabled={savingReceivable}>{savingReceivable ? 'Menyimpan...' : 'Simpan'}</button>
+                  <button type="button" onClick={() => setShowReceivableForm(false)} className="btn-secondary text-sm">Batal</button>
+                </div>
+              </form>
+            )}
+
+            {sortedReceivables.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">Belum ada catatan piutang</p>
+            ) : (
+              <div className="space-y-2">
+                {sortedReceivables.map(r => {
+                  const overdue = r.status === 'UNPAID' && !r.isVirtual && r.dueDate && new Date(r.dueDate) < new Date()
+                  const canAct = role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)
+                  return (
+                    <div key={r.id} className={`rounded-xl border p-3 transition-colors ${r.isVirtual ? 'border-dashed border-cyan-300 bg-cyan-50/60' : overdue ? 'border-red-200 bg-red-50/40' : r.status === 'PAID' ? 'border-emerald-100 bg-emerald-50/40' : 'border-gray-100 hover:bg-gray-50'}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {r.isVirtual && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-100 text-cyan-700 font-semibold border border-cyan-200">Draft</span>}
+                            {r.status === 'PAID' && !r.isVirtual && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">Lunas ✓</span>}
+                            {overdue && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-medium animate-pulse">⚠ Lewat Tenggat</span>}
+                            <p className="text-sm font-semibold text-gray-800">{r.clientName}</p>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {r.financeProjectName || r.project?.name}
+                            {r.project && <span className="text-gray-400"> · {r.project.code}</span>}
+                          </p>
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                            {r.invoiceNumber && <span className="text-[11px] text-gray-500">Invoice: <span className="font-medium">{r.invoiceNumber}</span></span>}
+                            {r.poNumber && <span className="text-[11px] text-gray-500">PO: <span className="font-medium">{r.poNumber}</span></span>}
+                            {r.taxInvoiceNumber && <span className="text-[11px] text-gray-500">Faktur Pajak: <span className="font-medium">{r.taxInvoiceNumber}</span></span>}
+                          </div>
+                          <p className="text-[11px] text-gray-400 mt-0.5">
+                            {r.dueDate ? `Jatuh tempo ${new Date(r.dueDate).toLocaleDateString('id-ID', { dateStyle: 'medium' })}` : ''}
+                            {r.status === 'PAID' && r.paidAt ? `${r.dueDate ? ' · ' : ''}Dibayar ${new Date(r.paidAt).toLocaleDateString('id-ID', { dateStyle: 'medium' })}` : ''}
+                            {r.notes ? ` · ${r.notes}` : ''}
+                            {r.pphAmount > 0 && <span className="text-orange-500"> · PPh {formatRupiah(r.pphAmount)}</span>}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-bold text-gray-800">{formatRupiah(r.amount)}</p>
+                          {r.status === 'PAID' && r.paidAmount && r.paidAmount !== r.amount && (
+                            <p className="text-[11px] text-emerald-600">Diterima {formatRupiah(r.paidAmount)}</p>
+                          )}
+                        </div>
+                      </div>
+                      {canAct && (
+                        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100/80">
+                          {r.isVirtual ? (
+                            <button onClick={() => confirmDraft(r)} className="text-xs px-2.5 py-1 rounded-md bg-cyan-100 text-cyan-700 hover:bg-cyan-200 font-medium">+ Buat Invoice</button>
+                          ) : r.status === 'PAID' ? (
+                            <button onClick={() => markUnpaid(r)} className="text-xs text-gray-400 hover:text-orange-500">Batalkan Lunas</button>
+                          ) : (
+                            <button onClick={() => openPayModal(r)} className="text-xs px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-medium">✓ Tandai Lunas</button>
+                          )}
+                          {!r.isVirtual && (
+                            confirmDeleteReceivableId === r.id ? (
+                              <span className="inline-flex items-center gap-1 ml-auto">
+                                <button onClick={() => removeReceivable(r.id)} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Hapus</button>
+                                <button onClick={() => setConfirmDeleteReceivableId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
+                              </span>
+                            ) : (
+                              <button onClick={() => setConfirmDeleteReceivableId(r.id)} className="text-xs text-gray-400 hover:text-red-500 ml-auto">Hapus</button>
+                            )
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── 4. FORECAST KEBUTUHAN DANA VENDOR ── */}
+        {cashflow && (
+          <div className="card p-4 space-y-3 border-t-4 border-orange-400">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-100">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-xs">💸</span>
+                Forecast Kebutuhan Dana Vendor
+              </h2>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-gray-900">Total: {formatRupiah(cashflow.grandTotal)}</span>
+                <button
+                  onClick={() => exportCsv('cashflow-forecast.csv', cashflow.months.flatMap(m => m.items.map(it => ({
+                    Bulan: m.month, Tanggal: it.neededDate?.slice(0, 10), Project: it.project.code,
+                    Komponen: it.label, Jumlah: it.amount, Status: it.isActual ? 'Aktual' : 'Forecast',
+                  }))))}
+                  className="text-xs text-brand-600 hover:text-brand-700 font-medium underline-offset-2 hover:underline"
+                >Export CSV</button>
+              </div>
+            </div>
+            {cashflow.months.length === 0 && <p className="text-sm text-gray-400">Belum ada jadwal kebutuhan dana.</p>}
+            {cashflow.months.map(m => (
+              <div key={m.month} className="border border-gray-100 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700">
+                    {new Date(m.month + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                  </span>
+                  <span className="text-sm font-bold text-brand-700">{formatRupiah(m.total)}</span>
+                </div>
+                <div className="space-y-1">
+                  {m.items.map(it => (
+                    <div key={it.id} className="flex items-center justify-between text-xs text-gray-600">
+                      <span>
+                        {new Date(it.neededDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} · {it.project.code} — {it.project.name} — {it.label}
+                        {it.isActual && <span className="ml-1 text-emerald-600">(aktual)</span>}
+                      </span>
+                      <span className="font-medium text-gray-800">{formatRupiah(it.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── 5. ANALYTICS: Revenue, Margin, Profitabilitas ── */}
+        {profitability && profitability.byClient.length > 0 && (
+          <RevenuePerClientCard rows={profitability.byClient} rowsByDivision={profitability.byClientDivision} />
+        )}
+        {marginReport && marginReport.divisions.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-200">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs">📊</span>
+                Laporan Margin per Divisi
+              </h2>
+              <button
+                onClick={() => exportCsv('laporan-margin.csv', marginReport.divisions.flatMap(d => d.projects.map(p => ({
+                  Divisi: DIVISION_LABEL[d.division] || d.division, Kode: p.code, Project: p.name, Status: p.status,
+                  NilaiProject: p.projectValue, ForecastBiaya: p.forecastCost, AktualBiaya: p.actualCost,
+                  MarginForecast: p.marginForecast, MarginAktual: p.marginActual,
+                }))))}
+                className="text-xs text-brand-600 hover:text-brand-700 font-medium underline-offset-2 hover:underline"
+              >Export CSV</button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {marginReport.divisions.map(d => (
+                <div key={d.division} className="rounded-2xl bg-gradient-to-br from-brand-50 to-orange-50 border border-brand-100 p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-gray-900">{DIVISION_LABEL[d.division] || d.division}</h3>
+                    <span className="text-xs text-gray-500">{d.projects.length} project</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div><p className="text-xs text-gray-500">Total Nilai Project</p><p className="font-bold text-gray-900">{formatRupiah(d.totalValue)}</p></div>
+                    <div><p className="text-xs text-gray-500">Total Biaya (Aktual)</p><p className="font-bold text-gray-900">{formatRupiah(d.totalActualCost)}</p></div>
+                    <div><p className="text-xs text-gray-500">Margin (Forecast)</p><p className={clsx('font-bold', d.totalMarginForecast >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(d.totalMarginForecast)}</p></div>
+                    <div><p className="text-xs text-gray-500">Margin (Aktual)</p><p className={clsx('font-bold', d.totalMarginActual >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(d.totalMarginActual)}</p></div>
+                  </div>
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-brand-700 font-medium hover:text-brand-800 select-none">Detail per project</summary>
+                    <div className="mt-2 space-y-1.5">
+                      {d.projects.map(p => (
+                        <div key={p.id} className="flex items-center justify-between bg-white/60 rounded-lg px-2 py-1.5">
+                          <span className="text-gray-700">{p.code} — {p.name}</span>
+                          <span className={clsx('font-semibold', p.marginActual >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(p.marginActual)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {profitability && (profitability.byClient.length > 0 || profitability.byCategory.length > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ProfitabilityCard title="Profitabilitas per Klien" rows={profitability.byClient} labelMap={null} />
+            <ProfitabilityCard title="Profitabilitas per Kategori" rows={profitability.byCategory} labelMap={CATEGORY_LABEL} />
+          </div>
+        )}
+        {profitability && profitability.byProject?.length > 0 && (
+          <ProfitabilityByProjectCard rows={profitability.byProject} />
+        )}
+
+        {/* ── 6. FORECAST BUDGET per PROJECT (tool kerja PM — dipindah ke bawah) ── */}
         <div className="card p-4 space-y-3 border-t-4 border-blue-400">
           <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-100">
             <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
@@ -1014,56 +1455,6 @@ export default function FinancePage() {
             </div>
           )}
         </div>
-        {/* Cashflow forecast (Owner/Finance/Direksi only) */}
-        {cashflow && (
-          <div className="card p-4 space-y-3 border-t-4 border-orange-400">
-            <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-100">
-              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-xs">💸</span>
-                Forecast Kebutuhan Dana Vendor
-              </h2>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-bold text-gray-900">Total: {formatRupiah(cashflow.grandTotal)}</span>
-                <button
-                  onClick={() => exportCsv('cashflow-forecast.csv', cashflow.months.flatMap(m => m.items.map(it => ({
-                    Bulan: m.month,
-                    Tanggal: it.neededDate?.slice(0, 10),
-                    Project: it.project.code,
-                    Komponen: it.label,
-                    Jumlah: it.amount,
-                    Status: it.isActual ? 'Aktual' : 'Forecast',
-                  }))))}
-                  className="text-xs text-brand-600 hover:text-brand-700 font-medium underline-offset-2 hover:underline"
-                >Export CSV</button>
-              </div>
-            </div>
-            {cashflow.months.length === 0 && (
-              <p className="text-sm text-gray-400">Belum ada jadwal kebutuhan dana.</p>
-            )}
-            {cashflow.months.map(m => (
-              <div key={m.month} className="border border-gray-100 rounded-lg p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-gray-700">
-                    {new Date(m.month + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
-                  </span>
-                  <span className="text-sm font-bold text-brand-700">{formatRupiah(m.total)}</span>
-                </div>
-                <div className="space-y-1">
-                  {m.items.map(it => (
-                    <div key={it.id} className="flex items-center justify-between text-xs text-gray-600">
-                      <span>
-                        {new Date(it.neededDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} · {it.project.code} — {it.project.name} — {it.label}
-                        {it.isActual && <span className="ml-1 text-emerald-600">(aktual)</span>}
-                      </span>
-                      <span className="font-medium text-gray-800">{formatRupiah(it.amount)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* Modal Pembayaran */}
         {payModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -1097,350 +1488,6 @@ export default function FinancePage() {
           </div>
         )}
 
-        {/* Receivables / Piutang (Owner/Finance/Direksi only) */}
-        {receivables && (
-          <div className="card p-4 space-y-3 border-t-4 border-cyan-400">
-            <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-100">
-              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-cyan-100 text-cyan-600 flex items-center justify-center text-xs">📄</span>
-                Piutang / Invoice Klien
-              </h2>
-              {(role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && (
-                <button onClick={() => setShowReceivableForm(v => !v)} className="btn-secondary text-xs">
-                  {showReceivableForm ? 'Tutup' : '+ Tambah Piutang'}
-                </button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-lg bg-orange-50">
-                <p className="text-xs text-gray-500">Belum Dibayar</p>
-                <p className="text-lg font-bold text-orange-600">{formatRupiah(receivables.totalUnpaid)}</p>
-                <p className="text-xs text-gray-400">{receivables.receivables.filter(r => r.status === 'UNPAID' && !r.isVirtual).length} invoice</p>
-              </div>
-              <div className="p-3 rounded-lg bg-emerald-50">
-                <p className="text-xs text-gray-500">Sudah Dibayar</p>
-                <p className="text-lg font-bold text-emerald-600">{formatRupiah(receivables.totalPaid)}</p>
-                <p className="text-xs text-gray-400">{receivables.receivables.filter(r => r.status === 'PAID').length} invoice</p>
-              </div>
-            </div>
-
-            {showReceivableForm && (role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)) && (
-              <form onSubmit={submitReceivable} className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
-                <div className="sm:col-span-2">
-                  <label className="label">Nama Klien (versi finance) *</label>
-                  <input className="input" value={receivableForm.clientName} onChange={e => setReceivableForm(f => ({ ...f, clientName: e.target.value }))} required placeholder="Nama klien seperti di invoice" />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="label">Nama Project (versi finance)</label>
-                  <input className="input" value={receivableForm.financeProjectName} onChange={e => setReceivableForm(f => ({ ...f, financeProjectName: e.target.value }))} placeholder="Nama project seperti di invoice klien (opsional)" />
-                </div>
-                <div>
-                  <label className="label">No. Invoice</label>
-                  <input className="input" value={receivableForm.invoiceNumber} onChange={e => setReceivableForm(f => ({ ...f, invoiceNumber: e.target.value }))} placeholder="cth. WTM/EVENT/INV/2026/021/25" />
-                </div>
-                <div>
-                  <label className="label">No. PO Klien</label>
-                  <input className="input" value={receivableForm.poNumber} onChange={e => setReceivableForm(f => ({ ...f, poNumber: e.target.value }))} placeholder="opsional" />
-                </div>
-                <div>
-                  <label className="label">No. Faktur Pajak</label>
-                  <input className="input" value={receivableForm.taxInvoiceNumber} onChange={e => setReceivableForm(f => ({ ...f, taxInvoiceNumber: e.target.value }))} placeholder="opsional" />
-                </div>
-                <div>
-                  <label className="label">Nominal (Rp) *</label>
-                  <ThousandsInput className="input" value={receivableForm.amount} onChange={v => setReceivableForm(f => ({ ...f, amount: v }))} placeholder="0" />
-                </div>
-                <div>
-                  <label className="label">Tanggal Invoice</label>
-                  <input type="date" className="input" value={receivableForm.issueDate} onChange={e => setReceivableForm(f => ({ ...f, issueDate: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="label">Jatuh Tempo</label>
-                  <input type="date" className="input" value={receivableForm.dueDate} onChange={e => setReceivableForm(f => ({ ...f, dueDate: e.target.value }))} />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="label">Catatan</label>
-                  <input className="input" value={receivableForm.notes} onChange={e => setReceivableForm(f => ({ ...f, notes: e.target.value }))} placeholder="opsional" />
-                </div>
-                <div className="sm:col-span-2 flex gap-2">
-                  <button className="btn-primary text-sm" disabled={savingReceivable}>{savingReceivable ? 'Menyimpan...' : 'Simpan'}</button>
-                  <button type="button" onClick={() => setShowReceivableForm(false)} className="btn-secondary text-sm">Batal</button>
-                </div>
-              </form>
-            )}
-
-            {receivables.receivables.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-4">Belum ada catatan piutang</p>
-            ) : (
-              <div className="space-y-2">
-                {receivables.receivables.map(r => {
-                  const overdue = r.status === 'UNPAID' && !r.isVirtual && r.dueDate && new Date(r.dueDate) < new Date()
-                  const canAct = role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)
-                  return (
-                    <div key={r.id} className={`rounded-xl border p-3 transition-colors ${r.isVirtual ? 'border-dashed border-cyan-300 bg-cyan-50/60' : r.status === 'PAID' ? 'border-emerald-100 bg-emerald-50/40' : 'border-gray-100 hover:bg-gray-50'}`}>
-                      {/* Baris atas — nama klien + badge + nominal */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {r.isVirtual && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-100 text-cyan-700 font-semibold border border-cyan-200">Draft</span>
-                            )}
-                            {r.status === 'PAID' && !r.isVirtual && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">Lunas ✓</span>
-                            )}
-                            {overdue && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">Lewat Tenggat</span>}
-                            <p className="text-sm font-semibold text-gray-800">{r.clientName}</p>
-                          </div>
-                          {/* Nama project */}
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {r.financeProjectName || (r.project?.name)}
-                            {r.project && <span className="text-gray-400"> · {r.project.code}</span>}
-                          </p>
-                          {/* Nomor-nomor */}
-                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                            {r.invoiceNumber && <span className="text-[11px] text-gray-500">Invoice: <span className="font-medium">{r.invoiceNumber}</span></span>}
-                            {r.poNumber && <span className="text-[11px] text-gray-500">PO: <span className="font-medium">{r.poNumber}</span></span>}
-                            {r.taxInvoiceNumber && <span className="text-[11px] text-gray-500">Faktur Pajak: <span className="font-medium">{r.taxInvoiceNumber}</span></span>}
-                          </div>
-                          {/* Tanggal & catatan */}
-                          <p className="text-[11px] text-gray-400 mt-0.5">
-                            {r.dueDate ? `Jatuh tempo ${new Date(r.dueDate).toLocaleDateString('id-ID', { dateStyle: 'medium' })}` : ''}
-                            {r.status === 'PAID' && r.paidAt ? `${r.dueDate ? ' · ' : ''}Dibayar ${new Date(r.paidAt).toLocaleDateString('id-ID', { dateStyle: 'medium' })}` : ''}
-                            {r.notes ? ` · ${r.notes}` : ''}
-                            {r.pphAmount > 0 && <span className="text-orange-500"> · PPh {formatRupiah(r.pphAmount)}</span>}
-                          </p>
-                        </div>
-                        {/* Nominal */}
-                        <div className="text-right shrink-0">
-                          <p className="text-sm font-bold text-gray-800">{formatRupiah(r.amount)}</p>
-                          {r.status === 'PAID' && r.paidAmount && r.paidAmount !== r.amount && (
-                            <p className="text-[11px] text-emerald-600">Diterima {formatRupiah(r.paidAmount)}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Baris aksi */}
-                      {canAct && (
-                        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100/80">
-                          {r.isVirtual ? (
-                            <button onClick={() => confirmDraft(r)} className="text-xs px-2.5 py-1 rounded-md bg-cyan-100 text-cyan-700 hover:bg-cyan-200 font-medium">
-                              + Buat Invoice
-                            </button>
-                          ) : r.status === 'PAID' ? (
-                            <button onClick={() => markUnpaid(r)} className="text-xs text-gray-400 hover:text-orange-500">Batalkan Lunas</button>
-                          ) : (
-                            <button onClick={() => openPayModal(r)} className="text-xs px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-medium">
-                              Tandai Lunas
-                            </button>
-                          )}
-                          {!r.isVirtual && (
-                            confirmDeleteReceivableId === r.id ? (
-                              <span className="inline-flex items-center gap-1 ml-auto">
-                                <button onClick={() => removeReceivable(r.id)} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Hapus</button>
-                                <button onClick={() => setConfirmDeleteReceivableId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
-                              </span>
-                            ) : (
-                              <button onClick={() => setConfirmDeleteReceivableId(r.id)} className="text-xs text-gray-400 hover:text-red-500 ml-auto">Hapus</button>
-                            )
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Revenue summary per client — total revenue across all won projects */}
-        {profitability && profitability.byClient.length > 0 && (
-          <RevenuePerClientCard rows={profitability.byClient} rowsByDivision={profitability.byClientDivision} />
-        )}
-
-        {/* Margin report (Owner/Finance/Direksi only) */}
-        {marginReport && marginReport.divisions.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-200">
-              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs">📊</span>
-                Laporan Margin per Divisi
-              </h2>
-              <button
-                onClick={() => exportCsv('laporan-margin.csv', marginReport.divisions.flatMap(d => d.projects.map(p => ({
-                  Divisi: DIVISION_LABEL[d.division] || d.division,
-                  Kode: p.code,
-                  Project: p.name,
-                  Status: p.status,
-                  NilaiProject: p.projectValue,
-                  ForecastBiaya: p.forecastCost,
-                  AktualBiaya: p.actualCost,
-                  MarginForecast: p.marginForecast,
-                  MarginAktual: p.marginActual,
-                }))))}
-                className="text-xs text-brand-600 hover:text-brand-700 font-medium underline-offset-2 hover:underline"
-              >Export CSV</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {marginReport.divisions.map(d => (
-                <div key={d.division} className="rounded-2xl bg-gradient-to-br from-brand-50 to-orange-50 border border-brand-100 p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-gray-900">{DIVISION_LABEL[d.division] || d.division}</h3>
-                    <span className="text-xs text-gray-500">{d.projects.length} project</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-xs text-gray-500">Total Nilai Project</p>
-                      <p className="font-bold text-gray-900">{formatRupiah(d.totalValue)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Total Biaya (Aktual)</p>
-                      <p className="font-bold text-gray-900">{formatRupiah(d.totalActualCost)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Margin (Forecast)</p>
-                      <p className={clsx('font-bold', d.totalMarginForecast >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(d.totalMarginForecast)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Margin (Aktual)</p>
-                      <p className={clsx('font-bold', d.totalMarginActual >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(d.totalMarginActual)}</p>
-                    </div>
-                  </div>
-                  <details className="text-xs">
-                    <summary className="cursor-pointer text-brand-700 font-medium hover:text-brand-800 select-none">Detail per project</summary>
-                    <div className="mt-2 space-y-1.5">
-                      {d.projects.map(p => (
-                        <div key={p.id} className="flex items-center justify-between bg-white/60 rounded-lg px-2 py-1.5">
-                          <span className="text-gray-700">{p.code} — {p.name}</span>
-                          <span className={clsx('font-semibold', p.marginActual >= 0 ? 'text-emerald-600' : 'text-red-500')}>{formatRupiah(p.marginActual)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Profitability analysis (Owner/Finance/Direksi only) */}
-        {profitability && (profitability.byClient.length > 0 || profitability.byCategory.length > 0) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ProfitabilityCard title="Profitabilitas per Klien" rows={profitability.byClient} labelMap={null} />
-            <ProfitabilityCard title="Profitabilitas per Kategori" rows={profitability.byCategory} labelMap={CATEGORY_LABEL} />
-          </div>
-        )}
-
-        {/* Profitability per project */}
-        {profitability && profitability.byProject?.length > 0 && (
-          <ProfitabilityByProjectCard rows={profitability.byProject} />
-        )}
-
-
-        {/* Payment requests list */}
-        <div className="card p-4 space-y-3 border-t-4 border-purple-400">
-          <div className="flex items-center justify-between gap-3 flex-wrap pb-2 border-b border-gray-100">
-            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xs">🧾</span>
-              Pengajuan Pembayaran
-            </h2>
-            <div className="flex items-center gap-3">
-              <select className="select w-56" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                <option value="">Semua Status</option>
-                {Object.entries(PAYMENT_STATUS_LABEL).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
-                ))}
-              </select>
-              {payments.length > 0 && (
-                <button
-                  onClick={() => exportCsv('riwayat-pembayaran.csv', payments.map(p => ({
-                    Project: `${p.project?.code} - ${p.project?.name}`,
-                    Kategori: EXPENSE_CATEGORY_LABEL[p.category],
-                    Vendor: p.vendor || '',
-                    Nominal: p.amount,
-                    Status: PAYMENT_STATUS_LABEL[p.status],
-                    Diajukan: `${p.requestedBy?.name || ''} (${p.createdAt ? new Date(p.createdAt).toLocaleString('id-ID') : ''})`,
-                    DirekturUtama: p.owner ? `${p.owner.name} (${p.ownerApprovedAt ? new Date(p.ownerApprovedAt).toLocaleString('id-ID') : ''})` : '',
-                    DirekturDivisi: p.director ? `${p.director.name} (${p.approvedAt ? new Date(p.approvedAt).toLocaleString('id-ID') : ''})` : '',
-                    DirekturFinance: p.financeDirector ? `${p.financeDirector.name} (${p.financeApprovedAt ? new Date(p.financeApprovedAt).toLocaleString('id-ID') : ''})` : '',
-                    Dibayar: p.financeBy ? `${p.financeBy.name} (${p.paidAt ? new Date(p.paidAt).toLocaleString('id-ID') : ''})` : '',
-                    CatatanDirekturDivisi: p.directorNote || '',
-                    CatatanDirekturFinance: p.financeDirectorNote || '',
-                    CatatanFinance: p.financeNote || '',
-                  })))}
-                  className="text-xs text-brand-600 hover:text-brand-700 font-medium underline-offset-2 hover:underline"
-                >Export CSV</button>
-              )}
-            </div>
-          </div>
-
-          {loading && <p className="text-sm text-gray-400 text-center py-8">Memuat...</p>}
-          {!loading && payments.length === 0 && <p className="text-sm text-gray-400 text-center py-8">Belum ada pengajuan</p>}
-
-          <div className="space-y-2">
-            {payments.map(p => {
-              const canActOwner = p.status === 'PENDING_OWNER' && role === 'OWNER'
-              const canActDivision = p.status === 'PENDING_DIRECTOR' &&
-                (role === 'OWNER' || (role === 'DIRECTOR' && session.user.divisi === p.project?.division))
-              const canActFinanceDirector = p.status === 'PENDING_FINANCE_DIRECTOR' &&
-                (role === 'OWNER' || (role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA'))
-              const canActPay = p.status === 'APPROVED_BY_DIRECTOR' &&
-                (role === 'FINANCE' || role === 'OWNER' || (role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA'))
-
-              return (
-                <div key={p.id} className="border border-gray-100 rounded-lg p-3 space-y-2 hover:shadow-sm hover:border-brand-200 transition-all">
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{p.project?.code} — {p.project?.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{EXPENSE_CATEGORY_LABEL[p.category]} · {p.vendor || '—'}</p>
-                    </div>
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${PAYMENT_STATUS_COLOR[p.status]}`}>
-                      {PAYMENT_STATUS_LABEL[p.status]}
-                    </span>
-                  </div>
-
-                  {p.status !== 'REJECTED' && <PaymentStepper status={p.status} hasOwnerStage={!!p.owner || p.status === 'PENDING_OWNER'} />}
-
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                    <span>Nominal: <strong className="text-gray-800">{formatRupiah(p.amount)}</strong></span>
-                    <span>Termin: {PAYMENT_TERM_LABEL[p.paymentTerm] || PAYMENT_TERM_LABEL.FULL}</span>
-                    <span>Diajukan: {p.requestedBy?.name}</span>
-                    {p.neededDate && <span>Dibutuhkan: {new Date(p.neededDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
-                  </div>
-                  {(p.recipientName || p.recipientAccount) && (
-                    <p className="text-xs text-gray-500">Penerima: {p.recipientName || '—'}{p.recipientAccount ? ` · ${p.recipientAccount}` : ''}</p>
-                  )}
-                  {p.description && <p className="text-xs text-gray-600">{p.description}</p>}
-                  {/* Audit trail */}
-                  <div className="text-[11px] text-gray-400 space-y-0.5">
-                    {p.owner && <p>✓ Direktur Utama: {p.owner.name} · {new Date(p.ownerApprovedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
-                    {p.director && <p>✓ Direktur Divisi: {p.director.name} · {new Date(p.approvedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
-                    {p.financeDirector && <p>✓ Direktur Finance: {p.financeDirector.name} · {new Date(p.financeApprovedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
-                    {p.financeBy && <p>✓ Dibayar oleh: {p.financeBy.name} · {new Date(p.paidAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
-                  </div>
-                  {p.ownerNote && <p className="text-xs text-amber-600">Catatan Direktur Utama: {p.ownerNote}</p>}
-                  {p.directorNote && <p className="text-xs text-amber-600">Catatan Direktur Divisi{p.director ? ` (${p.director.name})` : ''}: {p.directorNote}</p>}
-                  {p.financeDirectorNote && <p className="text-xs text-amber-600">Catatan Direktur Finance{p.financeDirector ? ` (${p.financeDirector.name})` : ''}: {p.financeDirectorNote}</p>}
-                  {p.financeNote && <p className="text-xs text-amber-600">Catatan Finance{p.financeBy ? ` (${p.financeBy.name})` : ''}: {p.financeNote}</p>}
-
-                  {/* Actions */}
-                  {(canActOwner || canActDivision || canActFinanceDirector) && (
-                    <div className="flex gap-2 pt-1">
-                      <button onClick={() => doAction(p.id, 'approve')} className="text-xs px-3 py-1 rounded-full bg-green-50 text-green-600 hover:bg-green-100 active:scale-95 font-medium transition-all">Setujui</button>
-                      <button onClick={() => doAction(p.id, 'reject')} className="text-xs px-3 py-1 rounded-full bg-red-50 text-red-500 hover:bg-red-100 active:scale-95 font-medium transition-all">Tolak</button>
-                    </div>
-                  )}
-                  {canActPay && (
-                    <div className="flex gap-2 pt-1">
-                      <button onClick={() => doAction(p.id, 'mark_paid')} className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 active:scale-95 font-medium transition-all">Tandai Sudah Dibayar</button>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
       </main>
     </div>
   )
