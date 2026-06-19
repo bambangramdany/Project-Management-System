@@ -22,14 +22,29 @@ function formatRupiah(n) {
 // ── Generate bulk template Excel ──────────────────────────────────────────────
 function downloadBulkTemplate() {
   const headers = [
-    'No. Quotation', 'Nama Klien', 'Nama Event', 'Divisi (EVENT/CREATIVE/PH)',
-    'Status (WON/LOST/SENT/DRAFT)', 'Tgl Quotation (YYYY-MM-DD)',
-    'Tgl Event', 'Venue', 'Nilai Total (Rp)', 'Catatan'
+    'No. Quotation',
+    'Nama Klien',
+    'Nama Event',
+    'Divisi (EVENT/CREATIVE/PH)',
+    'Status (WON/LOST/SENT/DRAFT)',
+    'Tgl Quotation (YYYY-MM-DD)',
+    'Tgl Event',
+    'Venue',
+    // Nilai sebelum agency fee & PPN
+    'Nilai Dasar (Rp) — sebelum Agency Fee & PPN',
+    // Agency fee opsional
+    'Agency Fee % (opsional, cth: 10)',
+    // PPN
+    'Include PPN 11%? (YA/TIDAK)',
+    'Catatan',
   ]
   const examples = [
-    ['WTM/EO/QUOT/2025/001', 'PT Contoh Klien', 'Annual Gathering 2025', 'EVENT', 'WON', '2025-03-01', '15-16 Maret 2025', 'Hotel Mulia Jakarta', 500000000, 'Sudah lunas'],
-    ['WTM/EO/QUOT/2025/002', 'CV Maju Bersama', 'Product Launch Maju X1', 'EVENT', 'WON', '2025-04-15', '20 April 2025', 'Grand Hyatt', 300000000, ''],
-    ['WTM/PH/QUOT/2025/001', 'PT Video Kreatif', 'Company Profile 2025', 'PH', 'LOST', '2025-05-01', '', '', 150000000, 'Kalah dari kompetitor'],
+    // Contoh 1: ada agency fee 10%, ada PPN → grand total = 500jt * 1.10 * 1.11 = 610.5jt
+    ['WTM/EO/QUOT/2025/001', 'PT Contoh Klien', 'Annual Gathering 2025', 'EVENT', 'WON', '2025-03-01', '15-16 Maret 2025', 'Hotel Mulia Jakarta', 500000000, 10, 'YA', 'Nilai dasar 500jt + agency 10% + PPN 11%'],
+    // Contoh 2: tidak ada agency fee, tidak ada PPN → nilai dasar = final
+    ['WTM/EO/QUOT/2025/002', 'CV Maju Bersama', 'Product Launch Maju X1', 'EVENT', 'WON', '2025-04-15', '20 April 2025', 'Grand Hyatt', 300000000, 0, 'TIDAK', ''],
+    // Contoh 3: hanya PPN, no agency fee
+    ['WTM/PH/QUOT/2025/001', 'PT Video Kreatif', 'Company Profile 2025', 'PH', 'LOST', '2025-05-01', '', '', 150000000, 0, 'YA', 'Kalah dari kompetitor'],
   ]
   const wb = XLSX.utils.book_new()
   const ws = XLSX.utils.aoa_to_sheet([headers, ...examples])
@@ -320,7 +335,27 @@ export default function QuotationImportPage() {
                         </div>
                       </div>
 
-                      {/* Items summary */}
+                      {/* Agency fee + PPN toggles */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Agency Fee %</label>
+                          <input
+                            type="number" min="0" max="100" step="0.5"
+                            className="input mt-0.5 text-xs"
+                            value={q.agencyFeePercent ?? 0}
+                            onChange={e => updateRow(idx, { agencyFeePercent: parseFloat(e.target.value) || 0 })}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div className="flex flex-col justify-end">
+                          <label className="flex items-center gap-2 text-xs cursor-pointer pb-1">
+                            <input type="checkbox" checked={!!q.includesPpn} onChange={e => updateRow(idx, { includesPpn: e.target.checked })} className="accent-violet-600" />
+                            <span className="text-gray-700 font-medium">Include PPN 11%</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Items summary + grand total breakdown */}
                       {q.sections && q.sections.length > 0 && (
                         <div className="rounded-xl bg-gray-50 border border-gray-100 p-3">
                           <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">
@@ -339,10 +374,38 @@ export default function QuotationImportPage() {
                               </div>
                             ))}
                           </div>
-                          <div className="mt-2 pt-2 border-t border-gray-200 flex justify-between text-sm">
-                            <span className="font-semibold text-gray-700">Total</span>
-                            <span className="font-bold text-gray-900">{formatRupiah(q.totalAmount || q.sections.flatMap(s => s.items).reduce((sum, it) => sum + (it.subtotal || 0), 0))}</span>
-                          </div>
+                          {/* Breakdown: base → agency → PPN → grand total */}
+                          {(() => {
+                            const base      = q.sections.flatMap(s => s.items).reduce((sum, it) => sum + (it.subtotal || 0), 0)
+                            const agencyAmt = base * ((q.agencyFeePercent || 0) / 100)
+                            const ppnBase   = base + agencyAmt
+                            const ppnAmt    = q.includesPpn ? ppnBase * 0.11 : 0
+                            const grand     = ppnBase + ppnAmt
+                            return (
+                              <div className="mt-2 pt-2 border-t border-gray-200 space-y-0.5 text-xs">
+                                <div className="flex justify-between text-gray-500">
+                                  <span>Nilai Dasar</span>
+                                  <span>{formatRupiah(base)}</span>
+                                </div>
+                                {agencyAmt > 0 && (
+                                  <div className="flex justify-between text-gray-500">
+                                    <span>Agency Fee {q.agencyFeePercent}%</span>
+                                    <span>{formatRupiah(agencyAmt)}</span>
+                                  </div>
+                                )}
+                                {ppnAmt > 0 && (
+                                  <div className="flex justify-between text-gray-500">
+                                    <span>PPN 11%</span>
+                                    <span>{formatRupiah(ppnAmt)}</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between font-bold text-gray-900 pt-1 border-t border-gray-200">
+                                  <span>Grand Total</span>
+                                  <span>{formatRupiah(grand)}</span>
+                                </div>
+                              </div>
+                            )
+                          })()}
                         </div>
                       )}
 

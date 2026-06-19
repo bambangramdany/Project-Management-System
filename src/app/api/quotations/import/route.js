@@ -191,29 +191,34 @@ function parseWatermarkTemplate(rows) {
 }
 
 // ─── Bulk template parser ─────────────────────────────────────────────────────
-// Parses a simple table: each row = one quotation header
-// Columns (flexible, matched by keyword):
-//   No. Quotation | Klien | Event | Divisi | Status | Tgl Quotation | Tgl Event | Venue | Nilai Total | Catatan
+// Columns: No. Quotation | Klien | Event | Divisi | Status | Tgl | Tgl Event |
+//          Venue | Nilai Dasar (Rp) | Agency Fee % | Include PPN? | Catatan
+//
+// "Nilai Dasar" = base amount BEFORE agency fee and PPN.
+// Agency fee and PPN are stored separately and computed in the app.
 function parseBulkTemplate(rows) {
   if (rows.length < 2) return []
 
   const DIVISION_MAP = { 'ph': 'PH', 'event': 'EVENT', 'creative': 'CREATIVE', 'eo': 'EVENT' }
   const STATUS_MAP = { 'won': 'WON', 'draft': 'DRAFT', 'sent': 'SENT', 'loss': 'LOST', 'lost': 'LOST' }
 
-  // Detect header row (first row with text)
   const headerRow = rows[0].map(c => String(c ?? '').toLowerCase().trim())
   const col = key => headerRow.findIndex(h => h.includes(key))
 
-  const colQuotNum  = col('quotation') !== -1 ? col('quotation') : col('no.')
-  const colClient   = col('klien') !== -1 ? col('klien') : col('client')
-  const colEvent    = col('event') !== -1 ? col('event') : col('project')
-  const colDivision = col('divisi') !== -1 ? col('divisi') : col('division')
-  const colStatus   = col('status')
-  const colDate     = col('tgl quotation') !== -1 ? col('tgl quotation') : col('tanggal')
+  const colQuotNum   = col('quotation') !== -1 ? col('quotation') : col('no.')
+  const colClient    = col('klien') !== -1 ? col('klien') : col('client')
+  const colEvent     = col('event') !== -1 ? col('event') : col('project')
+  const colDivision  = col('divisi') !== -1 ? col('divisi') : col('division')
+  const colStatus    = col('status')
+  const colDate      = col('tgl quotation') !== -1 ? col('tgl quotation') : col('tanggal')
   const colEventDate = col('tgl event') !== -1 ? col('tgl event') : -1
-  const colVenue    = col('venue')
-  const colTotal    = col('nilai') !== -1 ? col('nilai') : col('total')
-  const colNotes    = col('catatan') !== -1 ? col('catatan') : col('notes')
+  const colVenue     = col('venue')
+  // "Nilai Dasar" matched before "Nilai Total" to avoid collision
+  const colBase      = col('nilai dasar') !== -1 ? col('nilai dasar')
+    : col('nilai') !== -1 ? col('nilai') : col('total')
+  const colAgency    = col('agency')    // Agency Fee %
+  const colPpn       = col('ppn')       // Include PPN? (YA/TIDAK)
+  const colNotes     = col('catatan') !== -1 ? col('catatan') : col('notes')
 
   return rows.slice(1).map((row, ri) => {
     const get = (idx) => idx >= 0 ? String(row[idx] ?? '').trim() : ''
@@ -222,29 +227,55 @@ function parseBulkTemplate(rows) {
     const event   = get(colEvent)
     if (!client && !event && !quotNum) return null   // skip empty rows
 
-    const division = DIVISION_MAP[(get(colDivision) || '').toLowerCase()] || 'EVENT'
-    const status   = STATUS_MAP[(get(colStatus) || '').toLowerCase()] || 'WON'
-    const totalRaw = colTotal >= 0 ? row[colTotal] : null
-    const total    = typeof totalRaw === 'number' ? totalRaw
-      : parseFloat(String(totalRaw ?? '').replace(/[^0-9.-]/g, '')) || 0
+    const division        = DIVISION_MAP[(get(colDivision) || '').toLowerCase()] || 'EVENT'
+    const status          = STATUS_MAP[(get(colStatus) || '').toLowerCase()] || 'WON'
 
-    const sections = total > 0
+    // Nilai dasar — base amount before agency fee & PPN
+    const baseRaw         = colBase >= 0 ? row[colBase] : null
+    const baseAmount      = typeof baseRaw === 'number' ? baseRaw
+      : parseFloat(String(baseRaw ?? '').replace(/[^0-9.-]/g, '')) || 0
+
+    // Agency fee %
+    const agencyRaw       = colAgency >= 0 ? row[colAgency] : null
+    const agencyFeePercent = typeof agencyRaw === 'number' ? agencyRaw
+      : parseFloat(String(agencyRaw ?? '').replace(/[^0-9.]/g, '')) || 0
+
+    // PPN
+    const ppnRaw          = get(colPpn).toLowerCase()
+    const includesPpn     = ppnRaw === 'ya' || ppnRaw === 'yes' || ppnRaw === '1' || ppnRaw === 'true'
+
+    // Mark all items as includeAgencyFee so agency fee applies to them
+    const includeAgencyFee = agencyFeePercent > 0
+
+    const sections = baseAmount > 0
       ? [{ letter: 'A', name: 'Jasa & Produksi', items: [
-          { description: event || 'Jasa Event Organizer / Production House', qty: 1, unitType: 'Paket', rate: total, subtotal: total, showInInvoiceDetail: true, includeAgencyFee: false }
+          { description: event || 'Jasa Event Organizer / Production House', qty: 1, unitType: 'Paket',
+            rate: baseAmount, subtotal: baseAmount, showInInvoiceDetail: true,
+            includeAgencyFee }
         ]}]
       : []
 
+    // Compute display total for preview
+    const agencyAmt  = baseAmount * (agencyFeePercent / 100)
+    const ppnBase    = baseAmount + agencyAmt
+    const ppnAmt     = includesPpn ? ppnBase * 0.11 : 0
+    const grandTotal = ppnBase + ppnAmt
+
     return {
-      quotationNumber: quotNum || null,   // null = auto-generate
-      clientName: client,
-      eventName: event,
+      quotationNumber:  quotNum || null,
+      clientName:       client,
+      eventName:        event,
       division,
       status,
-      quotationDate: get(colDate) || null,
-      eventDate: get(colEventDate) || null,
-      venue: get(colVenue) || null,
-      totalAmount: total,
-      notes: get(colNotes) || null,
+      quotationDate:    get(colDate) || null,
+      eventDate:        get(colEventDate) || null,
+      venue:            get(colVenue) || null,
+      agencyFeePercent,
+      includesPpn,
+      ppnPercent:       11,
+      baseAmount,
+      totalAmount:      grandTotal,
+      notes:            get(colNotes) || null,
       sections,
       _rowIdx: ri + 2,
     }
