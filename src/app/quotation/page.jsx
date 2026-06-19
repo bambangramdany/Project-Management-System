@@ -72,7 +72,10 @@ export default function QuotationListPage() {
             </div>
           </div>
           {canManage(session?.user) && (
-            <Link href="/quotation/new" className="btn-primary text-sm">+ Buat Quotation</Link>
+            <div className="flex items-center gap-2">
+              <Link href="/quotation/import" className="btn-secondary text-sm">⬆ Import Lama</Link>
+              <Link href="/quotation/new" className="btn-primary text-sm">+ Buat Quotation</Link>
+            </div>
           )}
         </div>
 
