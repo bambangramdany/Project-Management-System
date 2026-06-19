@@ -52,7 +52,7 @@ export async function getCashflowForecast(user) {
 // Margin summary across won/active projects, grouped by division.
 export async function getMarginReport(user) {
   const where = { status: { in: WON_STATUSES }, projectValue: { not: null }, pitchResult: { not: 'LOSE' } }
-  if (user.role === 'DIRECTOR' && !isFinanceDirector(user)) where.division = user.divisi
+  // Semua DIRECTOR (David/Guna/Fakhril/Anung) bisa lihat semua divisi
 
   const projects = await prisma.project.findMany({
     where,
