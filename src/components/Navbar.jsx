@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { href: '/targets', label: 'Target', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/salary', label: 'Gaji', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/debts', label: 'Hutang', roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
+  { href: '/quotation', label: 'Quotation', roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'FINANCE', 'FINANCE_STAFF'] },
   { href: '/vendors', label: 'Vendor' },
   { href: '/clients', label: 'Klien' },
   { href: '/team', label: 'Tim' },

@@ -46,6 +46,14 @@ model User {
   assets                Asset[]
   taskComments          TaskComment[]
   salaryRecords         SalaryRecord[]
+
+  // Quotation & Invoice relations
+  quotationsCreated     Quotation[]   @relation("QuotationCreator")
+  quotationsPic         Quotation[]   @relation("QuotationPic")
+  quotationsApprover1   Quotation[]   @relation("QuotationApprover1")
+  quotationsApprover2   Quotation[]   @relation("QuotationApprover2")
+  addCostsCreated       AddCost[]     @relation("AddCostCreator")
+  invoicesCreated       Invoice[]     @relation("InvoiceCreator")
 }
 
 // Global audit trail of important changes across the system, for Direksi/Owner
@@ -198,9 +206,12 @@ model Receivable {
   kasTransactionInId       String?          @unique
   kasTransactionOut        CashTransaction? @relation("ReceivableKasKeluar", fields: [kasTransactionOutId], references: [id])
   kasTransactionOutId      String?          @unique
+  invoiceId                String?
+  invoice                  Invoice?         @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([projectId])
+  @@index([invoiceId])
 }
 
 // Company debt/loan obligations (e.g. from investors, banks, profit-sharing
@@ -500,6 +511,7 @@ model Project {
   budgetItems ProjectBudgetItem[]
   payments  PaymentRequest[]
   receivables Receivable[]
+  quotations  Quotation[]
   scores    ProjectScore[]
   briefItems ProjectBriefItem[]
 
@@ -887,4 +899,239 @@ model SalaryRecord {
 
   @@unique([userId, period])
   @@index([period])
+}
+
+// ── Quotation & Invoice System ────────────────────────────────────────────────
+
+// Auto-incrementing counter per division per year, for quotation numbering.
+// e.g. WTM/EO/QUOT/2026/073
+model QuotationCounter {
+  division String
+  year     Int
+  lastNum  Int    @default(0)
+
+  @@id([division, year])
+}
+
+enum QuotationStatus {
+  DRAFT
+  PENDING_WULAN      // Waiting for Wulan's approval
+  PENDING_DIRECTOR   // Waiting for Director's approval (David / Guna)
+  APPROVED           // Approved — can be sent to client
+  WON
+  LOST
+  CANCELLED
+}
+
+enum InvoiceMode {
+  DETAIL   // Full item breakdown
+  SUMMARY  // Single service line (no detail)
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  CANCELLED
+}
+
+// Quotation document sent to clients before a project is won.
+// Number format: WTM/EO/QUOT/2026/073  |  WTM/PH/QUOT/2026/012
+// Version is internal only — the same number is reused across revisions until WON.
+// Post-WON supplemental items use AddCost with a separate numbering scheme.
+model Quotation {
+  id              String          @id @default(cuid())
+  quotationNumber String          // e.g. WTM/EO/QUOT/2026/073
+  division        Divisi          @default(EVENT)
+  version         Int             @default(1)  // internal revision counter
+  status          QuotationStatus @default(DRAFT)
+
+  // Client & Event information (shown on document)
+  clientName      String
+  eventName       String
+  venue           String?
+  eventDate       String?   // flexible: "12-14 Juni 2026"
+  location        String?   // city / venue name for document header
+
+  // Agency fee — optional, applied only to items with includeAgencyFee = true
+  agencyFeePercent Float    @default(0)   // e.g. 10 = 10%
+
+  // PPN
+  includesPpn     Boolean  @default(false)
+  ppnPercent      Float    @default(11)
+
+  // Down payment options (when DP termin is needed)
+  dpPercent       Float?   // e.g. 30 = 30% DP
+  dpAmount        Float?   // fixed DP amount (alternative to dpPercent)
+
+  // "Prepared by" on the printed document — may differ from createdBy.
+  // e.g. David creates the quotation but Irham's name appears as Prepared by.
+  picQuotationId  String?
+  picQuotation    User?    @relation("QuotationPic", fields: [picQuotationId], references: [id])
+
+  // Actual creator (internal only, not shown on document)
+  createdById     String
+  createdBy       User     @relation("QuotationCreator", fields: [createdById], references: [id])
+
+  // Approval chain — both names appear in the signature block
+  approver1Id     String?  // Wulan Aprilia (intermediate approver)
+  approver1       User?    @relation("QuotationApprover1", fields: [approver1Id], references: [id])
+  approver2Id     String?  // Director: David Setyawan / Guna
+  approver2       User?    @relation("QuotationApprover2", fields: [approver2Id], references: [id])
+
+  // Link to project (set when quotation is WON and project exists)
+  projectId       String?
+  project         Project? @relation(fields: [projectId], references: [id])
+
+  notes           String?
+  termsConditions String?  // custom T&C override (null = use system default)
+
+  sections  QuotationSection[]
+  addCosts  AddCost[]
+  invoices  Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([division])
+  @@index([createdById])
+  @@index([projectId])
+}
+
+// Category group within a quotation, labeled alphabetically: A, B, C...
+// e.g. A = VENUE, B = CREATIVE & MULTIMEDIA, C = PRODUCTION, D = SOUVENIR
+model QuotationSection {
+  id          String    @id @default(cuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  letter      String    // A, B, C, D...
+  name        String    // VENUE | CREATIVE & MULTIMEDIA | PRODUCTION | etc.
+  order       Int
+
+  items QuotationItem[]
+
+  @@index([quotationId])
+}
+
+// Line item inside a quotation section.
+// Formula: rate × qty × days = subtotal
+// rate = null → "by client" (item is present but cost is client-provided, not charged)
+model QuotationItem {
+  id          String           @id @default(cuid())
+  sectionId   String
+  section     QuotationSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  no          Int     // item number within section (1, 2, 3…)
+  description String
+  detailText  String? // multi-line detail shown below description on document
+
+  // Pricing
+  rate        Float?           // null = "by client" (no charge)
+  unitType    String  @default("Unit")  // Package | Pcs | Pax | Unit | Set | Lot | Event
+  qty         Float   @default(1)
+  days        Float   @default(1)
+  subtotal    Float   @default(0)      // rate × qty × days; 0 if by client
+
+  // Agency fee applies to this item only if true
+  includeAgencyFee    Boolean @default(false)
+
+  // Controls visibility in invoice DETAIL mode
+  showInInvoiceDetail Boolean @default(true)
+
+  order Int
+
+  @@index([sectionId])
+}
+
+// Post-WON supplemental cost — issued after the quotation is already won.
+// Number format: WTM/EO/ADDCOST/2026/073/01
+// Each AddCost belongs to an existing Quotation.
+model AddCost {
+  id            String    @id @default(cuid())
+  quotationId   String
+  quotation     Quotation @relation(fields: [quotationId], references: [id])
+  addCostNumber String    // e.g. WTM/EO/ADDCOST/2026/073/01
+  description   String
+  amount        Float
+  notes         String?
+  createdById   String
+  createdBy     User      @relation("AddCostCreator", fields: [createdById], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([quotationId])
+}
+
+// Invoice issued to client, generated from a WON Quotation.
+// Number format: WTM/EO/INV/2026/073/001  (last segment = termin number)
+// One quotation can produce multiple invoices (DP + Pelunasan).
+// Finance can override client/event names (financeClientName, financeEventName)
+// without changing the original quotation data.
+model Invoice {
+  id             String        @id @default(cuid())
+  invoiceNumber  String        // e.g. WTM/EO/INV/2026/073/001
+  quotationId    String
+  quotation      Quotation     @relation(fields: [quotationId], references: [id])
+  termNumber     Int           @default(1) // 1 = Full or DP; 2 = Pelunasan
+
+  // Finance-side naming (may differ from quotation for client's reference system)
+  financeClientName String?
+  financeEventName  String?
+
+  // Client-side document reference numbers
+  poNumber         String?
+  taxInvoiceNumber String?
+
+  // Finance PIC shown on invoice document
+  picFinanceName   String?
+  picFinancePhone  String?
+
+  // PDF output mode
+  mode    InvoiceMode   @default(DETAIL)
+  isDP    Boolean       @default(false)  // true if this is a DP termin invoice
+
+  // Totals (stored so PDF can render without recalculating)
+  subtotal        Float @default(0)
+  agencyFeeAmount Float @default(0)
+  ppnAmount       Float @default(0)
+  totalAmount     Float @default(0)
+
+  issueDate DateTime?
+  dueDate   DateTime?
+  status    InvoiceStatus @default(DRAFT)
+  notes     String?
+
+  createdById String
+  createdBy   User   @relation("InvoiceCreator", fields: [createdById], references: [id])
+
+  items       InvoiceItem[]
+  receivables Receivable[]  // 1 invoice → 1 or 2 receivable entries (DP + pelunasan)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([quotationId])
+  @@index([status])
+}
+
+// Invoice line items — copied from QuotationItems when the invoice is created.
+// Finance can toggle showInDetail per item to control what appears in DETAIL mode PDF.
+model InvoiceItem {
+  id               String  @id @default(cuid())
+  invoiceId        String
+  invoice          Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  description      String
+  detailText       String?
+  rate             Float?
+  unitType         String  @default("Unit")
+  qty              Float   @default(1)
+  days             Float   @default(1)
+  subtotal         Float   @default(0)
+  includeAgencyFee Boolean @default(false)
+  showInDetail     Boolean @default(true)
+  order            Int
+
+  @@index([invoiceId])
 }
