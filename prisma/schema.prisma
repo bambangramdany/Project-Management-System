@@ -55,6 +55,7 @@ model User {
   quotationsApprover2   Quotation[]   @relation("QuotationApprover2")
   addCostsCreated       AddCost[]     @relation("AddCostCreator")
   invoicesCreated       Invoice[]     @relation("InvoiceCreator")
+  vendorRatings         VendorRating[] @relation("VendorRatingCreator")
 }
 
 // Global audit trail of important changes across the system, for Direksi/Owner
@@ -461,9 +462,28 @@ model Vendor {
   updatedAt     DateTime @updatedAt
 
   enteredBy User? @relation(fields: [enteredById], references: [id], onDelete: SetNull)
+  ratings   VendorRating[]
 
   @@index([vendorType])
   @@index([city])
+}
+
+model VendorRating {
+  id          String    @id @default(cuid())
+  vendorId    String
+  projectId   String?
+  projectName String?
+  rating      Int       // 1-5 bintang
+  review      String?
+  usageDate   DateTime?
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  vendor    Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  createdBy User   @relation("VendorRatingCreator", fields: [createdById], references: [id])
+
+  @@index([vendorId])
 }
 
 model Project {

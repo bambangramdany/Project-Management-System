@@ -37,6 +37,8 @@ export default function DashboardPage() {
   const [overviewRange, setOverviewRange] = useState(null) // { from: 'YYYY-MM', to: 'YYYY-MM' }
   const [trendsData, setTrendsData] = useState(null)
   const [trendsYear, setTrendsYear] = useState(new Date().getFullYear())
+  const [piutangAlerts, setPiutangAlerts] = useState(null)
+  const [pendingPRCount, setPendingPRCount] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -64,6 +66,8 @@ export default function DashboardPage() {
         skipNextOverviewFetch.current = true
         setOverviewRange({ from: data.overview.from, to: data.overview.to })
       }
+      if (data.piutangAlerts)  setPiutangAlerts(data.piutangAlerts)
+      if (data.pendingPRCount) setPendingPRCount(data.pendingPRCount)
       setLoading(false)
     })
   }, [status])
@@ -127,6 +131,48 @@ export default function DashboardPage() {
             year={trendsYear}
             onYearChange={setTrendsYear}
           />
+        )}
+
+        {/* Finance alerts: overdue piutang + pending approvals */}
+        {((piutangAlerts?.count ?? 0) > 0 || (pendingPRCount?.count ?? 0) > 0) && (
+          <div className="card border-t-4 border-red-400 overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-red-100 text-red-600 flex items-center justify-center text-xs">🚨</span>
+              <h3 className="text-sm font-semibold text-gray-700">Perlu Tindakan Segera</h3>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {(piutangAlerts?.count ?? 0) > 0 && (
+                <Link href="/finance" className="flex items-center gap-4 px-5 py-3 hover:bg-red-50 transition-colors group">
+                  <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center text-lg shrink-0">📄</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 group-hover:text-red-600">Piutang Jatuh Tempo</p>
+                    <p className="text-xs text-gray-500">{piutangAlerts.count} invoice melewati batas waktu pembayaran</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-red-600">
+                      Rp {Math.round(piutangAlerts.total).toLocaleString('id-ID')}
+                    </p>
+                    <span className="text-[10px] text-red-400">overdue</span>
+                  </div>
+                </Link>
+              )}
+              {(pendingPRCount?.count ?? 0) > 0 && (
+                <Link href="/finance" className="flex items-center gap-4 px-5 py-3 hover:bg-orange-50 transition-colors group">
+                  <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center text-lg shrink-0">⏳</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 group-hover:text-orange-600">Pengajuan Menunggu Approval</p>
+                    <p className="text-xs text-gray-500">{pendingPRCount.count} payment request belum disetujui</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-orange-600">
+                      Rp {Math.round(pendingPRCount.total).toLocaleString('id-ID')}
+                    </p>
+                    <span className="text-[10px] text-orange-400">pending</span>
+                  </div>
+                </Link>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Stats cards */}

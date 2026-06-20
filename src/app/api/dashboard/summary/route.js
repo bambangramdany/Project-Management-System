@@ -59,6 +59,17 @@ export async function GET(req) {
     const from = searchParams.get('from') || `${now.getFullYear()}-01`
     const to = searchParams.get('to') || `${now.getFullYear()}-12`
     tasks.overview = getFinanceOverview(from, to)
+    // Finance alerts: overdue receivables + pending payment requests
+    tasks.piutangAlerts = prisma.receivable.aggregate({
+      where: { status: 'UNPAID', dueDate: { lt: new Date() } },
+      _count: { id: true },
+      _sum: { amount: true },
+    })
+    tasks.pendingPRCount = prisma.paymentRequest.aggregate({
+      where: { status: { startsWith: 'PENDING' } },
+      _count: { id: true },
+      _sum: { amount: true },
+    })
   }
 
   const keys = Object.keys(tasks)
@@ -70,6 +81,19 @@ export async function GET(req) {
     const { tasks: _t, budgetItems: _b, ...rest } = p
     return { ...rest, health: computeProjectHealth(p) }
   })
+
+  if (out.piutangAlerts) {
+    out.piutangAlerts = {
+      count: out.piutangAlerts._count?.id   || 0,
+      total: out.piutangAlerts._sum?.amount  || 0,
+    }
+  }
+  if (out.pendingPRCount) {
+    out.pendingPRCount = {
+      count: out.pendingPRCount._count?.id   || 0,
+      total: out.pendingPRCount._sum?.amount  || 0,
+    }
+  }
 
   return NextResponse.json(out)
 }

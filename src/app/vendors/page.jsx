@@ -31,6 +31,12 @@ export default function VendorsPage() {
   const [detail, setDetail] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [ratings, setRatings] = useState([])
+  const [ratingsAvg, setRatingsAvg] = useState(null)
+  const [ratingsLoading, setRatingsLoading] = useState(false)
+  const [ratingForm, setRatingForm] = useState({ rating: 5, review: '', projectName: '', usageDate: '' })
+  const [savingRating, setSavingRating] = useState(false)
+  const [showRatingForm, setShowRatingForm] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -165,6 +171,40 @@ export default function VendorsPage() {
     }
   }
 
+  const loadRatings = (vendorId) => {
+    setRatingsLoading(true)
+    setRatings([])
+    setRatingsAvg(null)
+    fetch(`/api/vendors/${vendorId}/ratings`)
+      .then(r => r.json())
+      .then(data => {
+        setRatings(data.ratings || [])
+        setRatingsAvg(data.avg ?? null)
+        setRatingsLoading(false)
+      })
+  }
+
+  const submitRating = async (e) => {
+    e.preventDefault()
+    setSavingRating(true)
+    const res = await fetch(`/api/vendors/${detail.id}/ratings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ratingForm),
+    })
+    setSavingRating(false)
+    if (res.ok) {
+      setShowRatingForm(false)
+      setRatingForm({ rating: 5, review: '', projectName: '', usageDate: '' })
+      loadRatings(detail.id)
+    }
+  }
+
+  const deleteRating = async (ratingId) => {
+    const res = await fetch(`/api/vendors/${detail.id}/ratings?ratingId=${ratingId}`, { method: 'DELETE' })
+    if (res.ok) loadRatings(detail.id)
+  }
+
   const removePhoto = async (vendorId, url) => {
     const res = await fetch(`/api/vendors/${vendorId}/photos`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
     if (res.ok) {
@@ -273,6 +313,7 @@ export default function VendorsPage() {
                   <th className="px-3 py-2 hidden sm:table-cell">Kota / Area</th>
                   <th className="px-3 py-2">PIC / Kontak</th>
                   <th className="px-3 py-2">Harga</th>
+                  <th className="px-3 py-2 hidden md:table-cell">Rating</th>
                   <th className="px-3 py-2">Status</th>
                   <th className="px-3 py-2 hidden sm:table-cell">Diisi oleh</th>
                   <th className="px-3 py-2"></th>
@@ -280,12 +321,20 @@ export default function VendorsPage() {
               </thead>
               <tbody>
                 {displayed.map(v => (
-                  <tr key={v.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => setDetail(v)}>
+                  <tr key={v.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => { setDetail(v); loadRatings(v.id) }}>
                     <td className="px-3 py-2 font-medium text-gray-900">{v.name}</td>
                     <td className="px-3 py-2 text-gray-600">{v.vendorType}{v.subCategory && <span className="text-gray-400"> · {v.subCategory}</span>}</td>
                     <td className="px-3 py-2 text-gray-600 hidden sm:table-cell">{[v.city, v.area].filter(Boolean).join(' / ') || '-'}</td>
                     <td className="px-3 py-2 text-gray-600">{[v.picContact, v.phone].filter(Boolean).join(' - ') || '-'}</td>
                     <td className="px-3 py-2 text-gray-600">{fmtPrice(v)}</td>
+                    <td className="px-3 py-2 hidden md:table-cell">
+                      {v.avgRating != null ? (
+                        <span className="text-amber-400 text-xs whitespace-nowrap">
+                          {'★'.repeat(Math.round(v.avgRating))}{'☆'.repeat(5 - Math.round(v.avgRating))}
+                          <span className="text-gray-500 ml-1 text-[10px]">{v.avgRating.toFixed(1)}</span>
+                        </span>
+                      ) : <span className="text-gray-300 text-xs">—</span>}
+                    </td>
                     <td className="px-3 py-2">
                       <span className={`px-2 py-0.5 rounded text-xs ${v.status === 'Active' ? 'bg-green-100 text-green-700' : v.status === 'Blacklist' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>{v.status}</span>
                     </td>
@@ -304,7 +353,7 @@ export default function VendorsPage() {
                   </tr>
                 ))}
                 {displayed.length === 0 && (
-                  <tr><td colSpan={8} className="px-3 py-8 text-center text-gray-400">Tidak ada vendor ditemukan</td></tr>
+                  <tr><td colSpan={9} className="px-3 py-8 text-center text-gray-400">Tidak ada vendor ditemukan</td></tr>
                 )}
               </tbody>
             </table>
@@ -440,6 +489,93 @@ export default function VendorsPage() {
                       </div>
                     )
                   })}
+                </div>
+              )}
+            </div>
+
+            {/* Rating & Ulasan */}
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-gray-700">⭐ Rating & Ulasan</span>
+                  {ratingsAvg !== null && (
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
+                      {ratingsAvg.toFixed(1)} / 5 ({ratings.length} ulasan)
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowRatingForm(v => !v)}
+                  className="text-xs px-2.5 py-1 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50"
+                >+ Beri Rating</button>
+              </div>
+
+              {showRatingForm && (
+                <form onSubmit={submitRating} className="p-3 bg-gray-50 rounded-lg space-y-2 text-sm">
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-gray-500 w-16 shrink-0">Bintang</label>
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map(n => (
+                        <button key={n} type="button"
+                          onClick={() => setRatingForm(f => ({ ...f, rating: n }))}
+                          className={`text-2xl transition-colors ${n <= ratingForm.rating ? 'text-amber-400' : 'text-gray-300'}`}>★</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-gray-500 w-16 shrink-0">Project</label>
+                    <input className="flex-1 border rounded px-2 py-1 text-xs"
+                      placeholder="Nama project (opsional)"
+                      value={ratingForm.projectName}
+                      onChange={e => setRatingForm(f => ({ ...f, projectName: e.target.value }))} />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-gray-500 w-16 shrink-0">Tgl Pakai</label>
+                    <input type="date" className="border rounded px-2 py-1 text-xs"
+                      value={ratingForm.usageDate}
+                      onChange={e => setRatingForm(f => ({ ...f, usageDate: e.target.value }))} />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-gray-500 w-16 shrink-0">Ulasan</label>
+                    <textarea className="flex-1 border rounded px-2 py-1 text-xs" rows={2}
+                      placeholder="Catatan pengalaman memakai vendor ini..."
+                      value={ratingForm.review}
+                      onChange={e => setRatingForm(f => ({ ...f, review: e.target.value }))} />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <button type="button" onClick={() => setShowRatingForm(false)} className="text-xs px-3 py-1 border rounded">Batal</button>
+                    <button type="submit" disabled={savingRating} className="text-xs px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-50">
+                      {savingRating ? 'Menyimpan...' : 'Simpan'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {ratingsLoading ? (
+                <p className="text-xs text-gray-400 italic">Memuat ulasan...</p>
+              ) : ratings.length === 0 ? (
+                <p className="text-xs text-gray-400 italic">Belum ada ulasan. Jadilah yang pertama memberi rating!</p>
+              ) : (
+                <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                  {ratings.map(r => (
+                    <div key={r.id} className="flex gap-2 p-2.5 rounded-lg bg-gray-50 text-xs">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-amber-400">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+                          <span className="font-medium text-gray-700">{r.createdBy?.name}</span>
+                          {r.projectName && <span className="text-gray-400">· {r.projectName}</span>}
+                          {r.usageDate && (
+                            <span className="text-gray-400">
+                              · {new Date(r.usageDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                          )}
+                        </div>
+                        {r.review && <p className="mt-0.5 text-gray-600 leading-relaxed">{r.review}</p>}
+                      </div>
+                      <button onClick={() => deleteRating(r.id)}
+                        className="text-gray-300 hover:text-red-400 shrink-0 self-start" title="Hapus ulasan">✕</button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

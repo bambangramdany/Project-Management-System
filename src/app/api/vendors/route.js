@@ -33,14 +33,31 @@ export async function GET(req) {
   }
   if (where.AND.length === 0) delete where.AND
 
-  const vendors = await prisma.vendor.findMany({
-    where,
-    include: { enteredBy: { select: { id: true, name: true } } },
-    orderBy: { createdAt: 'desc' },
-    take: 500,
-  })
+  const [vendors, ratingAgg] = await Promise.all([
+    prisma.vendor.findMany({
+      where,
+      include: { enteredBy: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+    }),
+    prisma.vendorRating.groupBy({
+      by: ['vendorId'],
+      _avg: { rating: true },
+      _count: { id: true },
+    }),
+  ])
 
-  return NextResponse.json(vendors)
+  const ratingMap = {}
+  for (const r of ratingAgg) {
+    ratingMap[r.vendorId] = { avgRating: r._avg.rating, ratingCount: r._count.id }
+  }
+  const enriched = vendors.map(v => ({
+    ...v,
+    avgRating:   ratingMap[v.id]?.avgRating   ?? null,
+    ratingCount: ratingMap[v.id]?.ratingCount  ?? 0,
+  }))
+
+  return NextResponse.json(enriched)
 }
 
 export async function POST(req) {

@@ -699,7 +699,14 @@ export default function FinancePage() {
 
         {/* ── Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h1 className="text-xl font-bold text-gray-900">Finance</h1>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Finance</h1>
+            {(role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR') && (
+              <Link href="/finance/pnl" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                📊 Lihat Laporan P&L →
+              </Link>
+            )}
+          </div>
           {canCreate && (
             <button onClick={() => setShowForm(v => !v)} className="btn-primary self-start sm:self-auto">
               {showForm ? 'Tutup Form' : '+ Ajukan Pembayaran'}
