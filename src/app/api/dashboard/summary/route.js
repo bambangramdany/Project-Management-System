@@ -66,16 +66,21 @@ export async function GET(req) {
       _sum: { amount: true },
     })
     tasks.pendingPRCount = prisma.paymentRequest.aggregate({
-      where: { status: { startsWith: 'PENDING' } },
+      where: { status: { in: ['PENDING_DIRECTOR', 'PENDING_OWNER', 'PENDING_FINANCE_DIRECTOR'] } },
       _count: { id: true },
       _sum: { amount: true },
     })
   }
 
   const keys = Object.keys(tasks)
-  const results = await Promise.all(keys.map(k => tasks[k]))
+  // Use allSettled so one failing optional query never breaks the whole dashboard
+  const results = await Promise.allSettled(keys.map(k => tasks[k]))
   const out = {}
-  keys.forEach((k, i) => { out[k] = results[i] })
+  keys.forEach((k, i) => {
+    const r = results[i]
+    if (r.status === 'fulfilled') out[k] = r.value
+    // rejected: just omit the key — the client handles missing keys gracefully
+  })
 
   out.projects = out.projects.map(p => {
     const { tasks: _t, budgetItems: _b, ...rest } = p
