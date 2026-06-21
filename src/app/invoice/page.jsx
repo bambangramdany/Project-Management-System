@@ -42,12 +42,20 @@ export default function InvoiceListPage() {
       <Navbar />
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-4">
 
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="text-gray-400 hover:text-gray-600">←</Link>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Invoice</h1>
-            <p className="text-sm text-gray-500">Invoice yang diterbitkan ke klien</p>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard" className="text-gray-400 hover:text-gray-600">←</Link>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Invoice</h1>
+              <p className="text-sm text-gray-500">Invoice yang diterbitkan ke klien</p>
+            </div>
           </div>
+          {session?.user && ['OWNER','FINANCE','FINANCE_STAFF','DIRECTOR'].includes(session.user.role) && (
+            <Link href="/invoice/bulk-create"
+              className="text-sm px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 font-medium">
+              ⚡ Generate Invoice Massal
+            </Link>
+          )}
         </div>
 
         {/* Summary */}
