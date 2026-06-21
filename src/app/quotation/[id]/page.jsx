@@ -58,6 +58,9 @@ export default function QuotationDetailPage() {
   const [acting,  setActing]  = useState(false)
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
   const [showPreview,      setShowPreview]      = useState(false)
+  const [editingSig,       setEditingSig]       = useState(false)
+  const [sigForm,          setSigForm]          = useState({})
+  const [users,            setUsers]            = useState([])
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -72,6 +75,23 @@ export default function QuotationDetailPage() {
   }
 
   useEffect(() => { if (id && status === 'authenticated') load() }, [id, status])
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/team').then(r => r.json()).then(d => setUsers(Array.isArray(d) ? d : (d.users || [])))
+    }
+  }, [status])
+
+  async function saveSig() {
+    setActing(true)
+    const res = await fetch(`/api/quotations/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update_content', ...sigForm }),
+    })
+    setActing(false)
+    if (res.ok) { setEditingSig(false); load() }
+    else { const d = await res.json().catch(()=>({})); alert(d.error || 'Gagal') }
+  }
 
   async function action(actionName, extra = {}) {
     setActing(true)
@@ -219,10 +239,58 @@ export default function QuotationDetailPage() {
             {q.location  && <div className="text-sm"><span className="text-gray-500">Lokasi:</span> <span className="font-medium">{q.location}</span></div>}
           </div>
           <div className="card p-4 space-y-2">
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Tanda Tangan Dokumen</p>
-            {q.picQuotation && <div className="text-sm"><span className="text-gray-500">Prepared by:</span> <span className="font-medium">{q.picQuotation.name}</span></div>}
-            {q.approver1    && <div className="text-sm"><span className="text-gray-500">Approved by #1:</span> <span className="font-medium">{q.approver1.name}</span></div>}
-            {q.approver2    && <div className="text-sm"><span className="text-gray-500">Approved by #2:</span> <span className="font-medium">{q.approver2.name}</span></div>}
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Tanda Tangan Dokumen</p>
+              {canManage(user) && !editingSig && (
+                <button onClick={() => {
+                  setSigForm({
+                    picQuotationId: q.picQuotationId || '',
+                    approver1Id:    q.approver1Id    || '',
+                    approver2Id:    q.approver2Id    || '',
+                  })
+                  setEditingSig(true)
+                }} className="text-xs text-brand hover:underline">✏ Edit</button>
+              )}
+              {editingSig && (
+                <div className="flex gap-2">
+                  <button onClick={saveSig} disabled={acting} className="text-xs text-white bg-brand px-2 py-0.5 rounded hover:opacity-90">Simpan</button>
+                  <button onClick={() => setEditingSig(false)} className="text-xs text-gray-400 hover:text-gray-600">Batal</button>
+                </div>
+              )}
+            </div>
+
+            {editingSig ? (
+              <div className="space-y-2 pt-1">
+                {[
+                  { label: 'Prepared by', key: 'picQuotationId' },
+                  { label: 'Approved by #1', key: 'approver1Id' },
+                  { label: 'Approved by #2', key: 'approver2Id' },
+                ].map(({ label, key }) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 w-28 shrink-0">{label}:</span>
+                    <select
+                      className="select text-xs py-1 flex-1"
+                      value={sigForm[key] || ''}
+                      onChange={e => setSigForm(f => ({ ...f, [key]: e.target.value }))}
+                    >
+                      <option value="">— tidak diisi —</option>
+                      {users.filter(u => ['OWNER','DIRECTOR','PROJECT_MANAGER','PRODUCER','FINANCE','FINANCE_STAFF'].includes(u.role)).map(u => (
+                        <option key={u.id} value={u.id}>{u.name} ({u.jobTitle || u.role})</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                {q.picQuotation && <div className="text-sm"><span className="text-gray-500">Prepared by:</span> <span className="font-medium">{q.picQuotation.name}</span></div>}
+                {q.approver1    && <div className="text-sm"><span className="text-gray-500">Approved by #1:</span> <span className="font-medium">{q.approver1.name}</span></div>}
+                {q.approver2    && <div className="text-sm"><span className="text-gray-500">Approved by #2:</span> <span className="font-medium">{q.approver2.name}</span></div>}
+                {!q.picQuotation && !q.approver1 && !q.approver2 && (
+                  <p className="text-xs text-amber-500">Belum diisi — klik Edit untuk menentukan siapa yang prepared dan approve.</p>
+                )}
+              </>
+            )}
             <div className="text-xs text-gray-400 pt-1">Dibuat oleh {q.createdBy?.name}</div>
           </div>
         </div>

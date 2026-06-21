@@ -20,12 +20,14 @@ export default function InvoiceDetailPage() {
   const { id } = useParams()
   const router  = useRouter()
 
-  const [inv,      setInv]      = useState(null)
-  const [loading,  setLoading]  = useState(true)
-  const [editing,  setEditing]  = useState(false)
-  const [saving,   setSaving]   = useState(false)
-  const [form,     setForm]     = useState(null)
+  const [inv,         setInv]         = useState(null)
+  const [loading,     setLoading]     = useState(true)
+  const [editing,     setEditing]     = useState(false)
+  const [saving,      setSaving]      = useState(false)
+  const [form,        setForm]        = useState(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [editingRef,  setEditingRef]  = useState(false)  // inline edit for PO & Faktur Pajak
+  const [refForm,     setRefForm]     = useState({ poNumber: '', taxInvoiceNumber: '' })
 
   useEffect(() => { if (status === 'unauthenticated') router.push('/login') }, [status])
 
@@ -80,6 +82,18 @@ export default function InvoiceDetailPage() {
     })
     setSaving(false)
     if (res.ok) load()
+    else { const d = await res.json().catch(()=>({})); alert(d.error || 'Gagal') }
+  }
+
+  async function saveRef() {
+    setSaving(true)
+    const res = await fetch(`/api/invoices/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update_refs', ...refForm }),
+    })
+    setSaving(false)
+    if (res.ok) { setEditingRef(false); load() }
     else { const d = await res.json().catch(()=>({})); alert(d.error || 'Gagal') }
   }
 
@@ -281,12 +295,65 @@ export default function InvoiceDetailPage() {
 
         {/* Invoice info summary */}
         {!editing && (
-          <div className="card p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div><p className="text-xs text-gray-400">Tanggal Invoice</p><p className="text-sm font-medium">{inv.issueDate ? new Date(inv.issueDate).toLocaleDateString('id-ID',{dateStyle:'medium'}) : '—'}</p></div>
-            <div><p className="text-xs text-gray-400">Jatuh Tempo</p><p className="text-sm font-medium">{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('id-ID',{dateStyle:'medium'}) : '—'}</p></div>
-            <div><p className="text-xs text-gray-400">No. PO</p><p className="text-sm font-mono">{inv.poNumber || '—'}</p></div>
-            <div><p className="text-xs text-gray-400">No. Faktur Pajak</p><p className="text-sm font-mono">{inv.taxInvoiceNumber || '—'}</p></div>
-            {inv.picFinanceName && <div><p className="text-xs text-gray-400">PIC Finance</p><p className="text-sm font-medium">{inv.picFinanceName}{inv.picFinancePhone && ` · ${inv.picFinancePhone}`}</p></div>}
+          <div className="card p-4 space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div><p className="text-xs text-gray-400">Tanggal Invoice</p><p className="text-sm font-medium">{inv.issueDate ? new Date(inv.issueDate).toLocaleDateString('id-ID',{dateStyle:'medium'}) : '—'}</p></div>
+              <div><p className="text-xs text-gray-400">Jatuh Tempo</p><p className="text-sm font-medium">{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('id-ID',{dateStyle:'medium'}) : '—'}</p></div>
+              {/* PO & Faktur — inline editable regardless of status */}
+              {editingRef ? (
+                <>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1">No. PO</p>
+                    <input className="input font-mono text-sm py-1"
+                      value={refForm.poNumber}
+                      onChange={e => setRefForm(f => ({ ...f, poNumber: e.target.value }))}
+                      placeholder="Nomor PO klien" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1">No. Faktur Pajak</p>
+                    <input className="input font-mono text-sm py-1"
+                      value={refForm.taxInvoiceNumber}
+                      onChange={e => setRefForm(f => ({ ...f, taxInvoiceNumber: e.target.value }))}
+                      placeholder="Nomor faktur pajak" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-xs text-gray-400">No. PO</p>
+                    <p className="text-sm font-mono">{inv.poNumber || <span className="text-gray-300 italic">belum diisi</span>}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">No. Faktur Pajak</p>
+                    <p className="text-sm font-mono">{inv.taxInvoiceNumber || <span className="text-gray-300 italic">belum diisi</span>}</p>
+                  </div>
+                </>
+              )}
+            </div>
+            {canEdit && (
+              <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+                {editingRef ? (
+                  <>
+                    <button onClick={saveRef} disabled={saving}
+                      className="text-xs px-3 py-1 bg-brand text-white rounded-lg hover:opacity-90 disabled:opacity-50">
+                      {saving ? 'Menyimpan...' : 'Simpan No. PO & Faktur'}
+                    </button>
+                    <button onClick={() => setEditingRef(false)} className="text-xs text-gray-400 hover:text-gray-600">Batal</button>
+                  </>
+                ) : (
+                  <button onClick={() => {
+                    setRefForm({ poNumber: inv.poNumber || '', taxInvoiceNumber: inv.taxInvoiceNumber || '' })
+                    setEditingRef(true)
+                  }} className="text-xs text-brand hover:underline">
+                    ✏ Edit No. PO &amp; Faktur Pajak
+                  </button>
+                )}
+                {inv.picFinanceName && <span className="text-xs text-gray-400 ml-auto">PIC Finance: {inv.picFinanceName}{inv.picFinancePhone && ` · ${inv.picFinancePhone}`}</span>}
+              </div>
+            )}
+            {!canEdit && inv.picFinanceName && (
+              <div className="pt-1 border-t border-gray-100"><p className="text-xs text-gray-400">PIC Finance: {inv.picFinanceName}{inv.picFinancePhone && ` · ${inv.picFinancePhone}`}</p></div>
+            )}
           </div>
         )}
 

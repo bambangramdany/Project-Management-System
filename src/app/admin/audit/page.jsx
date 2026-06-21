@@ -116,7 +116,7 @@ export default function AuditPage() {
           <p className="font-semibold">📌 Cara membaca halaman ini:</p>
           <ul className="space-y-1 list-disc pl-4 text-amber-700">
             <li><strong>Dashboard Overview Keuangan</strong> menggunakan <code className="bg-amber-100 px-1 rounded text-xs">project.projectValue</code> — bukan dari invoice. Kalau dua project berbeda untuk event yang sama, angkanya dihitung dua kali.</li>
-            <li><strong>Data paling valid</strong> = quotation yang disubmit Bima (sudah WON + ada invoice). Kolom "Total Quotation" adalah angka yang seharusnya.</li>
+            <li><strong>Data paling valid</strong> = quotation yang sudah WON dan ada invoice. Kolom "Total Quotation" adalah angka yang seharusnya.</li>
             <li><strong>Aksi yang direkomendasikan:</strong> Untuk "Nilai Tidak Sesuai" → klik "Sinkronkan" untuk update ke nilai quotation. Untuk project ganda → hapus project yang salah via halaman Project.</li>
           </ul>
         </div>
@@ -315,7 +315,7 @@ export default function AuditPage() {
             </div>
             <div className="bg-blue-50 rounded-lg p-3 space-y-1">
               <p className="font-medium text-blue-800">📋 Project Tanpa Quotation</p>
-              <p className="text-blue-700 text-xs">Cek apakah ada quotation Bima untuk project ini dengan nama berbeda. Jika ya: buka quotation → edit → hubungkan ke project ini. Jika tidak ada → data ini input manual, verifikasi nilai-nya.</p>
+              <p className="text-blue-700 text-xs">Cek apakah ada quotation untuk project ini dengan nama berbeda. Jika ya: buka quotation → edit → hubungkan ke project ini. Jika tidak ada → data ini input manual, verifikasi nilai-nya.</p>
             </div>
             <div className="bg-purple-50 rounded-lg p-3 space-y-1">
               <p className="font-medium text-purple-800">🔗 Quotation Tak Tertaut</p>

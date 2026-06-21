@@ -57,6 +57,20 @@ export async function PATCH(req, { params }) {
     data.status = 'CANCELLED'
   }
 
+  // PO number & Faktur Pajak — editable regardless of status (often received after invoice issued)
+  if (body.action === 'update_refs') {
+    if (body.poNumber         !== undefined) data.poNumber         = body.poNumber         || null
+    if (body.taxInvoiceNumber !== undefined) data.taxInvoiceNumber = body.taxInvoiceNumber || null
+    // Sync to receivable too
+    await prisma.receivable.updateMany({
+      where: { invoiceId: params.id },
+      data: {
+        poNumber:        body.poNumber         || undefined,
+        taxInvoiceNumber: body.taxInvoiceNumber || undefined,
+      },
+    })
+  }
+
   // Field updates (DRAFT only)
   if (!body.action || body.action === 'update') {
     if (invoice.status !== 'DRAFT') {
