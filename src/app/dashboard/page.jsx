@@ -115,7 +115,7 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-500">Selamat datang, {session?.user.name}</p>
           </div>
           <div className="flex gap-2 flex-wrap justify-end">
-            {session?.user?.role === 'OWNER' && (
+            {['OWNER', 'DIRECTOR', 'PROJECT_MANAGER'].includes(session?.user?.role) && (
               <Link href="/admin/audit"
                 className="text-sm px-3 py-2 rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium">
                 🔍 Audit Data

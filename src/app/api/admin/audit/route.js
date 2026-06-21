@@ -26,9 +26,11 @@ function computeQuotTotal(q) {
   return base + af + ppn
 }
 
+const AUDIT_ROLES = ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER']
+
 export async function GET() {
   const session = await getServerSession(authOptions)
-  if (!session || session.user.role !== 'OWNER') {
+  if (!session || !AUDIT_ROLES.includes(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

@@ -52,7 +52,7 @@ export default function AuditPage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
-    if (status === 'authenticated' && session.user.role !== 'OWNER') router.push('/dashboard')
+    if (status === 'authenticated' && !['OWNER', 'DIRECTOR', 'PROJECT_MANAGER'].includes(session.user.role)) router.push('/dashboard')
   }, [status, session])
 
   const load = () => {
