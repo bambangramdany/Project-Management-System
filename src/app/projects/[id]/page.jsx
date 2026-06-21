@@ -535,8 +535,11 @@ export default function ProjectDetailPage() {
                     {STATUS_LABEL[s]}
                   </button>
                 ))}
-                <button onClick={() => updateStatus('FAILED')} disabled={saving} className="px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-500 hover:bg-red-100">Failed</button>
-                <button onClick={() => updateStatus('CANCELED')} disabled={saving} className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500 hover:bg-gray-200">Canceled</button>
+                {/* Divider + terminal states */}
+                <span className="self-center text-gray-300 select-none">|</span>
+                <span className="self-center text-[10px] text-gray-400 font-medium uppercase tracking-wide">Tutup:</span>
+                <button onClick={() => updateStatus('FAILED')} disabled={saving} className="px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 border border-red-100">Failed</button>
+                <button onClick={() => updateStatus('CANCELED')} disabled={saving} className="px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-400 hover:bg-gray-100 border border-gray-200">Canceled</button>
               </div>
             </div>
           )}
