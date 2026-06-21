@@ -17,6 +17,7 @@ export default function NewProjectPage() {
     name: '', clientId: '', category: 'MEETING_CONFERENCE', budgetTier: 'MEDIUM',
     eventComplexity: 'MEDIUM', recommendation: 'MAINTAIN', picId: '', division: 'EVENT',
     briefDate: '', startDate: '', endDate: '', loadInDays: '', status: 'HOLD', pitchStatus: 'PITCH', notes: '', quotationNumber: '',
+    estimatedValue: '', quotationDeadline: '', quotationStatus: 'PENDING',
     applySopTemplate: true,
   })
   const [customCategory, setCustomCategory] = useState('')
@@ -53,7 +54,8 @@ export default function NewProjectPage() {
     })
     if (res.ok) {
       const project = await res.json()
-      router.push(`/projects/${project.id}`)
+      // Pass ?new=1 so project detail page shows the "Next Steps" banner
+      router.push(`/projects/${project.id}?new=1`)
     } else {
       alert('Gagal membuat project')
       setLoading(false)
@@ -75,10 +77,52 @@ export default function NewProjectPage() {
             <input className="input" value={form.name} onChange={e => set('name', e.target.value)} required placeholder="Nama event / project" />
           </div>
 
-          <div>
-            <label className="label">Nomor Quotation</label>
-            <input className="input" value={form.quotationNumber} onChange={e => set('quotationNumber', e.target.value)} placeholder="Opsional, bisa diisi nanti" />
-            <p className="text-xs text-gray-400 mt-1">Tidak wajib saat ini, tapi wajib diisi sebelum tim bisa mengajukan pembayaran untuk project ini.</p>
+          {/* ── Estimasi Nilai & Status Quotation ── */}
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 space-y-3">
+            <p className="text-sm font-semibold text-indigo-800">📄 Informasi Quotation</p>
+
+            <div>
+              <label className="label">Status Quotation *</label>
+              <select className="select" value={form.quotationStatus} onChange={e => set('quotationStatus', e.target.value)}>
+                <option value="READY">Quotation sudah ada / siap dilampirkan</option>
+                <option value="PENDING">Quotation sedang disiapkan (menyusul)</option>
+                <option value="NOT_NEEDED">Tidak perlu quotation (project internal / retainer)</option>
+              </select>
+            </div>
+
+            {form.quotationStatus === 'READY' && (
+              <div>
+                <label className="label">Nomor Quotation</label>
+                <input className="input" value={form.quotationNumber} onChange={e => set('quotationNumber', e.target.value)}
+                  placeholder="WTM/EVENT/QUOT/2026/001" />
+                <p className="text-xs text-gray-400 mt-1">Quotation yang sudah ada akan terhubung otomatis jika nomornya sesuai.</p>
+              </div>
+            )}
+
+            {form.quotationStatus === 'PENDING' && (
+              <div>
+                <label className="label">Target Tanggal Kirim Quotation ke Klien *</label>
+                <input type="date" className="input" value={form.quotationDeadline}
+                  onChange={e => set('quotationDeadline', e.target.value)} required />
+                <p className="text-xs text-amber-600 mt-1">⏰ Akan muncul sebagai reminder jika quotation belum dibuat melewati tanggal ini.</p>
+              </div>
+            )}
+
+            <div>
+              <label className="label">
+                Estimasi Nilai Project (Rp)
+                {form.quotationStatus !== 'READY' && <span className="text-red-500 ml-1">*</span>}
+              </label>
+              <input type="number" className="input" value={form.estimatedValue}
+                onChange={e => set('estimatedValue', e.target.value)}
+                placeholder="Contoh: 150000000"
+                required={form.quotationStatus !== 'READY'} />
+              <p className="text-xs text-gray-400 mt-1">
+                {form.quotationStatus === 'READY'
+                  ? 'Opsional — akan otomatis terisi dari nilai quotation saat diimport ke budget.'
+                  : 'Wajib diisi agar dashboard Overview Keuangan bisa menampilkan estimasi omset sejak awal.'}
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

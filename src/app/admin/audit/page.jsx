@@ -202,29 +202,49 @@ export default function AuditPage() {
               {(!rows || rows.length === 0) && (
                 <div className="py-12 text-center text-sm text-gray-400">Semua project memiliki quotation WON terhubung</div>
               )}
-              {rows?.map(p => (
-                <div key={p.id} className="px-5 py-3 flex items-start justify-between gap-4 flex-wrap">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Link href={`/projects/${p.id}`} className="font-semibold text-gray-800 hover:text-brand">{p.name}</Link>
-                      <Badge status={p.status} />
-                      <span className="text-xs text-gray-400">{p.clientName}</span>
-                      {p.division && <span className="text-xs text-gray-400 bg-gray-100 px-1.5 rounded">{p.division}</span>}
+              {rows?.map(p => {
+                const overdue = p.deadlineDiff != null && p.deadlineDiff < 0
+                const urgent  = p.deadlineDiff != null && p.deadlineDiff >= 0 && p.deadlineDiff <= 3
+                const old7    = p.ageDays > 7 && p.quotationDeadline == null
+                return (
+                  <div key={p.id} className={`px-5 py-3 flex items-start justify-between gap-4 flex-wrap ${overdue ? 'bg-red-50' : old7 ? 'bg-amber-50/50' : ''}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link href={`/projects/${p.id}`} className="font-semibold text-gray-800 hover:text-brand">{p.name}</Link>
+                        <Badge status={p.status} />
+                        <span className="text-xs text-gray-400">{p.clientName}</span>
+                        {p.division && <span className="text-xs text-gray-400 bg-gray-100 px-1.5 rounded">{p.division}</span>}
+                      </div>
+                      <div className="flex flex-wrap gap-3 text-sm text-gray-500 mt-0.5">
+                        <span>Nilai: <span className="font-medium text-gray-700">{fmtShort(p.projectValue)}</span></span>
+                        <span className="text-gray-300">·</span>
+                        {overdue
+                          ? <span className="font-semibold text-red-600">🔴 Target kirim sudah lewat {Math.abs(p.deadlineDiff)} hari!</span>
+                          : urgent
+                          ? <span className="font-semibold text-amber-600">⏰ {p.deadlineDiff} hari lagi target kirim</span>
+                          : p.quotationDeadline
+                          ? <span className="text-gray-400">Target: {new Date(p.quotationDeadline).toLocaleDateString('id-ID', {dateStyle:'medium'})}</span>
+                          : old7
+                          ? <span className="text-amber-600">⚠ {p.ageDays} hari tanpa quotation & deadline</span>
+                          : <span className="text-gray-400">{p.ageDays} hari sejak dibuat</span>
+                        }
+                        {p.quotCount > 0 && <span className="text-amber-600">{p.quotCount} quotation (belum WON)</span>}
+                        {p.hasInvoices && <span className="text-green-600">Ada invoice</span>}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500 mt-0.5">
-                      Nilai di sistem: <span className="font-medium text-gray-700">{fmtShort(p.projectValue)}</span>
-                      {p.quotCount > 0 && <span className="ml-3 text-amber-600">{p.quotCount} quotation terhubung (tapi belum WON)</span>}
-                      {p.hasInvoices && <span className="ml-3 text-green-600">Ada invoice</span>}
+                    <div className="shrink-0 flex gap-2">
+                      <Link href={`/quotation/new?projectId=${p.id}`}
+                        className="text-xs px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        + Buat Quotation
+                      </Link>
+                      <Link href={`/projects/${p.id}`}
+                        className="text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+                        Lihat →
+                      </Link>
                     </div>
                   </div>
-                  <div className="shrink-0 flex gap-2">
-                    <Link href={`/projects/${p.id}`}
-                      className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
-                      Lihat Project →
-                    </Link>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </>
           )}
 

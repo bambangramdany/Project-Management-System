@@ -24,6 +24,13 @@ export default function ProjectDetailPage() {
     }
     return 'tasks'
   })
+  const [isNewProject] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search).get('new') === '1'
+    }
+    return false
+  })
+  const [nextStepsDismissed, setNextStepsDismissed] = useState(false)
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [taskForm, setTaskForm] = useState({ title: '', assigneeId: '', priority: 'MEDIUM', openEnded: false, dueDate: '' })
   const [saving, setSaving] = useState(false)
@@ -277,6 +284,56 @@ export default function ProjectDetailPage() {
           <span className="text-gray-300">/</span>
           <span className="text-gray-600 truncate">{project.name}</span>
         </div>
+
+        {/* ── "Langkah Selanjutnya" banner — muncul setelah buat project baru ── */}
+        {isNewProject && !nextStepsDismissed && project && (
+          <div className="rounded-xl border border-green-300 bg-green-50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold text-green-800">🎉 Project berhasil dibuat! Langkah selanjutnya:</p>
+                <p className="text-sm text-green-700 mt-0.5">Pastikan quotation dibuat dan dihubungkan ke project ini agar anggaran dan laporan keuangan akurat.</p>
+              </div>
+              <button onClick={() => setNextStepsDismissed(true)} className="text-green-400 hover:text-green-600 text-lg leading-none shrink-0">✕</button>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <Link href={`/quotation/new?projectId=${id}`}
+                className="text-sm px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 font-medium">
+                📄 Buat Quotation Baru untuk Project Ini
+              </Link>
+              <button
+                onClick={() => { setActiveTab('quotation'); setNextStepsDismissed(true) }}
+                className="text-sm px-4 py-2 rounded-lg border border-green-300 text-green-700 hover:bg-green-100">
+                🔗 Tautkan Quotation yang Sudah Ada
+              </button>
+              <button onClick={() => setNextStepsDismissed(true)}
+                className="text-sm px-4 py-2 rounded-lg border border-green-200 text-green-600 hover:bg-green-50">
+                ⏭ Nanti saja
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Reminder: project lama tanpa quotation ── */}
+        {!isNewProject && project && !project.quotations?.some(q => ['WON','APPROVED','PENDING_DIRECTOR','PENDING_WULAN'].includes(q.status)) &&
+         ['ACTIVE','PITCHING','HOLD'].includes(project.status) &&
+         ['OWNER','DIRECTOR','PROJECT_MANAGER'].includes(session?.user?.role) && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm text-amber-800">
+              <span>⚠</span>
+              <span>Project ini belum memiliki quotation. Budget dan omset tidak akan terhitung di laporan keuangan.</span>
+              {project.quotationDeadline && (() => {
+                const diff = Math.ceil((new Date(project.quotationDeadline) - new Date()) / 86400000)
+                return diff < 0
+                  ? <span className="font-semibold text-red-600">Target pengiriman sudah lewat {Math.abs(diff)} hari!</span>
+                  : <span className="text-amber-600">{diff} hari lagi target kirim.</span>
+              })()}
+            </div>
+            <Link href={`/quotation/new?projectId=${id}`}
+              className="shrink-0 text-xs px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium">
+              Buat Quotation →
+            </Link>
+          </div>
+        )}
 
         {/* Project header */}
         <div className="card p-5 border-t-4 border-blue-400">

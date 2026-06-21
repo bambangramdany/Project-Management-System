@@ -38,7 +38,8 @@ export async function GET() {
   const projects = await prisma.project.findMany({
     select: {
       id: true, name: true, status: true, division: true,
-      projectValue: true, startDate: true, briefDate: true,
+      projectValue: true, startDate: true, briefDate: true, createdAt: true,
+      quotationDeadline: true,
       client: { select: { name: true } },
       pic: { select: { name: true } },
       quotations: {
@@ -104,6 +105,12 @@ export async function GET() {
     const invoiceTotal   = allQuots.flatMap(q => q.invoices).reduce((sum, inv) => sum + inv.totalAmount, 0)
     const hasInvoices    = allQuots.flatMap(q => q.invoices).length > 0
 
+    const now = new Date()
+    const agedays = Math.floor((now - new Date(p.createdAt)) / 86400000)
+    const deadlineDiff = p.quotationDeadline
+      ? Math.ceil((new Date(p.quotationDeadline) - now) / 86400000)
+      : null
+
     const row = {
       id:           p.id,
       name:         p.name,
@@ -117,6 +124,9 @@ export async function GET() {
       quotGrandTotal,
       invoiceTotal,
       hasInvoices,
+      ageDays:       agedays,
+      deadlineDiff,
+      quotationDeadline: p.quotationDeadline,
       quotations: allQuots.map(q => ({
         id:             q.id,
         number:         q.quotationNumber,

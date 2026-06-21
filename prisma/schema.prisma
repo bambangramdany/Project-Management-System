@@ -510,9 +510,10 @@ model Project {
   wonLossReason   String?
   vendorWinner    String?
   evaluationNote  String?
-  projectValue    Float?
-  includesPpn     Boolean @default(false)
-  quotationNumber String?
+  projectValue      Float?
+  includesPpn       Boolean @default(false)
+  quotationNumber   String?
+  quotationDeadline DateTime? // target tanggal quotation dikirim ke klien
   quotationFileUrl  String?
   quotationFileName String?
   invoiceNumber   String?

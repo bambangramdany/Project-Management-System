@@ -24,6 +24,7 @@ export async function GET(req, { params }) {
         orderBy: { order: 'asc' },
       },
       briefItems: { orderBy: { order: 'asc' } },
+      quotations: { select: { id: true, status: true, quotationNumber: true } },
     },
   })
 

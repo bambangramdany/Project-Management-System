@@ -94,7 +94,9 @@ export async function POST(req) {
       status: body.status || 'HOLD',
       pitchStatus: body.pitchStatus || null,
       notes: body.notes || null,
-      quotationNumber: body.quotationNumber || null,
+      quotationNumber:   body.quotationNumber || null,
+      projectValue:      body.estimatedValue ? parseFloat(body.estimatedValue) : null,
+      quotationDeadline: body.quotationDeadline ? new Date(body.quotationDeadline) : null,
     },
     include: { client: true, pic: true },
   })
