@@ -86,7 +86,7 @@ export default function QuotationDetailPage() {
     const res = await fetch(`/api/quotations/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'update_content', ...sigForm }),
+      body: JSON.stringify({ action: 'update_sig', ...sigForm }),
     })
     setActing(false)
     if (res.ok) { setEditingSig(false); load() }
@@ -386,21 +386,21 @@ export default function QuotationDetailPage() {
 
           {/* Margin forecast — OWNER & DIRECTOR only, never shown on PDF */}
           {canSeeHpp && totals.hppFilled > 0 && (
-            <div className="mx-5 mb-4 rounded-lg border border-dashed border-rose-200 bg-rose-50/40 p-4 space-y-1.5">
-              <p className="text-xs font-semibold text-rose-500 uppercase tracking-wide">🔒 Forecast Margin (Internal — tidak tampil di PDF)</p>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Total HPP ({totals.hppFilled}/{totals.itemCount} item diisi)</span>
-                <span className="font-medium text-red-600">{fmt(totals.hppTotal)}</span>
+            <div className="mx-3 sm:mx-5 mb-4 rounded-lg border border-dashed border-rose-200 bg-rose-50/40 p-3 sm:p-4 space-y-1.5">
+              <p className="text-xs font-semibold text-rose-500 uppercase tracking-wide">🔒 Forecast Margin (Internal)</p>
+              <div className="flex justify-between text-sm gap-2">
+                <span className="text-gray-500 min-w-0">Total HPP ({totals.hppFilled}/{totals.itemCount} item diisi)</span>
+                <span className="font-medium text-red-600 shrink-0">{fmt(totals.hppTotal)}</span>
               </div>
-              <div className="flex justify-between font-bold text-sm pt-1 border-t border-rose-200">
+              <div className="flex justify-between font-bold text-sm pt-1 border-t border-rose-200 gap-2">
                 <span className="text-gray-700">Gross Margin</span>
-                <span className={totals.grossMargin >= 0 ? 'text-green-600' : 'text-red-600'}>
+                <span className={`shrink-0 ${totals.grossMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {fmt(totals.grossMargin)}
-                  <span className="font-normal text-xs ml-1.5">({totals.marginPct?.toFixed(1)}%)</span>
+                  <span className="font-normal text-xs ml-1">({totals.marginPct?.toFixed(1)}%)</span>
                 </span>
               </div>
               {totals.hppFilled < totals.itemCount && (
-                <p className="text-[11px] text-amber-600">⚠ {totals.itemCount - totals.hppFilled} item belum diisi HPP — margin belum lengkap</p>
+                <p className="text-[11px] text-amber-600">⚠ {totals.itemCount - totals.hppFilled} item belum diisi HPP</p>
               )}
             </div>
           )}

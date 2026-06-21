@@ -125,6 +125,24 @@ export async function PATCH(req, { params }) {
     return NextResponse.json(updated)
   }
 
+  // ── Update signature fields only (any status) ─────────────────────────
+  if (body.action === 'update_sig') {
+    const data = {}
+    if (body.picQuotationId !== undefined) data.picQuotationId = body.picQuotationId || null
+    if (body.approver1Id    !== undefined) data.approver1Id    = body.approver1Id    || null
+    if (body.approver2Id    !== undefined) data.approver2Id    = body.approver2Id    || null
+    const updated = await prisma.quotation.update({
+      where: { id: params.id },
+      data,
+      include: {
+        picQuotation: { select: { id: true, name: true } },
+        approver1:    { select: { id: true, name: true } },
+        approver2:    { select: { id: true, name: true } },
+      },
+    })
+    return NextResponse.json(updated)
+  }
+
   // ── Full content update (DRAFT only) ──────────────────────────────────
   if (body.action === 'update_content' || !body.action) {
     if (!['DRAFT'].includes(quotation.status)) {

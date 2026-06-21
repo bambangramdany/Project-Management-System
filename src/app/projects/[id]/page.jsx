@@ -317,16 +317,18 @@ export default function ProjectDetailPage() {
         {!isNewProject && project && !project.quotations?.some(q => ['WON','APPROVED','PENDING_DIRECTOR','PENDING_WULAN'].includes(q.status)) &&
          ['ACTIVE','PITCHING','HOLD'].includes(project.status) &&
          ['OWNER','DIRECTOR','PROJECT_MANAGER'].includes(session?.user?.role) && (
-          <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm text-amber-800">
-              <span>⚠</span>
-              <span>Project ini belum memiliki quotation. Budget dan omset tidak akan terhitung di laporan keuangan.</span>
-              {project.quotationDeadline && (() => {
-                const diff = Math.ceil((new Date(project.quotationDeadline) - new Date()) / 86400000)
-                return diff < 0
-                  ? <span className="font-semibold text-red-600">Target pengiriman sudah lewat {Math.abs(diff)} hari!</span>
-                  : <span className="text-amber-600">{diff} hari lagi target kirim.</span>
-              })()}
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-2 text-sm text-amber-800 flex-1 min-w-0">
+              <span className="shrink-0">⚠</span>
+              <div>
+                <span>Project ini belum memiliki quotation. Budget dan omset tidak akan terhitung di laporan keuangan.</span>
+                {project.quotationDeadline && (() => {
+                  const diff = Math.ceil((new Date(project.quotationDeadline) - new Date()) / 86400000)
+                  return diff < 0
+                    ? <span className="block font-semibold text-red-600 mt-0.5">Target pengiriman sudah lewat {Math.abs(diff)} hari!</span>
+                    : <span className="block text-amber-600 mt-0.5">{diff} hari lagi target kirim.</span>
+                })()}
+              </div>
             </div>
             <Link href={`/quotation/new?projectId=${id}`}
               className="shrink-0 text-xs px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium">

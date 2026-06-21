@@ -622,63 +622,61 @@ function ItemRow({ item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMove
       </div>
 
       {/* Row 2: Pricing */}
-      <div className="flex flex-wrap gap-2 ml-8 items-end">
+      <div className="ml-0 sm:ml-8 mt-1">
         {/* By client toggle */}
-        <label className="flex items-center gap-1.5 cursor-pointer">
+        <label className="flex items-center gap-1.5 cursor-pointer mb-2">
           <input type="checkbox" checked={item.byClient} onChange={e => onUpdate({ byClient: e.target.checked, rate: '' })} className="w-3.5 h-3.5" />
-          <span className="text-xs text-gray-500">By Client</span>
+          <span className="text-xs text-gray-500">By Client (tidak dikenakan biaya)</span>
         </label>
 
         {!item.byClient && (
-          <>
-            <div className="flex flex-col">
-              <span className="text-[10px] text-gray-400 mb-0.5">Rate</span>
-              <input
-                type="text"
-                className="input w-32 text-sm text-right"
-                value={item.rate}
-                onChange={e => onUpdate({ rate: e.target.value })}
-                placeholder="0"
-              />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] text-gray-400 mb-0.5">Unit</span>
-              <select className="select text-sm py-1" value={item.unitType} onChange={e => onUpdate({ unitType: e.target.value })}>
-                {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] text-gray-400 mb-0.5">Qty</span>
-              <input type="number" min="0" className="input w-16 text-sm text-right"
-                value={item.qty} onChange={e => onUpdate({ qty: e.target.value })} />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] text-gray-400 mb-0.5">Days</span>
-              <input type="number" min="0" className="input w-16 text-sm text-right"
-                value={item.days} onChange={e => onUpdate({ days: e.target.value })} />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] text-gray-400 mb-0.5">Subtotal</span>
-              <div className="text-sm font-semibold text-gray-800 py-2 text-right min-w-[90px]">
-                Rp {formatRp(item.subtotal)}
+          <div className="overflow-x-auto -mx-1 px-1">
+            <div className="flex gap-2 items-end min-w-max">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-400 mb-0.5">Rate</span>
+                <input
+                  type="text"
+                  className="input w-32 text-sm text-right"
+                  value={item.rate}
+                  onChange={e => onUpdate({ rate: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-400 mb-0.5">Unit</span>
+                <select className="select text-sm py-1 w-24" value={item.unitType} onChange={e => onUpdate({ unitType: e.target.value })}>
+                  {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-400 mb-0.5">Qty</span>
+                <input type="number" min="0" className="input w-16 text-sm text-right"
+                  value={item.qty} onChange={e => onUpdate({ qty: e.target.value })} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-400 mb-0.5">Days</span>
+                <input type="number" min="0" className="input w-16 text-sm text-right"
+                  value={item.days} onChange={e => onUpdate({ days: e.target.value })} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-400 mb-0.5">Subtotal</span>
+                <div className="text-sm font-semibold text-gray-800 py-2 text-right min-w-[100px]">
+                  Rp {formatRp(item.subtotal)}
+                </div>
+              </div>
+              {/* HPP / Modal — internal, never on PDF */}
+              <div className="flex flex-col border-l border-dashed border-gray-200 pl-3 ml-1">
+                <span className="text-[10px] text-rose-400 mb-0.5">HPP/Modal 🔒</span>
+                <input
+                  type="text"
+                  className="input w-28 text-sm text-right border-rose-200 focus:border-rose-400 bg-rose-50/30 placeholder-rose-200"
+                  value={item.hppRate}
+                  onChange={e => onUpdate({ hppRate: e.target.value })}
+                  placeholder="opsional"
+                />
               </div>
             </div>
-            {/* HPP / Modal — internal, never on PDF */}
-            <div className="flex flex-col border-l border-dashed border-gray-200 pl-3 ml-1">
-              <span className="text-[10px] text-rose-400 mb-0.5">HPP/Modal 🔒</span>
-              <input
-                type="text"
-                className="input w-28 text-sm text-right border-rose-200 focus:border-rose-400 bg-rose-50/30 placeholder-rose-200"
-                value={item.hppRate}
-                onChange={e => onUpdate({ hppRate: e.target.value })}
-                placeholder="opsional"
-              />
-            </div>
-          </>
-        )}
-
-        {item.byClient && (
-          <div className="text-xs text-amber-600 bg-amber-50 rounded px-2 py-1 font-medium">By Client — tidak dikenakan biaya</div>
+          </div>
         )}
       </div>
 

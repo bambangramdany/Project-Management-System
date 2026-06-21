@@ -234,7 +234,7 @@ export default function BulkCreateInvoicePage() {
                   Terapkan ke Semua yang Dipilih
                 </button>
                 {/* Division filter */}
-                <div className="ml-auto flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <label className="text-xs text-gray-500 self-center">Filter:</label>
                   {['', 'EVENT', 'CREATIVE', 'PH'].map(d => (
                     <button key={d} onClick={() => setFilterDiv(d)}
