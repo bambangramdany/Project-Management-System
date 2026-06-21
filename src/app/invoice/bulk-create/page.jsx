@@ -9,6 +9,14 @@ const ALLOWED = ['OWNER', 'FINANCE', 'FINANCE_STAFF', 'DIRECTOR']
 
 const DIVISION_LABEL = { EVENT: 'EO', CREATIVE: 'Creative', PH: 'PH' }
 
+// Mirror server logic — generates the default invoice number from quotation number
+function buildInvoiceNumber(quotationNumber) {
+  // WTM/EVENT/QUOT/2025/177 → WTM/EVENT/INV/2025/177/001
+  // Handle both QUOT and QU0T (zero typo) just in case
+  const base = quotationNumber.replace(/\/QUOT\//i, '/INV/').replace(/\/QU0T\//i, '/INV/')
+  return `${base}/001`
+}
+
 function fmt(n) {
   const v = Math.round(n || 0)
   const abs = Math.abs(v)
@@ -62,7 +70,14 @@ export default function BulkCreateInvoicePage() {
         // Init row state
         const init = {}
         qs.forEach(q => {
-          init[q.id] = { checked: true, issueDate: todayStr(), dueDate: defaultDue(), status: 'ISSUED', poNumber: '' }
+          init[q.id] = {
+            checked: true,
+            invoiceNumber: buildInvoiceNumber(q.quotationNumber),
+            issueDate: todayStr(),
+            dueDate: defaultDue(),
+            status: 'ISSUED',
+            poNumber: '',
+          }
         })
         setRows(init)
         setLoading(false)
@@ -108,7 +123,14 @@ export default function BulkCreateInvoicePage() {
     setCreating(true)
     const payload = selectedIds.map(id => {
       const r = rows[id]
-      return { quotationId: id, issueDate: r.issueDate || null, dueDate: r.dueDate || null, status: r.status, poNumber: r.poNumber || null }
+      return {
+        quotationId:   id,
+        invoiceNumber: r.invoiceNumber?.trim() || null,  // null = auto-generate server-side
+        issueDate:     r.issueDate  || null,
+        dueDate:       r.dueDate    || null,
+        status:        r.status,
+        poNumber:      r.poNumber   || null,
+      }
     })
 
     const res = await fetch('/api/invoices/bulk', {
@@ -234,6 +256,7 @@ export default function BulkCreateInvoicePage() {
                         <input type="checkbox" checked={allChecked} onChange={e => toggleAll(e.target.checked)} className="rounded" />
                       </th>
                       <th className="px-4 py-3 text-left">No. Quotation</th>
+                      <th className="px-4 py-3 text-left">No. Invoice <span className="font-normal text-gray-400">(bisa diubah)</span></th>
                       <th className="px-4 py-3 text-left">Klien</th>
                       <th className="px-4 py-3 text-left hidden md:table-cell">Event</th>
                       <th className="px-4 py-3 text-center hidden sm:table-cell">Div</th>
@@ -252,7 +275,16 @@ export default function BulkCreateInvoicePage() {
                             <input type="checkbox" checked={!!row.checked}
                               onChange={e => setRow(q.id, { checked: e.target.checked })} className="rounded" />
                           </td>
-                          <td className="px-4 py-2.5 font-mono text-xs text-gray-600 whitespace-nowrap">{q.quotationNumber}</td>
+                          <td className="px-4 py-2.5 font-mono text-xs text-gray-500 whitespace-nowrap">{q.quotationNumber}</td>
+                          <td className="px-4 py-2.5">
+                            <input
+                              value={row.invoiceNumber || ''}
+                              onChange={e => setRow(q.id, { invoiceNumber: e.target.value })}
+                              disabled={!row.checked}
+                              placeholder="No. Invoice"
+                              className="border rounded px-2 py-1 text-xs font-mono w-52 disabled:bg-gray-50 disabled:text-gray-400 focus:border-indigo-400 focus:outline-none"
+                            />
+                          </td>
                           <td className="px-4 py-2.5 font-medium text-gray-900 max-w-[160px] truncate" title={q.clientName}>{q.clientName}</td>
                           <td className="px-4 py-2.5 text-gray-600 max-w-[200px] truncate hidden md:table-cell" title={q.eventName}>{q.eventName}</td>
                           <td className="px-4 py-2.5 text-center hidden sm:table-cell">

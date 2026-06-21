@@ -88,7 +88,8 @@ export async function POST(req) {
 
     try {
       const termNumber    = (existingMap[quotation.id] || 0) + 1
-      const invoiceNumber = buildInvoiceNumber(quotation.quotationNumber, termNumber)
+      // Use caller-supplied number (historical import) or auto-generate
+      const invoiceNumber = req.invoiceNumber?.trim() || buildInvoiceNumber(quotation.quotationNumber, termNumber)
 
       // Build invoice items from quotation
       const invoiceItems = []
