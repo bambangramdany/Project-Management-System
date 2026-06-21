@@ -216,8 +216,9 @@ function parseBulkTemplate(rows) {
   // "Nilai Dasar" matched before "Nilai Total" to avoid collision
   const colBase      = col('nilai dasar') !== -1 ? col('nilai dasar')
     : col('nilai') !== -1 ? col('nilai') : col('total')
-  const colAgency    = col('agency')    // Agency Fee %
-  const colPpn       = col('ppn')       // Include PPN? (YA/TIDAK)
+  // Use specific key 'agency fee %' to avoid matching 'Nilai Dasar ... sebelum Agency Fee & PPN'
+  const colAgency    = col('agency fee %') !== -1 ? col('agency fee %') : col('agency fee')
+  const colPpn       = col('ppn') !== -1 ? col('ppn') : col('include ppn')  // Include PPN? (YA/TIDAK)
   const colNotes     = col('catatan') !== -1 ? col('catatan') : col('notes')
 
   return rows.slice(1).map((row, ri) => {
@@ -313,8 +314,10 @@ export async function POST(req) {
     quotations = [q]
   } else {
     // Bulk mode: parse all sheets or just first sheet
+    // raw: true (default) keeps numbers as JS numbers — do NOT use raw:false here
+    // because 'Nilai Dasar' and 'Agency Fee %' are numeric cells and must stay numeric
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
-    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false })
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
     quotations = parseBulkTemplate(rows.map(r => Array.isArray(r) ? r : Object.values(r)))
     if (quotations.length === 0) {
       warnings.push('Tidak ada baris data yang terbaca. Pastikan baris pertama adalah header dan baris berikutnya adalah data.')

@@ -30,10 +30,10 @@ function downloadBulkTemplate() {
     'Tgl Quotation (YYYY-MM-DD)',
     'Tgl Event',
     'Venue',
-    // Nilai sebelum agency fee & PPN
-    'Nilai Dasar (Rp) — sebelum Agency Fee & PPN',
-    // Agency fee opsional
-    'Agency Fee % (opsional, cth: 10)',
+    // Nilai dasar project (sebelum fee & pajak)
+    'Nilai Dasar (Rp)',
+    // Agency fee: isi angka persen saja, cth: 10 (artinya 10%)
+    'Agency Fee % (cth: 10)',
     // PPN
     'Include PPN 11%? (YA/TIDAK)',
     'Catatan',
