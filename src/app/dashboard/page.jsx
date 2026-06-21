@@ -114,9 +114,17 @@ export default function DashboardPage() {
             <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
             <p className="text-sm text-gray-500">Selamat datang, {session?.user.name}</p>
           </div>
-          <Link href="/projects/new" className="btn-primary self-start sm:self-auto">
-            + Project Baru
-          </Link>
+          <div className="flex gap-2 flex-wrap justify-end">
+            {session?.user?.role === 'OWNER' && (
+              <Link href="/admin/audit"
+                className="text-sm px-3 py-2 rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium">
+                🔍 Audit Data
+              </Link>
+            )}
+            <Link href="/projects/new" className="btn-primary self-start sm:self-auto">
+              + Project Baru
+            </Link>
+          </div>
         </div>
 
         {/* Finance overview — Owner / Finance / Directors only */}
