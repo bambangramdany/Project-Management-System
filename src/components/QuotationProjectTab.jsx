@@ -72,7 +72,7 @@ export default function QuotationProjectTab({ project, session, onProjectUpdated
     const res = await fetch(`/api/quotations/${quotationId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectId: project.id }),
+      body: JSON.stringify({ action: 'link_project', projectId: project.id }),
     })
     setLinking(false)
     if (res.ok) {

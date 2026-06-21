@@ -143,6 +143,15 @@ export async function PATCH(req, { params }) {
     return NextResponse.json(updated)
   }
 
+  // ── Link / unlink project (any status) ───────────────────────────────
+  if (body.action === 'link_project') {
+    const updated = await prisma.quotation.update({
+      where: { id: params.id },
+      data: { projectId: body.projectId || null },
+    })
+    return NextResponse.json(updated)
+  }
+
   // ── Full content update (DRAFT only) ──────────────────────────────────
   if (body.action === 'update_content' || !body.action) {
     if (!['DRAFT'].includes(quotation.status)) {
