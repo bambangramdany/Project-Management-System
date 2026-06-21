@@ -28,16 +28,23 @@ function canApprove(user) {
 }
 
 function calcTotals(q) {
-  let base = 0, agencyBase = 0
+  let base = 0, agencyBase = 0, hppTotal = 0, hppFilled = 0, itemCount = 0
   for (const sec of q.sections || []) {
     for (const item of sec.items || []) {
       base += item.subtotal || 0
       if (item.includeAgencyFee) agencyBase += item.subtotal || 0
+      if (item.rate !== null) {
+        itemCount++
+        if (item.hppSubtotal != null) { hppTotal += item.hppSubtotal; hppFilled++ }
+      }
     }
   }
   const agencyFeeAmt = agencyBase * ((q.agencyFeePercent || 0) / 100)
   const ppn = q.includesPpn ? (base + agencyFeeAmt) * ((q.ppnPercent || 11) / 100) : 0
-  return { base, agencyFeeAmt, ppn, grand: base + agencyFeeAmt + ppn }
+  const grand = base + agencyFeeAmt + ppn
+  const grossMargin = hppFilled > 0 ? grand - hppTotal : null
+  const marginPct   = grossMargin != null && grand > 0 ? (grossMargin / grand) * 100 : null
+  return { base, agencyFeeAmt, ppn, grand, hppTotal, hppFilled, itemCount, grossMargin, marginPct }
 }
 
 export default function QuotationDetailPage() {
@@ -124,6 +131,7 @@ export default function QuotationDetailPage() {
   const st = STATUS_META[q.status] || STATUS_META.DRAFT
   const totals = calcTotals(q)
   const user = session?.user
+  const canSeeHpp = ['OWNER', 'DIRECTOR'].includes(user?.role)
 
   return (
     <div className="min-h-screen bg-brand-50">
@@ -307,6 +315,27 @@ export default function QuotationDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Margin forecast — OWNER & DIRECTOR only, never shown on PDF */}
+          {canSeeHpp && totals.hppFilled > 0 && (
+            <div className="mx-5 mb-4 rounded-lg border border-dashed border-rose-200 bg-rose-50/40 p-4 space-y-1.5">
+              <p className="text-xs font-semibold text-rose-500 uppercase tracking-wide">🔒 Forecast Margin (Internal — tidak tampil di PDF)</p>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Total HPP ({totals.hppFilled}/{totals.itemCount} item diisi)</span>
+                <span className="font-medium text-red-600">{fmt(totals.hppTotal)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-sm pt-1 border-t border-rose-200">
+                <span className="text-gray-700">Gross Margin</span>
+                <span className={totals.grossMargin >= 0 ? 'text-green-600' : 'text-red-600'}>
+                  {fmt(totals.grossMargin)}
+                  <span className="font-normal text-xs ml-1.5">({totals.marginPct?.toFixed(1)}%)</span>
+                </span>
+              </div>
+              {totals.hppFilled < totals.itemCount && (
+                <p className="text-[11px] text-amber-600">⚠ {totals.itemCount - totals.hppFilled} item belum diisi HPP — margin belum lengkap</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Notes */}

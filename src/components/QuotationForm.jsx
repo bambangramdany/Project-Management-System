@@ -39,6 +39,7 @@ function emptyItem(index) {
     qty:              '1',
     days:             '1',
     subtotal:         0,
+    hppRate:          '',     // cost price per unit — internal only
     includeAgencyFee: false,
     showInInvoiceDetail: true,
   }
@@ -55,20 +56,38 @@ function computeSubtotal(item) {
 function calcTotals(sections, agencyFeePercent, includesPpn, ppnPercent) {
   let baseSubtotal   = 0
   let agencyFeeBase  = 0
+  let hppTotal       = 0
+  let hppFilled      = 0  // how many items have HPP filled
+  let itemCount      = 0
   for (const sec of sections) {
     for (const item of sec.items) {
+      if (item.byClient) continue
       const sub = computeSubtotal(item)
       baseSubtotal += sub
       if (item.includeAgencyFee) agencyFeeBase += sub
+      itemCount++
+      if (item.hppRate !== '' && item.hppRate != null) {
+        const hpp = parseNum(item.hppRate) * (parseNum(item.qty) || 1) * (parseNum(item.days) || 1)
+        hppTotal += hpp
+        hppFilled++
+      }
     }
   }
   const agencyFeeAmt = agencyFeeBase * ((agencyFeePercent || 0) / 100)
   const ppnBase      = includesPpn ? (baseSubtotal + agencyFeeAmt) * ((ppnPercent || 11) / 100) : 0
+  const grandTotal   = baseSubtotal + agencyFeeAmt + ppnBase
+  const grossMargin  = hppFilled > 0 ? grandTotal - hppTotal : null
+  const marginPct    = hppFilled > 0 && grandTotal > 0 ? (grossMargin / grandTotal) * 100 : null
   return {
     baseSubtotal,
     agencyFeeAmt,
     ppnBase,
-    grandTotal: baseSubtotal + agencyFeeAmt + ppnBase,
+    grandTotal,
+    hppTotal,
+    hppFilled,
+    itemCount,
+    grossMargin,
+    marginPct,
   }
 }
 
@@ -118,6 +137,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
           qty:              String(item.qty),
           days:             String(item.days),
           subtotal:         item.subtotal,
+          hppRate:          item.hppRate != null ? String(item.hppRate) : '',
           includeAgencyFee: item.includeAgencyFee,
           showInInvoiceDetail: item.showInInvoiceDetail,
         })),
@@ -243,6 +263,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
           qty:                 parseNum(item.qty) || 1,
           days:                parseNum(item.days) || 1,
           subtotal:            item.subtotal,
+          hppRate:             item.hppRate !== '' ? parseNum(item.hppRate) || null : null,
           includeAgencyFee:    item.includeAgencyFee,
           showInInvoiceDetail: item.showInInvoiceDetail,
           order:               ii,
@@ -454,31 +475,66 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
         {/* ── Section 5: Totals ── */}
         <div className="card p-5 border-t-4 border-orange-400">
           <h2 className="font-semibold text-gray-800 mb-3">Ringkasan Harga</h2>
-          <div className="space-y-2 max-w-sm ml-auto">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Sub Total</span>
-              <span className="font-medium">Rp {formatRp(totals.baseSubtotal)}</span>
-            </div>
-            {agencyFeePercent > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Price summary */}
+            <div className="space-y-2 sm:col-start-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Agency Fee ({agencyFeePercent}%)</span>
-                <span className="text-gray-700">Rp {formatRp(totals.agencyFeeAmt)}</span>
+                <span className="text-gray-600">Sub Total</span>
+                <span className="font-medium">Rp {formatRp(totals.baseSubtotal)}</span>
               </div>
-            )}
-            {includesPpn && (
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">PPN {ppnPercent}%</span>
-                <span className="text-gray-700">Rp {formatRp(totals.ppnBase)}</span>
+              {agencyFeePercent > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Agency Fee ({agencyFeePercent}%)</span>
+                  <span className="text-gray-700">Rp {formatRp(totals.agencyFeeAmt)}</span>
+                </div>
+              )}
+              {includesPpn && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">PPN {ppnPercent}%</span>
+                  <span className="text-gray-700">Rp {formatRp(totals.ppnBase)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200">
+                <span>Grand Total</span>
+                <span className="text-brand">Rp {formatRp(totals.grandTotal)}</span>
               </div>
-            )}
-            <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200">
-              <span>Grand Total</span>
-              <span className="text-brand">Rp {formatRp(totals.grandTotal)}</span>
+              {dpEnabled && dpPercent && (
+                <div className="flex justify-between text-sm text-gray-500 pt-1">
+                  <span>Termin DP ({dpPercent}%)</span>
+                  <span>Rp {formatRp(totals.grandTotal * (parseNum(dpPercent) / 100))}</span>
+                </div>
+              )}
             </div>
-            {dpEnabled && dpPercent && (
-              <div className="flex justify-between text-sm text-gray-500 pt-1">
-                <span>Termin DP ({dpPercent}%)</span>
-                <span>Rp {formatRp(totals.grandTotal * (parseNum(dpPercent) / 100))}</span>
+
+            {/* Margin forecast — only shown if any HPP is filled */}
+            {totals.hppFilled > 0 && (
+              <div className="sm:row-start-1 sm:col-start-1 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 space-y-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  🔒 Forecast Margin (Internal)
+                </p>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Total HPP ({totals.hppFilled}/{totals.itemCount} item)</span>
+                  <span className="font-medium text-red-600">Rp {formatRp(totals.hppTotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Grand Total Jual</span>
+                  <span className="font-medium">Rp {formatRp(totals.grandTotal)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-sm pt-2 border-t border-gray-200">
+                  <span>Gross Margin</span>
+                  <span className={totals.grossMargin >= 0 ? 'text-green-600' : 'text-red-600'}>
+                    Rp {formatRp(totals.grossMargin)}
+                    {' '}
+                    <span className="font-normal text-xs">
+                      ({totals.marginPct != null ? totals.marginPct.toFixed(1) : '—'}%)
+                    </span>
+                  </span>
+                </div>
+                {totals.hppFilled < totals.itemCount && (
+                  <p className="text-[11px] text-amber-600 pt-1">
+                    ⚠ {totals.itemCount - totals.hppFilled} item belum diisi HPP — margin belum lengkap
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -606,6 +662,17 @@ function ItemRow({ item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMove
               <div className="text-sm font-semibold text-gray-800 py-2 text-right min-w-[90px]">
                 Rp {formatRp(item.subtotal)}
               </div>
+            </div>
+            {/* HPP / Modal — internal, never on PDF */}
+            <div className="flex flex-col border-l border-dashed border-gray-200 pl-3 ml-1">
+              <span className="text-[10px] text-rose-400 mb-0.5">HPP/Modal 🔒</span>
+              <input
+                type="text"
+                className="input w-28 text-sm text-right border-rose-200 focus:border-rose-400 bg-rose-50/30 placeholder-rose-200"
+                value={item.hppRate}
+                onChange={e => onUpdate({ hppRate: e.target.value })}
+                placeholder="opsional"
+              />
             </div>
           </>
         )}

@@ -40,15 +40,15 @@ export async function POST(req, { params }) {
   let order = 0
   for (const sec of quotation.sections) {
     for (const item of sec.items) {
-      // Skip "by client" items with zero subtotal (not our cost)
-      const quotedAmount = item.subtotal || 0
+      // Use HPP (cost price) as quotedAmount if available, otherwise fall back to selling price
+      const quotedAmount = item.hppSubtotal != null ? item.hppSubtotal : (item.subtotal || 0)
       newItems.push({
         projectId:   params.id,
         label:       `[${sec.letter}] ${item.description}`,
         category:    'OPERATIONAL_OTHER',
         quotedAmount,
-        qty:         item.qty   || 1,
-        unitPrice:   item.rate  || 0,
+        qty:         item.qty      || 1,
+        unitPrice:   item.hppRate  ?? (item.rate || 0),
         needsUpfrontFunding: false,
         isTitipan:   false,
         order:       order++,

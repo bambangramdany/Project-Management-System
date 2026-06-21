@@ -1086,6 +1086,10 @@ model QuotationItem {
   // Controls visibility in invoice DETAIL mode
   showInInvoiceDetail Boolean @default(true)
 
+  // HPP / Modal (cost price) — internal only, never shown on PDF
+  hppRate     Float?  // cost per unit; null = not filled
+  hppSubtotal Float?  // hppRate × qty × days
+
   order Int
 
   @@index([sectionId])

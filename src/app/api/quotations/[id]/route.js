@@ -171,6 +171,10 @@ export async function PATCH(req, { params }) {
               subtotal:            parseFloat(item.subtotal) || 0,
               includeAgencyFee:    !!item.includeAgencyFee,
               showInInvoiceDetail: item.showInInvoiceDetail !== false,
+              hppRate:             item.hppRate != null && item.hppRate !== '' ? parseFloat(item.hppRate) : null,
+              hppSubtotal:         item.hppRate != null && item.hppRate !== ''
+                                     ? parseFloat(item.hppRate) * (parseFloat(item.qty) || 1) * (parseFloat(item.days) || 1)
+                                     : null,
               order:               ii,
             })),
           },
