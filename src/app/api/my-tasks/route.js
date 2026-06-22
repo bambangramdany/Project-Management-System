@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
 const HIDDEN_EMAILS = ['hrdwatermark@gmail.com']
-const DIRECTOR_ROLES = ['OWNER', 'DIRECTOR']
+const DIRECTOR_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF']
 
 function startOfTodayUTC() {
   const now = new Date()

@@ -10,6 +10,7 @@ import { KPI_BY_ROLE, KPI_SCORE_LABEL, KPI_DEADLINE_DAY, resolveKpiPeriod, STATU
 import { CROSS_TEAM_PM_EMAIL } from '@/lib/rbac'
 import KpiCriteriaEditor from '@/components/KpiCriteriaEditor'
 import KpiPanel from '@/components/KpiPanel'
+import * as XLSX from 'xlsx'
 
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
 
@@ -31,15 +32,24 @@ const LOAD_LABEL = (score) => {
 
 const formatScore = (score) => Number.isInteger(score) ? String(score) : score.toFixed(1)
 
+const MANAGER_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF']
+
 export default function WorkloadPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState('workload') // 'workload' | 'recap'
   const [workload, setWorkload] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState(null)
   const [filterDivisi, setFilterDivisi] = useState('')
   const [teamList, setTeamList] = useState([])
   const now = new Date()
+
+  // Rekap bulanan state
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const [recapMonth, setRecapMonth] = useState(currentMonthStr)
+  const [recap, setRecap] = useState(null)
+  const [recapLoading, setRecapLoading] = useState(false)
 
   const toDateStr = (d) => d.toISOString().slice(0, 10)
   const defaultTo = toDateStr(now)
@@ -51,7 +61,7 @@ export default function WorkloadPage() {
   const fetchWorkload = (from, to) => {
     if (status !== 'authenticated') return
     setLoading(true)
-    const isManager = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR'].includes(session?.user.role)
+    const isManager = MANAGER_ROLES.includes(session?.user.role)
     const params = `dateFrom=${from}&dateTo=${to}`
     fetch(`/api/workload?${params}`).then(r => r.json()).then(data => {
       if (Array.isArray(data)) {
@@ -67,6 +77,51 @@ export default function WorkloadPage() {
     })
   }
 
+  const fetchRecap = (month) => {
+    setRecapLoading(true)
+    fetch(`/api/workload/monthly-recap?month=${month}`)
+      .then(r => r.json())
+      .then(data => { setRecap(data); setRecapLoading(false) })
+      .catch(() => setRecapLoading(false))
+  }
+
+  const exportRecapExcel = () => {
+    if (!recap?.recap) return
+    const [y, m] = recap.month.split('-')
+    const monthName = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+
+    const rows = recap.recap.map(r => ({
+      'Nama': r.nama,
+      'Jabatan': r.jabatan,
+      'Divisi': r.divisi,
+      'Total Tugas': r.totalTugas,
+      'Selesai': r.selesai,
+      'Belum Selesai': r.belumSelesai,
+      'Terlambat': r.terlambat,
+      'Completion Rate (%)': r.completionRate,
+      'Hari Kerja': r.hariKerja,
+      'Hari Dengan Update': r.hariUpdate,
+      'Update Compliance (%)': r.updateCompliance,
+      'On Track': r.onTrack,
+      'Delayed': r.delayed,
+      'Hold': r.hold,
+      'Problem': r.problem,
+      'Done (Update)': r.doneUpdates,
+    }))
+
+    const ws = XLSX.utils.json_to_sheet(rows)
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 22 }, { wch: 22 }, { wch: 16 },
+      { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 12 }, { wch: 18 },
+      { wch: 12 }, { wch: 20 }, { wch: 22 },
+      { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 14 },
+    ]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, `Rekap ${monthName}`)
+    XLSX.writeFile(wb, `Rekap-Tim-${recap.month}.xlsx`)
+  }
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
@@ -77,7 +132,12 @@ export default function WorkloadPage() {
     fetchWorkload(dateFrom, dateTo)
   }, [status])
 
-  const isManager = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR'].includes(session?.user.role)
+  useEffect(() => {
+    if (status !== 'authenticated') return
+    if (activeTab === 'recap' && !recap) fetchRecap(recapMonth)
+  }, [activeTab, status])
+
+  const isManager = MANAGER_ROLES.includes(session?.user.role)
 
   const filtered = workload.filter(w => !filterDivisi || w.user.divisi === filterDivisi)
   const eventTeam = workload.filter(w => w.user.divisi === 'EVENT')
@@ -96,7 +156,7 @@ export default function WorkloadPage() {
               <h1 className="text-xl font-bold text-gray-900">Workload Tim</h1>
               <p className="text-sm text-gray-500">{totalActive} project aktif dalam periode ini</p>
             </div>
-            {isManager && (
+            {isManager && activeTab === 'workload' && (
               <select className="select w-auto" value={filterDivisi} onChange={e => setFilterDivisi(e.target.value)}>
                 <option value="">Semua Divisi</option>
                 <option value="EVENT">Event</option>
@@ -106,29 +166,155 @@ export default function WorkloadPage() {
               </select>
             )}
           </div>
-          <div className="card p-3 flex flex-wrap items-end gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500">Dari</label>
-              <input type="date" className="input text-sm py-1.5" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+
+          {/* Tab selector — only show to managers */}
+          {isManager && (
+            <div className="flex gap-1 border-b border-gray-200">
+              {[
+                { key: 'workload', label: '📊 Workload Tim' },
+                { key: 'recap', label: '📋 Rekap Bulanan' },
+              ].map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={clsx(
+                    'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
+                    activeTab === tab.key
+                      ? 'border-brand-500 text-brand-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500">Sampai</label>
-              <input type="date" className="input text-sm py-1.5" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          )}
+
+          {activeTab === 'workload' && (
+            <div className="card p-3 flex flex-wrap items-end gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Dari</label>
+                <input type="date" className="input text-sm py-1.5" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Sampai</label>
+                <input type="date" className="input text-sm py-1.5" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+              </div>
+              <button
+                onClick={() => fetchWorkload(dateFrom, dateTo)}
+                className="btn-primary text-sm py-1.5 px-4"
+              >Tampilkan</button>
+              <button
+                onClick={() => { setDateFrom(defaultFrom); setDateTo(defaultTo); fetchWorkload(defaultFrom, defaultTo) }}
+                className="text-sm text-gray-400 hover:text-brand-600 underline"
+              >Reset (30 hari)</button>
             </div>
-            <button
-              onClick={() => fetchWorkload(dateFrom, dateTo)}
-              className="btn-primary text-sm py-1.5 px-4"
-            >Tampilkan</button>
-            <button
-              onClick={() => { setDateFrom(defaultFrom); setDateTo(defaultTo); fetchWorkload(defaultFrom, defaultTo) }}
-              className="text-sm text-gray-400 hover:text-brand-600 underline"
-            >Reset (30 hari)</button>
-          </div>
+          )}
         </div>
 
-        {loading && <div className="text-center py-12 text-gray-400 text-sm">Memuat workload...</div>}
+        {/* ── REKAP BULANAN TAB ── */}
+        {activeTab === 'recap' && isManager && (
+          <div className="space-y-4">
+            <div className="card p-4 flex flex-wrap items-end gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Bulan</label>
+                <input
+                  type="month"
+                  className="input text-sm py-1.5"
+                  value={recapMonth}
+                  onChange={e => setRecapMonth(e.target.value)}
+                />
+              </div>
+              <button
+                onClick={() => fetchRecap(recapMonth)}
+                className="btn-primary text-sm py-1.5 px-4"
+                disabled={recapLoading}
+              >{recapLoading ? 'Memuat...' : 'Tampilkan'}</button>
+              <button
+                onClick={exportRecapExcel}
+                disabled={!recap?.recap?.length}
+                className="text-sm px-4 py-1.5 rounded-lg border border-green-500 text-green-700 hover:bg-green-50 font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              >⬇ Export Excel</button>
+            </div>
 
-        {!loading && isManager && (
+            {recapLoading && <div className="text-center py-12 text-gray-400 text-sm">Memuat rekap...</div>}
+
+            {!recapLoading && recap && (
+              <div className="card overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <th className="text-left px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Nama</th>
+                      <th className="text-left px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Jabatan</th>
+                      <th className="text-left px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Divisi</th>
+                      <th className="text-center px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Total Tugas</th>
+                      <th className="text-center px-3 py-2.5 font-semibold text-green-700 whitespace-nowrap">✓ Selesai</th>
+                      <th className="text-center px-3 py-2.5 font-semibold text-amber-700 whitespace-nowrap">⏳ Belum</th>
+                      <th className="text-center px-3 py-2.5 font-semibold text-red-600 whitespace-nowrap">⚠ Terlambat</th>
+                      <th className="text-center px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Completion %</th>
+                      <th className="text-center px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Hari Update</th>
+                      <th className="text-center px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Compliance %</th>
+                      <th className="text-center px-3 py-2.5 font-semibold text-blue-600 whitespace-nowrap">On Track</th>
+                      <th className="text-center px-3 py-2.5 font-semibold text-orange-600 whitespace-nowrap">Delayed</th>
+                      <th className="text-center px-3 py-2.5 font-semibold text-red-600 whitespace-nowrap">Problem</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {recap.recap.map(r => (
+                      <tr key={r.userId} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">{r.nama}</td>
+                        <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">{r.jabatan}</td>
+                        <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">{r.divisi}</td>
+                        <td className="px-3 py-2.5 text-center font-semibold text-gray-700">{r.totalTugas}</td>
+                        <td className="px-3 py-2.5 text-center font-semibold text-green-700">{r.selesai}</td>
+                        <td className="px-3 py-2.5 text-center text-amber-700">{r.belumSelesai}</td>
+                        <td className="px-3 py-2.5 text-center">
+                          <span className={r.terlambat > 0 ? 'font-bold text-red-600' : 'text-gray-400'}>
+                            {r.terlambat}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 text-center">
+                          <span className={clsx(
+                            'px-2 py-0.5 rounded-full font-semibold',
+                            r.completionRate >= 80 ? 'bg-green-100 text-green-700' :
+                            r.completionRate >= 50 ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-600'
+                          )}>{r.completionRate}%</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-center text-gray-600">
+                          {r.hariUpdate}/{r.hariKerja}
+                        </td>
+                        <td className="px-3 py-2.5 text-center">
+                          <span className={clsx(
+                            'px-2 py-0.5 rounded-full font-semibold',
+                            r.updateCompliance >= 80 ? 'bg-green-100 text-green-700' :
+                            r.updateCompliance >= 50 ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-600'
+                          )}>{r.updateCompliance}%</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-center text-blue-600">{r.onTrack}</td>
+                        <td className="px-3 py-2.5 text-center text-orange-600">{r.delayed}</td>
+                        <td className="px-3 py-2.5 text-center text-red-600">{r.problem}</td>
+                      </tr>
+                    ))}
+                    {recap.recap.length === 0 && (
+                      <tr>
+                        <td colSpan={13} className="text-center py-10 text-gray-400">Tidak ada data untuk bulan ini</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+                <div className="px-3 py-2 border-t border-gray-100 text-xs text-gray-400">
+                  Hari kerja bulan ini: <strong>{recap.workdays} hari</strong> · Data per {new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'workload' && loading && <div className="text-center py-12 text-gray-400 text-sm">Memuat workload...</div>}
+
+        {activeTab === 'workload' && !loading && isManager && (
           <>
             {/* Summary heatmap */}
             <div className="card p-5 border-t-4 border-blue-400">
@@ -195,7 +381,7 @@ export default function WorkloadPage() {
         )}
 
         {/* Detail panel — selected user or self */}
-        {(selectedUser || (!isManager && workload.length > 0)) && (
+        {activeTab === 'workload' && (selectedUser || (!isManager && workload.length > 0)) && (
           <UserDetail data={selectedUser || workload[0]} session={session} teamList={teamList} canReassign={isManager} />
         )}
 
