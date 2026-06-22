@@ -6,7 +6,8 @@ export const STATUS_PIPELINE = [
 // Display groups: beberapa status digabung dalam satu header group
 export const STATUS_DISPLAY_GROUPS = [
   { key: 'HOLD',                 label: 'Hold',                   statuses: ['HOLD'],                          color: 'bg-gray-500 text-white' },
-  { key: 'PITCHING',             label: 'Pitching / Waiting Result', statuses: ['PITCHING', 'WAITING_PITCH_RESULT'], color: 'bg-blue-500 text-white' },
+  { key: 'PITCHING',             label: 'Pitching',                 statuses: ['PITCHING'],                        color: 'bg-blue-500 text-white' },
+  { key: 'WAITING_PITCH_RESULT', label: 'Waiting Result',           statuses: ['WAITING_PITCH_RESULT'],            color: 'bg-yellow-500 text-white' },
   { key: 'PREPARATION',         label: 'Preparation',            statuses: ['PREPARATION'],                   color: 'bg-orange-500 text-white' },
   { key: 'EVENT_DAY',           label: 'Project Days (Pelaksanaan)', statuses: ['EVENT_DAY'],                 color: 'bg-purple-500 text-white' },
   { key: 'REPORTING_INVOICING', label: 'Reporting & Invoicing',  statuses: ['REPORTING', 'INVOICING'],        color: 'bg-teal-500 text-white' },
