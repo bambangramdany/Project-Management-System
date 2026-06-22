@@ -518,6 +518,9 @@ export default function FinancePage() {
       const desc = get(colDesc)
       const amt = parseAmt(colAmt >= 0 ? row[colAmt] : null)
       if (!desc || amt <= 0) return null
+      // Skip baris total/summary (Jumlah Biaya, Total, Grand Total, dll)
+      const descLower = desc.toLowerCase()
+      if (['jumlah', 'total', 'subtotal', 'grand total', 'sub total'].some(kw => descLower.startsWith(kw))) return null
       const catRaw = get(colCat).toLowerCase()
       const category = Object.entries(CAT_MAP).find(([k]) => catRaw.includes(k))?.[1] || 'OPERATIONAL_OTHER'
       const dateVal = parseDateVal(colDate >= 0 ? row[colDate] : null)
