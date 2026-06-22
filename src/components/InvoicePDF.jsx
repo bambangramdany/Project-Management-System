@@ -396,19 +396,23 @@ export function InvoicePDF({ invoice, financeDirector }) {
           )}
         </View>
 
-        {/* Signatures — Invoice: Finance + Direktur Keuangan */}
-        <View style={[s.sigRow, { justifyContent: 'center', gap: 60 }]}>
-          <View style={[s.sigCol, { width: '36%' }]}>
-            <Text style={s.sigTitle}>Dibuat oleh{'\n'}(Finance)</Text>
-            <View style={s.sigLine} />
-            <Text style={s.sigName}>{invoice.picFinanceName || '________________________'}</Text>
-            {invoice.picFinancePhone && <Text style={s.sigRole}>{invoice.picFinancePhone}</Text>}
-          </View>
-          <View style={[s.sigCol, { width: '36%' }]}>
-            <Text style={s.sigTitle}>Mengetahui{'\n'}(Direktur Keuangan)</Text>
+        {/* Signature — hanya Direktur Keuangan, dengan ruang materai */}
+        <View style={[s.sigRow, { justifyContent: 'flex-end', marginTop: 24 }]}>
+          <View style={[s.sigCol, { width: '40%', alignItems: 'center' }]}>
+            <Text style={s.sigTitle}>Mengetahui,{'\n'}(Direktur Keuangan)</Text>
+            {/* Kotak ruang materai */}
+            <View style={{
+              width: 56, height: 56,
+              borderWidth: 0.75, borderColor: COLOR.border, borderStyle: 'dashed',
+              borderRadius: 4,
+              alignItems: 'center', justifyContent: 'center',
+              marginBottom: 6,
+            }}>
+              <Text style={{ fontSize: 5.5, color: COLOR.muted, textAlign: 'center' }}>Materai</Text>
+            </View>
             <View style={s.sigLine} />
             <Text style={s.sigName}>{financeDirector?.name || '________________________'}</Text>
-            <Text style={s.sigRole}>{financeDirector?.jobTitle || 'Direktur Keuangan'}</Text>
+            <Text style={s.sigRole}>{financeDirector?.jobTitle || 'Finance & HRGA Director'}</Text>
           </View>
         </View>
 
