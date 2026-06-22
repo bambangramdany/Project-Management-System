@@ -148,18 +148,26 @@ export async function DELETE(req, { params }) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!canDeleteProject(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  // Cegah delete jika ada quotation aktif (WON/APPROVED) atau invoice
-  const activeQuotations = await prisma.quotation.count({
-    where: { projectId: params.id, status: { in: ['WON', 'APPROVED', 'PENDING_DIRECTOR', 'PENDING_WULAN'] } },
-  })
-  if (activeQuotations > 0) {
-    return NextResponse.json({ error: 'Project memiliki quotation aktif dan tidak bisa dihapus' }, { status: 400 })
-  }
-  const activeInvoices = await prisma.invoice.count({
-    where: { projectId: params.id, status: { not: 'CANCELLED' } },
-  })
-  if (activeInvoices > 0) {
-    return NextResponse.json({ error: 'Project memiliki invoice aktif dan tidak bisa dihapus' }, { status: 400 })
+  // OWNER bisa force-delete (untuk menghapus duplikat project), role lain tidak bisa
+  // hapus project yang masih punya quotation aktif atau invoice aktif
+  const isOwner = session.user.role === 'OWNER'
+  if (!isOwner) {
+    const activeQuotations = await prisma.quotation.count({
+      where: { projectId: params.id, status: { in: ['WON', 'APPROVED', 'PENDING_DIRECTOR', 'PENDING_WULAN'] } },
+    })
+    if (activeQuotations > 0) {
+      return NextResponse.json({ error: 'Project memiliki quotation aktif dan tidak bisa dihapus' }, { status: 400 })
+    }
+    // Invoice terhubung melalui Quotation (tidak ada projectId langsung di Invoice)
+    const activeInvoices = await prisma.invoice.count({
+      where: {
+        quotation: { projectId: params.id },
+        status: { not: 'CANCELLED' },
+      },
+    })
+    if (activeInvoices > 0) {
+      return NextResponse.json({ error: 'Project memiliki invoice aktif dan tidak bisa dihapus' }, { status: 400 })
+    }
   }
 
   // Putuskan relasi opsional sebelum delete agar tidak kena FK constraint
