@@ -16,7 +16,15 @@ const parseNum = (v) => {
   return isNaN(n) ? 0 : n
 }
 
-const UNIT_TYPES = ['Package', 'Unit', 'Pcs', 'Pax', 'Set', 'Lot', 'Event', 'Hari', 'Bulan']
+const UNIT_TYPES = ['Package', 'Unit', 'Pcs', 'Pax', 'Set', 'Lot', 'Ls', 'Event', 'Hari', 'Bulan', 'Orang']
+
+const DEFAULT_TERMS =
+`1. Cancellation within 14 days of events will be subject to 50% of total payment.
+2. Any additional cost outside those mentioned above should be settled maximum 7 days after event.
+3. Payment can be transferred to:
+   Bank Central Asia (BCA) a/n PT SINEMATIK ANAK BANGSA
+   No. Rekening: 7061111011
+   Please send the receipt to watermark.indonesia@gmail.com`
 
 function emptySection(index) {
   return {
@@ -109,7 +117,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
   const [dpEnabled,        setDpEnabled]        = useState(!!(initial?.dpPercent || initial?.dpAmount))
   const [dpPercent,        setDpPercent]        = useState(initial?.dpPercent        ?? '')
   const [notes,            setNotes]            = useState(initial?.notes            || '')
-  const [termsConditions,  setTermsConditions]  = useState(initial?.termsConditions  || '')
+  const [termsConditions,  setTermsConditions]  = useState(initial?.termsConditions  ?? DEFAULT_TERMS)
 
   // PIC & approvers — user IDs
   const [picQuotationId, setPicQuotationId] = useState(initial?.picQuotationId || '')
@@ -498,12 +506,6 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
                 <span>Grand Total</span>
                 <span className="text-brand">Rp {formatRp(totals.grandTotal)}</span>
               </div>
-              {dpEnabled && dpPercent && (
-                <div className="flex justify-between text-sm text-gray-500 pt-1">
-                  <span>Termin DP ({dpPercent}%)</span>
-                  <span>Rp {formatRp(totals.grandTotal * (parseNum(dpPercent) / 100))}</span>
-                </div>
-              )}
             </div>
 
             {/* Margin forecast — only shown if any HPP is filled */}
@@ -558,17 +560,9 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
               className="input mt-1 h-40 resize-y font-mono text-xs"
               value={termsConditions}
               onChange={e => setTermsConditions(e.target.value)}
-              placeholder={
-                '1. Cancellation within 14 days of events will be subject to 50% of total payment.\n' +
-                '2. Any additional cost outside those mentioned above should be settled maximum 7 days after event.\n' +
-                '3. Payment can be transferred to:\n' +
-                '   Bank Central Asia (BCA) a/n PT SINEMATIK ANAK BANGSA\n' +
-                '   No. Rekening: 7061111011\n' +
-                '   Please send the receipt to watermark.indonesia@gmail.com'
-              }
             />
             <p className="text-xs text-gray-400 mt-1">
-              💡 Tip: ketik bebas atau beri nomor manual. Contoh tambahan untuk PH: "Pembayaran penuh setelah konten diserahterimakan."
+              💡 Template ini akan otomatis terisi. Edit sesuai kebutuhan klien atau tambahkan poin baru di bawahnya.
             </p>
           </div>
         </div>

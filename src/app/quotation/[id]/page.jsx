@@ -382,12 +382,6 @@ export default function QuotationDetailPage() {
               <span>Grand Total</span>
               <span className="text-brand">{fmt(totals.grand)}</span>
             </div>
-            {q.dpPercent && (
-              <div className="flex justify-between text-sm text-gray-500">
-                <span>Termin DP ({q.dpPercent}%)</span>
-                <span>{fmt(totals.grand * q.dpPercent / 100)}</span>
-              </div>
-            )}
           </div>
 
           {/* Margin forecast — OWNER & DIRECTOR only, never shown on PDF */}
