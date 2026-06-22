@@ -58,7 +58,8 @@ export default function CreateInvoiceModal({ quotation, onClose, onCreated }) {
   // Ambil nomor invoice berikutnya saat modal dibuka
   useEffect(() => {
     const div = quotation.division === 'PH' ? 'PH' : 'EO'
-    fetch(`/api/invoices?nextNumber=${div}`)
+    const qn = encodeURIComponent(quotation.quotationNumber || '')
+    fetch(`/api/invoices?nextNumber=${div}&quotNumber=${qn}`)
       .then(r => r.json())
       .then(d => { setInvoiceNumber(d.nextNumber || ''); setLoadingNum(false) })
       .catch(() => setLoadingNum(false))

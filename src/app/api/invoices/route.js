@@ -11,16 +11,29 @@ function canViewInvoices(user) {
   return canManageInvoices(user) || user.role === 'DIRECTOR' || user.role === 'PROJECT_MANAGER'
 }
 
-// Auto-generate invoice number: WTM/EO/INV/2026/001 (sequential per tahun)
-async function buildInvoiceNumber(division) {
+// Extract sequence dari quotationNumber, misal "WTM/EO/QUOT/2026/001" → "001"
+function extractQuotSeq(quotationNumber) {
+  if (!quotationNumber) return null
+  const parts = quotationNumber.split('/')
+  const last = parts[parts.length - 1]
+  return /^\d+$/.test(last) ? last.padStart(3, '0') : null
+}
+
+// Auto-generate invoice number: WTM/EO/INV/2026/{quotSeq}/{invSeq}
+// Contoh: WTM/EO/INV/2026/001/003
+async function buildInvoiceNumber(division, quotationNumber) {
   const year = new Date().getFullYear()
   const prefix = division === 'PH' ? 'WTM/PH/INV' : 'WTM/EO/INV'
+  const quotSeq = extractQuotSeq(quotationNumber)
   // Hitung semua invoice tahun ini (termasuk cancelled) agar nomor tidak loncat
   const count = await prisma.invoice.count({
     where: { invoiceNumber: { startsWith: `${prefix}/${year}/` } },
   })
-  const seq = String(count + 1).padStart(3, '0')
-  return `${prefix}/${year}/${seq}`
+  const invSeq = String(count + 1).padStart(3, '0')
+  // Jika ada nomor quotation → sertakan sebagai segmen tengah
+  return quotSeq
+    ? `${prefix}/${year}/${quotSeq}/${invSeq}`
+    : `${prefix}/${year}/${invSeq}`
 }
 
 // Compute invoice totals from items
@@ -44,10 +57,11 @@ export async function GET(req) {
 
   const { searchParams } = new URL(req.url)
 
-  // ?nextNumber=EO  → hanya kembalikan nomor berikutnya (untuk preview di form)
+  // ?nextNumber=EO&quotNumber=WTM/EO/QUOT/2026/001 → preview nomor berikutnya
   if (searchParams.get('nextNumber')) {
     const division = searchParams.get('nextNumber') === 'PH' ? 'PH' : 'EVENT'
-    const next = await buildInvoiceNumber(division)
+    const quotNumber = searchParams.get('quotNumber') || ''
+    const next = await buildInvoiceNumber(division, quotNumber)
     return NextResponse.json({ nextNumber: next })
   }
 
@@ -107,10 +121,11 @@ export async function POST(req) {
   })
   const termNumber = body.termNumber || (existingInvoices.length + 1)
 
-  // Nomor invoice: gunakan input manual jika ada, otherwise auto-generate sequential
+  // Nomor invoice: gunakan input manual jika ada, otherwise auto-generate
+  // Format: WTM/EO/INV/2026/{quotSeq}/{invSeq}
   let invoiceNumber = body.invoiceNumber?.trim() || ''
   if (!invoiceNumber) {
-    invoiceNumber = await buildInvoiceNumber(quotation.division || 'EVENT')
+    invoiceNumber = await buildInvoiceNumber(quotation.division || 'EVENT', quotation.quotationNumber)
   }
   // Cek duplikat nomor
   const duplicate = await prisma.invoice.findFirst({ where: { invoiceNumber } })
