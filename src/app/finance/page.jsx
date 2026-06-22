@@ -661,9 +661,17 @@ export default function FinancePage() {
 
   const forecastLocked = budgetMeta.canEditBudget && budgetSaved && !budgetEditing && !budgetMeta.budgetLockedAt
 
+  const WON_STATUSES = ['PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING', 'DONE']
+
+  // Untuk dropdown forecast: hanya project yang statusnya menang (atau sudah selesai)
+  // dan/atau project yang memiliki quotation terkait
+  const forecastProjects = projects.filter(p =>
+    WON_STATUSES.includes(p.status) || p.pitchResult === 'WIN'
+  )
+
   const myProjects = (role === 'PROJECT_MANAGER' || role === 'PRODUCTION')
-    ? projects.filter(p => p.pic?.id === session.user.id || p.picId === session.user.id || p.members?.some(m => (m.user?.id || m.userId) === session.user.id))
-    : projects
+    ? forecastProjects.filter(p => p.pic?.id === session.user.id || p.picId === session.user.id || p.members?.some(m => (m.user?.id || m.userId) === session.user.id))
+    : forecastProjects
 
   // ── Computed values for alert strip ────────────────────────────────────────
   const urgentPayments = payments.filter(p => {
