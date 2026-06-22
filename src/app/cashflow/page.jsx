@@ -13,7 +13,7 @@ export default function CashflowPage() {
   const router = useRouter()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState({ type: 'IN', amount: '', description: '', date: '' })
+  const [form, setForm] = useState({ type: 'IN', amount: '', description: '', date: '', pph23: '', invoiceRef: '' })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
@@ -52,7 +52,7 @@ export default function CashflowPage() {
     })
     setSubmitting(false)
     if (res.ok) {
-      setForm({ type: 'IN', amount: '', description: '', date: '' })
+      setForm({ type: 'IN', amount: '', description: '', date: '', pph23: '', invoiceRef: '' })
       load()
     } else {
       const d = await res.json().catch(() => ({}))
@@ -131,6 +131,32 @@ export default function CashflowPage() {
               <label className="label">Keterangan</label>
               <input className="input" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="contoh: Pembayaran DP klien Project X" />
             </div>
+            {/* Field tambahan khusus Kas Masuk */}
+            {form.type === 'IN' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-gray-100">
+                <div>
+                  <label className="label">
+                    No. Invoice <span className="text-gray-400 font-normal">(opsional — tulis "-" jika tidak ada)</span>
+                  </label>
+                  <input className="input font-mono" value={form.invoiceRef}
+                    onChange={e => setForm(f => ({ ...f, invoiceRef: e.target.value }))}
+                    placeholder="WTM/EO/INV/2026/001 atau -" />
+                </div>
+                <div>
+                  <label className="label">
+                    PPh 23 dipotong klien <span className="text-gray-400 font-normal">(2% · opsional)</span>
+                  </label>
+                  <input type="number" className="input" value={form.pph23}
+                    onChange={e => setForm(f => ({ ...f, pph23: e.target.value }))}
+                    placeholder="0" />
+                  {form.amount && form.pph23 && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Diterima bersih: {formatRupiah((parseFloat(form.amount)||0) - (parseFloat(form.pph23)||0))}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
             {error && <p className="text-sm text-red-600">{error}</p>}
             <button className="btn-primary text-sm" disabled={submitting}>{submitting ? 'Menyimpan...' : 'Simpan'}</button>
           </form>
@@ -154,6 +180,8 @@ export default function CashflowPage() {
                 <p className="text-xs text-gray-400 mt-0.5">
                   {new Date(tx.date).toLocaleDateString('id-ID', { dateStyle: 'medium' })}
                   {tx.recordedBy && ` · dicatat oleh ${tx.recordedBy.name}`}
+                  {tx.invoiceRef && tx.invoiceRef !== '-' && <span className="text-blue-400"> · inv {tx.invoiceRef}</span>}
+                  {tx.pph23 > 0 && <span className="text-amber-500"> · PPh23 -{formatRupiah(tx.pph23)}</span>}
                 </p>
               </div>
               <div className="text-right shrink-0">

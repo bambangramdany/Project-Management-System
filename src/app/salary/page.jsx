@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
@@ -210,6 +210,9 @@ export default function SalaryPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editingUserId, setEditingUserId] = useState(null)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState(null)
+  const importRef = useRef(null)
 
   const [py, pm] = period.split('-').map(Number)
   const nowY = new Date().getFullYear()
@@ -232,6 +235,24 @@ export default function SalaryPage() {
     let y=py, m=pm+dir
     if(m>12){m=1;y++} if(m<1){m=12;y--}
     setPeriod(`${y}-${String(m).padStart(2,'0')}`)
+  }
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    setImportResult(null)
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/salary/import', { method: 'POST', body: fd })
+    const data = await res.json().catch(() => ({}))
+    setImportResult(data)
+    setImporting(false)
+    if (res.ok && (data.imported > 0 || data.updated > 0)) {
+      if (data.period) setPeriod(data.period)
+      load()
+    }
+    e.target.value = ''
   }
 
 
@@ -277,6 +298,16 @@ export default function SalaryPage() {
             <h1 className="text-xl font-bold text-gray-900">Penggajian &amp; Bonus Tim</h1>
             <p className="text-sm text-gray-500 mt-0.5">Slip gaji bulanan · tunjangan · bonus project · analisis kontribusi tim</p>
           </div>
+          {/* Import Excel */}
+          {canEditSalary && (
+            <div className="flex items-center gap-2">
+              <input ref={importRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
+              <button onClick={() => importRef.current?.click()} disabled={importing}
+                className="btn-secondary text-sm flex items-center gap-1.5">
+                {importing ? '⏳ Mengimpor...' : '📤 Import Excel Payroll'}
+              </button>
+            </div>
+          )}
           {/* Period selector */}
           <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
             <button onClick={()=>changePeriod(-1)} className="text-gray-400 hover:text-gray-700 w-6 text-center">◀</button>
@@ -291,6 +322,30 @@ export default function SalaryPage() {
             <button onClick={()=>changePeriod(1)} className="text-gray-400 hover:text-gray-700 w-6 text-center">▶</button>
           </div>
         </div>
+
+        {/* Import result banner */}
+        {importResult && (
+          <div className={`rounded-lg px-4 py-3 text-sm border ${importResult.imported > 0 || importResult.updated > 0 ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold">
+                  Import Payroll {importResult.period && `— ${importResult.period}`}
+                  {(importResult.imported > 0 || importResult.updated > 0)
+                    ? ` ✓ ${importResult.imported} dibuat, ${importResult.updated} diupdate`
+                    : ' — Tidak ada data yang berhasil diimpor'}
+                  {importResult.skipped > 0 && `, ${importResult.skipped} gagal`}
+                </p>
+                {importResult.notFound?.length > 0 && (
+                  <p className="text-xs mt-1 text-amber-700">Karyawan tidak ditemukan: {importResult.notFound.join(', ')}</p>
+                )}
+                {importResult.errors?.slice(0, 3).map((err, i) => (
+                  <p key={i} className="text-xs mt-0.5 opacity-70">{err}</p>
+                ))}
+              </div>
+              <button onClick={() => setImportResult(null)} className="text-gray-400 hover:text-gray-600 shrink-0">✕</button>
+            </div>
+          </div>
+        )}
 
         {/* Summary Cards */}
         {summary && (

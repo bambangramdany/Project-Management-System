@@ -58,6 +58,8 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Keterangan wajib diisi' }, { status: 400 })
   }
 
+  const pph23 = body.type === 'IN' && body.pph23 ? parseFloat(body.pph23) || 0 : 0
+
   const tx = await prisma.cashTransaction.create({
     data: {
       type: body.type,
@@ -65,6 +67,8 @@ export async function POST(req) {
       description: body.description.trim(),
       date: body.date ? new Date(body.date) : new Date(),
       recordedById: session.user.id,
+      pph23,
+      invoiceRef: body.invoiceRef?.trim() || null,
     },
   })
 
@@ -73,7 +77,7 @@ export async function POST(req) {
     action: 'CASH_TRANSACTION',
     entity: 'CashTransaction',
     entityId: tx.id,
-    summary: `${session.user.name} mencatat kas ${body.type === 'IN' ? 'masuk' : 'keluar'} Rp ${Math.round(amount).toLocaleString('id-ID')} (${body.description.trim()})`,
+    summary: `${session.user.name} mencatat kas ${body.type === 'IN' ? 'masuk' : 'keluar'} Rp ${Math.round(amount).toLocaleString('id-ID')} (${body.description.trim()})${pph23 ? ` · PPh23 Rp ${Math.round(pph23).toLocaleString('id-ID')}` : ''}`,
   })
 
   return NextResponse.json(tx, { status: 201 })

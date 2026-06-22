@@ -99,6 +99,8 @@ model CashTransaction {
   date        DateTime            @default(now())
   recordedById String?
   paymentRequestId String?        @unique
+  pph23       Float    @default(0)   // PPh 23 dipotong klien (untuk kas masuk)
+  invoiceRef  String?               // Nomor invoice terkait (opsional, manual)
   createdAt   DateTime            @default(now())
 
   recordedBy     User?           @relation(fields: [recordedById], references: [id], onDelete: SetNull)
