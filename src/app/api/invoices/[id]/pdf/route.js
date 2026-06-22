@@ -46,9 +46,15 @@ export async function GET(request, { params }) {
     return new Response('Forbidden', { status: 403 })
   }
 
+  // Cari Direktur Keuangan (FINANCE_HRGA) untuk tanda tangan invoice
+  const financeDirector = await prisma.user.findFirst({
+    where: { role: 'DIRECTOR', divisi: 'FINANCE_HRGA', employeeStatus: 'ACTIVE' },
+    select: { name: true, jobTitle: true },
+  })
+
   try {
     const pdfBuffer = await renderToBuffer(
-      React.createElement(InvoicePDF, { invoice })
+      React.createElement(InvoicePDF, { invoice, financeDirector })
     )
 
     const safeNumber = invoice.invoiceNumber.replace(/\//g, '-')

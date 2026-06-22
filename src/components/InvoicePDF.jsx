@@ -300,7 +300,7 @@ function TotalsBlock({ invoice }) {
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export function InvoicePDF({ invoice }) {
+export function InvoicePDF({ invoice, financeDirector }) {
   const q        = invoice.quotation || {}
   const sections = q.sections || []
   const isDetail = invoice.mode === 'DETAIL'
@@ -396,7 +396,7 @@ export function InvoicePDF({ invoice }) {
           )}
         </View>
 
-        {/* Signatures — Invoice: Finance + Direktur Finance saja */}
+        {/* Signatures — Invoice: Finance + Direktur Keuangan */}
         <View style={[s.sigRow, { justifyContent: 'center', gap: 60 }]}>
           <View style={[s.sigCol, { width: '36%' }]}>
             <Text style={s.sigTitle}>Dibuat oleh{'\n'}(Finance)</Text>
@@ -405,10 +405,10 @@ export function InvoicePDF({ invoice }) {
             {invoice.picFinancePhone && <Text style={s.sigRole}>{invoice.picFinancePhone}</Text>}
           </View>
           <View style={[s.sigCol, { width: '36%' }]}>
-            <Text style={s.sigTitle}>Mengetahui{'\n'}(Direktur Finance)</Text>
+            <Text style={s.sigTitle}>Mengetahui{'\n'}(Direktur Keuangan)</Text>
             <View style={s.sigLine} />
-            <Text style={s.sigName}>{q.approver2?.name || q.approver1?.name || '________________________'}</Text>
-            <Text style={s.sigRole}>{q.approver2?.jobTitle || q.approver1?.jobTitle || 'Finance Director'}</Text>
+            <Text style={s.sigName}>{financeDirector?.name || '________________________'}</Text>
+            <Text style={s.sigRole}>{financeDirector?.jobTitle || 'Direktur Keuangan'}</Text>
           </View>
         </View>
 
