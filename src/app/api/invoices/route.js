@@ -123,9 +123,15 @@ export async function POST(req) {
     }
   }
 
-  const mode       = body.mode || 'DETAIL'
-  const isDP       = !!body.isDP
-  const totals     = computeTotals(invoiceItems, quotation.agencyFeePercent, quotation.includesPpn, quotation.ppnPercent)
+  const mode           = body.mode || 'DETAIL'
+  const isDP           = !!body.isDP
+  const dpExcludePpn   = isDP && !!body.dpExcludePpn
+  // For DP without PPN: recalculate using includesPpn=false
+  const totals = dpExcludePpn
+    ? computeTotals(invoiceItems, quotation.agencyFeePercent, false, quotation.ppnPercent)
+    : computeTotals(invoiceItems, quotation.agencyFeePercent, quotation.includesPpn, quotation.ppnPercent)
+  // Full totals (always with PPN) — stored for "Total Budget Event" reference in PDF
+  const fullTotals = computeTotals(invoiceItems, quotation.agencyFeePercent, quotation.includesPpn, quotation.ppnPercent)
   const totalAmount = body.totalAmount != null ? parseFloat(body.totalAmount) : totals.totalAmount
 
   // For DP: invoice amount = dpAmount, pelunasan = rest
@@ -145,9 +151,10 @@ export async function POST(req) {
       picFinancePhone:   body.picFinancePhone    || null,
       mode,
       isDP,
-      subtotal:          totals.subtotal,
-      agencyFeeAmount:   totals.agencyFeeAmount,
-      ppnAmount:         totals.ppnAmount,
+      dpExcludePpn,
+      subtotal:          fullTotals.subtotal,         // always full (for "Total Budget Event")
+      agencyFeeAmount:   fullTotals.agencyFeeAmount,  // always full
+      ppnAmount:         fullTotals.ppnAmount,         // always full (0 if quotation has no PPN)
       totalAmount:       invoiceTotal,
       issueDate:         body.issueDate ? new Date(body.issueDate) : null,
       dueDate:           body.dueDate   ? new Date(body.dueDate)   : null,

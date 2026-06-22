@@ -1141,7 +1141,8 @@ model Invoice {
 
   // PDF output mode
   mode    InvoiceMode   @default(DETAIL)
-  isDP    Boolean       @default(false)  // true if this is a DP termin invoice
+  isDP         Boolean       @default(false)  // true if this is a DP termin invoice
+  dpExcludePpn Boolean       @default(false)  // DP tanpa PPN (PPN dibayar di pelunasan)
 
   // Totals (stored so PDF can render without recalculating)
   subtotal        Float @default(0)

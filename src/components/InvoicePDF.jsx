@@ -218,6 +218,61 @@ function SummaryTable({ invoice }) {
 }
 
 function TotalsBlock({ invoice }) {
+  const fullGrand = invoice.subtotal + invoice.agencyFeeAmount + invoice.ppnAmount
+
+  if (invoice.isDP) {
+    // Hitung DP ratio dan nilai proporsional per komponen
+    const dpExcludePpn = !!invoice.dpExcludePpn
+    const dpBase  = dpExcludePpn
+      ? (invoice.subtotal + invoice.agencyFeeAmount)   // base tanpa PPN
+      : fullGrand
+    const ratio   = dpBase > 0 ? invoice.totalAmount / dpBase : 0
+    const pct     = Math.round(ratio * 100)
+
+    const dpSubtotal   = invoice.subtotal        * ratio
+    const dpAgencyFee  = invoice.agencyFeeAmount * ratio
+    const dpPpn        = dpExcludePpn ? 0 : invoice.ppnAmount * ratio
+    const ppnPct       = invoice.quotation?.ppnPercent || 11
+
+    return (
+      <View style={s.totalsWrap}>
+        {/* Baris info: Total Budget Event */}
+        <View style={[s.totalRow, { borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB', paddingBottom: 4, marginBottom: 4 }]}>
+          <Text style={[s.totalLbl, { fontFamily: 'Helvetica-Bold', color: '#374151' }]}>Total Budget Event</Text>
+          <Text style={[s.totalVal, { fontFamily: 'Helvetica-Bold', color: '#374151' }]}>{rp(fullGrand)}</Text>
+        </View>
+        {/* DP proportional breakdown */}
+        <View style={s.totalRow}>
+          <Text style={s.totalLbl}>Sub Total (DP {pct}%)</Text>
+          <Text style={s.totalVal}>{rp(dpSubtotal)}</Text>
+        </View>
+        {invoice.agencyFeeAmount > 0 && (
+          <View style={s.totalRow}>
+            <Text style={s.totalLbl}>Agency Fee (DP {pct}%)</Text>
+            <Text style={s.totalVal}>{rp(dpAgencyFee)}</Text>
+          </View>
+        )}
+        {!dpExcludePpn && invoice.ppnAmount > 0 && (
+          <View style={s.totalRow}>
+            <Text style={s.totalLbl}>PPN {ppnPct}% (DP {pct}%)</Text>
+            <Text style={s.totalVal}>{rp(dpPpn)}</Text>
+          </View>
+        )}
+        {dpExcludePpn && invoice.ppnAmount > 0 && (
+          <View style={s.totalRow}>
+            <Text style={[s.totalLbl, { color: '#F59E0B', fontSize: 7 }]}>PPN {ppnPct}% (dibayar saat pelunasan)</Text>
+            <Text style={[s.totalVal, { color: '#F59E0B', fontSize: 7 }]}>{rp(invoice.ppnAmount)}</Text>
+          </View>
+        )}
+        <View style={s.grandRow}>
+          <Text style={s.grandLbl}>TOTAL TAGIHAN (DP)</Text>
+          <Text style={s.grandVal}>{rp(invoice.totalAmount)}</Text>
+        </View>
+      </View>
+    )
+  }
+
+  // Non-DP invoice (unchanged)
   return (
     <View style={s.totalsWrap}>
       <View style={s.totalRow}>
@@ -237,7 +292,7 @@ function TotalsBlock({ invoice }) {
         </View>
       )}
       <View style={s.grandRow}>
-        <Text style={s.grandLbl}>{invoice.isDP ? 'TOTAL TAGIHAN (DP)' : 'GRAND TOTAL'}</Text>
+        <Text style={s.grandLbl}>GRAND TOTAL</Text>
         <Text style={s.grandVal}>{rp(invoice.totalAmount)}</Text>
       </View>
     </View>
@@ -341,25 +396,19 @@ export function InvoicePDF({ invoice }) {
           )}
         </View>
 
-        {/* Signatures */}
-        <View style={s.sigRow}>
-          <View style={s.sigCol}>
-            <Text style={s.sigTitle}>Disetujui oleh{'\n'}(Pihak Klien)</Text>
-            <View style={s.sigLine} />
-            <Text style={s.sigName}>{invoice.financeClientName || q.clientName || '________________________'}</Text>
-            <Text style={s.sigRole}>Klien</Text>
-          </View>
-          <View style={s.sigCol}>
+        {/* Signatures — Invoice: Finance + Direktur Finance saja */}
+        <View style={[s.sigRow, { justifyContent: 'center', gap: 60 }]}>
+          <View style={[s.sigCol, { width: '36%' }]}>
             <Text style={s.sigTitle}>Dibuat oleh{'\n'}(Finance)</Text>
             <View style={s.sigLine} />
             <Text style={s.sigName}>{invoice.picFinanceName || '________________________'}</Text>
             {invoice.picFinancePhone && <Text style={s.sigRole}>{invoice.picFinancePhone}</Text>}
           </View>
-          <View style={s.sigCol}>
-            <Text style={s.sigTitle}>Mengetahui{'\n'}(Manajemen)</Text>
+          <View style={[s.sigCol, { width: '36%' }]}>
+            <Text style={s.sigTitle}>Mengetahui{'\n'}(Direktur Finance)</Text>
             <View style={s.sigLine} />
             <Text style={s.sigName}>{q.approver2?.name || q.approver1?.name || '________________________'}</Text>
-            <Text style={s.sigRole}>{q.approver2?.jobTitle || q.approver1?.jobTitle || 'Direktur'}</Text>
+            <Text style={s.sigRole}>{q.approver2?.jobTitle || q.approver1?.jobTitle || 'Finance Director'}</Text>
           </View>
         </View>
 

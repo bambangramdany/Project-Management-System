@@ -84,6 +84,7 @@ export async function PATCH(req, { params }) {
     const fields = ['financeClientName','financeEventName','poNumber','taxInvoiceNumber',
                     'picFinanceName','picFinancePhone','mode','notes','termsConditions']
     fields.forEach(f => { if (body[f] !== undefined) data[f] = body[f] || null })
+    if (body.dpExcludePpn !== undefined) data.dpExcludePpn = !!body.dpExcludePpn
 
     if (body.issueDate !== undefined) data.issueDate = body.issueDate ? new Date(body.issueDate) : null
     if (body.dueDate   !== undefined) data.dueDate   = body.dueDate   ? new Date(body.dueDate)   : null

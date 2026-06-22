@@ -36,8 +36,9 @@ export default function CreateInvoiceModal({ quotation, onClose, onCreated }) {
   const [notes,             setNotes]             = useState('')
 
   // DP options
-  const [isDP,      setIsDP]      = useState(!!quotation.dpPercent || !!quotation.dpAmount)
-  const [dpAmount,  setDpAmount]  = useState(() => {
+  const [isDP,          setIsDP]          = useState(!!quotation.dpPercent || !!quotation.dpAmount)
+  const [dpExcludePpn,  setDpExcludePpn]  = useState(false)
+  const [dpAmount,      setDpAmount]       = useState(() => {
     if (quotation.dpAmount) return String(quotation.dpAmount)
     if (quotation.dpPercent) return String(Math.round(totals.grand * quotation.dpPercent / 100))
     return ''
@@ -68,6 +69,7 @@ export default function CreateInvoiceModal({ quotation, onClose, onCreated }) {
         mode,
         isDP,
         dpAmount:          isDP ? parseFloat(dpAmount) || null : null,
+        dpExcludePpn:      isDP ? dpExcludePpn : false,
         totalAmount:       effectiveTotal,
         financeClientName: financeClientName.trim(),
         financeEventName:  financeEventName.trim(),
@@ -134,23 +136,34 @@ export default function CreateInvoiceModal({ quotation, onClose, onCreated }) {
           {/* DP option */}
           <div className="border border-amber-200 rounded-lg p-3 space-y-2 bg-amber-50/40">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={isDP} onChange={e => setIsDP(e.target.checked)} className="w-4 h-4" />
+              <input type="checkbox" checked={isDP} onChange={e => { setIsDP(e.target.checked); if (!e.target.checked) setDpExcludePpn(false) }} className="w-4 h-4" />
               <span className="text-sm font-medium text-gray-700">Invoice ini adalah termin DP (Down Payment)</span>
             </label>
             {isDP && (
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <label className="label">Nominal DP</label>
-                  <input type="number" className="input" value={dpAmount}
-                    onChange={e => setDpAmount(e.target.value)}
-                    placeholder={`contoh: ${Math.round(totals.grand * 0.3)}`} />
-                </div>
-                {quotation.dpPercent && (
-                  <div className="text-xs text-gray-400 pt-5">
-                    Saran: {quotation.dpPercent}% = {fmt(totals.grand * quotation.dpPercent / 100)}
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <label className="label">Nominal DP</label>
+                    <input type="number" className="input" value={dpAmount}
+                      onChange={e => setDpAmount(e.target.value)}
+                      placeholder={`contoh: ${Math.round(totals.grand * 0.3)}`} />
                   </div>
+                  {quotation.dpPercent && (
+                    <div className="text-xs text-gray-400 pt-5">
+                      Saran: {quotation.dpPercent}% = {fmt(totals.grand * quotation.dpPercent / 100)}
+                    </div>
+                  )}
+                </div>
+                {quotation.includesPpn && (
+                  <label className="flex items-center gap-2 cursor-pointer mt-1">
+                    <input type="checkbox" checked={dpExcludePpn} onChange={e => setDpExcludePpn(e.target.checked)} className="w-4 h-4" />
+                    <span className="text-xs text-gray-600">
+                      DP ini <strong>tidak termasuk PPN</strong>
+                      <span className="text-gray-400 ml-1">(PPN dibayar saat pelunasan — contoh: Panorama)</span>
+                    </span>
+                  </label>
                 )}
-              </div>
+              </>
             )}
           </div>
 
