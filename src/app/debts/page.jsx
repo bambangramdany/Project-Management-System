@@ -152,9 +152,10 @@ export default function DebtsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [expanded, setExpanded] = useState(null)
-  const [editId, setEditId] = useState(null)
-  const [editForm, setEditForm] = useState({ lenderName: '', interestRate: '' })
+  const [editDebt, setEditDebt] = useState(null)   // debt object saat modal edit terbuka
+  const [editForm, setEditForm] = useState({})
   const [savingEdit, setSavingEdit] = useState(false)
+  const [editError, setEditError] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   const canManage = status === 'authenticated' &&
@@ -209,20 +210,39 @@ export default function DebtsPage() {
   }
 
   const startEdit = (debt) => {
-    setEditId(debt.id)
-    setEditForm({ lenderName: debt.lenderName, interestRate: debt.interestRate ?? 0 })
+    setEditDebt(debt)
+    setEditForm({
+      lenderName:    debt.lenderName,
+      interestRate:  String(debt.interestRate ?? 0),
+      principal:     String(debt.principal),
+      tenorMonths:   String(debt.tenorMonths),
+      interestCycle: String(debt.interestCycle ?? 1),
+      notes:         debt.notes ?? '',
+    })
+    setEditError('')
   }
 
-  const saveEdit = async (id) => {
+  const saveEdit = async () => {
+    if (!editDebt) return
+    setEditError('')
     setSavingEdit(true)
-    const res = await fetch(`/api/debts/${id}`, {
+    const res = await fetch(`/api/debts/${editDebt.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lenderName: editForm.lenderName, interestRate: editForm.interestRate }),
+      body: JSON.stringify({
+        lenderName:   editForm.lenderName,
+        interestRate: editForm.interestRate,
+        notes:        editForm.notes,
+      }),
     })
     setSavingEdit(false)
-    if (res.ok) { setEditId(null); load() }
-    else { const d = await res.json().catch(() => ({})); alert(d.error || 'Gagal menyimpan') }
+    if (res.ok) {
+      setEditDebt(null)
+      load()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      setEditError(d.error || 'Gagal menyimpan')
+    }
   }
 
   const removeDebt = async (id) => {
@@ -316,15 +336,9 @@ export default function DebtsPage() {
                     const t = computeDebtTotals(debt)
                     const nextPayment = debt.payments.find(p => p.status === 'PENDING')
                     const countdown = nextPayment ? countdownLabel(nextPayment.dueDate, now) : null
-                    const isEditing = editId === debt.id
                     return (
                       <tr key={debt.id} className="border-b border-gray-50 hover:bg-gray-50">
-                        <td className="py-2 pr-3 font-medium text-gray-800">
-                          {isEditing ? (
-                            <input className="input text-xs py-1" value={editForm.lenderName}
-                              onChange={e => setEditForm(f => ({ ...f, lenderName: e.target.value }))} />
-                          ) : debt.lenderName}
-                        </td>
+                        <td className="py-2 pr-3 font-medium text-gray-800">{debt.lenderName}</td>
                         <td className="py-2 pr-3 text-right text-gray-700">{fmt(debt.principal)}</td>
                         <td className="py-2 pr-3 text-right text-indigo-600">{fmt(t.totalBunga)}</td>
                         <td className="py-2 pr-3 text-right font-semibold text-red-700">{fmt(t.totalHutang)}</td>
@@ -348,24 +362,17 @@ export default function DebtsPage() {
                         </td>
                         {canManage && (
                           <td className="py-2 whitespace-nowrap">
-                            {isEditing ? (
-                              <div className="flex gap-2">
-                                <button onClick={() => saveEdit(debt.id)} disabled={savingEdit} className="text-xs text-emerald-600 hover:underline font-medium">Simpan</button>
-                                <button onClick={() => setEditId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
-                              </div>
-                            ) : (
-                              <div className="flex gap-2">
-                                <button onClick={() => startEdit(debt)} className="text-xs text-brand-600 hover:underline font-medium">Edit</button>
-                                {confirmDeleteId === debt.id ? (
-                                  <>
-                                    <button onClick={() => removeDebt(debt.id)} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Ya</button>
-                                    <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
-                                  </>
-                                ) : (
-                                  <button onClick={() => setConfirmDeleteId(debt.id)} className="text-xs text-red-500 hover:underline">Hapus</button>
-                                )}
-                              </div>
-                            )}
+                            <div className="flex gap-2">
+                              <button onClick={() => startEdit(debt)} className="text-xs text-brand-600 hover:underline font-medium">Edit</button>
+                              {confirmDeleteId === debt.id ? (
+                                <>
+                                  <button onClick={() => removeDebt(debt.id)} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Ya</button>
+                                  <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
+                                </>
+                              ) : (
+                                <button onClick={() => setConfirmDeleteId(debt.id)} className="text-xs text-red-500 hover:underline">Hapus</button>
+                              )}
+                            </div>
                           </td>
                         )}
                       </tr>
@@ -553,6 +560,70 @@ export default function DebtsPage() {
           )
         })}
       </main>
+
+      {/* ── Edit Hutang Modal ──────────────────────────────────────────────── */}
+      {editDebt && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h2 className="font-bold text-gray-900">Edit Hutang — {editDebt.lenderName}</h2>
+              <button onClick={() => setEditDebt(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="label">Nama Pemberi Pinjaman</label>
+                <input className="input" value={editForm.lenderName}
+                  onChange={e => setEditForm(f => ({ ...f, lenderName: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Pokok Pinjaman</label>
+                  <div className="input bg-gray-50 text-gray-500 cursor-not-allowed">{fmt(editDebt.principal)}</div>
+                  <p className="text-[11px] text-gray-400 mt-1">Tidak bisa diubah — hapus & buat ulang jika perlu</p>
+                </div>
+                <div>
+                  <label className="label">Bunga per Siklus (%)</label>
+                  <input type="number" step="0.01" className="input" value={editForm.interestRate}
+                    onChange={e => setEditForm(f => ({ ...f, interestRate: e.target.value }))} />
+                  {editForm.interestRate && (
+                    <p className="text-xs text-indigo-600 mt-1">
+                      ≈ {fmt(Math.round(editDebt.principal * (parseFloat(editForm.interestRate)||0) / 100))} / siklus
+                      {parseFloat(editForm.interestRate) !== editDebt.interestRate && (
+                        <span className="text-amber-600 ml-1">(akan update semua cicilan belum bayar)</span>
+                      )}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Jumlah Cicilan Bunga</label>
+                  <div className="input bg-gray-50 text-gray-500 cursor-not-allowed">{editDebt.tenorMonths} siklus</div>
+                </div>
+                <div>
+                  <label className="label">Siklus Bayar</label>
+                  <div className="input bg-gray-50 text-gray-500 cursor-not-allowed">
+                    Setiap {editDebt.interestCycle > 1 ? `${editDebt.interestCycle} bulan` : 'bulan'}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="label">Catatan</label>
+                <input className="input" value={editForm.notes}
+                  onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="opsional" />
+              </div>
+              {editError && <p className="text-sm text-red-600">{editError}</p>}
+            </div>
+            <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-xl">
+              <button onClick={() => setEditDebt(null)} className="btn-secondary text-sm">Batal</button>
+              <button onClick={saveEdit} disabled={savingEdit} className="btn-primary text-sm">
+                {savingEdit ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
