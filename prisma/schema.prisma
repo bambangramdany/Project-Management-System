@@ -103,7 +103,8 @@ model CashTransaction {
 
   recordedBy     User?           @relation(fields: [recordedById], references: [id], onDelete: SetNull)
   paymentRequest PaymentRequest? @relation(fields: [paymentRequestId], references: [id], onDelete: SetNull)
-  debtPayment    DebtPayment?
+  debtPayment        DebtPayment?   @relation("DebtInterestCashTx")
+  debtPrincipalPay   DebtPayment?   @relation("DebtPrincipalCashTx")
   opexEntry      OpexEntry?
   receivableIn   Receivable?     @relation("ReceivableKasMasuk")
   receivableOut  Receivable?     @relation("ReceivableKasKeluar")
@@ -223,9 +224,10 @@ model Debt {
   id              String     @id @default(cuid())
   lenderName      String
   principal       Float
-  interestRate    Float      @default(0) // bunga / bagi hasil per bulan (% dari pokok)
-  monthlyInterest Float      @default(0) // bunga / bagi hasil per bulan (nominal, dihitung dari interestRate)
-  tenorMonths     Int
+  interestRate    Float      @default(0)  // bunga per siklus (% dari pokok)
+  monthlyInterest Float      @default(0)  // nominal bunga per siklus
+  tenorMonths     Int                     // jumlah siklus bayar bunga
+  interestCycle   Int        @default(1)  // siklus cicil bunga: 1=setiap bulan, 2=setiap 2 bulan
   startDate       DateTime
   notes           String?
   status          DebtStatus @default(ACTIVE)
@@ -235,22 +237,35 @@ model Debt {
   payments DebtPayment[]
 }
 
-// One installment row per month of a Debt's tenor — generated automatically
-// when the debt is created.
+// Each row = satu kewajiban bayar. Type menentukan isinya:
+//   INTEREST  = cicilan bunga (principalAmount = 0)
+//   PRINCIPAL = pelunasan pokok (interestAmount = 0)
+//   BOTH      = bayar keduanya sekaligus (legacy / sederhana)
+// Split transfer: pokok dan bunga bisa dicatat transfer-nya terpisah.
 model DebtPayment {
   id              String            @id @default(cuid())
   debtId          String
   installmentNo   Int
   dueDate         DateTime
-  principalAmount Float
-  interestAmount  Float
+  paymentType     String            @default("BOTH")  // BOTH | PRINCIPAL | INTEREST
+  principalAmount Float             @default(0)
+  interestAmount  Float             @default(0)
+
+  // Status keseluruhan (PAID = semua sudah dibayar)
   status          DebtPaymentStatus @default(PENDING)
   paidAt          DateTime?
-  cashTransactionId String?         @unique
+  cashTransactionId String?         @unique  // kas keluar untuk interest
+
+  // Split transfer: pokok dan bunga bisa transfer terpisah
+  principalStatus   DebtPaymentStatus @default(PENDING)
+  principalPaidAt   DateTime?
+  principalCashTxId String?           @unique
+
   createdAt       DateTime          @default(now())
 
-  debt           Debt             @relation(fields: [debtId], references: [id], onDelete: Cascade)
-  cashTransaction CashTransaction? @relation(fields: [cashTransactionId], references: [id], onDelete: SetNull)
+  debt              Debt             @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  cashTransaction   CashTransaction? @relation("DebtInterestCashTx",   fields: [cashTransactionId],  references: [id], onDelete: SetNull)
+  principalCashTx   CashTransaction? @relation("DebtPrincipalCashTx",  fields: [principalCashTxId],  references: [id], onDelete: SetNull)
 
   @@index([dueDate])
 }
