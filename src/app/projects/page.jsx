@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import clsx from 'clsx'
 import { PitchResultBadge } from '@/components/StatusBadge'
-import { STATUS_PIPELINE, STATUS_LABEL, STATUS_GROUP_COLOR, CATEGORY_LABEL, DIVISION_LABEL, EO_CATEGORIES, PH_CATEGORIES } from '@/lib/constants'
+import { STATUS_PIPELINE, STATUS_DISPLAY_GROUPS, STATUS_LABEL, STATUS_GROUP_COLOR, CATEGORY_LABEL, DIVISION_LABEL, EO_CATEGORIES, PH_CATEGORIES } from '@/lib/constants'
 import { canViewAllProjects, canQuickEditProjects, canDeleteProject } from '@/lib/rbac'
 import { HEALTH_LABEL, HEALTH_DOT } from '@/lib/health'
 import Link from 'next/link'
@@ -418,13 +418,14 @@ function ProjectsContent() {
           {!loading && visibleProjects.length === 0 && (
             <div className="text-center py-12 text-gray-400 text-sm">Tidak ada project</div>
           )}
-          {!loading && visibleProjects.length > 0 && STATUS_PIPELINE.filter(s => visibleProjects.some(p => p.status === s)).map(s => {
-            const group = visibleProjects.filter(p => p.status === s)
+          {!loading && visibleProjects.length > 0 && STATUS_DISPLAY_GROUPS.map(grp => {
+            const group = visibleProjects.filter(p => grp.statuses.includes(p.status))
+            if (group.length === 0) return null
             return (
-            <details key={s} open className="group rounded-xl overflow-hidden border border-gray-100">
-              <summary className={clsx('px-4 py-2.5 flex items-center justify-between gap-2 cursor-pointer select-none list-none', STATUS_GROUP_COLOR[s] || 'bg-gray-500 text-white')}>
+            <details key={grp.key} open className="group rounded-xl overflow-hidden border border-gray-100">
+              <summary className={clsx('px-4 py-2.5 flex items-center justify-between gap-2 cursor-pointer select-none list-none', grp.color)}>
                 <span className="flex items-center gap-2 text-sm font-bold">
-                  {STATUS_LABEL[s] || s}
+                  {grp.label}
                   <span className="text-xs font-normal opacity-80">({group.length})</span>
                 </span>
                 <span className="text-xs group-open:rotate-180 transition-transform">▼</span>
@@ -462,6 +463,10 @@ function ProjectsContent() {
                   {p.pitchResult === 'WIN' && p.status === 'FAILED' && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold" title="Status tidak sinkron: Pitch menang tapi project berstatus Failed">⚠ Cek Status</span>
                   )}
+                  {/* Badge status individual — penting saat 1 group menampung >1 status */}
+                  <span className={clsx('text-[10px] px-2 py-0.5 rounded-full font-medium', STATUS_GROUP_COLOR[p.status])}>
+                    {STATUS_LABEL[p.status]}
+                  </span>
                   {p.pitchResult && (
                     <span className="text-xs text-gray-400 flex items-center gap-1">
                       Pitch: <PitchResultBadge result={p.pitchResult} />

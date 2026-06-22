@@ -3,6 +3,18 @@ export const STATUS_PIPELINE = [
   'EVENT_DAY', 'REPORTING', 'INVOICING', 'DONE', 'FAILED', 'CANCELED',
 ]
 
+// Display groups: beberapa status digabung dalam satu header group
+export const STATUS_DISPLAY_GROUPS = [
+  { key: 'HOLD',                 label: 'Hold',                   statuses: ['HOLD'],                          color: 'bg-gray-500 text-white' },
+  { key: 'PITCHING',             label: 'Pitching / Waiting Result', statuses: ['PITCHING', 'WAITING_PITCH_RESULT'], color: 'bg-blue-500 text-white' },
+  { key: 'PREPARATION',         label: 'Preparation',            statuses: ['PREPARATION'],                   color: 'bg-orange-500 text-white' },
+  { key: 'EVENT_DAY',           label: 'Project Days (Pelaksanaan)', statuses: ['EVENT_DAY'],                 color: 'bg-purple-500 text-white' },
+  { key: 'REPORTING_INVOICING', label: 'Reporting & Invoicing',  statuses: ['REPORTING', 'INVOICING'],        color: 'bg-teal-500 text-white' },
+  { key: 'DONE',                label: 'Done',                   statuses: ['DONE'],                          color: 'bg-green-500 text-white' },
+  { key: 'FAILED',              label: 'Failed',                 statuses: ['FAILED'],                        color: 'bg-red-500 text-white' },
+  { key: 'CANCELED',            label: 'Canceled',               statuses: ['CANCELED'],                      color: 'bg-slate-400 text-white' },
+]
+
 export const STATUS_LABEL = {
   HOLD: 'Hold',
   PITCHING: 'Pitching',
@@ -29,8 +41,6 @@ export const STATUS_COLOR = {
   CANCELED: 'bg-slate-100 text-slate-500',
 }
 
-// Bolder, high-contrast versions used for stage/phase group headers — so
-// the current phase is immediately obvious at a glance.
 export const STATUS_GROUP_COLOR = {
   HOLD: 'bg-gray-500 text-white',
   PITCHING: 'bg-blue-500 text-white',
