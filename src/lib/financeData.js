@@ -52,8 +52,11 @@ export async function getCashflowForecast(user) {
 // Margin summary across won/active projects, grouped by division.
 export async function getMarginReport(user) {
   // Sertakan CANCELED jika punya pengeluaran aktual (directExpenses)
+  // Catatan: { pitchResult: { not: 'LOSE' } } di Prisma/PostgreSQL tidak include NULL,
+  // jadi project tanpa pitching (pitchResult=null) harus ditambahkan eksplisit
   const where = {
     OR: [
+      { status: { in: WON_STATUSES }, projectValue: { not: null }, pitchResult: null },
       { status: { in: WON_STATUSES }, projectValue: { not: null }, pitchResult: { not: 'LOSE' } },
       { status: 'CANCELED', directExpenses: { some: {} }, projectValue: { not: null } },
     ],
@@ -118,6 +121,7 @@ export async function getProfitability() {
   // Sertakan CANCELED jika punya pengeluaran aktual (directExpenses)
   const where = {
     OR: [
+      { status: { in: WON_STATUSES }, projectValue: { not: null }, pitchResult: null },
       { status: { in: WON_STATUSES }, projectValue: { not: null }, pitchResult: { not: 'LOSE' } },
       { status: 'CANCELED', directExpenses: { some: {} }, projectValue: { not: null } },
     ],
