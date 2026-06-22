@@ -5,6 +5,8 @@ import { NextResponse } from 'next/server'
 
 const ALLOWED_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER']
 const HIDDEN_EMAILS = ['hrdwatermark@gmail.com']
+// Rekap hanya untuk staff & PM — Owner dan Direksi tidak perlu masuk tabel ini
+const EXCLUDED_ROLES = ['OWNER', 'DIRECTOR']
 
 // Hitung hari kerja (Senin–Jumat) dalam rentang tanggal
 function countWorkdays(from, to) {
@@ -38,7 +40,7 @@ export async function GET(req) {
 
   // Ambil semua user aktif
   const users = await prisma.user.findMany({
-    where: { employeeStatus: 'ACTIVE', email: { notIn: HIDDEN_EMAILS } },
+    where: { employeeStatus: 'ACTIVE', email: { notIn: HIDDEN_EMAILS }, role: { notIn: EXCLUDED_ROLES } },
     select: { id: true, name: true, role: true, jobTitle: true, divisi: true },
     orderBy: [{ divisi: 'asc' }, { name: 'asc' }],
   })
