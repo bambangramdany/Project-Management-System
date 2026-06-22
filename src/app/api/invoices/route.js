@@ -11,12 +11,16 @@ function canViewInvoices(user) {
   return canManageInvoices(user) || user.role === 'DIRECTOR' || user.role === 'PROJECT_MANAGER'
 }
 
-// Auto-generate invoice number: WTM/EO/INV/2026/073/001
-function buildInvoiceNumber(quotationNumber, termNumber) {
-  // quotationNumber: WTM/EO/QUOT/2026/073 → WTM/EO/INV/2026/073
-  const base = quotationNumber.replace('/QUOT/', '/INV/')
-  const term = String(termNumber).padStart(3, '0')
-  return `${base}/${term}`
+// Auto-generate invoice number: WTM/EO/INV/2026/001 (sequential per tahun)
+async function buildInvoiceNumber(division) {
+  const year = new Date().getFullYear()
+  const prefix = division === 'PH' ? 'WTM/PH/INV' : 'WTM/EO/INV'
+  // Hitung semua invoice tahun ini (termasuk cancelled) agar nomor tidak loncat
+  const count = await prisma.invoice.count({
+    where: { invoiceNumber: { startsWith: `${prefix}/${year}/` } },
+  })
+  const seq = String(count + 1).padStart(3, '0')
+  return `${prefix}/${year}/${seq}`
 }
 
 // Compute invoice totals from items
@@ -39,6 +43,14 @@ export async function GET(req) {
   if (!canViewInvoices(session.user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { searchParams } = new URL(req.url)
+
+  // ?nextNumber=EO  → hanya kembalikan nomor berikutnya (untuk preview di form)
+  if (searchParams.get('nextNumber')) {
+    const division = searchParams.get('nextNumber') === 'PH' ? 'PH' : 'EVENT'
+    const next = await buildInvoiceNumber(division)
+    return NextResponse.json({ nextNumber: next })
+  }
+
   const quotationId = searchParams.get('quotationId')
   const status      = searchParams.get('status')
 
@@ -88,13 +100,23 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Hanya quotation berstatus WON yang bisa dibuatkan invoice' }, { status: 400 })
   }
 
-  // Determine term number (auto-increment from existing invoices)
+  // Term number (untuk referensi internal)
   const existingInvoices = await prisma.invoice.findMany({
     where: { quotationId: body.quotationId },
     select: { termNumber: true },
   })
   const termNumber = body.termNumber || (existingInvoices.length + 1)
-  const invoiceNumber = buildInvoiceNumber(quotation.quotationNumber, termNumber)
+
+  // Nomor invoice: gunakan input manual jika ada, otherwise auto-generate sequential
+  let invoiceNumber = body.invoiceNumber?.trim() || ''
+  if (!invoiceNumber) {
+    invoiceNumber = await buildInvoiceNumber(quotation.division || 'EVENT')
+  }
+  // Cek duplikat nomor
+  const duplicate = await prisma.invoice.findFirst({ where: { invoiceNumber } })
+  if (duplicate) {
+    return NextResponse.json({ error: `Nomor invoice ${invoiceNumber} sudah digunakan` }, { status: 400 })
+  }
 
   // Build invoice items from quotation sections/items
   // Allow body.items to override showInDetail per item (keyed by QuotationItem description)

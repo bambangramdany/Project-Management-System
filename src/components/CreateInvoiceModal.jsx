@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 const fmt = (n) => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID')
@@ -25,6 +25,8 @@ export default function CreateInvoiceModal({ quotation, onClose, onCreated }) {
   const totals   = computeTotals(allItems, quotation.agencyFeePercent, quotation.includesPpn, quotation.ppnPercent)
 
   const [mode,              setMode]              = useState('DETAIL')
+  const [invoiceNumber,     setInvoiceNumber]     = useState('')          // kosong = auto-generate
+  const [loadingNum,        setLoadingNum]        = useState(true)
   const [financeClientName, setFinanceClientName] = useState(quotation.clientName || '')
   const [financeEventName,  setFinanceEventName]  = useState(quotation.eventName  || '')
   const [poNumber,          setPoNumber]          = useState('')
@@ -53,6 +55,15 @@ export default function CreateInvoiceModal({ quotation, onClose, onCreated }) {
       ? parseFloat(dpAmount)
       : totals.grand
 
+  // Ambil nomor invoice berikutnya saat modal dibuka
+  useEffect(() => {
+    const div = quotation.division === 'PH' ? 'PH' : 'EO'
+    fetch(`/api/invoices?nextNumber=${div}`)
+      .then(r => r.json())
+      .then(d => { setInvoiceNumber(d.nextNumber || ''); setLoadingNum(false) })
+      .catch(() => setLoadingNum(false))
+  }, [])
+
   const [saving, setSaving] = useState(false)
   const [error,  setError]  = useState('')
 
@@ -66,6 +77,7 @@ export default function CreateInvoiceModal({ quotation, onClose, onCreated }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         quotationId:       quotation.id,
+        invoiceNumber:     invoiceNumber.trim() || undefined,  // undefined = auto-generate
         mode,
         isDP,
         dpAmount:          isDP ? parseFloat(dpAmount) || null : null,
@@ -109,6 +121,21 @@ export default function CreateInvoiceModal({ quotation, onClose, onCreated }) {
         </div>
 
         <div className="px-6 py-5 space-y-5">
+
+          {/* Nomor Invoice — editable */}
+          <div>
+            <label className="label">
+              Nomor Invoice
+              <span className="text-gray-400 font-normal ml-1">(otomatis urut — ubah jika perlu)</span>
+            </label>
+            <input
+              className="input font-mono"
+              value={loadingNum ? 'Memuat...' : invoiceNumber}
+              onChange={e => setInvoiceNumber(e.target.value)}
+              disabled={loadingNum}
+              placeholder="WTM/EO/INV/2026/001"
+            />
+          </div>
 
           {/* Totals summary */}
           <div className="bg-gray-50 rounded-lg p-3 flex flex-wrap gap-4 text-sm">
