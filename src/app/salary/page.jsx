@@ -271,7 +271,7 @@ export default function SalaryPage() {
     tunjanganProject: g.rows.reduce((s,r)=>s+r.tunjanganProject,0),
     bonusProject: g.rows.reduce((s,r)=>s+r.bonusProject,0),
     thrBonus: g.rows.reduce((s,r)=>s+r.thrBonus,0),
-    potongan: g.rows.reduce((s,r)=>s+(r.bpjsTk+r.bpjsKes+r.bpjsKesKeluarga+r.pph21+r.kasbon+r.absen),0),
+    potongan: g.rows.reduce((s,r)=>s+((r.bpjsTk||0)+(r.bpjsKes||0)+(r.bpjsKesKeluarga||0)+(r.pph21||0)+(r.kasbon||0)+(r.absen||0)),0),
     count: g.rows.length,
     filled: g.rows.filter(r=>r.thp!==null).length,
   }]))
@@ -418,7 +418,7 @@ export default function SalaryPage() {
                     allRows.forEach((row, idx) => {
                       const color = DIV_COLOR[row.divisi] || DIV_COLOR.FINANCE_HRGA
                       const sub = divSubtotals[row.divisi]
-                      const totalPotongan = row.bpjsTk+row.bpjsKes+row.bpjsKesKeluarga+row.pph21+row.kasbon+row.absen
+                      const totalPotongan = (row.bpjsTk||0)+(row.bpjsKes||0)+(row.bpjsKesKeluarga||0)+(row.pph21||0)+(row.kasbon||0)+(row.absen||0)
                       const scoreInfo = SCORE_LABEL(row.avgScore)
                       const assetInfo = ASSET_INFO(row)
                       const isEditing = editingUserId === row.userId
@@ -520,20 +520,20 @@ export default function SalaryPage() {
                       </td>
                       <td className="px-2 py-3 text-right">{fmt(summary.totalGajiPokok)}</td>
                       <td className="px-2 py-3 text-right opacity-75 hidden lg:table-cell">
-                        {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+r.tunjanganJabatan,0))}
+                        {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+(r.tunjanganJabatan||0),0))}
                       </td>
                       <td className="px-2 py-3 text-right opacity-75 hidden lg:table-cell">
-                        {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+r.tunjanganKinerja,0))}
+                        {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+(r.tunjanganKinerja||0),0))}
                       </td>
                       <td className="px-2 py-3 text-right opacity-75 hidden lg:table-cell">
-                        {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+r.tunjanganTransport,0))}
+                        {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+(r.tunjanganTransport||0),0))}
                       </td>
                       <td className="px-2 py-3 text-right opacity-75 hidden lg:table-cell">
-                        {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+r.tunjanganProject,0))}
+                        {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+(r.tunjanganProject||0),0))}
                       </td>
                       <td className="px-2 py-3 text-right text-emerald-300 hidden lg:table-cell">{fmt(summary.totalBonusProject)}</td>
                       <td className="px-2 py-3 text-right text-blue-200 hidden lg:table-cell">
-                        {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+r.thrBonus,0))}
+                        {fmt(groups.flatMap(g=>g.rows).reduce((s,r)=>s+(r.thrBonus||0),0))}
                       </td>
                       <td className="px-2 py-3 text-right text-red-300 hidden lg:table-cell">{fmt(summary.totalPotongan)}</td>
                       <td className="px-2 py-3 text-right text-xl text-white bg-brand-700 whitespace-nowrap">

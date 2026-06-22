@@ -239,7 +239,7 @@ export default function WorkloadPage() {
 
             {recapLoading && <div className="text-center py-12 text-gray-400 text-sm">Memuat rekap...</div>}
 
-            {!recapLoading && recap && (
+            {!recapLoading && recap?.recap && (
               <div className="card overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
@@ -536,8 +536,8 @@ function UserDetail({ data, session, teamList = [], canReassign = false }) {
     setReassigning(null)
   }
 
-  const activeProjects = data.projects.filter(p => p.involved)
-  const displayed = showAll ? data.projects : activeProjects
+  const activeProjects = (data.projects || []).filter(p => p.involved)
+  const displayed = showAll ? (data.projects || []) : activeProjects
 
   return (
     <div className="card p-5 border-t-4 border-pink-400">
