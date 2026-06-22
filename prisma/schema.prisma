@@ -1046,7 +1046,7 @@ model Quotation {
 
   // Link to project (set when quotation is WON and project exists)
   projectId       String?
-  project         Project? @relation(fields: [projectId], references: [id])
+  project         Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   notes           String?
   termsConditions String?  // custom T&C override (null = use system default)

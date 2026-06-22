@@ -162,6 +162,22 @@ export async function DELETE(req, { params }) {
     return NextResponse.json({ error: 'Project memiliki invoice aktif dan tidak bisa dihapus' }, { status: 400 })
   }
 
+  // Putuskan relasi opsional sebelum delete agar tidak kena FK constraint
+  // (Quotation.projectId tidak memiliki cascade di DB level)
+  await prisma.quotation.updateMany({
+    where: { projectId: params.id },
+    data: { projectId: null },
+  })
+
   await prisma.project.delete({ where: { id: params.id } })
+
+  await logAudit({
+    userId: session.user.id,
+    action: 'PROJECT_DELETE',
+    entity: 'Project',
+    entityId: params.id,
+    summary: `${session.user.name} menghapus project ${params.id}`,
+  })
+
   return NextResponse.json({ ok: true })
 }
