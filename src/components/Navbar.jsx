@@ -86,11 +86,11 @@ export default function Navbar() {
                 href={item.href}
                 className={clsx(
                   'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 whitespace-nowrap',
-                  pathname.startsWith(item.href)
+                  pathname === item.href || pathname.startsWith(item.href + '/')
                     ? 'text-white shadow-md'
                     : 'text-violet-200 hover:text-white hover:bg-white/10'
                 )}
-                style={pathname.startsWith(item.href) ? {
+                style={pathname === item.href || pathname.startsWith(item.href + '/') ? {
                   background: 'linear-gradient(135deg, #7C3AED, #8B5CF6)',
                 } : {}}
               >
@@ -139,11 +139,11 @@ export default function Navbar() {
               onClick={() => setMenuOpen(false)}
               className={clsx(
                 'block px-3 py-2.5 rounded-xl text-sm font-semibold transition-all',
-                pathname.startsWith(item.href)
+                pathname === item.href || pathname.startsWith(item.href + '/')
                   ? 'text-white'
                   : 'text-violet-200 hover:bg-white/10 hover:text-white'
               )}
-              style={pathname.startsWith(item.href) ? {
+              style={pathname === item.href || pathname.startsWith(item.href + '/') ? {
                 background: 'linear-gradient(135deg, #7C3AED, #8B5CF6)',
               } : {}}
             >

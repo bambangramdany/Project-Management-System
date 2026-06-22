@@ -216,7 +216,7 @@ export default function SalaryPage() {
 
   useEffect(() => {
     if (status==='unauthenticated') router.push('/login')
-    if (status==='authenticated' && !['OWNER','DIRECTOR','FINANCE'].includes(session.user.role)) router.push('/dashboard')
+    if (status==='authenticated' && session && !['OWNER','DIRECTOR','FINANCE'].includes(session.user.role)) router.push('/dashboard')
   }, [status, session, router])
 
   const load = useCallback(() => {
@@ -263,7 +263,8 @@ export default function SalaryPage() {
     )
   }
 
-  const canEditSalary = ['OWNER', 'DIRECTOR'].includes(session?.user?.role)
+  const canEditSalary = session?.user?.role === 'OWNER'
+    || (session?.user?.role === 'DIRECTOR' && session?.user?.divisi === 'FINANCE_HRGA')
 
   return (
     <div className="min-h-screen bg-brand-50">

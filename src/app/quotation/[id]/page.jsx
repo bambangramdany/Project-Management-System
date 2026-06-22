@@ -23,7 +23,13 @@ const STATUS_META = {
 function canManage(user) {
   return ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER'].includes(user?.role)
 }
-function canApprove(user) {
+// Approve tahap Wulan: hanya OWNER atau Finance/HRGA Director (Wulan)
+function canApproveWulan(user) {
+  return user?.role === 'OWNER'
+    || (user?.role === 'DIRECTOR' && user?.divisi === 'FINANCE_HRGA')
+}
+// Approve tahap Direktur: OWNER atau semua DIRECTOR
+function canApproveDirector(user) {
   return ['OWNER', 'DIRECTOR'].includes(user?.role)
 }
 
@@ -151,7 +157,7 @@ export default function QuotationDetailPage() {
   const st = STATUS_META[q.status] || STATUS_META.DRAFT
   const totals = calcTotals(q)
   const user = session?.user
-  const canSeeHpp = ['OWNER', 'DIRECTOR'].includes(user?.role)
+  const canSeeHpp = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'].includes(user?.role)
 
   return (
     <div className="min-h-screen bg-brand-50">
@@ -196,19 +202,19 @@ export default function QuotationDetailPage() {
                 </button>
               </>
             )}
-            {q.status === 'PENDING_WULAN' && canApprove(user) && (
+            {q.status === 'PENDING_WULAN' && canApproveWulan(user) && (
               <>
                 <button onClick={() => action('revert_to_draft')} disabled={acting} className="btn-secondary text-sm">↩ Kembalikan ke Draft</button>
                 <button onClick={() => action('approve_wulan')} disabled={acting} className="btn-primary text-sm">✓ Approve (Wulan)</button>
               </>
             )}
-            {q.status === 'PENDING_DIRECTOR' && canApprove(user) && (
+            {q.status === 'PENDING_DIRECTOR' && canApproveDirector(user) && (
               <>
                 <button onClick={() => action('revert_to_draft')} disabled={acting} className="btn-secondary text-sm">↩ Kembalikan ke Draft</button>
                 <button onClick={() => action('approve_director')} disabled={acting} className="btn-primary text-sm">✓ Approve Final (Direktur)</button>
               </>
             )}
-            {q.status === 'APPROVED' && canApprove(user) && (
+            {q.status === 'APPROVED' && canApproveDirector(user) && (
               <>
                 <button onClick={() => action('mark_lost')} disabled={acting} className="text-sm px-3 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">
                   ✗ Lost

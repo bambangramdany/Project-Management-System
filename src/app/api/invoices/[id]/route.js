@@ -55,6 +55,11 @@ export async function PATCH(req, { params }) {
 
   if (body.action === 'cancel') {
     data.status = 'CANCELLED'
+    // Batalkan receivable yang belum dibayar agar tidak muncul sebagai outstanding
+    await prisma.receivable.updateMany({
+      where: { invoiceId: params.id, status: { not: 'PAID' } },
+      data: { status: 'CANCELLED' },
+    })
   }
 
   // PO number & Faktur Pajak — editable regardless of status (often received after invoice issued)
@@ -65,8 +70,8 @@ export async function PATCH(req, { params }) {
     await prisma.receivable.updateMany({
       where: { invoiceId: params.id },
       data: {
-        poNumber:        body.poNumber         || undefined,
-        taxInvoiceNumber: body.taxInvoiceNumber || undefined,
+        poNumber:         body.poNumber         !== undefined ? (body.poNumber         || null) : undefined,
+        taxInvoiceNumber: body.taxInvoiceNumber !== undefined ? (body.taxInvoiceNumber || null) : undefined,
       },
     })
   }

@@ -148,6 +148,20 @@ export async function DELETE(req, { params }) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!canDeleteProject(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
+  // Cegah delete jika ada quotation aktif (WON/APPROVED) atau invoice
+  const activeQuotations = await prisma.quotation.count({
+    where: { projectId: params.id, status: { in: ['WON', 'APPROVED', 'PENDING_DIRECTOR', 'PENDING_WULAN'] } },
+  })
+  if (activeQuotations > 0) {
+    return NextResponse.json({ error: 'Project memiliki quotation aktif dan tidak bisa dihapus' }, { status: 400 })
+  }
+  const activeInvoices = await prisma.invoice.count({
+    where: { projectId: params.id, status: { not: 'CANCELLED' } },
+  })
+  if (activeInvoices > 0) {
+    return NextResponse.json({ error: 'Project memiliki invoice aktif dan tidak bisa dihapus' }, { status: 400 })
+  }
+
   await prisma.project.delete({ where: { id: params.id } })
   return NextResponse.json({ ok: true })
 }

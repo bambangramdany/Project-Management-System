@@ -43,7 +43,7 @@ export default function ScoresPage() {
   }, [status, router])
 
   useEffect(() => {
-    if (status !== 'authenticated') return
+    if (status !== 'authenticated' || !session) return
     fetch('/api/scores/summary').then(r => r.json()).then(d => { setData(d); setLoading(false) })
     fetch('/api/team').then(r => r.json()).then(members => {
       const list = Array.isArray(members) ? members : []

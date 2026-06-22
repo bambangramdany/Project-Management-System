@@ -34,7 +34,7 @@ export default function InvoiceListPage() {
 
   useEffect(() => { if (status === 'authenticated') load() }, [status, filter])
 
-  const totalIssued = invoices.filter(i => i.status !== 'CANCELLED').reduce((s,i) => s + i.totalAmount, 0)
+  const totalIssued = invoices.filter(i => ['ISSUED','PAID'].includes(i.status)).reduce((s,i) => s + i.totalAmount, 0)
   const totalPaid   = invoices.filter(i => i.status === 'PAID').reduce((s,i) => s + i.totalAmount, 0)
 
   return (

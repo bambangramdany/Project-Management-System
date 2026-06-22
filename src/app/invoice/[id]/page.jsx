@@ -100,7 +100,7 @@ export default function InvoiceDetailPage() {
   async function deleteInvoice() {
     if (!confirm('Hapus invoice ini beserta receivable-nya?')) return
     const res = await fetch(`/api/invoices/${id}`, { method: 'DELETE' })
-    if (res.ok) router.push('/finance')
+    if (res.ok) router.push('/invoice')
     else { const d = await res.json().catch(()=>({})); alert(d.error || 'Gagal') }
   }
 
@@ -115,7 +115,8 @@ export default function InvoiceDetailPage() {
     return <div className="min-h-screen bg-brand-50"><Navbar /><div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-500">Invoice tidak ditemukan. <Link href="/finance" className="text-brand underline">Kembali</Link></div></div>
   }
 
-  const canEdit    = ['OWNER','FINANCE','FINANCE_STAFF','DIRECTOR'].includes(session?.user?.role)
+  const canEdit    = ['OWNER','FINANCE','FINANCE_STAFF'].includes(session?.user?.role)
+    || (session?.user?.role === 'DIRECTOR' && session?.user?.divisi === 'FINANCE_HRGA')
   const isDraft    = inv.status === 'DRAFT'
   const isIssued   = inv.status === 'ISSUED'
   const q          = inv.quotation

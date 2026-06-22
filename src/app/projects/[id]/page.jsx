@@ -61,7 +61,16 @@ export default function ProjectDetailPage() {
 
   const fetchProject = () => {
     fetch(`/api/projects/${id}`).then(r => r.json()).then(data => {
+      if (data?.error) {
+        setProject(null)
+        setLoading(false)
+        router.push('/projects')
+        return
+      }
       setProject(data)
+      setLoading(false)
+    }).catch(() => {
+      setProject(null)
       setLoading(false)
     })
   }
