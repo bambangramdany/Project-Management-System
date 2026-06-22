@@ -462,17 +462,29 @@ export default function FinancePage() {
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
     if (rows.length < 2) { alert('File kosong atau tidak terbaca'); setImportingExpenses(false); return }
 
-    const header = rows[0].map(c => String(c).toLowerCase().trim())
+    // Cari baris header: file bisa punya beberapa baris metadata di atas
+    // (Kode Project, COMPANY, Project, dll) sebelum baris header kolom yang sebenarnya.
+    // Scan sampai baris ke-10 untuk temukan baris yang mengandung "deskripsi" atau "nominal".
+    let headerRowIdx = 0
+    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+      const rowStr = rows[i].map(c => String(c).toLowerCase()).join('|')
+      if (rowStr.includes('deskripsi') || rowStr.includes('description') || rowStr.includes('nominal')) {
+        headerRowIdx = i
+        break
+      }
+    }
+
+    const header = rows[headerRowIdx].map(c => String(c).toLowerCase().trim())
     const ci = k => header.findIndex(h => h.includes(k))
     const colDesc   = ci('deskripsi') !== -1 ? ci('deskripsi') : ci('description') !== -1 ? ci('description') : ci('item')
     const colAmt    = ci('nominal') !== -1 ? ci('nominal') : ci('amount') !== -1 ? ci('amount') : ci('jumlah') !== -1 ? ci('jumlah') : ci('total')
     const colCat    = ci('kategori') !== -1 ? ci('kategori') : ci('category')
     const colDate   = ci('tanggal') !== -1 ? ci('tanggal') : ci('date')
-    const colVendor = ci('vendor') !== -1 ? ci('vendor') : ci('nama vendor')
+    const colVendor = ci('vendor') !== -1 ? ci('vendor') : ci('penerima') !== -1 ? ci('penerima') : ci('nama vendor')
     const colNotes  = ci('catatan') !== -1 ? ci('catatan') : ci('notes')
 
-    const CAT_MAP = { 'tiket': 'TICKET_TRANSPORT', 'transport': 'TICKET_TRANSPORT', 'akomodasi': 'ACCOMMODATION', 'venue dp': 'VENUE_DP', 'venue final': 'VENUE_FINAL', 'vendor dp': 'VENDOR_DP', 'vendor final': 'VENDOR_FINAL', 'talent': 'TALENT_HONOR', 'honor': 'TALENT_HONOR' }
-    const expenses = rows.slice(1).map(row => {
+    const CAT_MAP = { 'tiket': 'TICKET_TRANSPORT', 'transport': 'TICKET_TRANSPORT', 'akomodasi': 'ACCOMMODATION', 'venue dp': 'VENUE_DP', 'venue final': 'VENUE_FINAL', 'vendor dp': 'VENDOR_DP', 'vendor final': 'VENDOR_FINAL', 'talent': 'TALENT_HONOR', 'honor': 'TALENT_HONOR', 'vendor': 'VENDOR_DP', 'operasional': 'OPERATIONAL_OTHER' }
+    const expenses = rows.slice(headerRowIdx + 1).map(row => {
       const get = idx => idx >= 0 ? String(row[idx] ?? '').trim() : ''
       const desc = get(colDesc)
       const amtRaw = colAmt >= 0 ? row[colAmt] : null
