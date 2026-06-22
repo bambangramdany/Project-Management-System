@@ -457,13 +457,14 @@ export default function FinancePage() {
     // Parse client-side with xlsx
     const XLSX = await import('xlsx')
     const buf = await file.arrayBuffer()
-    const wb = XLSX.read(buf, { type: 'array', raw: false })
+    // raw: true → angka tetap sebagai JS number (bukan teks terformat)
+    // cellDates: true → sel tanggal jadi JS Date object
+    const wb = XLSX.read(buf, { type: 'array', raw: true, cellDates: true })
     const ws = wb.Sheets[wb.SheetNames[0]]
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
     if (rows.length < 2) { alert('File kosong atau tidak terbaca'); setImportingExpenses(false); return }
 
-    // Cari baris header: file bisa punya beberapa baris metadata di atas
-    // (Kode Project, COMPANY, Project, dll) sebelum baris header kolom yang sebenarnya.
+    // Cari baris header: file bisa punya metadata di atas sebelum baris header kolom.
     // Scan sampai baris ke-10 untuk temukan baris yang mengandung "deskripsi" atau "nominal".
     let headerRowIdx = 0
     for (let i = 0; i < Math.min(rows.length, 10); i++) {
@@ -484,15 +485,43 @@ export default function FinancePage() {
     const colNotes  = ci('catatan') !== -1 ? ci('catatan') : ci('notes')
 
     const CAT_MAP = { 'tiket': 'TICKET_TRANSPORT', 'transport': 'TICKET_TRANSPORT', 'akomodasi': 'ACCOMMODATION', 'venue dp': 'VENUE_DP', 'venue final': 'VENUE_FINAL', 'vendor dp': 'VENDOR_DP', 'vendor final': 'VENDOR_FINAL', 'talent': 'TALENT_HONOR', 'honor': 'TALENT_HONOR', 'vendor': 'VENDOR_DP', 'operasional': 'OPERATIONAL_OTHER' }
+
+    function parseAmt(v) {
+      if (typeof v === 'number') return v
+      if (!v) return 0
+      // Hapus semua karakter non-numerik kecuali titik dan koma
+      const s = String(v).replace(/[Rp\s]/gi, '').replace(/\./g, '').replace(',', '.')
+      return parseFloat(s) || 0
+    }
+
+    function parseDateVal(v) {
+      if (!v) return null
+      if (v instanceof Date) return v.toISOString().slice(0, 10)
+      const s = String(v).trim()
+      // Format "2026-01-28 00:00:00" atau "2026-01-28"
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
+      // Format "28/01/2026" atau "1/28/2026"
+      const parts = s.split(/[\/\-]/)
+      if (parts.length === 3) {
+        const [a, b, c] = parts
+        if (c.length === 4) return `${c}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`
+      }
+      return s || null
+    }
+
     const expenses = rows.slice(headerRowIdx + 1).map(row => {
-      const get = idx => idx >= 0 ? String(row[idx] ?? '').trim() : ''
+      const get = idx => {
+        if (idx < 0 || idx >= row.length) return ''
+        const v = row[idx]
+        return v === null || v === undefined ? '' : String(v).trim()
+      }
       const desc = get(colDesc)
-      const amtRaw = colAmt >= 0 ? row[colAmt] : null
-      const amt = typeof amtRaw === 'number' ? amtRaw : parseFloat(String(amtRaw).replace(/[^0-9.]/g, '')) || 0
+      const amt = parseAmt(colAmt >= 0 ? row[colAmt] : null)
       if (!desc || amt <= 0) return null
       const catRaw = get(colCat).toLowerCase()
       const category = Object.entries(CAT_MAP).find(([k]) => catRaw.includes(k))?.[1] || 'OPERATIONAL_OTHER'
-      return { description: desc, amount: amt, category, date: get(colDate) || null, vendor: get(colVendor) || null, notes: get(colNotes) || null, source: 'import' }
+      const dateVal = parseDateVal(colDate >= 0 ? row[colDate] : null)
+      return { description: desc, amount: amt, category, date: dateVal, vendor: get(colVendor) || null, notes: get(colNotes) || null, source: 'import' }
     }).filter(Boolean)
 
     if (expenses.length === 0) { alert('Tidak ada baris valid yang ditemukan'); setImportingExpenses(false); return }
