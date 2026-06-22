@@ -64,9 +64,7 @@ export async function getMarginReport(user) {
     where,
     select: {
       id: true, code: true, name: true, division: true, status: true, projectValue: true,
-      budgetItems: { select: { id: true, quotedAmount: true, actualAmount: true, isTitipan: true,
-        payments: { where: { status: 'PAID' }, select: { amount: true } } } },
-      payments: { where: { status: 'PAID' }, select: { amount: true, budgetItemId: true } },
+      budgetItems: { select: { id: true, quotedAmount: true, actualAmount: true, isTitipan: true } },
       directExpenses: { select: { amount: true } },
     },
     orderBy: { code: 'asc' },
@@ -81,14 +79,10 @@ export async function getMarginReport(user) {
     const revenueRiil = (p.projectValue || 0) - titipanTotal
     const forecastCost = murni.reduce((sum, b) => sum + (b.quotedAmount || 0), 0)
 
-    // Actual cost: gabungan 3 sumber (sama seperti getProfitability, tanpa double-count)
-    const paidPRTotal = p.payments.reduce((s, pr) => s + pr.amount, 0)
-    const budgetItemsWithPR = new Set(p.payments.filter(pr => pr.budgetItemId).map(pr => pr.budgetItemId))
-    const manualActualTotal = murni
-      .filter(b => !budgetItemsWithPR.has(b.id) && b.actualAmount != null)
-      .reduce((s, b) => s + b.actualAmount, 0)
+    // Actual cost: budget items actualAmount + direct expenses
+    const budgetActual = murni.reduce((s, b) => s + (b.actualAmount ?? 0), 0)
     const directTotal = p.directExpenses.reduce((s, e) => s + e.amount, 0)
-    const actualCost = paidPRTotal + manualActualTotal + directTotal
+    const actualCost = budgetActual + directTotal
     return {
       id: p.id, code: p.code, name: p.name, division: p.division, status: p.status,
       projectValue: p.projectValue,
