@@ -274,7 +274,7 @@ export default function MyTasksPage() {
     )
   }
 
-  // ── DIRECTOR / OWNER VIEW ──────────────────────────────────────────────────
+  // ── OWNER VIEW ─────────────────────────────────────────────────────────────
   if (data.mode === 'director') {
     const allItems = data.groups.flatMap(g => g.items)
     const totalPending = allItems.filter(i => !i.hasTodayUpdate).length
@@ -287,9 +287,7 @@ export default function MyTasksPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h1 className="text-xl font-bold text-gray-900">Tugas Tim</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Semua tugas aktif seluruh tim — dikelompokkan per divisi
-              </p>
+              <p className="text-sm text-gray-500 mt-1">Semua tugas aktif seluruh tim — dikelompokkan per divisi</p>
             </div>
             <div className="flex gap-3">
               <div className="card px-4 py-2 text-center">
@@ -302,22 +300,135 @@ export default function MyTasksPage() {
               </div>
             </div>
           </div>
-
           {data.deadlinePassed && totalPending > 0 && (
             <div className="card p-4 border-l-4 border-l-red-400 bg-red-50">
-              <p className="text-sm font-semibold text-red-700">
-                ⏰ Sudah lewat jam 20:00 — {totalPending} tugas belum di-update hari ini.
-              </p>
+              <p className="text-sm font-semibold text-red-700">⏰ Sudah lewat jam 20:00 — {totalPending} tugas belum di-update hari ini.</p>
             </div>
           )}
-
           {data.groups.length === 0 && (
             <div className="card p-8 text-center text-gray-400">Tidak ada tugas aktif di seluruh tim.</div>
           )}
-
           {data.groups.map(group => (
             <DivisionGroup key={group.divisi} group={group} onSave={saveProgress} />
           ))}
+        </main>
+      </div>
+    )
+  }
+
+  // ── TEAM LEAD VIEW (Director/PM/Finance Staff dengan tim) ──────────────────
+  if (data.mode === 'team_lead') {
+    const myProjectTasks  = data.myItems.filter(i => i.kind === 'task')
+    const myPersonalTasks = data.myItems.filter(i => i.kind === 'personal')
+    const myPending       = data.myItems.filter(i => !i.hasTodayUpdate)
+    const teamAllItems    = data.groups.flatMap(g => g.items)
+    const teamPending     = teamAllItems.filter(i => !i.hasTodayUpdate).length
+    const teamDone        = teamAllItems.filter(i => i.hasTodayUpdate).length
+
+    return (
+      <div className="min-h-screen bg-brand-50">
+        <Navbar />
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+          {/* Header + ringkasan tim */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Tugas Saya & Tim</h1>
+              <p className="text-sm text-gray-500 mt-1">Update progress setiap malam sebelum pukul 20:00</p>
+            </div>
+            <div className="flex gap-3">
+              <div className="card px-4 py-2 text-center">
+                <p className="text-lg font-bold text-green-600">{teamDone}</p>
+                <p className="text-xs text-gray-500">Tim update</p>
+              </div>
+              <div className="card px-4 py-2 text-center">
+                <p className="text-lg font-bold text-red-500">{teamPending}</p>
+                <p className="text-xs text-gray-500">Tim belum update</p>
+              </div>
+            </div>
+          </div>
+
+          {data.deadlinePassed && myPending.length > 0 && (
+            <div className="card p-4 border-l-4 border-l-red-400 bg-red-50">
+              <p className="text-sm font-semibold text-red-700">⏰ Sudah lewat jam 20:00 — {myPending.length} tugas kamu belum di-update hari ini.</p>
+            </div>
+          )}
+          {!data.deadlinePassed && myPending.length > 0 && (
+            <div className="card p-4 border-l-4 border-l-amber-400 bg-amber-50">
+              <p className="text-sm font-semibold text-amber-700">{myPending.length} tugas kamu belum di-update — pastikan diisi sebelum pukul 20:00.</p>
+            </div>
+          )}
+
+          {/* ── Seksi 1: Tugas Saya ── */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-base">👤</span>
+              <h2 className="text-base font-bold text-gray-800">Tugas Saya</h2>
+              <span className="text-xs text-gray-400">({data.myItems.length} aktif)</span>
+            </div>
+
+            {myProjectTasks.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide pl-1">Task Project ({myProjectTasks.length})</p>
+                {myProjectTasks.map(item => (
+                  <TaskRow key={`task-${item.id}`} item={item} onSave={saveProgress} />
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide pl-1">Catatan / To-Do ({myPersonalTasks.length})</p>
+              <form onSubmit={addPersonalTask} className="card p-4 space-y-2">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input className="input flex-1" placeholder="Tambah item baru..." value={newTitle} onChange={e => setNewTitle(e.target.value)} />
+                  <input type="date" className="input sm:w-44" value={newDue} onChange={e => setNewDue(e.target.value)} />
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <select className="select flex-1" value={newProjectId} onChange={e => { setNewProjectId(e.target.value); if (e.target.value) { setNewClientName(''); setNewProjectName('') } }}>
+                    <option value="">Pilih project (opsional)...</option>
+                    {(data.projectOptions || []).map(p => (
+                      <option key={p.id} value={p.id}>{p.code} · {p.name}{p.clientName ? ` (${p.clientName})` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+                {!newProjectId && (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input className="input flex-1" placeholder="Nama klien (jika di luar sistem)" value={newClientName} onChange={e => setNewClientName(e.target.value)} />
+                    <input className="input flex-1" placeholder="Nama project (jika di luar sistem)" value={newProjectName} onChange={e => setNewProjectName(e.target.value)} />
+                  </div>
+                )}
+                <button className="btn-primary px-4" disabled={adding}>Tambah</button>
+              </form>
+              {myPersonalTasks.map(item => (
+                <div key={item.id} className="relative">
+                  <TaskRow item={item} onSave={saveProgress} />
+                  {confirmDeleteId === item.id ? (
+                    <div className="absolute top-2 right-2 flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1 shadow-sm">
+                      <span className="text-xs text-gray-500">Hapus?</span>
+                      <button onClick={() => removePersonalTask(item.id)} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Ya</button>
+                      <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmDeleteId(item.id)} className="absolute top-3 right-3 text-xs text-gray-300 hover:text-red-500" title="Hapus">✕</button>
+                  )}
+                </div>
+              ))}
+              {myPersonalTasks.length === 0 && myProjectTasks.length === 0 && (
+                <p className="text-sm text-gray-400 pl-1">Tidak ada tugas aktif — tambahkan di atas.</p>
+              )}
+            </div>
+          </div>
+
+          {/* ── Seksi 2+: Grup Tim per Divisi ── */}
+          {data.groups.map(group => (
+            <DivisionGroup key={group.divisi} group={group} onSave={saveProgress} />
+          ))}
+          {data.groups.every(g => g.items.length === 0) && (
+            <div className="card p-6 text-center text-gray-400 text-sm">
+              Belum ada tugas aktif dari anggota tim.
+            </div>
+          )}
+
         </main>
       </div>
     )
