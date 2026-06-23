@@ -26,7 +26,7 @@ const NAV_ITEMS = [
   { href: '/invoice',   label: 'Invoice',   roles: ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'] },
 
   // ── Finance & Operasional ──
-  { href: '/finance',  label: 'Finance',    roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PRODUCTION'] },
+  { href: '/finance',  label: 'Finance',    roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'] },
   { href: '/targets',  label: 'Target',     roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/cashflow', label: 'Kas',        cashOnly: true },
   { href: '/opex',     label: 'Opex',       financeStaffOk: true },

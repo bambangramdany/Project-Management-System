@@ -155,6 +155,7 @@ export async function getFinanceOverview(fromParam, toParam) {
       id: true, projectValue: true, status: true, pitchResult: true,
       startDate: true, briefDate: true,
       budgetItems: { select: { quotedAmount: true, actualAmount: true } },
+      directExpenses: { select: { amount: true } },
     },
   })
 
@@ -177,7 +178,9 @@ export async function getFinanceOverview(fromParam, toParam) {
   }, 0)
 
   const aktualCostTotal = wonProjects.reduce((sum, p) => {
-    return sum + p.budgetItems.reduce((s, b) => s + (b.actualAmount ?? b.quotedAmount ?? 0), 0)
+    const budgetActual = p.budgetItems.reduce((s, b) => s + (b.actualAmount ?? b.quotedAmount ?? 0), 0)
+    const directTotal = p.directExpenses.reduce((s, e) => s + e.amount, 0)
+    return sum + budgetActual + directTotal
   }, 0)
 
   const periods = []

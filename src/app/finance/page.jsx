@@ -12,7 +12,7 @@ import {
 } from '@/lib/constants'
 import { isFinanceDirector } from '@/lib/rbac'
 
-const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PRODUCTION']
+const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF']
 
 const BUDGET_ITEM_STATUS_LABEL = {
   BELUM_DIAJUKAN: 'Belum Diajukan',
