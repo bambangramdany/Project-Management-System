@@ -56,6 +56,7 @@ model User {
   addCostsCreated       AddCost[]     @relation("AddCostCreator")
   invoicesCreated       Invoice[]     @relation("InvoiceCreator")
   vendorRatings         VendorRating[] @relation("VendorRatingCreator")
+  dailyCheckIns         DailyCheckIn[]
 }
 
 // Global audit trail of important changes across the system, for Direksi/Owner
@@ -81,6 +82,25 @@ model AppSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// Daily check-in: morning acknowledgment + evening progress report per user per day.
+// Used to enforce task awareness and track discipline as part of KPI variable score.
+model DailyCheckIn {
+  id           String    @id @default(cuid())
+  userId       String
+  date         String    // YYYY-MM-DD (local date, WIB)
+  morningAckAt DateTime? // waktu acknowledge pagi (on time jika <= 09:30 WIB)
+  eveningNote  String?   // laporan progress sore hari
+  eveningAt    DateTime? // waktu submit sore (on time jika 17:00-20:00 WIB)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([date])
+  @@index([userId])
 }
 
 enum CashTransactionType {

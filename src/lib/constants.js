@@ -262,6 +262,9 @@ export const CORE_KPI = [
   { key: 'work_quality', label: 'Kualitas Hasil Kerja' },
   { key: 'responsibility_initiative', label: 'Tanggung Jawab & Inisiatif' },
   { key: 'teamwork', label: 'Kolaborasi Tim' },
+  // Auto-dihitung dari DailyCheckIn — tidak dinilai manual
+  { key: 'daily_checkin', label: 'Disiplin Check-in Pagi (09:00)', auto: true },
+  { key: 'evening_report', label: 'Laporan Progress Harian (17:00–20:00)', auto: true },
 ]
 
 // 3 kompetensi tambahan — hanya untuk role dengan tanggung jawab memimpin

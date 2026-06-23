@@ -189,6 +189,92 @@ function DivisionGroup({ group, onSave }) {
   )
 }
 
+// ── DailyCheckInBanner: banner morning ack + evening progress ───────────────
+function DailyCheckInBanner({ checkIn, onMorningAck, onEveningSubmit }) {
+  const [eveningNote, setEveningNote] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(!!checkIn?.eveningAt)
+
+  const hasMorning = !!checkIn?.morningAckAt
+  const hasEvening = !!checkIn?.eveningAt || submitted
+  const showEvening = checkIn?.showEveningForm
+  const isOverdue = checkIn?.eveningOverdue
+
+  async function submitEvening(e) {
+    e.preventDefault()
+    if (!eveningNote.trim()) return
+    setSubmitting(true)
+    await onEveningSubmit(eveningNote)
+    setSubmitted(true)
+    setSubmitting(false)
+  }
+
+  if (!checkIn) return null
+
+  return (
+    <div className="space-y-2">
+      {/* Morning check-in */}
+      {!hasMorning ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold text-red-700 text-sm">🔔 Belum check-in pagi ini!</p>
+            <p className="text-xs text-red-500 mt-0.5">Klik tombol untuk konfirmasi kamu sudah lihat daftar tugas hari ini (batas 09:30 WIB)</p>
+          </div>
+          <button
+            onClick={onMorningAck}
+            className="shrink-0 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors"
+          >
+            ✓ Saya sudah cek tugas
+          </button>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 flex items-center gap-2">
+          <span className="text-green-600 text-sm">✅</span>
+          <p className="text-sm text-green-700 font-medium">
+            Check-in pagi tercatat pukul {new Date(checkIn.morningAckAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB
+          </p>
+        </div>
+      )}
+
+      {/* Evening progress report */}
+      {showEvening && (
+        hasEvening ? (
+          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 flex items-center gap-2">
+            <span className="text-blue-600 text-sm">📋</span>
+            <p className="text-sm text-blue-700 font-medium">
+              Laporan progress sore sudah dikirim
+              {checkIn.eveningAt && ` pukul ${new Date(checkIn.eveningAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB`}
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={submitEvening} className={clsx('rounded-xl border p-4 space-y-3', isOverdue ? 'border-orange-300 bg-orange-50' : 'border-blue-200 bg-blue-50')}>
+            <div>
+              <p className={clsx('font-semibold text-sm', isOverdue ? 'text-orange-700' : 'text-blue-700')}>
+                {isOverdue ? '⚠️ Terlambat — laporan progress harus dikirim sebelum 20:00 WIB!' : '📋 Laporan Progress Sore (17:00–20:00 WIB)'}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">Ceritakan apa yang sudah dikerjakan hari ini dan status setiap tugas</p>
+            </div>
+            <textarea
+              value={eveningNote}
+              onChange={e => setEveningNote(e.target.value)}
+              rows={3}
+              placeholder="Contoh: Sudah selesaikan survey lokasi venue BAIC. Sedang proses rundown, target selesai besok pagi..."
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white resize-none"
+            />
+            <button
+              type="submit"
+              disabled={submitting || !eveningNote.trim()}
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {submitting ? 'Mengirim...' : 'Kirim Laporan Progress'}
+            </button>
+          </form>
+        )
+      )}
+    </div>
+  )
+}
+
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function MyTasksPage() {
   const { data: session, status } = useSession()
@@ -202,6 +288,7 @@ export default function MyTasksPage() {
   const [newProjectName, setNewProjectName] = useState('')
   const [adding, setAdding] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [checkIn, setCheckIn] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -214,6 +301,36 @@ export default function MyTasksPage() {
       setLoading(false)
     })
   }, [])
+
+  // Load daily check-in status
+  useEffect(() => {
+    if (status !== 'authenticated') return
+    fetch('/api/daily-checkin').then(r => r.ok ? r.json() : null).then(d => {
+      if (d) setCheckIn(d)
+    })
+  }, [status])
+
+  async function handleMorningAck() {
+    const res = await fetch('/api/daily-checkin', { method: 'POST' })
+    if (res.ok) {
+      const d = await res.json()
+      setCheckIn(prev => ({ ...prev, today: d, morningAckAt: d.morningAckAt }))
+      // Reload to show updated state
+      fetch('/api/daily-checkin').then(r => r.ok ? r.json() : null).then(d => { if (d) setCheckIn(d) })
+    }
+  }
+
+  async function handleEveningSubmit(note) {
+    const res = await fetch('/api/daily-checkin', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eveningNote: note }),
+    })
+    if (res.ok) {
+      const d = await res.json()
+      setCheckIn(prev => ({ ...prev, today: d, eveningAt: d.eveningAt }))
+    }
+  }
 
   useEffect(() => {
     if (status === 'authenticated') load()
@@ -348,6 +465,13 @@ export default function MyTasksPage() {
             </div>
           </div>
 
+          {/* Daily check-in banner */}
+          <DailyCheckInBanner
+            checkIn={checkIn}
+            onMorningAck={handleMorningAck}
+            onEveningSubmit={handleEveningSubmit}
+          />
+
           {data.deadlinePassed && myPending.length > 0 && (
             <div className="card p-4 border-l-4 border-l-red-400 bg-red-50">
               <p className="text-sm font-semibold text-red-700">⏰ Sudah lewat jam 20:00 — {myPending.length} tugas kamu belum di-update hari ini.</p>
@@ -466,6 +590,13 @@ export default function MyTasksPage() {
             </p>
           </div>
         )}
+
+        {/* Daily check-in banner */}
+        <DailyCheckInBanner
+          checkIn={checkIn}
+          onMorningAck={handleMorningAck}
+          onEveningSubmit={handleEveningSubmit}
+        />
 
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-ink-800">Task Project ({projectTasks.length})</h2>
