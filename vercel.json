@@ -7,6 +7,14 @@
     {
       "path": "/api/cron/kpi-reminders",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/daily-checkin-morning",
+      "schedule": "0 2 * * 1-5"
+    },
+    {
+      "path": "/api/cron/daily-checkin-evening",
+      "schedule": "0 13 * * 1-5"
     }
   ]
 }
