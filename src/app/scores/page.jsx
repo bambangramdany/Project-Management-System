@@ -14,6 +14,41 @@ function fmt(v) {
   return v == null ? '-' : v.toFixed(1)
 }
 
+function CheckInScoreCard({ title, data }) {
+  const KPI_LABEL = { 5: 'Istimewa', 4: 'Sangat Baik', 3: 'Baik', 2: 'Cukup', 1: 'Kurang' }
+  const scoreColor = (pct) => pct >= 80 ? 'text-emerald-600' : pct >= 55 ? 'text-amber-600' : 'text-red-500'
+  return (
+    <div className="card p-4 border-t-4 border-teal-400">
+      <p className="text-sm font-semibold text-ink-800 mb-3">{title}</p>
+      <div className="grid sm:grid-cols-2 gap-3">
+        {/* Morning */}
+        <div className="rounded-lg bg-teal-50 border border-teal-100 p-3">
+          <p className="text-xs text-gray-500 mb-1">☀️ Check-in Pagi (batas 09:30)</p>
+          <p className={`text-2xl font-bold ${scoreColor(data.morning.pct)}`}>{data.morning.pct}%</p>
+          <p className="text-xs text-gray-400 mt-0.5">KPI: {data.morning.kpiScore}/5 — {KPI_LABEL[data.morning.kpiScore]}</p>
+          <div className="mt-2 text-[10px] text-gray-400 space-y-0.5">
+            <p>✅ Tepat waktu: {data.morning.onTime} hari</p>
+            <p>🕐 Terlambat: {data.morning.late} hari (50%)</p>
+            <p>❌ Tidak hadir: {data.morning.missed} hari (0%)</p>
+          </div>
+        </div>
+        {/* Evening */}
+        <div className="rounded-lg bg-teal-50 border border-teal-100 p-3">
+          <p className="text-xs text-gray-500 mb-1">🌙 Laporan Progress Sore (17:00–20:00)</p>
+          <p className={`text-2xl font-bold ${scoreColor(data.evening.pct)}`}>{data.evening.pct}%</p>
+          <p className="text-xs text-gray-400 mt-0.5">KPI: {data.evening.kpiScore}/5 — {KPI_LABEL[data.evening.kpiScore]}</p>
+          <div className="mt-2 text-[10px] text-gray-400 space-y-0.5">
+            <p>✅ Tepat waktu: {data.evening.onTime} hari</p>
+            <p>🕐 Terlambat: {data.evening.late} hari (50%)</p>
+            <p>❌ Tidak hadir: {data.evening.missed} hari (0%)</p>
+          </div>
+        </div>
+      </div>
+      <p className="text-[10px] text-gray-400 mt-2">Periode {data.period} · {data.workDays} hari kerja · Skor 1–5 otomatis dihitung dari riwayat check-in</p>
+    </div>
+  )
+}
+
 export default function ScoresPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -21,6 +56,9 @@ export default function ScoresPage() {
   const [loading, setLoading] = useState(true)
   const [allNotes, setAllNotes] = useState(null)
   const [directors, setDirectors] = useState([])
+  const [checkInTeam, setCheckInTeam] = useState(null)
+  const [checkInPeriod, setCheckInPeriod] = useState(resolveKpiPeriod())
+  const [myCheckIn, setMyCheckIn] = useState(null)
   const [noteForm, setNoteForm] = useState({ directorId: '', message: '' })
   const [noteSent, setNoteSent] = useState(false)
   const [myProjects, setMyProjects] = useState([])
@@ -65,7 +103,17 @@ export default function ScoresPage() {
         setMyKpi(Array.isArray(data) ? data : [])
       })
     }
+    // Check-in score diri sendiri
+    fetch(`/api/daily-checkin/scores?period=${resolveKpiPeriod()}`).then(r => r.ok ? r.json() : null).then(setMyCheckIn)
   }, [status, session])
+
+  useEffect(() => {
+    if (status !== 'authenticated') return
+    const isAdmin = ['OWNER', 'DIRECTOR', 'FINANCE'].includes(session?.user?.role)
+    if (isAdmin) {
+      fetch(`/api/daily-checkin/team?period=${checkInPeriod}`).then(r => r.ok ? r.json() : null).then(setCheckInTeam)
+    }
+  }, [status, session, checkInPeriod])
 
   useEffect(() => {
     if (status === 'authenticated' && KPI_SUMMARY_ROLES.includes(session.user.role)) {
@@ -168,6 +216,58 @@ export default function ScoresPage() {
             </div>
           )
         })()}
+
+        {/* Disiplin Harian — skor check-in diri sendiri (non-admin) */}
+        {session.user.role !== 'OWNER' && !KPI_SUMMARY_ROLES.includes(session.user.role) && myCheckIn && (
+          <CheckInScoreCard title="Disiplin Harian Saya" data={myCheckIn} />
+        )}
+
+        {/* Disiplin Harian — rekap tim (OWNER/DIRECTOR/FINANCE) */}
+        {['OWNER', 'DIRECTOR', 'FINANCE'].includes(session.user.role) && (
+          <div className="card p-4 border-t-4 border-teal-400">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <div>
+                <p className="text-sm font-semibold text-ink-800">Disiplin Harian Tim</p>
+                <p className="text-xs text-gray-500">Rekap check-in pagi & laporan progress sore per anggota tim</p>
+              </div>
+              <input type="month" className="input w-auto" value={checkInPeriod} onChange={e => setCheckInPeriod(e.target.value)} />
+            </div>
+            {!checkInTeam ? (
+              <p className="text-sm text-gray-400">Memuat data...</p>
+            ) : checkInTeam.summary.length === 0 ? (
+              <p className="text-sm text-gray-400">Belum ada data check-in untuk periode {checkInPeriod}.</p>
+            ) : (
+              <div className="space-y-2">
+                {checkInTeam.summary
+                  .sort((a, b) => (a.divisi || '').localeCompare(b.divisi || '') || a.userName.localeCompare(b.userName))
+                  .map(s => (
+                  <div key={s.userId} className="rounded-lg border border-gray-100 bg-white p-3">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{s.userName}</p>
+                        <p className="text-xs text-gray-400">{s.divisi || s.role} · {checkInTeam.workDays} hari kerja</p>
+                      </div>
+                      <div className="flex gap-3 text-right">
+                        <div>
+                          <p className="text-[10px] text-gray-400">Check-in Pagi</p>
+                          <p className="text-sm font-bold text-teal-700">{s.morning.score}%</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-gray-400">Laporan Sore</p>
+                          <p className="text-sm font-bold text-teal-700">{s.evening.score}%</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-500">
+                      <p>Pagi: {s.morning.onTime} tepat · {s.morning.late} terlambat · {s.morning.missed} tidak hadir</p>
+                      <p>Sore: {s.evening.onTime} tepat · {s.evening.late} terlambat · {s.evening.missed} tidak hadir</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Berikan penilaian — pilih project */}
         {myProjects.length > 0 && (

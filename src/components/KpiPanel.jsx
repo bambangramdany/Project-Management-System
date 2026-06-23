@@ -17,6 +17,7 @@ export default function KpiPanel({ user, session, defaultOpen = false, period: p
   const [existing, setExisting] = useState([])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [checkInScores, setCheckInScores] = useState(null)
   const canScore = canScoreKpiClient(session?.user, user)
 
   useEffect(() => {
@@ -27,6 +28,13 @@ export default function KpiPanel({ user, session, defaultOpen = false, period: p
       mine.forEach(a => { sc[a.kpiKey] = a.score; cm[a.kpiKey] = a.comment || '' })
       setScores(sc); setComments(cm)
     })
+  }, [user.id, period])
+
+  // Fetch auto-scored check-in data
+  useEffect(() => {
+    fetch(`/api/daily-checkin/scores?userId=${user.id}&period=${period}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setCheckInScores(d) })
   }, [user.id, period])
 
   async function save() {
@@ -106,33 +114,71 @@ export default function KpiPanel({ user, session, defaultOpen = false, period: p
         </p>
       )}
       <div className="space-y-2">
-        {items.map(it => (
-          <div key={it.key} className="bg-white rounded-lg p-2.5 border border-brand-100">
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-xs text-gray-700 flex-1">{it.label}</p>
-              {avgByKey[it.key] != null && (
-                <span className="text-xs font-semibold text-brand-700 shrink-0">Rata-rata: {avgByKey[it.key].toFixed(1)}</span>
+        {items.map(it => {
+          // Baris auto-scored (daily_checkin & evening_report) — tidak bisa diisi manual
+          if (it.auto) {
+            const isCheckin = it.key === 'daily_checkin'
+            const autoData  = isCheckin ? checkInScores?.morning : checkInScores?.evening
+            const pct       = autoData?.pct
+            const kpiScore  = autoData?.kpiScore
+            const onTime    = autoData?.onTime ?? 0
+            const late      = autoData?.late ?? 0
+            const missed    = autoData?.missed ?? 0
+            const totalDays = checkInScores?.workDays ?? 0
+            return (
+              <div key={it.key} className="bg-blue-50 rounded-lg p-2.5 border border-blue-100">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 shrink-0">AUTO</span>
+                    <p className="text-xs text-gray-700">{it.label}</p>
+                  </div>
+                  {pct != null ? (
+                    <div className="text-right shrink-0">
+                      <span className="text-sm font-bold text-blue-700">{kpiScore}/5</span>
+                      <span className="text-xs text-gray-400 ml-1">({pct}%)</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400">Belum ada data</span>
+                  )}
+                </div>
+                {totalDays > 0 && (
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    {onTime} tepat waktu · {late} terlambat · {missed} tidak hadir dari {totalDays} hari kerja
+                  </p>
+                )}
+              </div>
+            )
+          }
+
+          // Baris KPI manual biasa
+          return (
+            <div key={it.key} className="bg-white rounded-lg p-2.5 border border-brand-100">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs text-gray-700 flex-1">{it.label}</p>
+                {avgByKey[it.key] != null && (
+                  <span className="text-xs font-semibold text-brand-700 shrink-0">Rata-rata: {avgByKey[it.key].toFixed(1)}</span>
+                )}
+              </div>
+              {canScore && (
+                <div className="flex items-center gap-2 mt-1.5">
+                  <select
+                    className="select w-auto text-xs py-1"
+                    value={scores[it.key] || 3}
+                    onChange={e => setScores(s => ({ ...s, [it.key]: parseInt(e.target.value) }))}
+                  >
+                    {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} — {KPI_SCORE_LABEL[n]}</option>)}
+                  </select>
+                  <input
+                    className="input text-xs py-1 flex-1"
+                    placeholder="Catatan (opsional)"
+                    value={comments[it.key] || ''}
+                    onChange={e => setComments(c => ({ ...c, [it.key]: e.target.value }))}
+                  />
+                </div>
               )}
             </div>
-            {canScore && (
-              <div className="flex items-center gap-2 mt-1.5">
-                <select
-                  className="select w-auto text-xs py-1"
-                  value={scores[it.key] || 3}
-                  onChange={e => setScores(s => ({ ...s, [it.key]: parseInt(e.target.value) }))}
-                >
-                  {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} — {KPI_SCORE_LABEL[n]}</option>)}
-                </select>
-                <input
-                  className="input text-xs py-1 flex-1"
-                  placeholder="Catatan (opsional)"
-                  value={comments[it.key] || ''}
-                  onChange={e => setComments(c => ({ ...c, [it.key]: e.target.value }))}
-                />
-              </div>
-            )}
-          </div>
-        ))}
+          )
+        })}
       </div>
       {canScore && (
         <div className="flex items-center gap-2 mt-2">
