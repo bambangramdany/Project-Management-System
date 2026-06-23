@@ -163,8 +163,11 @@ export function canScoreKpi(evaluator, target) {
   }
 
   // ── Event division ──────────────────────────────────────────────────
-  // Wulan: all non-direksi across the company, including Creative
-  if (eEmail === CROSS_TEAM_PM_EMAIL) return !['OWNER', 'DIRECTOR'].includes(target.role)
+  // Wulan (PM Event): nilai tim EVENT + CREATIVE saja, tidak termasuk Finance/PH/GA
+  if (eEmail === CROSS_TEAM_PM_EMAIL) {
+    if (['OWNER', 'DIRECTOR'].includes(target.role)) return false
+    return ['EVENT', 'CREATIVE'].includes(target.divisi)
+  }
 
   // Irham: everyone below (non-PM), plus Wulan specifically
   if (eEmail === 'irham@watermark.co.id') {

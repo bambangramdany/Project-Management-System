@@ -329,6 +329,11 @@ const ROLE_SPECIFIC_KPI = {
     { key: 'task_on_time', label: 'Penyelesaian task sesuai deadline' },
     { key: 'admin_complete', label: 'Kelengkapan administrasi & dokumentasi' },
   ],
+  INTERNSHIP: [
+    { key: 'task_on_time', label: 'Penyelesaian task sesuai deadline' },
+    { key: 'learning_speed', label: 'Kecepatan belajar & adaptasi' },
+    { key: 'proactivity', label: 'Inisiatif & proaktif bertanya/membantu' },
+  ],
   DIRECTOR: [
     { key: 'approval_speed', label: 'Approval pengajuan tepat waktu' },
     { key: 'team_health', label: 'Kesehatan pipeline & utilisasi tim divisi' },
