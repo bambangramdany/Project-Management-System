@@ -101,15 +101,19 @@ export async function POST(req) {
     if (existing) category = existing.category
   }
 
-  // Requests submitted by a division director (Event/PH/Creative) need an extra
-  // Owner approval step first — unless the amount is at/below the configured
-  // threshold, in which case it goes straight to the Finance Director (who must
-  // still approve all expenses regardless of amount).
+  // Alur approval PR:
+  // - PM / Producer / anggota tim → mulai dari PENDING_DIRECTOR (Direktur Divisi)
+  // - Direktur Divisi (Event/PH/Creative) yang submit → langsung PENDING_FINANCE_DIRECTOR
+  //   (karena Direktur Divisi sudah jadi penanda tangan implicit — tidak perlu approve diri sendiri)
+  // PENDING_OWNER sudah tidak digunakan dalam alur standar.
   const amount = parseFloat(body.amount)
-  const ownerThreshold = await getOwnerApprovalThreshold()
-  const initialStatus = session.user.role === 'DIRECTOR' && session.user.divisi !== 'FINANCE_HRGA' && amount > ownerThreshold
-    ? 'PENDING_OWNER'
-    : 'PENDING_FINANCE_DIRECTOR'
+  const submitterRole = session.user.role
+  const submitterDivisi = session.user.divisi
+  const initialStatus = (submitterRole === 'DIRECTOR' && submitterDivisi !== 'FINANCE_HRGA')
+    ? 'PENDING_FINANCE_DIRECTOR'   // Direktur Divisi yang submit → langsung Finance Director
+    : (submitterRole === 'OWNER')
+      ? 'PENDING_FINANCE_DIRECTOR' // Owner submit → langsung Finance Director
+      : 'PENDING_DIRECTOR'         // PM/Producer/staff → Direktur Divisi dulu
 
   const payment = await prisma.paymentRequest.create({
     data: {
@@ -133,18 +137,19 @@ export async function POST(req) {
   })
 
   // Notify whoever needs to approve this first
-  const approvers = initialStatus === 'PENDING_OWNER'
-    ? await prisma.user.findMany({ where: { role: 'OWNER' }, select: { id: true } })
-    : await prisma.user.findMany({
-        where: { OR: [{ role: 'OWNER' }, { role: 'DIRECTOR', divisi: 'FINANCE_HRGA' }] },
-        select: { id: true },
-      })
+  const approverQuery = initialStatus === 'PENDING_DIRECTOR'
+    // Direktur divisi yang sama dengan project, plus Owner
+    ? { where: { OR: [{ role: 'OWNER' }, { role: 'DIRECTOR', divisi: project.division }] }, select: { id: true } }
+    // Langsung ke Direktur Finance + Owner
+    : { where: { OR: [{ role: 'OWNER' }, { role: 'DIRECTOR', divisi: 'FINANCE_HRGA' }] }, select: { id: true } }
+  const approvers = await prisma.user.findMany(approverQuery)
+  const fmtAmount = `Rp ${Math.round(payment.amount).toLocaleString('id-ID')}`
   await Promise.all(approvers.map(u => notifyUser({
     userId: u.id, type: 'PAYMENT_APPROVAL',
-    title: 'Pengajuan Pembayaran Baru',
-    message: `${project.name}: Rp ${Math.round(payment.amount).toLocaleString('id-ID')} (${payment.vendor || '-'}) menunggu approval Anda.`,
+    title: 'Pengajuan Pembayaran Baru — Menunggu Approval Anda',
+    message: `${project.name}: ${fmtAmount} (${payment.vendor || '-'}) diajukan oleh ${session.user.name}.`,
     link: '/finance',
-  })))
+  }).catch(() => {})))
 
   return NextResponse.json(payment, { status: 201 })
 }

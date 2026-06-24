@@ -1077,6 +1077,10 @@ model Quotation {
   // Add Cost: quotation tambahan di luar quotation utama (invoice terpisah, budget digabung)
   isAddCost       Boolean  @default(false)
 
+  // Signed PDF — upload setelah quotation APPROVED / WON
+  signedPdfUrl    String?
+  signedPdfName   String?
+
   notes           String?
   termsConditions String?  // custom T&C override (null = use system default)
 

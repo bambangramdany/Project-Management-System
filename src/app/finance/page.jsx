@@ -7,7 +7,7 @@ import clsx from 'clsx'
 import Link from 'next/link'
 import {
   EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABEL,
-  PAYMENT_STATUS_LABEL, PAYMENT_STATUS_COLOR, PAYMENT_TERM_LABEL, PAYMENT_STAGES, PAYMENT_STAGES_WITH_OWNER,
+  PAYMENT_STATUS_LABEL, PAYMENT_STATUS_COLOR, PAYMENT_TERM_LABEL, PAYMENT_STAGES, PAYMENT_STAGES_DIRECTOR, PAYMENT_STAGES_WITH_OWNER,
   DIVISION_LABEL, CATEGORY_LABEL,
 } from '@/lib/constants'
 import { isFinanceDirector } from '@/lib/rbac'
@@ -986,7 +986,7 @@ export default function FinancePage() {
                     </span>
                   </div>
 
-                  {p.status !== 'REJECTED' && <PaymentStepper status={p.status} hasOwnerStage={!!p.owner || p.status === 'PENDING_OWNER'} />}
+                  {p.status !== 'REJECTED' && <PaymentStepper status={p.status} hasOwnerStage={!!p.owner || p.status === 'PENDING_OWNER'} hasDivisionStage={p.status === 'PENDING_DIRECTOR' || !!p.director} />}
 
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
                     <span>Nominal: <strong className="text-gray-800">{formatRupiah(p.amount)}</strong></span>
@@ -2016,8 +2016,16 @@ export default function FinancePage() {
   )
 }
 
-function PaymentStepper({ status, hasOwnerStage }) {
-  const stages = hasOwnerStage ? PAYMENT_STAGES_WITH_OWNER : PAYMENT_STAGES
+function PaymentStepper({ status, hasOwnerStage, hasDivisionStage }) {
+  // Pilih stages yang sesuai dengan alur PR ini:
+  // - hasOwnerStage: PR lama dengan PENDING_OWNER (legacy)
+  // - hasDivisionStage: PR dari PM → Direktur Divisi dulu (alur standar baru)
+  // - default: PR dari Direktur Divisi → langsung Finance Director
+  const stages = hasOwnerStage
+    ? PAYMENT_STAGES_WITH_OWNER
+    : hasDivisionStage
+      ? PAYMENT_STAGES
+      : PAYMENT_STAGES_DIRECTOR
   const currentIdx = status === 'PAID'
     ? stages.length - 1
     : stages.findIndex(s => s.key === status)

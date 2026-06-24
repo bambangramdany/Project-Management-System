@@ -226,22 +226,29 @@ export const EXPENSE_CATEGORY_LABEL = {
 
 export const PAYMENT_STATUS_LABEL = {
   PENDING_DIRECTOR: 'Menunggu Approval Direktur Divisi',
-  PENDING_OWNER: 'Menunggu Approval Direktur Utama',
+  PENDING_OWNER: 'Menunggu Approval Direktur Utama',   // legacy — tidak dipakai di alur baru
   PENDING_FINANCE_DIRECTOR: 'Menunggu Approval Direktur Finance',
   APPROVED_BY_DIRECTOR: 'Disetujui, Menunggu Pembayaran',
   REJECTED: 'Ditolak',
   PAID: 'Sudah Dibayar',
 }
 
-// Ordered approval pipeline, used to render a progress stepper.
-// Most requests go straight to the Finance Director; requests submitted by a
-// division director (Event/PH) get an extra Owner approval step first.
+// Alur standar: PM → Direktur Divisi → Direktur Finance → Finance bayar
 export const PAYMENT_STAGES = [
+  { key: 'PENDING_DIRECTOR', label: 'Direktur Divisi' },
   { key: 'PENDING_FINANCE_DIRECTOR', label: 'Direktur Finance' },
   { key: 'APPROVED_BY_DIRECTOR', label: 'Pembayaran' },
   { key: 'PAID', label: 'Selesai' },
 ]
 
+// Alur singkat jika Direktur Divisi yang submit (langsung Finance Director)
+export const PAYMENT_STAGES_DIRECTOR = [
+  { key: 'PENDING_FINANCE_DIRECTOR', label: 'Direktur Finance' },
+  { key: 'APPROVED_BY_DIRECTOR', label: 'Pembayaran' },
+  { key: 'PAID', label: 'Selesai' },
+]
+
+// Legacy — dipertahankan untuk PR lama yang masih di status PENDING_OWNER
 export const PAYMENT_STAGES_WITH_OWNER = [
   { key: 'PENDING_OWNER', label: 'Direktur Utama' },
   { key: 'PENDING_FINANCE_DIRECTOR', label: 'Direktur Finance' },

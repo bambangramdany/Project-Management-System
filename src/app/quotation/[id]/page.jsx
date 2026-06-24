@@ -67,6 +67,7 @@ export default function QuotationDetailPage() {
   const [editingSig,       setEditingSig]       = useState(false)
   const [sigForm,          setSigForm]          = useState({})
   const [users,            setUsers]            = useState([])
+  const [uploadingPdf,     setUploadingPdf]     = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -122,6 +123,26 @@ export default function QuotationDetailPage() {
       const d = await res.json().catch(() => ({}))
       alert(d.error || 'Gagal menghapus')
     }
+  }
+
+  async function uploadSignedPdf(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.type !== 'application/pdf') { alert('Hanya file PDF yang diperbolehkan'); return }
+    setUploadingPdf(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch(`/api/quotations/${id}/signed-pdf`, { method: 'POST', body: fd })
+    setUploadingPdf(false)
+    if (res.ok) load()
+    else { const d = await res.json().catch(() => ({})); alert(d.error || 'Gagal upload') }
+    e.target.value = ''
+  }
+
+  async function deleteSignedPdf() {
+    if (!confirm('Hapus dokumen bertandatangan ini?')) return
+    await fetch(`/api/quotations/${id}/signed-pdf`, { method: 'DELETE' })
+    load()
   }
 
   if (loading || status !== 'authenticated') {
@@ -198,21 +219,32 @@ export default function QuotationDetailPage() {
               <>
                 <button onClick={() => setEditing(true)} className="btn-secondary text-sm">✏ Edit</button>
                 <button onClick={() => action('submit')} disabled={acting} className="btn-primary text-sm">
-                  Ajukan Approval →
+                  Ajukan ke Wulan →
                 </button>
               </>
             )}
+            {/* Tombol revisi — semua PM/Producer bisa kembalikan ke Draft dari status apapun (kecuali terminal) */}
+            {['PENDING_WULAN', 'PENDING_DIRECTOR', 'APPROVED'].includes(q.status) && canManage(user) && (
+              <button onClick={() => {
+                if (!confirm('Kembalikan quotation ini ke Draft untuk direvisi? Notifikasi akan dikirim ke Senior PM dan Direktur.')) return
+                action('revert_to_draft')
+              }} disabled={acting} className="btn-secondary text-sm">↩ Revisi</button>
+            )}
+            {q.status === 'WON' && canManage(user) && (
+              <button onClick={() => {
+                if (!confirm('Kembalikan quotation WON ke Draft? Forecast Budget tidak berubah. Notifikasi akan dikirim ke Senior PM dan Direktur.')) return
+                action('revert_to_draft')
+              }} disabled={acting} className="btn-secondary text-sm">↩ Revisi</button>
+            )}
             {q.status === 'PENDING_WULAN' && canApproveWulan(user) && (
-              <>
-                <button onClick={() => action('revert_to_draft')} disabled={acting} className="btn-secondary text-sm">↩ Kembalikan ke Draft</button>
-                <button onClick={() => action('approve_wulan')} disabled={acting} className="btn-primary text-sm">✓ Approve (Wulan)</button>
-              </>
+              <button onClick={() => action('approve_wulan')} disabled={acting} className="btn-primary text-sm">
+                ✓ Checked — Wulan
+              </button>
             )}
             {q.status === 'PENDING_DIRECTOR' && canApproveDirector(user) && (
-              <>
-                <button onClick={() => action('revert_to_draft')} disabled={acting} className="btn-secondary text-sm">↩ Kembalikan ke Draft</button>
-                <button onClick={() => action('approve_director')} disabled={acting} className="btn-primary text-sm">✓ Approve Final (Direktur)</button>
-              </>
+              <button onClick={() => action('approve_director')} disabled={acting} className="btn-primary text-sm">
+                ✓ Approved — {q.division === 'PH' ? 'Guna' : 'David'}
+              </button>
             )}
             {q.status === 'APPROVED' && canApproveDirector(user) && (
               <>
@@ -232,6 +264,29 @@ export default function QuotationDetailPage() {
             )}
             {['DRAFT', 'LOST', 'CANCELLED'].includes(q.status) && canManage(user) && (
               <button onClick={deleteQ} className="text-xs text-red-400 hover:text-red-600 ml-2">Hapus</button>
+            )}
+            {/* Upload Dokumen Bertandatangan — hanya setelah APPROVED atau WON */}
+            {['APPROVED', 'WON'].includes(q.status) && canManage(user) && (
+              <div className="flex items-center gap-2">
+                {q.signedPdfUrl ? (
+                  <>
+                    <a href={q.signedPdfUrl} target="_blank" rel="noreferrer"
+                      className="text-xs text-brand-600 hover:underline max-w-[9rem] truncate" title={q.signedPdfName}>
+                      📎 {q.signedPdfName || 'Dok. Bertandatangan'}
+                    </a>
+                    <label className="cursor-pointer text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-50">
+                      {uploadingPdf ? 'Upload...' : 'Ganti'}
+                      <input type="file" accept="application/pdf" className="hidden" onChange={uploadSignedPdf} />
+                    </label>
+                    <button onClick={deleteSignedPdf} className="text-xs text-red-400 hover:text-red-600">✕</button>
+                  </>
+                ) : (
+                  <label className="cursor-pointer text-sm px-3 py-1.5 rounded-lg border border-brand-300 text-brand-600 hover:bg-brand-50 flex items-center gap-1.5">
+                    {uploadingPdf ? 'Mengunggah...' : '📎 Upload Dok. TTD'}
+                    <input type="file" accept="application/pdf" className="hidden" onChange={uploadSignedPdf} />
+                  </label>
+                )}
+              </div>
             )}
           </div>
         </div>

@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { syncBudgetFromQuotation } from '@/lib/syncBudgetFromQuotation'
+import { notifyUser } from '@/lib/notify'
 import { NextResponse } from 'next/server'
 
 function canManageQuotations(user) {
@@ -24,6 +25,7 @@ export async function GET(req, { params }) {
       approver1:    { select: { id: true, name: true, jobTitle: true } },
       approver2:    { select: { id: true, name: true, jobTitle: true } },
       project:      { select: { id: true, code: true, name: true } },
+      // signedPdfUrl & signedPdfName are scalar fields — included automatically
       sections: {
         orderBy: { order: 'asc' },
         include: { items: { orderBy: { order: 'asc' } } },
@@ -118,18 +120,34 @@ export async function PATCH(req, { params }) {
   }
 
   if (body.action === 'revert_to_draft') {
-    // WON juga bisa dikembalikan ke draft untuk revisi (oleh Owner/Director)
-    const allowedFrom = ['PENDING_WULAN', 'PENDING_DIRECTOR', 'WON']
+    // Semua PM/Producer/Director/Owner bisa revisi dari status apapun (kecuali LOST/CANCELLED)
+    const allowedFrom = ['PENDING_WULAN', 'PENDING_DIRECTOR', 'APPROVED', 'WON']
     if (!allowedFrom.includes(quotation.status)) {
       return NextResponse.json({ error: 'Tidak bisa kembali ke draft dari status ini' }, { status: 400 })
-    }
-    if (quotation.status === 'WON' && !canApprove(session.user)) {
-      return NextResponse.json({ error: 'Hanya Owner/Director yang bisa membuka kembali quotation WON' }, { status: 403 })
     }
     const updated = await prisma.quotation.update({
       where: { id: params.id },
       data: { status: 'DRAFT', version: { increment: 1 } },
     })
+    // Kirim notifikasi ke Wulan (FINANCE_HRGA Director) + Direktur Divisi + Owner
+    const recipients = await prisma.user.findMany({
+      where: {
+        OR: [
+          { role: 'OWNER' },
+          { role: 'DIRECTOR' },
+        ],
+      },
+      select: { id: true },
+    })
+    const revUser = session.user.name || 'PM'
+    const qNum = quotation.quotationNumber
+    await Promise.all(recipients.map(u => notifyUser({
+      userId: u.id,
+      type: 'QUOTATION_REVISION',
+      title: 'Quotation Dikembalikan ke Draft untuk Revisi',
+      message: `${revUser} mengembalikan quotation ${qNum} ke Draft untuk direvisi. Versi baru akan diajukan ulang setelah revisi selesai.`,
+      link: `/quotation/${params.id}`,
+    }).catch(() => {})))
     return NextResponse.json(updated)
   }
 
