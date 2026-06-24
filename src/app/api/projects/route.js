@@ -22,14 +22,27 @@ export async function GET(req) {
   const where = {}
   if (status) where.status = status
   if (category) where.category = category
-  if (search) where.name = { contains: search, mode: 'insensitive' }
+
+  // Search: name, code, or client name
+  const searchClause = search ? { OR: [
+    { name: { contains: search, mode: 'insensitive' } },
+    { code: { contains: search, mode: 'insensitive' } },
+    { client: { name: { contains: search, mode: 'insensitive' } } },
+  ]} : null
 
   // Non-managers only see their own projects
-  if (!canViewAllProjects(session.user.role)) {
-    where.OR = [
-      { picId: session.user.id },
-      { members: { some: { userId: session.user.id } } },
-    ]
+  const visibilityClause = !canViewAllProjects(session.user.role) ? { OR: [
+    { picId: session.user.id },
+    { members: { some: { userId: session.user.id } } },
+  ]} : null
+
+  // Combine search + visibility with AND so neither overwrites the other
+  if (searchClause && visibilityClause) {
+    where.AND = [searchClause, visibilityClause]
+  } else if (searchClause) {
+    where.OR = searchClause.OR
+  } else if (visibilityClause) {
+    where.OR = visibilityClause.OR
   }
 
   const projects = await prisma.project.findMany({
