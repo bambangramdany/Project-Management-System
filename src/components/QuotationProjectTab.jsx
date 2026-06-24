@@ -121,13 +121,13 @@ export default function QuotationProjectTab({ project, session, onProjectUpdated
     else alert('Gagal')
   }
 
-  async function syncToForecast(quotationId, mode = 'replace') {
+  async function syncToForecast(quotationId) {
     setSyncing(true)
     setSyncResult(null)
     const res = await fetch(`/api/projects/${project.id}/budget-from-quotation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ quotationId, mode }),
+      body: JSON.stringify({ quotationId }),
     })
     const d = await res.json().catch(() => ({}))
     setSyncing(false)
@@ -331,31 +331,24 @@ export default function QuotationProjectTab({ project, session, onProjectUpdated
                 </>
               )}
 
-              {/* WON → Sync to Forecast */}
+              {/* WON → auto-synced badge + force re-sync */}
               {q.status === 'WON' && canManage && (
-                <div className="flex-1 flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        const existing = confirm(
-                          'Sinkronkan item quotation ke Forecast Budget?\n\n' +
-                          '• Item yang sudah ada DAN belum ada payment request akan diganti.\n' +
-                          '• Item yang sudah ada payment request tidak akan dihapus.\n\n' +
-                          'Lanjutkan?'
-                        )
-                        if (existing) syncToForecast(q.id, 'replace')
-                      }}
-                      disabled={syncing}
-                      className="text-sm px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
-                      {syncing ? 'Menyinkronkan...' : '↻ Sinkron ke Forecast Budget'}
-                    </button>
-                  </div>
+                <div className="flex-1 flex items-center flex-wrap gap-2">
+                  <span className="text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    ✓ {q.isAddCost ? 'Add Cost' : 'Quotation Utama'} — otomatis masuk Forecast Budget
+                  </span>
+                  <button
+                    onClick={() => syncToForecast(q.id)}
+                    disabled={syncing}
+                    className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">
+                    {syncing ? 'Menyinkronkan...' : '↻ Sinkron Ulang'}
+                  </button>
                   {syncResult && (
-                    <div className={`text-xs px-2 py-1 rounded ${syncResult.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                    <span className={`text-xs ${syncResult.ok ? 'text-emerald-600' : 'text-red-500'}`}>
                       {syncResult.ok
-                        ? `✓ ${syncResult.created} item disinkronkan · Grand total ${fmt(syncResult.grandTotal)}`
+                        ? `✓ ${syncResult.created} item diperbarui`
                         : `✗ ${syncResult.error}`}
-                    </div>
+                    </span>
                   )}
                 </div>
               )}

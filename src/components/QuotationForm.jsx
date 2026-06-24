@@ -118,6 +118,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
   const [dpPercent,        setDpPercent]        = useState(initial?.dpPercent        ?? '')
   const [notes,            setNotes]            = useState(initial?.notes            || '')
   const [termsConditions,  setTermsConditions]  = useState(initial?.termsConditions  ?? DEFAULT_TERMS)
+  const [isAddCost,        setIsAddCost]        = useState(initial?.isAddCost        ?? false)
 
   // PIC & approvers — user IDs
   const [picQuotationId, setPicQuotationId] = useState(initial?.picQuotationId || '')
@@ -256,6 +257,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
       approver1Id:     approver1Id     || null,
       approver2Id:     approver2Id     || null,
       projectId:       initial?.projectId || null,
+      isAddCost:       isAddCost,
       notes:           notes           || null,
       termsConditions: termsConditions || null,
       sections: sections.map((sec, si) => ({
@@ -347,6 +349,27 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
               <label className="label">Kota / Lokasi</label>
               <input className="input" value={location} onChange={e => setLocation(e.target.value)} placeholder="Jakarta" />
             </div>
+          </div>
+        </div>
+
+        {/* ── Add Cost Flag ── */}
+        <div className="flex items-start gap-3 px-1">
+          <input
+            type="checkbox"
+            id="isAddCost"
+            checked={isAddCost}
+            onChange={e => setIsAddCost(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand-600"
+          />
+          <div>
+            <label htmlFor="isAddCost" className="text-sm font-medium text-gray-700 cursor-pointer">
+              Ini adalah Quotation Add Cost
+            </label>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Centang jika quotation ini adalah penambahan biaya di luar quotation utama yang sudah WON.
+              Item-itemnya akan ditambahkan (append) ke Forecast Budget project tanpa menghapus item dari quotation utama.
+              Invoice-nya akan memiliki nomor terpisah.
+            </p>
           </div>
         </div>
 

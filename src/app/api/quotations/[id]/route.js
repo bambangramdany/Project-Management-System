@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { syncBudgetFromQuotation } from '@/lib/syncBudgetFromQuotation'
 import { NextResponse } from 'next/server'
 
 function canManageQuotations(user) {
@@ -96,13 +97,15 @@ export async function PATCH(req, { params }) {
     if (quotation.status !== 'APPROVED') {
       return NextResponse.json({ error: 'Quotation harus Approved terlebih dahulu' }, { status: 400 })
     }
+    const projectId = body.projectId || quotation.projectId || null
     const updated = await prisma.quotation.update({
       where: { id: params.id },
-      data: {
-        status: 'WON',
-        projectId: body.projectId || quotation.projectId || null,
-      },
+      data: { status: 'WON', projectId },
     })
+    // Auto-sync ke forecast budget jika sudah ada project yang terhubung
+    if (projectId) {
+      await syncBudgetFromQuotation(projectId, params.id).catch(() => {})
+    }
     return NextResponse.json(updated)
   }
 
@@ -115,8 +118,13 @@ export async function PATCH(req, { params }) {
   }
 
   if (body.action === 'revert_to_draft') {
-    if (!['PENDING_WULAN', 'PENDING_DIRECTOR'].includes(quotation.status)) {
+    // WON juga bisa dikembalikan ke draft untuk revisi (oleh Owner/Director)
+    const allowedFrom = ['PENDING_WULAN', 'PENDING_DIRECTOR', 'WON']
+    if (!allowedFrom.includes(quotation.status)) {
       return NextResponse.json({ error: 'Tidak bisa kembali ke draft dari status ini' }, { status: 400 })
+    }
+    if (quotation.status === 'WON' && !canApprove(session.user)) {
+      return NextResponse.json({ error: 'Hanya Owner/Director yang bisa membuka kembali quotation WON' }, { status: 403 })
     }
     const updated = await prisma.quotation.update({
       where: { id: params.id },
@@ -169,6 +177,7 @@ export async function PATCH(req, { params }) {
     if (body.ppnPercent       !== undefined) data.ppnPercent       = parseFloat(body.ppnPercent) || 11
     if (body.dpPercent        !== undefined) data.dpPercent        = body.dpPercent  != null ? parseFloat(body.dpPercent)  : null
     if (body.dpAmount         !== undefined) data.dpAmount         = body.dpAmount   != null ? parseFloat(body.dpAmount)   : null
+    if (body.isAddCost        !== undefined) data.isAddCost        = !!body.isAddCost
     if (body.picQuotationId   !== undefined) data.picQuotationId   = body.picQuotationId || null
     if (body.approver1Id      !== undefined) data.approver1Id      = body.approver1Id    || null
     if (body.approver2Id      !== undefined) data.approver2Id      = body.approver2Id    || null

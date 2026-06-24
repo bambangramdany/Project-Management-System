@@ -117,6 +117,7 @@ export default function QuotationListPage() {
                     <span className="font-mono text-xs text-gray-400">{q.quotationNumber}</span>
                     <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${st.color}`}>{st.label}</span>
                     <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">{q.division === 'PH' ? 'PH' : 'EO'}</span>
+                    {q.isAddCost && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">Add Cost</span>}
                   </div>
                   <p className="font-medium text-gray-800 mt-0.5">{q.eventName}</p>
                   <p className="text-sm text-gray-500">{q.clientName}{q.eventDate ? ` · ${q.eventDate}` : ''}</p>

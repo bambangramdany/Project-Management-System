@@ -843,6 +843,9 @@ model ProjectBudgetItem {
   // Titipan klien: budget pass-through yang tidak dihitung sebagai revenue Watermark
   isTitipan     Boolean   @default(false)
   titipanNote   String?   // catatan umum (mis: "titipan hutang klien ke vendor lama")
+  // Link ke quotation asal — untuk sinkronisasi otomatis (null = item manual)
+  sourceQuotationId     String?
+  sourceQuotationNumber String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -851,6 +854,7 @@ model ProjectBudgetItem {
   titipanEntries  ProjectBudgetItemTitipanEntry[]
 
   @@index([projectId])
+  @@index([sourceQuotationId])
 }
 
 // Rincian vendor per item titipan — satu item bisa mencakup banyak vendor
@@ -1069,6 +1073,9 @@ model Quotation {
   // Link to project (set when quotation is WON and project exists)
   projectId       String?
   project         Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  // Add Cost: quotation tambahan di luar quotation utama (invoice terpisah, budget digabung)
+  isAddCost       Boolean  @default(false)
 
   notes           String?
   termsConditions String?  // custom T&C override (null = use system default)

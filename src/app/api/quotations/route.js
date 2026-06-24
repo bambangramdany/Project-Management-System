@@ -118,6 +118,7 @@ export async function POST(req) {
       approver1Id:     body.approver1Id     || null,
       approver2Id:     body.approver2Id     || null,
       projectId:       body.projectId       || null,
+      isAddCost:       !!body.isAddCost,
       notes:           body.notes           || null,
       termsConditions: body.termsConditions || null,
       sections: { create: sections },
