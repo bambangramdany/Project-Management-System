@@ -553,6 +553,8 @@ model Project {
   quotationDeadline DateTime? // target tanggal quotation dikirim ke klien
   quotationFileUrl  String?
   quotationFileName String?
+  loseDocUrl        String?
+  loseDocName       String?
   invoiceNumber   String?
   budgetLockedAt  DateTime?
   budgetLockedById String?

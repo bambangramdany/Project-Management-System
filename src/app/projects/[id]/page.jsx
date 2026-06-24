@@ -1043,6 +1043,28 @@ function EvaluationNote({ project, setProject }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(() => parseEvaluationNote(project.evaluationNote, project))
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+
+  async function uploadLoseDoc(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch(`/api/projects/${project.id}/lose-doc`, { method: 'POST', body: fd })
+    setUploading(false)
+    if (res.ok) {
+      const data = await res.json()
+      setProject(p => ({ ...p, loseDocUrl: data.loseDocUrl, loseDocName: data.loseDocName }))
+    }
+    e.target.value = ''
+  }
+
+  async function deleteLoseDoc() {
+    if (!confirm('Hapus dokumen ini?')) return
+    await fetch(`/api/projects/${project.id}/lose-doc`, { method: 'DELETE' })
+    setProject(p => ({ ...p, loseDocUrl: null, loseDocName: null }))
+  }
 
   const STATUS_HINT = {
     FAILED: 'Dokumentasikan alasan kalah dan kompetitor yang ikut serta, sebagai learning points untuk pitching berikutnya.',
@@ -1193,6 +1215,35 @@ function EvaluationNote({ project, setProject }) {
               <p>{view.competitors}</p>
             </div>
           )}
+          <div className="pt-1">
+            <p className="font-medium text-gray-600 mb-1">Surat Pengumuman Klien (PDF)</p>
+            {project.loseDocUrl ? (
+              <div className="flex items-center gap-2">
+                <a href={project.loseDocUrl} target="_blank" rel="noopener noreferrer"
+                   className="flex items-center gap-1.5 text-xs text-brand-600 hover:underline">
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  {project.loseDocName || 'Dokumen'}
+                </a>
+                <label className={`text-xs text-gray-500 hover:text-brand-600 cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {uploading ? 'Mengupload...' : 'Ganti'}
+                  <input type="file" accept="application/pdf" className="hidden" onChange={uploadLoseDoc} />
+                </label>
+                <button onClick={deleteLoseDoc} className="text-xs text-red-500 hover:underline">Hapus</button>
+              </div>
+            ) : (
+              <label className={`inline-flex items-center gap-1.5 text-xs text-brand-600 hover:underline cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                {uploading ? 'Mengupload...' : 'Upload surat pengumuman (PDF)'}
+                <input type="file" accept="application/pdf" className="hidden" onChange={uploadLoseDoc} />
+              </label>
+            )}
+          </div>
         </div>
       ) : (
         <p className="text-sm text-gray-700 whitespace-pre-wrap">{view.note}</p>
