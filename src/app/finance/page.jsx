@@ -116,6 +116,8 @@ export default function FinancePage() {
   const [marginReport, setMarginReport] = useState(null)
   const [profitability, setProfitability] = useState(null)
   const [receivables, setReceivables] = useState(null)
+  const [receivableSearch, setReceivableSearch] = useState('')
+  const [receivableFilter, setReceivableFilter] = useState('ALL') // ALL | UNPAID | PAID | OVERDUE
   const [showReceivableForm, setShowReceivableForm] = useState(false)
   const EMPTY_REC_FORM = { projectId: '', clientName: '', financeProjectName: '', invoiceNumber: '', poNumber: '', taxInvoiceNumber: '', amount: '', issueDate: '', dueDate: '', notes: '' }
   const [receivableForm, setReceivableForm] = useState(EMPTY_REC_FORM)
@@ -741,6 +743,27 @@ export default function FinancePage() {
     return 0
   })
 
+  // Filter + search receivables
+  const filteredReceivables = sortedReceivables.filter(r => {
+    const isOverdue = r.status === 'UNPAID' && !r.isVirtual && r.dueDate && new Date(r.dueDate) < new Date()
+    if (receivableFilter === 'UNPAID' && (r.status !== 'UNPAID' || r.isVirtual)) return false
+    if (receivableFilter === 'PAID' && r.status !== 'PAID') return false
+    if (receivableFilter === 'OVERDUE' && !isOverdue) return false
+    if (receivableFilter === 'DRAFT' && !r.isVirtual) return false
+    if (!receivableSearch.trim()) return true
+    const q = receivableSearch.toLowerCase()
+    return (
+      r.clientName?.toLowerCase().includes(q) ||
+      r.financeProjectName?.toLowerCase().includes(q) ||
+      r.project?.name?.toLowerCase().includes(q) ||
+      r.project?.code?.toLowerCase().includes(q) ||
+      r.invoiceNumber?.toLowerCase().includes(q) ||
+      r.poNumber?.toLowerCase().includes(q) ||
+      r.taxInvoiceNumber?.toLowerCase().includes(q) ||
+      r.notes?.toLowerCase().includes(q)
+    )
+  })
+
   // Payments filtered by tab
   const displayedPayments = paymentTab === 'urgent' ? urgentPayments : payments
 
@@ -1034,6 +1057,40 @@ export default function FinancePage() {
               </div>
             </div>
 
+            {/* Search & Filter */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+                <input
+                  className="input pl-8 text-sm"
+                  placeholder="Cari klien, project, no. invoice, PO..."
+                  value={receivableSearch}
+                  onChange={e => setReceivableSearch(e.target.value)}
+                />
+                {receivableSearch && (
+                  <button onClick={() => setReceivableSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+                )}
+              </div>
+              <div className="flex gap-1 flex-wrap">
+                {[
+                  { key: 'ALL', label: 'Semua' },
+                  { key: 'UNPAID', label: 'Belum Lunas' },
+                  { key: 'OVERDUE', label: '⚠ Lewat Tenggat' },
+                  { key: 'PAID', label: 'Lunas' },
+                  { key: 'DRAFT', label: 'Draft' },
+                ].map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setReceivableFilter(f.key)}
+                    className={`text-xs px-2.5 py-1.5 rounded-lg border font-medium transition-colors ${receivableFilter === f.key ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-white text-gray-600 border-gray-200 hover:border-cyan-300'}`}
+                  >{f.label}</button>
+                ))}
+              </div>
+            </div>
+            {filteredReceivables.length !== sortedReceivables.length && (
+              <p className="text-xs text-gray-400">Menampilkan {filteredReceivables.length} dari {sortedReceivables.length} piutang</p>
+            )}
+
             {showReceivableForm && (role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)) && (
               <form onSubmit={submitReceivable} className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
                 <div className="sm:col-span-2">
@@ -1079,11 +1136,13 @@ export default function FinancePage() {
               </form>
             )}
 
-            {sortedReceivables.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-4">Belum ada catatan piutang</p>
+            {filteredReceivables.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">
+                {receivableSearch || receivableFilter !== 'ALL' ? 'Tidak ada hasil yang sesuai' : 'Belum ada catatan piutang'}
+              </p>
             ) : (
               <div className="space-y-2">
-                {sortedReceivables.map(r => {
+                {filteredReceivables.map(r => {
                   const overdue = r.status === 'UNPAID' && !r.isVirtual && r.dueDate && new Date(r.dueDate) < new Date()
                   const canAct = role === 'OWNER' || role === 'FINANCE' || isFinanceDirector(session.user)
                   return (
