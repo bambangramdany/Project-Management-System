@@ -715,7 +715,7 @@ export default function FinancePage() {
     WON_STATUSES.includes(p.status) || p.pitchResult === 'WIN'
   )
 
-  const myProjects = (role === 'PROJECT_MANAGER' || role === 'PRODUCTION')
+  const myProjects = (role === 'PROJECT_MANAGER')
     ? forecastProjects.filter(p => p.pic?.id === session.user.id || p.picId === session.user.id || p.members?.some(m => (m.user?.id || m.userId) === session.user.id))
     : forecastProjects
 

@@ -1175,7 +1175,7 @@ function EvaluationNote({ project, setProject }) {
             <button onClick={() => setEditing(false)} className="text-xs text-gray-500 hover:underline">Batal</button>
           </div>
         </div>
-      ) : !hasContent ? (
+      ) : !hasContent && view.type !== 'LOSE' ? (
         <p className="text-sm text-gray-400">Belum ada catatan evaluasi.</p>
       ) : view.type === 'WIN' ? (
         <div className="space-y-2 text-sm text-gray-700">
