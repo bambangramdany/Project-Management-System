@@ -16,6 +16,17 @@ const parseNum = (v) => {
   return isNaN(n) ? 0 : n
 }
 
+// Format angka saat diketik di field rate/HPP — tampilkan titik pemisah ribuan
+function formatInputRp(raw) {
+  const digits = String(raw).replace(/\D/g, '')
+  if (!digits) return ''
+  return parseInt(digits, 10).toLocaleString('id-ID')
+}
+function handleRateInput(val, cb) {
+  const digits = String(val).replace(/\D/g, '')
+  cb(digits ? parseInt(digits, 10).toLocaleString('id-ID') : '')
+}
+
 const UNIT_TYPES = ['Package', 'Unit', 'Pcs', 'Pax', 'Set', 'Lot', 'Ls', 'Event', 'Hari', 'Bulan', 'Orang']
 
 const DEFAULT_TERMS =
@@ -281,9 +292,11 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
       })),
     }
 
-    const url    = initial ? `/api/quotations/${initial.id}` : '/api/quotations'
-    const method = initial ? 'PATCH' : 'POST'
-    if (initial) payload.action = 'update_content'
+    // Jika initial ada .id → EDIT (PATCH), kalau tidak → BUAT BARU (POST)
+    const isEdit = !!(initial?.id)
+    const url    = isEdit ? `/api/quotations/${initial.id}` : '/api/quotations'
+    const method = isEdit ? 'PATCH' : 'POST'
+    if (isEdit) payload.action = 'update_content'
 
     const res = await fetch(url, {
       method,
@@ -595,7 +608,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
         <div className="flex justify-end gap-3 pb-8">
           <button onClick={onCancel} className="btn-secondary text-sm">Batal</button>
           <button onClick={save} disabled={saving} className="btn-primary text-sm">
-            {saving ? 'Menyimpan...' : initial ? 'Simpan Perubahan' : 'Buat Quotation'}
+            {saving ? 'Menyimpan...' : initial?.id ? 'Simpan Perubahan' : 'Buat Quotation'}
           </button>
         </div>
       </main>
@@ -655,7 +668,7 @@ function ItemRow({ item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMove
                   type="text"
                   className="input w-32 text-sm text-right"
                   value={item.rate}
-                  onChange={e => onUpdate({ rate: e.target.value })}
+                  onChange={e => handleRateInput(e.target.value, v => onUpdate({ rate: v }))}
                   placeholder="0"
                 />
               </div>
@@ -688,7 +701,7 @@ function ItemRow({ item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMove
                   type="text"
                   className="input w-28 text-sm text-right border-rose-200 focus:border-rose-400 bg-rose-50/30 placeholder-rose-200"
                   value={item.hppRate}
-                  onChange={e => onUpdate({ hppRate: e.target.value })}
+                  onChange={e => handleRateInput(e.target.value, v => onUpdate({ hppRate: v }))}
                   placeholder="opsional"
                 />
               </div>

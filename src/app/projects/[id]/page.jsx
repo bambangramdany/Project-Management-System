@@ -83,7 +83,7 @@ export default function ProjectDetailPage() {
     }
   }, [status, id])
 
-  const isManager = ['OWNER', 'PROJECT_MANAGER'].includes(session?.user.role)
+  const isManager = ['OWNER', 'PROJECT_MANAGER', 'PRODUCER'].includes(session?.user.role)
     || (session?.user.role === 'DIRECTOR' && project?.division === session?.user.divisi)
 
   async function saveTitle() {
@@ -859,7 +859,7 @@ export default function ProjectDetailPage() {
                 <p className="text-sm text-gray-700">{project.notes}</p>
               </div>
             )}
-            <EvaluationNote project={project} setProject={setProject} />
+            <EvaluationNote project={project} setProject={setProject} isManager={isManager} />
           </div>
         )}
 
@@ -1039,7 +1039,7 @@ function MultiFieldList({ label, items, onChange, placeholder }) {
   )
 }
 
-function EvaluationNote({ project, setProject }) {
+function EvaluationNote({ project, setProject, isManager = false }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(() => parseEvaluationNote(project.evaluationNote, project))
   const [saving, setSaving] = useState(false)
@@ -1111,7 +1111,7 @@ function EvaluationNote({ project, setProject }) {
     <div className="pt-4 border-t border-gray-100">
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs text-gray-500">Catatan Evaluasi Tim</p>
-        {!editing && (
+        {!editing && isManager && (
           <button onClick={startEdit} className="text-xs text-brand-600 hover:underline">
             {hasContent ? 'Edit' : 'Tambah catatan'}
           </button>

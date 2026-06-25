@@ -37,6 +37,7 @@ export default function VendorsPage() {
   const [ratingForm, setRatingForm] = useState({ rating: 5, review: '', projectName: '', usageDate: '' })
   const [savingRating, setSavingRating] = useState(false)
   const [showRatingForm, setShowRatingForm] = useState(false)
+  const [previewFile, setPreviewFile] = useState(null) // { url, name }
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -253,6 +254,38 @@ export default function VendorsPage() {
   return (
     <div className="min-h-screen bg-brand-50">
       <Navbar />
+
+      {/* File Preview Modal */}
+      {previewFile && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4" onClick={() => setPreviewFile(null)}>
+          <div className="relative max-w-4xl w-full max-h-[90vh] bg-white rounded-xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
+              <span className="text-sm font-medium text-gray-700 truncate max-w-[70%]">{previewFile.name || 'Preview File'}</span>
+              <div className="flex items-center gap-2">
+                <a href={previewFile.url} target="_blank" rel="noreferrer" className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                  ↗ Buka di tab baru
+                </a>
+                <button onClick={() => setPreviewFile(null)} className="text-gray-500 hover:text-gray-800 text-xl font-bold px-2">✕</button>
+              </div>
+            </div>
+            <div className="overflow-auto max-h-[80vh] flex items-center justify-center bg-gray-100 p-4">
+              {/\.(jpg|jpeg|png|gif|webp)$/i.test(previewFile.name || previewFile.url) ? (
+                <img src={previewFile.url} alt={previewFile.name} className="max-w-full max-h-[75vh] object-contain rounded" />
+              ) : /\.pdf$/i.test(previewFile.name || previewFile.url) ? (
+                <iframe src={previewFile.url} className="w-full h-[75vh] rounded" title={previewFile.name} />
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-5xl mb-4">📎</div>
+                  <p className="text-gray-600 mb-4 text-sm">{previewFile.name}</p>
+                  <a href={previewFile.url} target="_blank" rel="noreferrer" className="text-sm px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    Download / Buka File
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h1 className="text-xl font-bold text-gray-900">Database Vendor</h1>
@@ -466,26 +499,27 @@ export default function VendorsPage() {
                   {(Array.isArray(detail.photos) ? detail.photos : []).map((p, i) => {
                     const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(p.name || p.url)
                     return (
-                      <div key={i} className="relative group rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
-                        {isImage ? (
-                          <a href={p.url} target="_blank" rel="noreferrer">
+                      <div key={i} className="relative group rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex flex-col">
+                        <div className="cursor-pointer" onClick={() => setPreviewFile({ url: p.url, name: p.name })}>
+                          {isImage ? (
                             <img src={p.url} alt={p.name} className="w-full h-20 object-cover" />
-                          </a>
-                        ) : (
-                          <a href={p.url} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center h-20 p-2 hover:bg-gray-100 transition-colors">
-                            <span className="text-2xl mb-1">{/\.pdf$/i.test(p.name || '') ? '📄' : '📎'}</span>
-                            <span className="text-[10px] text-gray-500 text-center leading-tight line-clamp-2">{p.name || 'Buka file'}</span>
-                          </a>
-                        )}
-                        <button
-                          onClick={() => removePhoto(detail.id, p.url)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                        >✕</button>
-                        {isImage && (
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-[9px] px-1 py-0.5 truncate opacity-0 group-hover:opacity-100 transition-opacity">
-                            {p.name}
-                          </div>
-                        )}
+                          ) : (
+                            <div className="flex flex-col items-center justify-center h-20 p-2 hover:bg-gray-100 transition-colors">
+                              <span className="text-2xl mb-1">{/\.pdf$/i.test(p.name || '') ? '📄' : '📎'}</span>
+                              <span className="text-[10px] text-gray-500 text-center leading-tight line-clamp-2">{p.name || 'File'}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between px-1.5 py-1 border-t bg-white">
+                          <button
+                            onClick={() => setPreviewFile({ url: p.url, name: p.name })}
+                            className="text-[10px] text-blue-600 hover:text-blue-800 font-medium"
+                          >🔍 Preview</button>
+                          <button
+                            onClick={() => removePhoto(detail.id, p.url)}
+                            className="text-[10px] text-red-500 hover:text-red-700 font-medium"
+                          >✕ Hapus</button>
+                        </div>
                       </div>
                     )
                   })}
