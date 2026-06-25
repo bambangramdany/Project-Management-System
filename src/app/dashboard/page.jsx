@@ -230,17 +230,19 @@ export default function DashboardPage() {
         )}
 
         {/* EO / Event division */}
-        <DivisionSection title="Event Organizer (EO)" projects={eoProjects} onChanged={fetchProjects} />
+        <DivisionSection title="Event Organizer (EO)" projects={eoProjects}
+          onProjectUpdate={updated => setProjects(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))} />
 
         {/* Production House division */}
-        <DivisionSection title="Production House (PH)" projects={phProjects} onChanged={fetchProjects} />
+        <DivisionSection title="Production House (PH)" projects={phProjects}
+          onProjectUpdate={updated => setProjects(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))} />
 
       </main>
     </div>
   )
 }
 
-function DivisionSection({ title, projects, onChanged }) {
+function DivisionSection({ title, projects, onProjectUpdate }) {
   const { data: session } = useSession()
   const [allUsers, setAllUsers] = useState([])
   useEffect(() => {
@@ -304,7 +306,7 @@ function DivisionSection({ title, projects, onChanged }) {
                 </summary>
                 <div className="divide-y divide-gray-50 border-t border-gray-50">
                   {projectsInStatus.map(p => (
-                    <ProjectRow key={p.id} project={p} canEdit={canEditBase || (role === 'DIRECTOR' && p.division === session?.user?.divisi)} onChanged={onChanged} allUsers={allUsers} />
+                    <ProjectRow key={p.id} project={p} canEdit={canEditBase || (role === 'DIRECTOR' && p.division === session?.user?.divisi)} onProjectUpdate={onProjectUpdate} allUsers={allUsers} />
                   ))}
                 </div>
               </details>
@@ -316,7 +318,7 @@ function DivisionSection({ title, projects, onChanged }) {
   )
 }
 
-function ProjectRow({ project: p, canEdit, onChanged, allUsers = [] }) {
+function ProjectRow({ project: p, canEdit, onProjectUpdate, allUsers = [] }) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
@@ -362,7 +364,12 @@ function ProjectRow({ project: p, canEdit, onChanged, allUsers = [] }) {
       body: JSON.stringify(data),
     })
     setSaving(false)
-    if (res.ok) { setOpen(false); onChanged?.() }
+    if (res.ok) {
+      const updated = await res.json()
+      // Update lokal — tidak perlu re-fetch seluruh halaman, scroll tetap di tempat
+      onProjectUpdate?.({ ...updated, client: p.client, pic: allUsers.find(u => u.id === form.picId) ? { id: form.picId, name: allUsers.find(u => u.id === form.picId)?.name } : p.pic })
+      setOpen(false)
+    }
     else alert('Gagal menyimpan perubahan')
   }
 
