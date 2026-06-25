@@ -12,7 +12,9 @@ const formatRp = (n) => {
 }
 
 const parseNum = (v) => {
-  const n = parseFloat(String(v).replace(/[^\d.]/g, ''))
+  // Strip titik pemisah ribuan (format Indonesia: 40.000.000 → 40000000)
+  const digits = String(v).replace(/\D/g, '')
+  const n = parseInt(digits, 10)
   return isNaN(n) ? 0 : n
 }
 
@@ -152,12 +154,12 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
           description:      item.description,
           detailText:       item.detailText || '',
           byClient:         item.rate == null,
-          rate:             item.rate != null ? String(item.rate) : '',
+          rate:             item.rate != null ? parseInt(item.rate, 10).toLocaleString('id-ID') : '',
           unitType:         item.unitType,
           qty:              String(item.qty),
           days:             String(item.days),
           subtotal:         item.subtotal,
-          hppRate:          item.hppRate != null ? String(item.hppRate) : '',
+          hppRate:          item.hppRate != null ? parseInt(item.hppRate, 10).toLocaleString('id-ID') : '',
           includeAgencyFee: item.includeAgencyFee,
           showInInvoiceDetail: item.showInInvoiceDetail,
         })),
