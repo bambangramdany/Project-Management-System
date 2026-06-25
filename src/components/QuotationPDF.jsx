@@ -266,45 +266,49 @@ export function QuotationPDF({ quotation: q }) {
 
         {/* Terms & Conditions */}
         {q.termsConditions && (
-          <View style={s.termsBlock}>
+          <View style={s.termsBlock} wrap={false}>
             <Text style={s.termsTitle}>TERMS &amp; CONDITIONS</Text>
             <Text style={s.termsText}>{q.termsConditions}</Text>
           </View>
         )}
 
-        {/* Payment info */}
-        <View style={s.payBlock}>
-          <Text style={s.payTitle}>INFORMASI PEMBAYARAN</Text>
-          <View style={s.payRow}><Text style={s.payLbl}>Bank</Text><Text style={s.payVal}>{COMPANY.bank}</Text></View>
-          <View style={s.payRow}><Text style={s.payLbl}>No. Rekening</Text><Text style={s.payVal}>{COMPANY.bankNumber}</Text></View>
-          <View style={s.payRow}><Text style={s.payLbl}>Atas Nama</Text><Text style={s.payVal}>{COMPANY.bankAccount}</Text></View>
-          <View style={s.payRow}><Text style={s.payLbl}>Konfirmasi ke</Text><Text style={s.payVal}>{COMPANY.email}</Text></View>
-        </View>
-
-        {/* Signatures */}
-        <View style={s.sigRow}>
-          {/* Prepared by — PM */}
-          <View style={s.sigCol}>
-            <Text style={s.sigTitle}>Prepared by</Text>
-            <View style={s.sigLine} />
-            <Text style={s.sigName}>{q.picQuotation?.name || q.createdBy?.name || '________________________'}</Text>
-            <Text style={s.sigRole}>{q.picQuotation?.jobTitle || 'Project Manager'}</Text>
+        {/* Payment info + Signatures — dibungkus wrap={false} agar tidak
+            pernah terpisah: signature selalu satu halaman dengan payment info */}
+        <View wrap={false}>
+          {/* Payment info */}
+          <View style={s.payBlock}>
+            <Text style={s.payTitle}>INFORMASI PEMBAYARAN</Text>
+            <View style={s.payRow}><Text style={s.payLbl}>Bank</Text><Text style={s.payVal}>{COMPANY.bank}</Text></View>
+            <View style={s.payRow}><Text style={s.payLbl}>No. Rekening</Text><Text style={s.payVal}>{COMPANY.bankNumber}</Text></View>
+            <View style={s.payRow}><Text style={s.payLbl}>Atas Nama</Text><Text style={s.payVal}>{COMPANY.bankAccount}</Text></View>
+            <View style={s.payRow}><Text style={s.payLbl}>Konfirmasi ke</Text><Text style={s.payVal}>{COMPANY.email}</Text></View>
           </View>
 
-          {/* Approved by #1 — Wulan */}
-          <View style={s.sigCol}>
-            <Text style={s.sigTitle}>Checked by</Text>
-            <View style={s.sigLine} />
-            <Text style={s.sigName}>{q.approver1?.name || '________________________'}</Text>
-            <Text style={s.sigRole}>{q.approver1?.jobTitle || 'Manager'}</Text>
-          </View>
+          {/* Signatures */}
+          <View style={s.sigRow}>
+            {/* Prepared by — PM */}
+            <View style={s.sigCol}>
+              <Text style={s.sigTitle}>Prepared by</Text>
+              <View style={s.sigLine} />
+              <Text style={s.sigName}>{q.picQuotation?.name || q.createdBy?.name || '________________________'}</Text>
+              <Text style={s.sigRole}>{q.picQuotation?.jobTitle || 'Project Manager'}</Text>
+            </View>
 
-          {/* Approved by #2 — Director */}
-          <View style={s.sigCol}>
-            <Text style={s.sigTitle}>Approved by</Text>
-            <View style={s.sigLine} />
-            <Text style={s.sigName}>{q.approver2?.name || '________________________'}</Text>
-            <Text style={s.sigRole}>{q.approver2?.jobTitle || 'Direktur'}</Text>
+            {/* Approved by #1 — Wulan */}
+            <View style={s.sigCol}>
+              <Text style={s.sigTitle}>Checked by</Text>
+              <View style={s.sigLine} />
+              <Text style={s.sigName}>{q.approver1?.name || '________________________'}</Text>
+              <Text style={s.sigRole}>{q.approver1?.jobTitle || 'Manager'}</Text>
+            </View>
+
+            {/* Approved by #2 — Director */}
+            <View style={s.sigCol}>
+              <Text style={s.sigTitle}>Approved by</Text>
+              <View style={s.sigLine} />
+              <Text style={s.sigName}>{q.approver2?.name || '________________________'}</Text>
+              <Text style={s.sigRole}>{q.approver2?.jobTitle || 'Direktur'}</Text>
+            </View>
           </View>
         </View>
 
