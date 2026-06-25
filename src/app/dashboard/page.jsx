@@ -242,6 +242,10 @@ export default function DashboardPage() {
 
 function DivisionSection({ title, projects, onChanged }) {
   const { data: session } = useSession()
+  const [allUsers, setAllUsers] = useState([])
+  useEffect(() => {
+    fetch('/api/team').then(r => r.ok ? r.json() : []).then(d => setAllUsers(Array.isArray(d) ? d : []))
+  }, [])
   const active = projects.filter(p => ACTIVE_STATUSES.includes(p.status))
   const countByStatus = {}
   PIPELINE_STAGES.forEach(s => { countByStatus[s.key] = projects.filter(p => p.status === s.key).length })
@@ -300,7 +304,7 @@ function DivisionSection({ title, projects, onChanged }) {
                 </summary>
                 <div className="divide-y divide-gray-50 border-t border-gray-50">
                   {projectsInStatus.map(p => (
-                    <ProjectRow key={p.id} project={p} canEdit={canEditBase || (role === 'DIRECTOR' && p.division === session?.user?.divisi)} onChanged={onChanged} />
+                    <ProjectRow key={p.id} project={p} canEdit={canEditBase || (role === 'DIRECTOR' && p.division === session?.user?.divisi)} onChanged={onChanged} allUsers={allUsers} />
                   ))}
                 </div>
               </details>
@@ -312,30 +316,54 @@ function DivisionSection({ title, projects, onChanged }) {
   )
 }
 
-function ProjectRow({ project: p, canEdit, onChanged }) {
+function ProjectRow({ project: p, canEdit, onChanged, allUsers = [] }) {
   const [open, setOpen] = useState(false)
-  const [statusVal, setStatusVal] = useState(p.status)
-  const [dateVal, setDateVal] = useState(p.startDate ? p.startDate.slice(0, 10) : '')
-  const [note, setNote] = useState('')
+  const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
+
+  function startEdit() {
+    setForm({
+      status:    p.status,
+      briefDate: p.briefDate ? p.briefDate.slice(0, 10) : '',
+      startDate: p.startDate ? p.startDate.slice(0, 10) : '',
+      endDate:   p.endDate   ? p.endDate.slice(0, 10)   : '',
+      picId:     p.picId || '',
+      memberIds: (p.members?.map(m => m.user?.id).filter(Boolean)) || [],
+      note:      '',
+    })
+    setOpen(true)
+  }
+
+  function toggleMember(uid) {
+    setForm(f => ({
+      ...f,
+      memberIds: f.memberIds.includes(uid) ? f.memberIds.filter(id => id !== uid) : [...f.memberIds, uid],
+    }))
+  }
 
   async function save() {
     setSaving(true)
-    const data = { status: statusVal, startDate: dateVal || null }
-    if (note.trim()) data.notes = p.notes ? `${p.notes}\n[${new Date().toLocaleDateString('id-ID')}] ${note.trim()}` : note.trim()
+    const data = {
+      status:    form.status,
+      briefDate: form.briefDate || null,
+      startDate: form.startDate || null,
+      endDate:   form.endDate   || null,
+      picId:     form.picId     || null,
+      memberIds: form.memberIds,
+    }
+    if (form.note.trim()) {
+      data.notes = p.notes
+        ? `${p.notes}\n[${new Date().toLocaleDateString('id-ID')}] ${form.note.trim()}`
+        : form.note.trim()
+    }
     const res = await fetch(`/api/projects/${p.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
     setSaving(false)
-    if (res.ok) {
-      setOpen(false)
-      setNote('')
-      onChanged?.()
-    } else {
-      alert('Gagal menyimpan perubahan')
-    }
+    if (res.ok) { setOpen(false); onChanged?.() }
+    else alert('Gagal menyimpan perubahan')
   }
 
   return (
@@ -348,7 +376,10 @@ function ProjectRow({ project: p, canEdit, onChanged }) {
         </Link>
         <div className="shrink-0 mt-0.5 flex items-center gap-2">
           {canEdit && (
-            <button onClick={() => setOpen(v => !v)} className="text-xs text-gray-400 hover:text-orange-500 border border-gray-200 rounded px-1.5 py-0.5">
+            <button
+              onClick={() => open ? setOpen(false) : startEdit()}
+              className="text-xs text-gray-400 hover:text-orange-500 border border-gray-200 rounded px-1.5 py-0.5"
+            >
               {open ? 'Tutup' : 'Update'}
             </button>
           )}
@@ -356,31 +387,69 @@ function ProjectRow({ project: p, canEdit, onChanged }) {
       </div>
 
       {open && (
-        <div className="mt-3 ml-0 sm:ml-0 p-3 rounded-lg bg-gray-50 border border-gray-100 space-y-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="mt-3 p-3 rounded-lg bg-gray-50 border border-gray-100 space-y-3">
+          {/* Baris 1: Status */}
+          <div>
+            <label className="label">Stage / Status</label>
+            <select className="select text-sm" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+              {PIPELINE_STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+              <option value="DONE">Done</option>
+              <option value="FAILED">Failed</option>
+              <option value="CANCELED">Canceled</option>
+            </select>
+          </div>
+          {/* Baris 2: Tanggal */}
+          <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="label">Pindah Stage</label>
-              <select className="select" value={statusVal} onChange={e => setStatusVal(e.target.value)}>
-                {PIPELINE_STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-                <option value="DONE">Done</option>
-                <option value="FAILED">Failed</option>
-                <option value="CANCELED">Canceled</option>
-              </select>
+              <label className="label">Tgl Brief</label>
+              <input type="date" className="input text-sm" value={form.briefDate} onChange={e => setForm(f => ({ ...f, briefDate: e.target.value }))} />
             </div>
             <div>
-              <label className="label">Tanggal Pelaksanaan</label>
-              <input type="date" className="input" value={dateVal} onChange={e => setDateVal(e.target.value)} />
+              <label className="label">Tgl Mulai</label>
+              <input type="date" className="input text-sm" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label">Tgl Selesai</label>
+              <input type="date" className="input text-sm" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} />
             </div>
           </div>
+          {/* Baris 3: PIC */}
+          {allUsers.length > 0 && (
+            <div>
+              <label className="label">PIC / Project Manager</label>
+              <select className="select text-sm" value={form.picId} onChange={e => setForm(f => ({ ...f, picId: e.target.value }))}>
+                <option value="">— Belum ada PIC —</option>
+                {allUsers.map(u => <option key={u.id} value={u.id}>{u.name}{u.jobTitle ? ` (${u.jobTitle})` : ''}</option>)}
+              </select>
+            </div>
+          )}
+          {/* Baris 4: Anggota Tim */}
+          {allUsers.length > 0 && (
+            <div>
+              <label className="label">Anggota Tim</label>
+              <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 border border-gray-200 rounded-lg bg-white">
+                {allUsers.map(u => (
+                  <button key={u.id} type="button" onClick={() => toggleMember(u.id)}
+                    className={`text-xs px-2 py-1 rounded-full border transition-colors ${form.memberIds?.includes(u.id) ? 'bg-brand text-white border-brand' : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'}`}>
+                    {form.memberIds?.includes(u.id) && '✓ '}{u.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Catatan */}
           <div>
             <label className="label">Catatan Tambahan</label>
-            <textarea className="input" rows={2} value={note} onChange={e => setNote(e.target.value)} placeholder="Catatan untuk update ini (opsional)" />
+            <textarea className="input text-sm" rows={2} value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Opsional — catatan update ini" />
           </div>
           <div className="flex gap-2">
             <button onClick={save} disabled={saving} className="btn-primary text-xs px-3 py-1.5">
               {saving ? 'Menyimpan...' : 'Simpan'}
             </button>
             <button onClick={() => setOpen(false)} className="btn-secondary text-xs px-3 py-1.5">Batal</button>
+            <Link href={`/projects/${p.id}`} className="text-xs px-3 py-1.5 text-gray-400 hover:text-brand-600 ml-auto">
+              Buka Detail →
+            </Link>
           </div>
         </div>
       )}
