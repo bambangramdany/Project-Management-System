@@ -59,7 +59,10 @@ export async function PATCH(req, { params }) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!canManageQuotations(session.user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const quotation = await prisma.quotation.findUnique({ where: { id: params.id } })
+  const quotation = await prisma.quotation.findUnique({
+    where: { id: params.id },
+    include: { project: { select: { name: true } } },
+  })
   if (!quotation) return NextResponse.json({ error: 'Tidak ditemukan' }, { status: 404 })
 
   const body = await req.json()
@@ -86,6 +89,26 @@ export async function PATCH(req, { params }) {
       where: { id: params.id },
       data: { status: 'PENDING_DIRECTOR' },
     })
+    // Notifikasi ke Direktur Divisi yang sesuai + Owner
+    const divisi = quotation.division  // 'EVENT' atau 'PH'
+    const directors = await prisma.user.findMany({
+      where: {
+        OR: [
+          { role: 'OWNER' },
+          { role: 'DIRECTOR', divisi: divisi },
+        ],
+      },
+      select: { id: true },
+    })
+    const qNum = quotation.quotationNumber || params.id
+    const projectName = quotation.project?.name || ''
+    await Promise.all(directors.map(u => notifyUser({
+      userId: u.id,
+      type: 'QUOTATION_PENDING_DIRECTOR',
+      title: '📋 Quotation Menunggu Persetujuan Direktur',
+      message: `Wulan telah memeriksa quotation ${qNum}${projectName ? ` (${projectName})` : ''}. Menunggu approval Direktur ${divisi === 'PH' ? 'PH' : 'EO'}.`,
+      link: `/quotation/${params.id}`,
+    }).catch(() => {})))
     return NextResponse.json(updated)
   }
 
@@ -98,6 +121,26 @@ export async function PATCH(req, { params }) {
       where: { id: params.id },
       data: { status: 'APPROVED' },
     })
+    // Notifikasi ke PM pembuat + Wulan + Owner
+    const recipients = await prisma.user.findMany({
+      where: {
+        OR: [
+          { role: 'OWNER' },
+          { email: WULAN_EMAIL },
+          { id: quotation.createdById },
+        ],
+      },
+      select: { id: true },
+    })
+    const qNum = quotation.quotationNumber || params.id
+    const approverName = session.user.name || 'Direktur'
+    await Promise.all(recipients.map(u => notifyUser({
+      userId: u.id,
+      type: 'QUOTATION_APPROVED',
+      title: '✅ Quotation Disetujui Direktur',
+      message: `${approverName} telah menyetujui quotation ${qNum}. Status sekarang APPROVED.`,
+      link: `/quotation/${params.id}`,
+    }).catch(() => {})))
     return NextResponse.json(updated)
   }
 
