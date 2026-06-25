@@ -375,44 +375,47 @@ export function InvoicePDF({ invoice, financeDirector }) {
 
         {/* Terms & Conditions */}
         {invoice.termsConditions && (
-          <View style={s.termsBlock}>
+          <View style={s.termsBlock} wrap={false}>
             <Text style={s.termsTitle}>TERMS &amp; CONDITIONS</Text>
             <Text style={s.termsText}>{invoice.termsConditions}</Text>
           </View>
         )}
 
-        {/* Payment info */}
-        <View style={s.payBlock}>
-          <Text style={s.payTitle}>INFORMASI PEMBAYARAN</Text>
-          <View style={s.payRow}><Text style={s.payLbl}>Bank</Text><Text style={s.payVal}>{COMPANY.bank}</Text></View>
-          <View style={s.payRow}><Text style={s.payLbl}>No. Rekening</Text><Text style={s.payVal}>{COMPANY.bankNumber}</Text></View>
-          <View style={s.payRow}><Text style={s.payLbl}>Atas Nama</Text><Text style={s.payVal}>{COMPANY.bankAccount}</Text></View>
-          <View style={s.payRow}><Text style={s.payLbl}>Konfirmasi ke</Text><Text style={s.payVal}>{COMPANY.email}</Text></View>
-          {invoice.dueDate && (
-            <View style={[s.payRow, { marginTop: 4 }]}>
-              <Text style={[s.payLbl, { color: COLOR.red }]}>Jatuh tempo</Text>
-              <Text style={[s.payVal, { color: COLOR.red }]}>{dateStr(invoice.dueDate)}</Text>
-            </View>
-          )}
-        </View>
+        {/* Payment info + Signature — dibungkus wrap={false} agar selalu satu halaman */}
+        <View wrap={false}>
+          {/* Payment info */}
+          <View style={s.payBlock}>
+            <Text style={s.payTitle}>INFORMASI PEMBAYARAN</Text>
+            <View style={s.payRow}><Text style={s.payLbl}>Bank</Text><Text style={s.payVal}>{COMPANY.bank}</Text></View>
+            <View style={s.payRow}><Text style={s.payLbl}>No. Rekening</Text><Text style={s.payVal}>{COMPANY.bankNumber}</Text></View>
+            <View style={s.payRow}><Text style={s.payLbl}>Atas Nama</Text><Text style={s.payVal}>{COMPANY.bankAccount}</Text></View>
+            <View style={s.payRow}><Text style={s.payLbl}>Konfirmasi ke</Text><Text style={s.payVal}>{COMPANY.email}</Text></View>
+            {invoice.dueDate && (
+              <View style={[s.payRow, { marginTop: 4 }]}>
+                <Text style={[s.payLbl, { color: COLOR.red }]}>Jatuh tempo</Text>
+                <Text style={[s.payVal, { color: COLOR.red }]}>{dateStr(invoice.dueDate)}</Text>
+              </View>
+            )}
+          </View>
 
-        {/* Signature — hanya Direktur Keuangan, dengan ruang materai */}
-        <View style={[s.sigRow, { justifyContent: 'flex-end', marginTop: 24 }]}>
-          <View style={[s.sigCol, { width: '40%', alignItems: 'center' }]}>
-            <Text style={s.sigTitle}>Mengetahui,{'\n'}(Direktur Keuangan)</Text>
-            {/* Kotak ruang materai */}
-            <View style={{
-              width: 56, height: 56,
-              borderWidth: 0.75, borderColor: COLOR.border, borderStyle: 'dashed',
-              borderRadius: 4,
-              alignItems: 'center', justifyContent: 'center',
-              marginBottom: 6,
-            }}>
-              <Text style={{ fontSize: 5.5, color: COLOR.muted, textAlign: 'center' }}>Materai</Text>
+          {/* Signature — hanya Direktur Keuangan, dengan ruang materai */}
+          <View style={[s.sigRow, { justifyContent: 'flex-end', marginTop: 24 }]}>
+            <View style={[s.sigCol, { width: '40%', alignItems: 'center' }]}>
+              <Text style={s.sigTitle}>Mengetahui,{'\n'}(Direktur Keuangan)</Text>
+              {/* Kotak ruang materai */}
+              <View style={{
+                width: 56, height: 56,
+                borderWidth: 0.75, borderColor: COLOR.border, borderStyle: 'dashed',
+                borderRadius: 4,
+                alignItems: 'center', justifyContent: 'center',
+                marginBottom: 6,
+              }}>
+                <Text style={{ fontSize: 5.5, color: COLOR.muted, textAlign: 'center' }}>Materai</Text>
+              </View>
+              <View style={s.sigLine} />
+              <Text style={s.sigName}>{financeDirector?.name || '________________________'}</Text>
+              <Text style={s.sigRole}>{financeDirector?.jobTitle || 'Finance & HRGA Director'}</Text>
             </View>
-            <View style={s.sigLine} />
-            <Text style={s.sigName}>{financeDirector?.name || '________________________'}</Text>
-            <Text style={s.sigRole}>{financeDirector?.jobTitle || 'Finance & HRGA Director'}</Text>
           </View>
         </View>
 
