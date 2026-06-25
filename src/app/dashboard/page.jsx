@@ -230,17 +230,18 @@ export default function DashboardPage() {
         )}
 
         {/* EO / Event division */}
-        <DivisionSection title="Event Organizer (EO)" projects={eoProjects} session={session} onChanged={fetchProjects} />
+        <DivisionSection title="Event Organizer (EO)" projects={eoProjects} onChanged={fetchProjects} />
 
         {/* Production House division */}
-        <DivisionSection title="Production House (PH)" projects={phProjects} session={session} onChanged={fetchProjects} />
+        <DivisionSection title="Production House (PH)" projects={phProjects} onChanged={fetchProjects} />
 
       </main>
     </div>
   )
 }
 
-function DivisionSection({ title, projects, session, onChanged }) {
+function DivisionSection({ title, projects, onChanged }) {
+  const { data: session } = useSession()
   const active = projects.filter(p => ACTIVE_STATUSES.includes(p.status))
   const countByStatus = {}
   PIPELINE_STAGES.forEach(s => { countByStatus[s.key] = projects.filter(p => p.status === s.key).length })
