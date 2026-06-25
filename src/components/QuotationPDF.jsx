@@ -232,10 +232,16 @@ export function QuotationPDF({ quotation: q }) {
             </View>
           )}
           {totals.ppnAmt > 0 && (
-            <View style={s.totalRow}>
-              <Text style={s.totalLbl}>PPN {q.ppnPercent || 11}%</Text>
-              <Text style={s.totalVal}>{rp(totals.ppnAmt)}</Text>
-            </View>
+            <>
+              <View style={[s.totalRow, { borderTopWidth: 0.5, borderTopColor: '#E5E7EB', paddingTop: 4, marginTop: 2 }]}>
+                <Text style={[s.totalLbl, { fontFamily: 'Helvetica-Bold' }]}>Total (excl. PPN)</Text>
+                <Text style={[s.totalVal, { fontFamily: 'Helvetica-Bold' }]}>{rp(totals.sub + totals.agencyFeeAmt)}</Text>
+              </View>
+              <View style={s.totalRow}>
+                <Text style={s.totalLbl}>PPN {q.ppnPercent || 11}%</Text>
+                <Text style={s.totalVal}>{rp(totals.ppnAmt)}</Text>
+              </View>
+            </>
           )}
           <View style={s.grandRow}>
             <Text style={s.grandLbl}>GRAND TOTAL</Text>

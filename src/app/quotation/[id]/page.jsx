@@ -430,10 +430,16 @@ export default function QuotationDetailPage() {
               </div>
             )}
             {q.includesPpn && (
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">PPN {q.ppnPercent}%</span>
-                <span>{fmt(totals.ppn)}</span>
-              </div>
+              <>
+                <div className="flex justify-between text-sm pt-1.5 border-t border-gray-100">
+                  <span className="text-gray-700 font-medium">Total (excl. PPN)</span>
+                  <span className="font-medium">{fmt(totals.base + totals.agencyFeeAmt)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">PPN {q.ppnPercent}%</span>
+                  <span>{fmt(totals.ppn)}</span>
+                </div>
+              </>
             )}
             <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200">
               <span>Grand Total</span>

@@ -286,10 +286,16 @@ function TotalsBlock({ invoice }) {
         </View>
       )}
       {invoice.ppnAmount > 0 && (
-        <View style={s.totalRow}>
-          <Text style={s.totalLbl}>PPN {invoice.quotation?.ppnPercent || 11}%</Text>
-          <Text style={s.totalVal}>{rp(invoice.ppnAmount)}</Text>
-        </View>
+        <>
+          <View style={[s.totalRow, { borderTopWidth: 0.5, borderTopColor: '#E5E7EB', paddingTop: 4, marginTop: 2 }]}>
+            <Text style={[s.totalLbl, { fontFamily: 'Helvetica-Bold' }]}>Total (excl. PPN)</Text>
+            <Text style={[s.totalVal, { fontFamily: 'Helvetica-Bold' }]}>{rp(invoice.subtotal + invoice.agencyFeeAmount)}</Text>
+          </View>
+          <View style={s.totalRow}>
+            <Text style={s.totalLbl}>PPN {invoice.quotation?.ppnPercent || 11}%</Text>
+            <Text style={s.totalVal}>{rp(invoice.ppnAmount)}</Text>
+          </View>
+        </>
       )}
       <View style={s.grandRow}>
         <Text style={s.grandLbl}>GRAND TOTAL</Text>
