@@ -8,7 +8,7 @@ const ALLOWED = ['name', 'jobTitle', 'email', 'phone', 'address', 'religion', 'n
 export async function POST(req, { params }) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!['OWNER', 'PROJECT_MANAGER', 'DIRECTOR'].includes(session.user.role)) {
+  if (!['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

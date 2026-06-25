@@ -13,7 +13,7 @@ const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/my-tasks',  label: 'Tugas Saya' },
   { href: '/projects',  label: 'Projects' },
-  { href: '/workload',  label: 'Workload Tim', roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'] },
+  { href: '/workload',  label: 'Workload Tim', roles: ['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'] },
   { href: '/scores',    label: 'Penilaian' },
 
   // ── Network ──
@@ -26,7 +26,7 @@ const NAV_ITEMS = [
   { href: '/invoice',   label: 'Invoice',   roles: ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'] },
 
   // ── Finance & Operasional ──
-  { href: '/finance',  label: 'Finance',    roles: ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'] },
+  { href: '/finance',  label: 'Finance',    roles: ['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'] },
   { href: '/targets',  label: 'Target',     roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/cashflow', label: 'Kas',        cashOnly: true },
   { href: '/opex',     label: 'Opex',       financeStaffOk: true },

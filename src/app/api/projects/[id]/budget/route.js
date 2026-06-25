@@ -64,7 +64,7 @@ export async function GET(req, { params }) {
   })
   const canNote = ['OWNER', 'FINANCE', 'FINANCE_STAFF', 'DIRECTOR'].includes(session.user.role)
   // Titipan hanya visible untuk Owner/Director/Finance/PM
-  const canSeeTitipan = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER'].includes(session.user.role)
+  const canSeeTitipan = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER', 'PRODUCER'].includes(session.user.role)
 
   // Sembunyikan flag titipan dari role lain
   const budgetItemsFinal = budgetItems.map(item => {
@@ -102,7 +102,7 @@ export async function PUT(req, { params }) {
 
   const canEdit = canEditBudget(session.user, project)
   const canNote = ['OWNER', 'FINANCE', 'FINANCE_STAFF', 'DIRECTOR'].includes(session.user.role)
-  const canSeeTitipan = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER'].includes(session.user.role)
+  const canSeeTitipan = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER', 'PRODUCER'].includes(session.user.role)
   if (!canEdit && !canNote) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }

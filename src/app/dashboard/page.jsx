@@ -247,7 +247,7 @@ function DivisionSection({ title, projects, session, onChanged }) {
   // Sort for morning briefing: Pitching -> Waiting Result -> Preparation -> Event Day -> Reporting -> Invoicing
   const briefingActive = [...active].sort((a, b) => BRIEFING_ORDER.indexOf(a.status) - BRIEFING_ORDER.indexOf(b.status))
   const role = session?.user?.role
-  const canEditBase = ['OWNER', 'PROJECT_MANAGER'].includes(role)
+  const canEditBase = ['OWNER', 'PROJECT_MANAGER', 'PRODUCER'].includes(role)
 
   return (
     <div className="space-y-4">

@@ -1,5 +1,5 @@
 // Roles that can see ALL projects regardless of assignment
-export const MANAGER_ROLES = ['OWNER', 'PROJECT_MANAGER']
+export const MANAGER_ROLES = ['OWNER', 'PROJECT_MANAGER', 'PRODUCER']
 
 export function canViewAllProjects(role) {
   return MANAGER_ROLES.includes(role) || ['DIRECTOR', 'FINANCE', 'FINANCE_STAFF'].includes(role)
@@ -23,7 +23,7 @@ export function canQuickEditProjects(user) {
 
 export function canEditProject(user, project) {
   if (!user) return false
-  if (['OWNER', 'PROJECT_MANAGER'].includes(user.role)) return true
+  if (['OWNER', 'PROJECT_MANAGER', 'PRODUCER'].includes(user.role)) return true
   // Division directors (Event/PH/Creative) can edit projects in their own division
   if (user.role === 'DIRECTOR' && project && user.divisi === project.division) return true
   return false

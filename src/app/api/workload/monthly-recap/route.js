@@ -3,7 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
-const ALLOWED_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER']
+const ALLOWED_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER', 'PRODUCER']
 const HIDDEN_EMAILS = ['hrdwatermark@gmail.com']
 // Rekap hanya untuk staff & PM — Owner dan Direksi tidak perlu masuk tabel ini
 const EXCLUDED_ROLES = ['OWNER', 'DIRECTOR']
