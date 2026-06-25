@@ -23,10 +23,12 @@ const STATUS_META = {
 function canManage(user) {
   return ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER'].includes(user?.role)
 }
-// Approve tahap Wulan: hanya OWNER atau Finance/HRGA Director (Wulan)
+// Approve tahap Wulan: OWNER, Finance/HRGA Director, atau Wulan sendiri (Senior PM)
+const WULAN_EMAIL = 'wulan@watermark.co.id'
 function canApproveWulan(user) {
   return user?.role === 'OWNER'
     || (user?.role === 'DIRECTOR' && user?.divisi === 'FINANCE_HRGA')
+    || user?.email === WULAN_EMAIL
 }
 // Approve tahap Direktur: OWNER atau semua DIRECTOR
 function canApproveDirector(user) {

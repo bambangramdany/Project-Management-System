@@ -9,7 +9,13 @@ function canManageQuotations(user) {
   return ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER'].includes(user.role)
 }
 
-function canApprove(user) {
+const WULAN_EMAIL = 'wulan@watermark.co.id'
+function canApproveWulan(user) {
+  return user.role === 'OWNER'
+    || (user.role === 'DIRECTOR' && user.divisi === 'FINANCE_HRGA')
+    || user.email === WULAN_EMAIL
+}
+function canApproveDirector(user) {
   return ['OWNER', 'DIRECTOR'].includes(user.role)
 }
 
@@ -72,7 +78,7 @@ export async function PATCH(req, { params }) {
   }
 
   if (body.action === 'approve_wulan') {
-    if (!canApprove(session.user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!canApproveWulan(session.user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     if (quotation.status !== 'PENDING_WULAN') {
       return NextResponse.json({ error: 'Status tidak sesuai' }, { status: 400 })
     }
@@ -84,7 +90,7 @@ export async function PATCH(req, { params }) {
   }
 
   if (body.action === 'approve_director') {
-    if (!canApprove(session.user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!canApproveDirector(session.user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     if (quotation.status !== 'PENDING_DIRECTOR') {
       return NextResponse.json({ error: 'Status tidak sesuai' }, { status: 400 })
     }
