@@ -322,10 +322,10 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
-        {/* ── Reminder: project lama tanpa quotation ── */}
-        {!isNewProject && project && !project.quotations?.some(q => ['WON','APPROVED','PENDING_DIRECTOR','PENDING_WULAN'].includes(q.status)) &&
-         ['ACTIVE','PITCHING','HOLD'].includes(project.status) &&
-         ['OWNER','DIRECTOR','PROJECT_MANAGER'].includes(session?.user?.role) && (
+        {/* ── Reminder: project lama tanpa quotation sama sekali ── */}
+        {!isNewProject && project && !(project.quotations?.length > 0) &&
+         ['ACTIVE','PITCHING','HOLD','WAITING_PITCH_RESULT','PREPARATION'].includes(project.status) &&
+         ['OWNER','DIRECTOR','PROJECT_MANAGER','PRODUCER'].includes(session?.user?.role) && (
           <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-2 text-sm text-amber-800 flex-1 min-w-0">
               <span className="shrink-0">⚠</span>
