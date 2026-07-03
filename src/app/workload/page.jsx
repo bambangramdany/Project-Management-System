@@ -69,9 +69,9 @@ export default function WorkloadPage() {
     fetch(`/api/workload?${params}`).then(r => r.json()).then(data => {
       if (Array.isArray(data)) {
         if (isManager) {
-          setWorkload(data.filter(w => w.user.id !== session.user.id))
+          setWorkload(data.filter(w => w.user.id !== session?.user?.id))
         } else {
-          const mine = data.filter(w => w.user.id === session.user.id)
+          const mine = data.filter(w => w.user.id === session?.user?.id)
           setWorkload(mine)
           if (mine.length > 0) setSelectedUser(mine[0])
         }
@@ -378,7 +378,7 @@ export default function WorkloadPage() {
               <p className="text-xs text-gray-400 mt-2">Skor dihitung dari bobot setiap fase project (lihat pengaturan skor di bawah).</p>
             </div>
 
-            {(session.user.role === 'OWNER' || session.user.role === 'DIRECTOR') && (
+            {(session?.user?.role === 'OWNER' || session?.user?.role === 'DIRECTOR') && (
               <WorkloadWeightsEditor />
             )}
 

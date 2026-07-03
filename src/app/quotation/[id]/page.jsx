@@ -413,7 +413,7 @@ export default function QuotationDetailPage() {
               </div>
               {/* Items */}
               <div className="overflow-x-auto">
-                <div className="min-w-[640px]">
+                <div className={canSeeHpp ? 'min-w-[880px]' : 'min-w-[640px]'}>
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-[11px] text-gray-400 border-b border-gray-100">

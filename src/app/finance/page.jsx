@@ -1181,7 +1181,7 @@ export default function FinancePage() {
                   <input className="input" value={receivableForm.notes} onChange={e => setReceivableForm(f => ({ ...f, notes: e.target.value }))} placeholder="opsional" />
                 </div>
                 <div className="sm:col-span-2 flex gap-2">
-                  <button className="btn-primary text-sm" disabled={savingReceivable}>{savingReceivable ? 'Menyimpan...' : 'Simpan'}</button>
+                  <button type="submit" className="btn-primary text-sm" disabled={savingReceivable}>{savingReceivable ? 'Menyimpan...' : 'Simpan'}</button>
                   <button type="button" onClick={() => setShowReceivableForm(false)} className="btn-secondary text-sm">Batal</button>
                 </div>
               </form>
@@ -1512,7 +1512,7 @@ export default function FinancePage() {
                     <input className="input" value={expenseForm.notes} onChange={e => setExpenseForm(f => ({...f, notes: e.target.value}))} placeholder="opsional" />
                   </div>
                   <div className="sm:col-span-2 flex gap-2">
-                    <button className="btn-primary text-sm" disabled={savingExpense}>{savingExpense ? 'Menyimpan...' : 'Simpan'}</button>
+                    <button type="submit" className="btn-primary text-sm" disabled={savingExpense}>{savingExpense ? 'Menyimpan...' : 'Simpan'}</button>
                     <button type="button" onClick={() => setShowExpenseForm(false)} className="btn-secondary text-sm">Batal</button>
                   </div>
                 </form>

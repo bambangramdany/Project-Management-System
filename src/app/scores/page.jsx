@@ -78,11 +78,13 @@ export default function ScoresPage() {
   const [reminding, setReminding] = useState(false)
   const [reminded, setReminded] = useState(null)
 
-  // Tab default: PM/Producer langsung ke "Nilai Tim"; staff lihat skor diri sendiri dulu
-  const defaultTab = RATER_ROLES.includes(session?.user?.role) || KPI_SUMMARY_ROLES.includes(session?.user?.role)
-    ? 'nilai-tim'
-    : 'penilaian-saya'
-  const [activeTab, setActiveTab] = useState(defaultTab)
+  // Tab default: PM/Producer/Admin langsung ke "Nilai Tim"; staff lihat skor diri sendiri dulu
+  // Gunakan lazy init agar konsisten saat session belum tersedia di render pertama
+  const [activeTab, setActiveTab] = useState(() => {
+    const role = session?.user?.role
+    if (!role) return 'penilaian-saya'
+    return RATER_ROLES.includes(role) || KPI_SUMMARY_ROLES.includes(role) ? 'nilai-tim' : 'penilaian-saya'
+  })
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -234,31 +236,32 @@ export default function ScoresPage() {
           )}
 
           {/* Berikan penilaian per project */}
-          {myProjects.length > 0 && (
-            <div className="card p-4 border-t-4 border-emerald-400">
-              <div className="mb-3">
-                <p className="text-sm font-semibold text-ink-800">⭐ Nilai Per Project / Event</p>
-                <p className="text-xs text-gray-500 mt-0.5">Pilih project → nilai anggota tim yang terlibat. Penilaian bersifat anonim untuk penerima.</p>
-              </div>
-              <select className="select" value={scoreProjectId} onChange={e => setScoreProjectId(e.target.value)}>
-                <option value="">Pilih project...</option>
-                {myProjects.map(p => (
-                  <option key={p.id} value={p.id}>{p.code} — {p.name}</option>
-                ))}
-              </select>
-              {scoreProject && (
-                <div className="mt-3">
-                  <div className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2.5 py-1">
-                    📁 {scoreProject.code} — {scoreProject.name}
-                  </div>
-                  <ProjectBonusTab project={scoreProject} session={session} />
-                </div>
-              )}
-              {myProjects.length === 0 && (
-                <p className="text-sm text-gray-400 mt-2">Belum ada project WIN/DONE yang dapat dinilai.</p>
-              )}
+          <div className="card p-4 border-t-4 border-emerald-400">
+            <div className="mb-3">
+              <p className="text-sm font-semibold text-ink-800">⭐ Nilai Per Project / Event</p>
+              <p className="text-xs text-gray-500 mt-0.5">Pilih project → nilai anggota tim yang terlibat. Penilaian bersifat anonim untuk penerima.</p>
             </div>
-          )}
+            {myProjects.length === 0 ? (
+              <p className="text-sm text-gray-400">Belum ada project WIN/DONE yang dapat dinilai.</p>
+            ) : (
+              <>
+                <select className="select" value={scoreProjectId} onChange={e => setScoreProjectId(e.target.value)}>
+                  <option value="">Pilih project...</option>
+                  {myProjects.map(p => (
+                    <option key={p.id} value={p.id}>{p.code} — {p.name}</option>
+                  ))}
+                </select>
+                {scoreProject && (
+                  <div className="mt-3">
+                    <div className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2.5 py-1">
+                      📁 {scoreProject.code} — {scoreProject.name}
+                    </div>
+                    <ProjectBonusTab project={scoreProject} session={session} />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
 
           {/* Penilaian Bulanan (KPI) — Tim */}
           {team.length > 0 && (
