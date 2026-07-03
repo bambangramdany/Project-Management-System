@@ -86,6 +86,7 @@ export async function POST(req, { params }) {
               subtotal:            item.subtotal,
               hppRate:             item.hppRate      || null,
               hppSubtotal:         item.hppSubtotal  || null,
+              titipanKlien:        item.titipanKlien || null,
               includeAgencyFee:    item.includeAgencyFee,
               showInInvoiceDetail: item.showInInvoiceDetail,
               order:               item.order ?? ii,

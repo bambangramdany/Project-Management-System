@@ -36,7 +36,7 @@ function canApproveDirector(user) {
 }
 
 function calcTotals(q) {
-  let base = 0, agencyBase = 0, hppTotal = 0, hppFilled = 0, itemCount = 0
+  let base = 0, agencyBase = 0, hppTotal = 0, hppFilled = 0, titipanTotal = 0, itemCount = 0
   for (const sec of q.sections || []) {
     for (const item of sec.items || []) {
       base += item.subtotal || 0
@@ -44,15 +44,16 @@ function calcTotals(q) {
       if (item.rate !== null) {
         itemCount++
         if (item.hppSubtotal != null) { hppTotal += item.hppSubtotal; hppFilled++ }
+        if (item.titipanKlien != null) titipanTotal += item.titipanKlien
       }
     }
   }
   const agencyFeeAmt = agencyBase * ((q.agencyFeePercent || 0) / 100)
   const ppn = q.includesPpn ? (base + agencyFeeAmt) * ((q.ppnPercent || 11) / 100) : 0
   const grand = base + agencyFeeAmt + ppn
-  const grossMargin = hppFilled > 0 ? grand - hppTotal : null
+  const grossMargin = hppFilled > 0 ? grand - hppTotal - titipanTotal : null
   const marginPct   = grossMargin != null && grand > 0 ? (grossMargin / grand) * 100 : null
-  return { base, agencyFeeAmt, ppn, grand, hppTotal, hppFilled, itemCount, grossMargin, marginPct }
+  return { base, agencyFeeAmt, ppn, grand, hppTotal, hppFilled, titipanTotal, itemCount, grossMargin, marginPct }
 }
 
 export default function QuotationDetailPage() {
@@ -423,6 +424,8 @@ export default function QuotationDetailPage() {
                         <th className="px-2 py-2 text-center w-14">Qty</th>
                         <th className="px-2 py-2 text-center w-14 hidden md:table-cell">Days</th>
                         <th className="px-5 py-2 text-right w-36">Subtotal</th>
+                        {canSeeHpp && <th className="px-2 py-2 text-right w-28 text-rose-400">HPP 🔒</th>}
+                        {canSeeHpp && <th className="px-2 py-2 text-right w-28 text-amber-500">Titipan 🔒</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -449,6 +452,16 @@ export default function QuotationDetailPage() {
                           <td className="px-5 py-2 text-right font-medium text-gray-800 align-top">
                             {item.rate == null ? '—' : fmt(item.subtotal)}
                           </td>
+                          {canSeeHpp && (
+                            <td className="px-2 py-2 text-right align-top text-rose-500 text-xs">
+                              {item.hppSubtotal != null ? fmt(item.hppSubtotal) : <span className="text-gray-300">—</span>}
+                            </td>
+                          )}
+                          {canSeeHpp && (
+                            <td className="px-2 py-2 text-right align-top text-amber-500 text-xs">
+                              {item.titipanKlien != null ? fmt(item.titipanKlien) : <span className="text-gray-300">—</span>}
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -488,21 +501,31 @@ export default function QuotationDetailPage() {
             </div>
           </div>
 
-          {/* Margin forecast — OWNER & DIRECTOR only, never shown on PDF */}
-          {canSeeHpp && totals.hppFilled > 0 && (
+          {/* Breakdown internal — OWNER & DIRECTOR only, never shown on PDF */}
+          {canSeeHpp && (totals.hppFilled > 0 || totals.titipanTotal > 0) && (
             <div className="mx-3 sm:mx-5 mb-4 rounded-lg border border-dashed border-rose-200 bg-rose-50/40 p-3 sm:p-4 space-y-1.5">
-              <p className="text-xs font-semibold text-rose-500 uppercase tracking-wide">🔒 Forecast Margin (Internal)</p>
-              <div className="flex justify-between text-sm gap-2">
-                <span className="text-gray-500 min-w-0">Total HPP ({totals.hppFilled}/{totals.itemCount} item diisi)</span>
-                <span className="font-medium text-red-600 shrink-0">{fmt(totals.hppTotal)}</span>
-              </div>
-              <div className="flex justify-between font-bold text-sm pt-1 border-t border-rose-200 gap-2">
-                <span className="text-gray-700">Gross Margin</span>
-                <span className={`shrink-0 ${totals.grossMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {fmt(totals.grossMargin)}
-                  <span className="font-normal text-xs ml-1">({totals.marginPct?.toFixed(1)}%)</span>
-                </span>
-              </div>
+              <p className="text-xs font-semibold text-rose-500 uppercase tracking-wide">🔒 Breakdown Internal</p>
+              {totals.hppFilled > 0 && (
+                <div className="flex justify-between text-sm gap-2">
+                  <span className="text-gray-500 min-w-0">Total HPP/Modal ({totals.hppFilled}/{totals.itemCount} item diisi)</span>
+                  <span className="font-medium text-red-600 shrink-0">{fmt(totals.hppTotal)}</span>
+                </div>
+              )}
+              {totals.titipanTotal > 0 && (
+                <div className="flex justify-between text-sm gap-2">
+                  <span className="text-amber-600 min-w-0">Total Titipan Klien</span>
+                  <span className="font-medium text-amber-600 shrink-0">{fmt(totals.titipanTotal)}</span>
+                </div>
+              )}
+              {totals.hppFilled > 0 && (
+                <div className="flex justify-between font-bold text-sm pt-1 border-t border-rose-200 gap-2">
+                  <span className="text-gray-700">Gross Margin WTM</span>
+                  <span className={`shrink-0 ${totals.grossMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {fmt(totals.grossMargin)}
+                    <span className="font-normal text-xs ml-1">({totals.marginPct?.toFixed(1)}%)</span>
+                  </span>
+                </div>
+              )}
               {totals.hppFilled < totals.itemCount && (
                 <p className="text-[11px] text-amber-600">⚠ {totals.itemCount - totals.hppFilled} item belum diisi HPP</p>
               )}

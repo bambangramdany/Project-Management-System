@@ -61,6 +61,7 @@ function emptyItem(index) {
     days:             '1',
     subtotal:         0,
     hppRate:          '',     // cost price per unit — internal only
+    titipanKlien:     '',     // pass-through cost embedded in rate — internal only
     includeAgencyFee: false,
     showInInvoiceDetail: true,
   }
@@ -78,7 +79,8 @@ function calcTotals(sections, agencyFeePercent, includesPpn, ppnPercent) {
   let baseSubtotal   = 0
   let agencyFeeBase  = 0
   let hppTotal       = 0
-  let hppFilled      = 0  // how many items have HPP filled
+  let hppFilled      = 0
+  let titipanTotal   = 0
   let itemCount      = 0
   for (const sec of sections) {
     for (const item of sec.items) {
@@ -92,12 +94,15 @@ function calcTotals(sections, agencyFeePercent, includesPpn, ppnPercent) {
         hppTotal += hpp
         hppFilled++
       }
+      if (item.titipanKlien !== '' && item.titipanKlien != null) {
+        titipanTotal += parseNum(item.titipanKlien)
+      }
     }
   }
   const agencyFeeAmt = agencyFeeBase * ((agencyFeePercent || 0) / 100)
   const ppnBase      = includesPpn ? (baseSubtotal + agencyFeeAmt) * ((ppnPercent || 11) / 100) : 0
   const grandTotal   = baseSubtotal + agencyFeeAmt + ppnBase
-  const grossMargin  = hppFilled > 0 ? grandTotal - hppTotal : null
+  const grossMargin  = hppFilled > 0 ? grandTotal - hppTotal - titipanTotal : null
   const marginPct    = hppFilled > 0 && grandTotal > 0 ? (grossMargin / grandTotal) * 100 : null
   return {
     baseSubtotal,
@@ -106,6 +111,7 @@ function calcTotals(sections, agencyFeePercent, includesPpn, ppnPercent) {
     grandTotal,
     hppTotal,
     hppFilled,
+    titipanTotal,
     itemCount,
     grossMargin,
     marginPct,
@@ -160,6 +166,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
           days:             String(item.days),
           subtotal:         item.subtotal,
           hppRate:          item.hppRate != null ? parseInt(item.hppRate, 10).toLocaleString('id-ID') : '',
+          titipanKlien:     item.titipanKlien != null ? parseInt(item.titipanKlien, 10).toLocaleString('id-ID') : '',
           includeAgencyFee: item.includeAgencyFee,
           showInInvoiceDetail: item.showInInvoiceDetail,
         })),
@@ -315,6 +322,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
           days:                parseNum(item.days) || 1,
           subtotal:            item.subtotal,
           hppRate:             item.hppRate !== '' ? parseNum(item.hppRate) || null : null,
+          titipanKlien:        item.titipanKlien !== '' ? parseNum(item.titipanKlien) || null : null,
           includeAgencyFee:    item.includeAgencyFee,
           showInInvoiceDetail: item.showInInvoiceDetail,
           order:               ii,
@@ -577,30 +585,40 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
               </div>
             </div>
 
-            {/* Margin forecast — only shown if any HPP is filled */}
-            {totals.hppFilled > 0 && (
+            {/* Internal breakdown — shown if any HPP or titipan is filled */}
+            {(totals.hppFilled > 0 || totals.titipanTotal > 0) && (
               <div className="sm:row-start-1 sm:col-start-1 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 space-y-2">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  🔒 Forecast Margin (Internal)
+                  🔒 Breakdown Internal
                 </p>
+                {totals.hppFilled > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Total HPP/Modal ({totals.hppFilled}/{totals.itemCount} item)</span>
+                    <span className="font-medium text-red-600">Rp {formatRp(totals.hppTotal)}</span>
+                  </div>
+                )}
+                {totals.titipanTotal > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-amber-600">Total Titipan Klien</span>
+                    <span className="font-medium text-amber-600">Rp {formatRp(totals.titipanTotal)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Total HPP ({totals.hppFilled}/{totals.itemCount} item)</span>
-                  <span className="font-medium text-red-600">Rp {formatRp(totals.hppTotal)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Grand Total Jual</span>
+                  <span className="text-gray-500">Grand Total Jual (klien)</span>
                   <span className="font-medium">Rp {formatRp(totals.grandTotal)}</span>
                 </div>
-                <div className="flex justify-between font-bold text-sm pt-2 border-t border-gray-200">
-                  <span>Gross Margin</span>
-                  <span className={totals.grossMargin >= 0 ? 'text-green-600' : 'text-red-600'}>
-                    Rp {formatRp(totals.grossMargin)}
-                    {' '}
-                    <span className="font-normal text-xs">
-                      ({totals.marginPct != null ? totals.marginPct.toFixed(1) : '—'}%)
+                {totals.hppFilled > 0 && (
+                  <div className="flex justify-between font-bold text-sm pt-2 border-t border-gray-200">
+                    <span>Gross Margin WTM</span>
+                    <span className={totals.grossMargin >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      Rp {formatRp(totals.grossMargin)}
+                      {' '}
+                      <span className="font-normal text-xs">
+                        ({totals.marginPct != null ? totals.marginPct.toFixed(1) : '—'}%)
+                      </span>
                     </span>
-                  </span>
-                </div>
+                  </div>
+                )}
                 {totals.hppFilled < totals.itemCount && (
                   <p className="text-[11px] text-amber-600 pt-1">
                     ⚠ {totals.itemCount - totals.hppFilled} item belum diisi HPP — margin belum lengkap
@@ -657,11 +675,12 @@ const ItemRow = forwardRef(function ItemRow(
 ) {
   const [showDetail, setShowDetail] = useState(!!item.detailText)
 
-  const descRef = useRef(null)
-  const rateRef = useRef(null)
-  const qtyRef  = useRef(null)
-  const daysRef = useRef(null)
-  const hppRef  = useRef(null)
+  const descRef    = useRef(null)
+  const rateRef    = useRef(null)
+  const qtyRef     = useRef(null)
+  const daysRef    = useRef(null)
+  const hppRef     = useRef(null)
+  const titipanRef = useRef(null)
 
   // Expose focusDesc agar parent bisa focus row ini setelah add
   useImperativeHandle(ref, () => ({
@@ -759,18 +778,32 @@ const ItemRow = forwardRef(function ItemRow(
                   Rp {formatRp(item.subtotal)}
                 </div>
               </div>
-              {/* HPP / Modal — internal, never on PDF */}
-              <div className="flex flex-col border-l border-dashed border-gray-200 pl-3 ml-1">
-                <span className="text-[10px] text-rose-400 mb-0.5">HPP/Modal 🔒</span>
-                <input
-                  ref={hppRef}
-                  type="text"
-                  className="input w-28 text-sm text-right border-rose-200 focus:border-rose-400 bg-rose-50/30 placeholder-rose-200"
-                  value={item.hppRate}
-                  onChange={e => handleRateInput(e.target.value, v => onUpdate({ hppRate: v }))}
-                  placeholder="opsional"
-                  onKeyDown={e => handleKey(e, null)}
-                />
+              {/* HPP & Titipan — internal only, never on PDF */}
+              <div className="flex gap-2 border-l border-dashed border-gray-200 pl-3 ml-1">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-rose-400 mb-0.5">HPP/Modal 🔒</span>
+                  <input
+                    ref={hppRef}
+                    type="text"
+                    className="input w-28 text-sm text-right border-rose-200 focus:border-rose-400 bg-rose-50/30 placeholder-rose-200"
+                    value={item.hppRate}
+                    onChange={e => handleRateInput(e.target.value, v => onUpdate({ hppRate: v }))}
+                    placeholder="opsional"
+                    onKeyDown={e => handleKey(e, titipanRef)}
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-amber-500 mb-0.5">Titipan Klien 🔒</span>
+                  <input
+                    ref={titipanRef}
+                    type="text"
+                    className="input w-28 text-sm text-right border-amber-200 focus:border-amber-400 bg-amber-50/40 placeholder-amber-200"
+                    value={item.titipanKlien}
+                    onChange={e => handleRateInput(e.target.value, v => onUpdate({ titipanKlien: v }))}
+                    placeholder="opsional"
+                    onKeyDown={e => handleKey(e, null)}
+                  />
+                </div>
               </div>
             </div>
           </div>

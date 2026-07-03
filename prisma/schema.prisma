@@ -1141,6 +1141,10 @@ model QuotationItem {
   hppRate     Float?  // cost per unit; null = not filled
   hppSubtotal Float?  // hppRate × qty × days
 
+  // Titipan Klien — pass-through cost embedded in the rate; internal only, never shown on PDF
+  // Rate jual ke klien = HPP + titipan + margin WTM (PM yang menentukan rate-nya)
+  titipanKlien Float?  // nominal titipan yang melebur di item ini; null = tidak ada titipan
+
   order Int
 
   @@index([sectionId])

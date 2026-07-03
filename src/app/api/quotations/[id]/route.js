@@ -278,6 +278,7 @@ export async function PATCH(req, { params }) {
               hppSubtotal:         item.hppRate != null && item.hppRate !== ''
                                      ? parseFloat(item.hppRate) * (parseFloat(item.qty) || 1) * (parseFloat(item.days) || 1)
                                      : null,
+              titipanKlien:        item.titipanKlien != null && item.titipanKlien !== '' ? parseFloat(item.titipanKlien) : null,
               order:               ii,
             })),
           },
