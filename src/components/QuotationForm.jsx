@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef, forwardRef, useImperativeHandle } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import Navbar from './Navbar'
@@ -209,11 +209,25 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
     setSections(prev => prev.map((s, i) => i === secIdx ? { ...s, ...patch } : s))
   }
 
+  // Refs ke setiap ItemRow agar bisa focus programatik setelah add item
+  const itemRowRefs = useRef({})
+
   function addItem(secIdx) {
     setSections(prev => prev.map((s, i) => {
       if (i !== secIdx) return s
       return { ...s, items: [...s.items, emptyItem(s.items.length)] }
     }))
+  }
+
+  function addItemAndFocus(secIdx) {
+    const newKey = Math.random().toString(36).slice(2)
+    setSections(prev => prev.map((s, i) => {
+      if (i !== secIdx) return s
+      const newItem = { ...emptyItem(s.items.length), _key: newKey }
+      return { ...s, items: [...s.items, newItem] }
+    }))
+    // Focus setelah React render
+    setTimeout(() => itemRowRefs.current[newKey]?.focusDesc(), 30)
   }
 
   function removeItem(secIdx, itemIdx) {
@@ -513,6 +527,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
               <div className="divide-y divide-gray-50">
                 {sec.items.map((item, ii) => (
                   <ItemRow key={item._key}
+                    ref={el => { if (el) itemRowRefs.current[item._key] = el }}
                     item={item}
                     secIdx={si} itemIdx={ii}
                     totalItems={sec.items.length}
@@ -521,6 +536,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
                     onMoveUp={() => moveItem(si, ii, -1)}
                     onMoveDown={() => moveItem(si, ii, 1)}
                     onDuplicate={() => duplicateItem(si, ii)}
+                    onAddNext={() => addItemAndFocus(si)}
                     agencyFeePercent={agencyFeePercent}
                   />
                 ))}
@@ -635,8 +651,34 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
 
 // ── Item row component ────────────────────────────────────────────────────────
 
-function ItemRow({ item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMoveUp, onMoveDown, onDuplicate, agencyFeePercent }) {
+const ItemRow = forwardRef(function ItemRow(
+  { item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMoveUp, onMoveDown, onDuplicate, onAddNext, agencyFeePercent },
+  ref
+) {
   const [showDetail, setShowDetail] = useState(!!item.detailText)
+
+  const descRef = useRef(null)
+  const rateRef = useRef(null)
+  const qtyRef  = useRef(null)
+  const daysRef = useRef(null)
+  const hppRef  = useRef(null)
+
+  // Expose focusDesc agar parent bisa focus row ini setelah add
+  useImperativeHandle(ref, () => ({
+    focusDesc: () => descRef.current?.focus(),
+  }))
+
+  // Enter di field → pindah ke field berikutnya; di field terakhir → tambah item baru
+  function handleKey(e, nextRef) {
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    if (nextRef) {
+      nextRef.current?.focus()
+    } else {
+      // Field terakhir (HPP atau Days jika byClient) → tambah item baru
+      onAddNext?.()
+    }
+  }
 
   return (
     <div className="p-3 space-y-2">
@@ -645,10 +687,12 @@ function ItemRow({ item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMove
         <span className="text-xs text-gray-400 w-6 shrink-0 pt-2.5">{item.no}.</span>
         <div className="flex-1 space-y-1.5">
           <input
+            ref={descRef}
             className="input text-sm"
             value={item.description}
             onChange={e => onUpdate({ description: e.target.value })}
             placeholder="Nama / deskripsi item"
+            onKeyDown={e => handleKey(e, item.byClient ? null : rateRef)}
           />
           {showDetail && (
             <textarea
@@ -682,11 +726,13 @@ function ItemRow({ item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMove
               <div className="flex flex-col">
                 <span className="text-[10px] text-gray-400 mb-0.5">Rate</span>
                 <input
+                  ref={rateRef}
                   type="text"
                   className="input w-32 text-sm text-right"
                   value={item.rate}
                   onChange={e => handleRateInput(e.target.value, v => onUpdate({ rate: v }))}
                   placeholder="0"
+                  onKeyDown={e => handleKey(e, qtyRef)}
                 />
               </div>
               <div className="flex flex-col">
@@ -697,13 +743,15 @@ function ItemRow({ item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMove
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] text-gray-400 mb-0.5">Qty</span>
-                <input type="number" min="0" className="input w-16 text-sm text-right"
-                  value={item.qty} onChange={e => onUpdate({ qty: e.target.value })} />
+                <input ref={qtyRef} type="number" min="0" className="input w-16 text-sm text-right"
+                  value={item.qty} onChange={e => onUpdate({ qty: e.target.value })}
+                  onKeyDown={e => handleKey(e, daysRef)} />
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] text-gray-400 mb-0.5">Days</span>
-                <input type="number" min="0" className="input w-16 text-sm text-right"
-                  value={item.days} onChange={e => onUpdate({ days: e.target.value })} />
+                <input ref={daysRef} type="number" min="0" className="input w-16 text-sm text-right"
+                  value={item.days} onChange={e => onUpdate({ days: e.target.value })}
+                  onKeyDown={e => handleKey(e, hppRef)} />
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] text-gray-400 mb-0.5">Subtotal</span>
@@ -715,11 +763,13 @@ function ItemRow({ item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMove
               <div className="flex flex-col border-l border-dashed border-gray-200 pl-3 ml-1">
                 <span className="text-[10px] text-rose-400 mb-0.5">HPP/Modal 🔒</span>
                 <input
+                  ref={hppRef}
                   type="text"
                   className="input w-28 text-sm text-right border-rose-200 focus:border-rose-400 bg-rose-50/30 placeholder-rose-200"
                   value={item.hppRate}
                   onChange={e => handleRateInput(e.target.value, v => onUpdate({ hppRate: v }))}
                   placeholder="opsional"
+                  onKeyDown={e => handleKey(e, null)}
                 />
               </div>
             </div>
@@ -748,4 +798,4 @@ function ItemRow({ item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMove
       </div>
     </div>
   )
-}
+})
