@@ -130,6 +130,14 @@ export default function FinancePage() {
   const [confirmDeleteBudgetIdx, setConfirmDeleteBudgetIdx] = useState(null)
   const [paymentTab, setPaymentTab] = useState('urgent') // 'urgent' | 'all'
 
+  // Tab utama Finance — default sesuai role
+  const defaultTab = (() => {
+    if (['PROJECT_MANAGER', 'PRODUCER'].includes(session?.user?.role)) return 'pm'
+    if (['FINANCE', 'FINANCE_STAFF'].includes(session?.user?.role))    return 'finance'
+    return 'laporan' // OWNER, DIRECTOR
+  })()
+  const [activeTab, setActiveTab] = useState(defaultTab)
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
     if (status === 'authenticated' && !FINANCE_ROLES.includes(session.user.role)) router.push('/dashboard')
@@ -702,7 +710,7 @@ export default function FinancePage() {
   if (status !== 'authenticated' || !FINANCE_ROLES.includes(session?.user.role)) return <LoadingScreen />
 
   const role = session.user.role
-  const canCreate = role === 'OWNER' || role === 'PROJECT_MANAGER' || role === 'DIRECTOR'
+  const canCreate = role === 'OWNER' || role === 'PROJECT_MANAGER' || role === 'DIRECTOR' || role === 'PRODUCER'
   const canSeeBudgetEdit = role !== 'PROJECT_MANAGER' || true // PM can view own; edit gated server-side
 
   const forecastLocked = budgetMeta.canEditBudget && budgetSaved && !budgetEditing && !budgetMeta.budgetLockedAt
@@ -767,6 +775,14 @@ export default function FinancePage() {
   // Payments filtered by tab
   const displayedPayments = paymentTab === 'urgent' ? urgentPayments : payments
 
+  // Tab definitions per role
+  const isAnalyticsRole = role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)
+  const tabs = [
+    { key: 'pm',      label: '📋 Forecast & Pengajuan', show: true },
+    { key: 'finance', label: '💳 Pembayaran & Piutang',  show: true },
+    { key: 'laporan', label: '📊 Laporan & Analitik',    show: isAnalyticsRole },
+  ].filter(t => t.show)
+
   return (
     <div className="min-h-screen bg-brand-50">
       <Navbar />
@@ -776,20 +792,20 @@ export default function FinancePage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Finance</h1>
-            {(role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR') && (
+            {isAnalyticsRole && (
               <Link href="/finance/pnl" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
                 📊 Lihat Laporan P&L →
               </Link>
             )}
           </div>
           {canCreate && (
-            <button onClick={() => setShowForm(v => !v)} className="btn-primary self-start sm:self-auto">
+            <button onClick={() => { setShowForm(v => !v); setActiveTab('pm') }} className="btn-primary self-start sm:self-auto">
               {showForm ? 'Tutup Form' : '+ Ajukan Pembayaran'}
             </button>
           )}
         </div>
 
-        {/* ── Alert Strip ── */}
+        {/* ── Alert Strip (selalu tampil di semua tab) ── */}
         {(urgentPayments.length > 0 || overdueReceivables.length > 0) && (
           <div className="flex flex-wrap gap-2">
             {urgentPayments.length > 0 && (
@@ -818,6 +834,34 @@ export default function FinancePage() {
             )}
           </div>
         )}
+
+        {/* ── Tab Navigation ── */}
+        <div className="flex gap-1 bg-white rounded-xl p-1 shadow-sm border border-gray-100">
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              className={`flex-1 text-xs sm:text-sm px-3 py-2.5 rounded-lg font-medium transition-all ${
+                activeTab === t.key
+                  ? 'bg-brand text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {t.label}
+              {t.key === 'finance' && urgentPayments.length > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold">{urgentPayments.length}</span>
+              )}
+              {t.key === 'finance' && overdueReceivables.length > 0 && (
+                <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] font-bold">{overdueReceivables.length}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════════
+            TAB: FORECAST & PENGAJUAN (PM / Produser)
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === 'pm' && <>
 
         {/* ── 1. Form Ajukan Pembayaran ── */}
         {showForm && canCreate && (
@@ -893,7 +937,14 @@ export default function FinancePage() {
           </form>
         )}
 
-        {/* ── 2. PENGAJUAN PEMBAYARAN (dipindah ke atas) ── */}
+        </> /* end TAB PM */}
+
+        {/* ══════════════════════════════════════════════════════════════
+            TAB: PEMBAYARAN & PIUTANG (Finance)
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === 'finance' && <>
+
+        {/* ── 2. PENGAJUAN PEMBAYARAN ── */}
         <div id="payment-section" className="card p-4 space-y-3 border-t-4 border-purple-400">
           <div className="flex items-center justify-between gap-3 flex-wrap pb-2 border-b border-gray-100">
             <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
@@ -1207,6 +1258,13 @@ export default function FinancePage() {
           </div>
         )}
 
+        </> /* end TAB FINANCE */}
+
+        {/* ══════════════════════════════════════════════════════════════
+            TAB: LAPORAN (Owner / Director)
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === 'laporan' && <>
+
         {/* ── 4. FORECAST KEBUTUHAN DANA VENDOR ── */}
         {cashflow && (
           <div className="card p-4 space-y-3 border-t-4 border-orange-400">
@@ -1311,7 +1369,14 @@ export default function FinancePage() {
           <ProfitabilityByProjectCard rows={profitability.byProject} />
         )}
 
-        {/* ── 6. FORECAST BUDGET per PROJECT (tool kerja PM — dipindah ke bawah) ── */}
+        </> /* end TAB LAPORAN */}
+
+        {/* ══════════════════════════════════════════════════════════════
+            TAB: PM — Section 6: Forecast Budget (tool kerja PM)
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === 'pm' && <>
+
+        {/* ── 6. FORECAST BUDGET per PROJECT ── */}
         <div className="card p-4 space-y-3 border-t-4 border-blue-400">
           <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-100">
             <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
@@ -1978,6 +2043,10 @@ export default function FinancePage() {
             </div>
           )}
         </div>
+
+        </> /* end TAB PM — Section 6 */}
+
+        {/* ── Modals (selalu di-render, tidak di dalam tab) ── */}
         {/* Modal Pembayaran */}
         {payModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
