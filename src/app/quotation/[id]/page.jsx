@@ -122,10 +122,13 @@ export default function QuotationDetailPage() {
   }
 
   async function openDuplicate() {
-    // Load daftar project aktif sebagai pilihan target
-    const res = await fetch('/api/projects?status=PITCHING,HOLD,WAITING_PITCH_RESULT,PREPARATION,EVENT_DAY,REPORTING,INVOICING')
-    const data = await res.json()
-    setDupProjects(Array.isArray(data) ? data : [])
+    try {
+      const res = await fetch('/api/projects?light=true')
+      const data = await res.json()
+      setDupProjects(Array.isArray(data) ? data : [])
+    } catch {
+      setDupProjects([])
+    }
     setDupProjectId(q?.projectId || '')
     setShowDuplicate(true)
   }
