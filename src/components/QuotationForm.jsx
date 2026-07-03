@@ -359,7 +359,11 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
   return (
     <div className="min-h-screen bg-brand-50">
       <Navbar />
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+
+      {/* ── Sticky Summary Panel (desktop: fixed kanan, mobile: bottom bar) ── */}
+      <StickyTotals totals={totals} agencyFeePercent={agencyFeePercent} includesPpn={includesPpn} ppnPercent={ppnPercent} />
+
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-24 xl:pb-6 space-y-5">
         {/* Page header */}
         <div className="flex items-center gap-3">
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">←</button>
@@ -663,6 +667,134 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
           </button>
         </div>
       </main>
+    </div>
+  )
+}
+
+// ── Sticky totals panel ───────────────────────────────────────────────────────
+
+function StickyTotals({ totals, agencyFeePercent, includesPpn, ppnPercent }) {
+  const [expanded, setExpanded] = useState(false)
+
+  const hasInternal = totals.hppFilled > 0 || totals.titipanTotal > 0
+  const exclPpn     = totals.baseSubtotal + totals.agencyFeeAmt
+
+  // ── Desktop: fixed panel di kanan layar ──────────────────────────────────
+  const desktopPanel = (
+    <div className="hidden xl:flex fixed top-24 right-4 z-40 flex-col w-56 rounded-2xl shadow-xl border border-gray-200 bg-white overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-brand to-indigo-600 px-4 py-3">
+        <p className="text-white text-xs font-semibold uppercase tracking-wide">Ringkasan Live</p>
+      </div>
+
+      <div className="px-4 py-3 space-y-1.5 text-xs">
+        <Row label="Sub Total" value={totals.baseSubtotal} />
+
+        {totals.titipanTotal > 0 && (
+          <Row label="Titipan Klien 🔒" value={totals.titipanTotal} cls="text-amber-600" />
+        )}
+
+        {agencyFeePercent > 0 && (
+          <Row label={`Agency Fee ${agencyFeePercent}%`} value={totals.agencyFeeAmt} cls="text-gray-500" />
+        )}
+
+        {includesPpn && (
+          <>
+            <Row label="Total (excl. PPN)" value={exclPpn} bold />
+            <Row label={`PPN ${ppnPercent}%`} value={totals.ppnBase} cls="text-gray-500" />
+          </>
+        )}
+
+        <div className="border-t border-gray-100 pt-1.5">
+          <Row label="Grand Total" value={totals.grandTotal} bold large />
+        </div>
+
+        {hasInternal && (
+          <div className="border-t border-dashed border-gray-200 pt-1.5 space-y-1">
+            {totals.hppFilled > 0 && (
+              <Row label={`HPP (${totals.hppFilled}/${totals.itemCount})`} value={totals.hppTotal} cls="text-red-500" />
+            )}
+            {totals.grossMargin != null && (
+              <Row
+                label="Margin WTM"
+                value={totals.grossMargin}
+                cls={totals.grossMargin >= 0 ? 'text-green-600' : 'text-red-600'}
+                suffix={totals.marginPct != null ? ` (${totals.marginPct.toFixed(1)}%)` : ''}
+                bold
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  // ── Mobile: sticky bottom bar ─────────────────────────────────────────────
+  const mobileBar = (
+    <div className="xl:hidden fixed bottom-0 left-0 right-0 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
+      {/* Expanded detail */}
+      {expanded && (
+        <div className="bg-white border-t border-gray-200 px-4 py-3 space-y-1.5 text-xs">
+          <Row label="Sub Total" value={totals.baseSubtotal} />
+          {totals.titipanTotal > 0 && (
+            <Row label="Titipan Klien 🔒" value={totals.titipanTotal} cls="text-amber-600" />
+          )}
+          {agencyFeePercent > 0 && (
+            <Row label={`Agency Fee ${agencyFeePercent}%`} value={totals.agencyFeeAmt} cls="text-gray-500" />
+          )}
+          {includesPpn && (
+            <>
+              <Row label="Total (excl. PPN)" value={exclPpn} bold />
+              <Row label={`PPN ${ppnPercent}%`} value={totals.ppnBase} cls="text-gray-500" />
+            </>
+          )}
+          {totals.hppFilled > 0 && (
+            <Row label={`HPP/Modal (${totals.hppFilled}/${totals.itemCount} item)`} value={totals.hppTotal} cls="text-red-500" />
+          )}
+          {totals.grossMargin != null && (
+            <Row
+              label="Gross Margin WTM"
+              value={totals.grossMargin}
+              cls={totals.grossMargin >= 0 ? 'text-green-600' : 'text-red-600'}
+              suffix={totals.marginPct != null ? ` (${totals.marginPct.toFixed(1)}%)` : ''}
+              bold
+            />
+          )}
+        </div>
+      )}
+
+      {/* Always-visible summary bar */}
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full bg-gradient-to-r from-brand to-indigo-600 px-4 py-3 flex items-center justify-between"
+      >
+        <div className="flex items-center gap-3 text-white text-sm">
+          <span className="opacity-70 text-xs">Grand Total</span>
+          <span className="font-bold text-base">{formatRp(totals.grandTotal) ? `Rp ${formatRp(totals.grandTotal)}` : 'Rp 0'}</span>
+          {totals.titipanTotal > 0 && (
+            <span className="text-amber-300 text-xs">· Titipan Rp {formatRp(totals.titipanTotal)}</span>
+          )}
+        </div>
+        <span className="text-white opacity-70 text-xs">{expanded ? '▼' : '▲'} Detail</span>
+      </button>
+    </div>
+  )
+
+  return (
+    <>
+      {desktopPanel}
+      {mobileBar}
+    </>
+  )
+}
+
+// Helper row untuk StickyTotals
+function Row({ label, value, cls = 'text-gray-700', bold = false, large = false, suffix = '' }) {
+  const numStr = `Rp ${formatRp(value)}`
+  return (
+    <div className={`flex justify-between gap-2 ${bold ? 'font-semibold' : ''} ${large ? 'text-sm' : ''}`}>
+      <span className="text-gray-500 shrink-0">{label}</span>
+      <span className={`${cls} text-right`}>{numStr}{suffix}</span>
     </div>
   )
 }
