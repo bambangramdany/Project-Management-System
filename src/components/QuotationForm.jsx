@@ -245,6 +245,20 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
     }))
   }
 
+  function duplicateItem(secIdx, itemIdx) {
+    setSections(prev => prev.map((s, si) => {
+      if (si !== secIdx) return s
+      const original = s.items[itemIdx]
+      const copy = { ...original, _key: Math.random().toString(36).slice(2) }
+      const items = [
+        ...s.items.slice(0, itemIdx + 1),
+        copy,
+        ...s.items.slice(itemIdx + 1),
+      ].map((item, ii) => ({ ...item, no: ii + 1 }))
+      return { ...s, items }
+    }))
+  }
+
   // ── Totals ────────────────────────────────────────────────────────────────
   const totals = calcTotals(sections, agencyFeePercent, includesPpn, ppnPercent)
 
@@ -506,6 +520,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
                     onRemove={() => removeItem(si, ii)}
                     onMoveUp={() => moveItem(si, ii, -1)}
                     onMoveDown={() => moveItem(si, ii, 1)}
+                    onDuplicate={() => duplicateItem(si, ii)}
                     agencyFeePercent={agencyFeePercent}
                   />
                 ))}
@@ -620,7 +635,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
 
 // ── Item row component ────────────────────────────────────────────────────────
 
-function ItemRow({ item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMoveUp, onMoveDown, agencyFeePercent }) {
+function ItemRow({ item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMoveUp, onMoveDown, onDuplicate, agencyFeePercent }) {
   const [showDetail, setShowDetail] = useState(!!item.detailText)
 
   return (
@@ -726,6 +741,9 @@ function ItemRow({ item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMove
         </label>
         <button onClick={() => setShowDetail(d => !d)} className="text-[11px] text-indigo-500 hover:underline">
           {showDetail ? '↑ sembunyikan detail' : '+ detail teks'}
+        </button>
+        <button onClick={onDuplicate} className="text-[11px] text-gray-400 hover:text-gray-600 hover:underline" title="Duplikasi baris ini">
+          ⎘ duplikasi baris
         </button>
       </div>
     </div>

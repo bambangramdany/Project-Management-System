@@ -70,6 +70,10 @@ export default function QuotationDetailPage() {
   const [sigForm,          setSigForm]          = useState({})
   const [users,            setUsers]            = useState([])
   const [uploadingPdf,     setUploadingPdf]     = useState(false)
+  const [showDuplicate,    setShowDuplicate]    = useState(false)
+  const [dupProjects,      setDupProjects]      = useState([])
+  const [dupProjectId,     setDupProjectId]     = useState('')
+  const [duplicating,      setDuplicating]      = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -114,6 +118,33 @@ export default function QuotationDetailPage() {
     else {
       const d = await res.json().catch(() => ({}))
       alert(d.error || 'Gagal')
+    }
+  }
+
+  async function openDuplicate() {
+    // Load daftar project aktif sebagai pilihan target
+    const res = await fetch('/api/projects?status=PITCHING,HOLD,WAITING_PITCH_RESULT,PREPARATION,EVENT_DAY,REPORTING,INVOICING')
+    const data = await res.json()
+    setDupProjects(Array.isArray(data) ? data : [])
+    setDupProjectId(q?.projectId || '')
+    setShowDuplicate(true)
+  }
+
+  async function doDuplicate() {
+    setDuplicating(true)
+    const res = await fetch(`/api/quotations/${id}/duplicate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId: dupProjectId || null }),
+    })
+    setDuplicating(false)
+    if (res.ok) {
+      const newQ = await res.json()
+      setShowDuplicate(false)
+      router.push(`/quotation/${newQ.id}`)
+    } else {
+      const d = await res.json().catch(() => ({}))
+      alert(d.error || 'Gagal menduplikasi quotation')
     }
   }
 
@@ -216,6 +247,13 @@ export default function QuotationDetailPage() {
             >
               ⬇ Download PDF
             </a>
+
+            {/* Duplikasi — selalu tersedia untuk semua status */}
+            {canManage(user) && (
+              <button onClick={openDuplicate} className="btn-secondary text-sm flex items-center gap-1.5">
+                📋 Duplikasi
+              </button>
+            )}
 
             {q.status === 'DRAFT' && canManage(user) && (
               <>
@@ -525,6 +563,45 @@ export default function QuotationDetailPage() {
           title={q.quotationNumber}
           onClose={() => setShowPreview(false)}
         />
+      )}
+
+      {showDuplicate && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <h3 className="font-bold text-lg">Duplikasi Quotation</h3>
+            <p className="text-sm text-gray-500">Semua section dan item akan di-copy sebagai Draft baru.</p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Project Tujuan <span className="text-gray-400 font-normal">(opsional)</span>
+              </label>
+              <select
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={dupProjectId}
+                onChange={e => setDupProjectId(e.target.value)}
+              >
+                <option value="">— Tanpa project (standalone) —</option>
+                {dupProjects.map(p => (
+                  <option key={p.id} value={p.id}>{p.code} · {p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <button
+                onClick={() => setShowDuplicate(false)}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={doDuplicate}
+                disabled={duplicating}
+                className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {duplicating ? 'Menduplikasi...' : '📋 Buat Duplikasi'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
