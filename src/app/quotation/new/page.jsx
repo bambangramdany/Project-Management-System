@@ -1,6 +1,6 @@
 'use client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useRef } from 'react'
 import QuotationForm from '@/components/QuotationForm'
 
 function NewQuotationContent() {
@@ -14,6 +14,9 @@ function NewQuotationContent() {
   const [search, setSearch]           = useState('')
   const [copyingId, setCopyingId]     = useState(null)
   const [copyInitial, setCopyInitial] = useState(null)
+  const [uploading, setUploading]     = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const fileInputRef                  = useRef(null)
 
   // Load daftar quotation yang bisa disalin
   async function loadQuotations() {
@@ -81,6 +84,29 @@ function NewQuotationContent() {
     else router.back()
   }
 
+  function downloadTemplate() {
+    window.location.href = '/api/quotations/excel-template'
+  }
+
+  async function handleExcelUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadError('')
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      if (projectId) fd.append('projectId', projectId)
+      const res = await fetch('/api/quotations/excel-template', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) { setUploadError(data.error || 'Gagal memproses file'); setUploading(false); return }
+      router.push(`/quotation/${data.id}`)
+    } catch {
+      setUploadError('Terjadi kesalahan, coba lagi')
+      setUploading(false)
+    }
+  }
+
   // ── Mode: pilih cara buat ──
   if (mode === 'choose') {
     return (
@@ -113,6 +139,41 @@ function NewQuotationContent() {
               <div className="text-3xl mb-3">📋</div>
               <h2 className="font-semibold text-gray-900 group-hover:text-indigo-700">Salin dari Quotation Lain</h2>
               <p className="text-sm text-gray-500 mt-1">Pilih quotation yang sudah ada sebagai template — semua item ter-copy, tinggal ubah yang perlu.</p>
+            </button>
+
+            {/* Opsi 3: Upload Excel */}
+            <div
+              className="text-left p-6 rounded-2xl border-2 border-gray-200 hover:border-emerald-400 hover:bg-emerald-50/40 transition-all group cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <div className="text-3xl mb-3">{uploading ? '⏳' : '📊'}</div>
+              <h2 className="font-semibold text-gray-900 group-hover:text-emerald-700">
+                {uploading ? 'Memproses...' : 'Upload dari Excel'}
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Isi template Excel lalu upload — langsung jadi Draft quotation.
+              </p>
+              {uploadError && (
+                <p className="text-xs text-red-500 mt-2 font-medium">⚠ {uploadError}</p>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={handleExcelUpload}
+              />
+            </div>
+          </div>
+
+          {/* Download template */}
+          <div className="border-t border-gray-200 pt-6">
+            <p className="text-sm text-gray-500 mb-3">Belum punya template Excel? Unduh dulu:</p>
+            <button
+              onClick={downloadTemplate}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-emerald-300 bg-white text-emerald-700 text-sm font-medium hover:bg-emerald-50 transition-colors"
+            >
+              ⬇ Download Template Excel
             </button>
           </div>
         </div>
