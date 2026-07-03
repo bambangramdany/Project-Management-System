@@ -37,7 +37,7 @@ const MANAGER_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'FINAN
 export default function WorkloadPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState('workload') // 'workload' | 'recap'
+  const [activeTab, setActiveTab] = useState('workload') // 'workload' | 'recap' | 'kpi'
   const [workload, setWorkload] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState(null)
@@ -48,6 +48,9 @@ export default function WorkloadPage() {
   // Rekap bulanan state
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   const [recapMonth, setRecapMonth] = useState(currentMonthStr)
+  const [kpiTeam, setKpiTeam] = useState([])
+  const [kpiPeriod, setKpiPeriod] = useState(currentMonthStr)
+  const [allProjects, setAllProjects] = useState([])
   const [recap, setRecap] = useState(null)
   const [recapLoading, setRecapLoading] = useState(false)
 
@@ -128,7 +131,13 @@ export default function WorkloadPage() {
 
   useEffect(() => {
     if (status !== 'authenticated') return
-    fetch('/api/team').then(r => r.json()).then(data => setTeamList(Array.isArray(data) ? data : []))
+    fetch('/api/team').then(r => r.json()).then(data => {
+      const list = Array.isArray(data) ? data : []
+      setTeamList(list)
+      // KPI: tampilkan semua anggota, KpiPanel yang handle permission masing-masing
+      setKpiTeam(list.filter(m => !['OWNER', 'DIRECTOR'].includes(m.role)).sort((a, b) => a.name.localeCompare(b.name)))
+    })
+    fetch('/api/projects?light=1').then(r => r.json()).then(data => setAllProjects(Array.isArray(data) ? data : []))
     fetchWorkload(dateFrom, dateTo)
   }, [status])
 
@@ -172,6 +181,7 @@ export default function WorkloadPage() {
             <div className="flex gap-1 border-b border-gray-200">
               {[
                 { key: 'workload', label: '📊 Workload Tim' },
+                { key: 'kpi', label: '⭐ Nilai KPI Tim' },
                 { key: 'recap', label: '📋 Rekap Bulanan' },
               ].map(tab => (
                 <button
@@ -383,6 +393,43 @@ export default function WorkloadPage() {
         {/* Detail panel — selected user or self */}
         {activeTab === 'workload' && (selectedUser || (!isManager && workload.length > 0)) && (
           <UserDetail data={selectedUser || workload[0]} session={session} teamList={teamList} canReassign={isManager} />
+        )}
+
+        {/* ── TAB: NILAI KPI TIM ── */}
+        {activeTab === 'kpi' && isManager && (
+          <div className="space-y-4">
+            <div className="card p-4 flex flex-wrap items-end gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Periode Penilaian</label>
+                <input
+                  type="month"
+                  className="input text-sm py-1.5"
+                  value={kpiPeriod}
+                  onChange={e => setKpiPeriod(e.target.value)}
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Isi penilaian KPI bulanan untuk anggota tim yang menjadi tanggung jawab Anda.
+                  Batas pengisian: <strong>tanggal 23</strong> setiap bulan.
+                </p>
+              </div>
+            </div>
+
+            {kpiTeam.length === 0 ? (
+              <div className="card p-8 text-center text-gray-400 space-y-2">
+                <p className="text-3xl">📋</p>
+                <p className="font-medium">Tidak ada anggota tim yang bisa dinilai</p>
+                <p className="text-xs">PM/Produser dapat menilai anggota yang berada di bawah koordinasinya.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {kpiTeam.map(m => (
+                  <KpiPanel key={m.id} user={m} session={session} period={kpiPeriod} projects={allProjects} />
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
       </main>
