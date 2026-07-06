@@ -94,6 +94,11 @@ export async function POST(req) {
     priceMax: body.priceMax !== '' && body.priceMax != null ? parseFloat(body.priceMax) : null,
     priceNote: body.priceNote || null,
     notes: body.notes || null,
+    bankName: body.bankName || null,
+    bankAccountNumber: body.bankAccountNumber || null,
+    accountHolder: body.accountHolder || null,
+    npwp: body.npwp || null,
+    email: body.email || null,
     enteredById: session.user.id,
     enteredByName: session.user.name,
   }

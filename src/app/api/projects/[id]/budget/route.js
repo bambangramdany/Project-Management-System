@@ -45,6 +45,7 @@ export async function GET(req, { params }) {
     include: {
       payments: { select: { id: true, amount: true, status: true, vendor: true, createdAt: true } },
       titipanEntries: { orderBy: { createdAt: 'asc' } },
+      vendor: { select: { id: true, name: true, bankName: true, bankAccountNumber: true, accountHolder: true, npwp: true, phone: true } },
     },
   })
   // Status of each forecast item is derived from its linked payment requests

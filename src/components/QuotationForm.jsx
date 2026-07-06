@@ -61,7 +61,10 @@ function emptyItem(index) {
     days:             '1',
     subtotal:         0,
     hppRate:          '',     // cost price per unit — internal only
+    marginPct:        '',     // per-item margin % opsional — auto-hitung rate dari HPP
     titipanKlien:     '',     // pass-through cost embedded in rate — internal only
+    vendorId:         null,   // FK ke Vendor master
+    vendorName:       '',     // cache nama vendor
     includeAgencyFee: false,
     showInInvoiceDetail: true,
   }
@@ -146,6 +149,8 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
 
   // Users list for selectors
   const [users, setUsers] = useState([])
+  // Vendor list for item vendor picker
+  const [vendors, setVendors] = useState([])
 
   // Sections + items
   const [sections, setSections] = useState(() => {
@@ -166,7 +171,10 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
           days:             String(item.days),
           subtotal:         item.subtotal,
           hppRate:          item.hppRate != null ? parseInt(item.hppRate, 10).toLocaleString('id-ID') : '',
+          marginPct:        item.marginPct != null ? String(item.marginPct) : '',
           titipanKlien:     item.titipanKlien != null ? parseInt(item.titipanKlien, 10).toLocaleString('id-ID') : '',
+          vendorId:         item.vendorId || null,
+          vendorName:       item.vendorName || '',
           includeAgencyFee: item.includeAgencyFee,
           showInInvoiceDetail: item.showInInvoiceDetail,
         })),
@@ -180,6 +188,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
 
   useEffect(() => {
     fetch('/api/team').then(r => r.json()).then(d => setUsers(Array.isArray(d) ? d : (d.users || [])))
+    fetch('/api/vendors?limit=500').then(r => r.json()).then(d => setVendors(Array.isArray(d) ? d : (d.vendors || [])))
   }, [])
 
   // Auto-recalculate subtotals when items change
@@ -322,7 +331,10 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
           days:                parseNum(item.days) || 1,
           subtotal:            item.subtotal,
           hppRate:             item.hppRate !== '' ? parseNum(item.hppRate) || null : null,
+          marginPct:           item.marginPct !== '' ? parseFloat(item.marginPct) || null : null,
           titipanKlien:        item.titipanKlien !== '' ? parseNum(item.titipanKlien) || null : null,
+          vendorId:            item.vendorId || null,
+          vendorName:          item.vendorName || null,
           includeAgencyFee:    item.includeAgencyFee,
           showInInvoiceDetail: item.showInInvoiceDetail,
           order:               ii,
@@ -550,6 +562,7 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
                     onDuplicate={() => duplicateItem(si, ii)}
                     onAddNext={() => addItemAndFocus(si)}
                     agencyFeePercent={agencyFeePercent}
+                    vendors={vendors}
                   />
                 ))}
               </div>
@@ -802,17 +815,63 @@ function Row({ label, value, cls = 'text-gray-700', bold = false, large = false,
 // ── Item row component ────────────────────────────────────────────────────────
 
 const ItemRow = forwardRef(function ItemRow(
-  { item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMoveUp, onMoveDown, onDuplicate, onAddNext, agencyFeePercent },
+  { item, secIdx, itemIdx, totalItems, onUpdate, onRemove, onMoveUp, onMoveDown, onDuplicate, onAddNext, agencyFeePercent, vendors = [] },
   ref
 ) {
   const [showDetail, setShowDetail] = useState(!!item.detailText)
+  const [vendorSearch, setVendorSearch] = useState('')
+  const [showVendorDrop, setShowVendorDrop] = useState(false)
 
   const descRef    = useRef(null)
   const rateRef    = useRef(null)
   const qtyRef     = useRef(null)
   const daysRef    = useRef(null)
   const hppRef     = useRef(null)
+  const marginRef  = useRef(null)
   const titipanRef = useRef(null)
+
+  // Filter vendor berdasarkan pencarian
+  const filteredVendors = vendors.filter(v =>
+    v.name.toLowerCase().includes(vendorSearch.toLowerCase())
+  ).slice(0, 8)
+
+  // Auto-hitung rate dari HPP + marginPct saat margin % diinput
+  function handleMarginPctChange(val) {
+    const pct = val.replace(/[^0-9.]/g, '')
+    const hppNum = parseNum(item.hppRate)
+    const pctNum = parseFloat(pct)
+    if (hppNum > 0 && !isNaN(pctNum) && pctNum > 0) {
+      const newRate = Math.round(hppNum * (1 + pctNum / 100))
+      onUpdate({ marginPct: pct, rate: newRate.toLocaleString('id-ID') })
+    } else {
+      onUpdate({ marginPct: pct })
+    }
+  }
+
+  // Jika HPP berubah dan marginPct sudah diisi → recalc rate
+  function handleHppChange(val) {
+    handleRateInput(val, v => {
+      const hppNum = parseNum(v)
+      const pctNum = parseFloat(item.marginPct)
+      if (hppNum > 0 && !isNaN(pctNum) && pctNum > 0) {
+        const newRate = Math.round(hppNum * (1 + pctNum / 100))
+        onUpdate({ hppRate: v, rate: newRate.toLocaleString('id-ID') })
+      } else {
+        onUpdate({ hppRate: v })
+      }
+    })
+  }
+
+  function selectVendor(v) {
+    onUpdate({ vendorId: v.id, vendorName: v.name })
+    setVendorSearch('')
+    setShowVendorDrop(false)
+  }
+
+  function clearVendor() {
+    onUpdate({ vendorId: null, vendorName: '' })
+    setVendorSearch('')
+  }
 
   // Expose focusDesc agar parent bisa focus row ini setelah add
   useImperativeHandle(ref, () => ({
@@ -910,7 +969,7 @@ const ItemRow = forwardRef(function ItemRow(
                   Rp {formatRp(item.subtotal)}
                 </div>
               </div>
-              {/* HPP & Titipan — internal only, never on PDF */}
+              {/* HPP, Margin %, Titipan — internal only, never on PDF */}
               <div className="flex gap-2 border-l border-dashed border-gray-200 pl-3 ml-1">
                 <div className="flex flex-col">
                   <span className="text-[10px] text-rose-400 mb-0.5">HPP/Modal 🔒</span>
@@ -919,10 +978,30 @@ const ItemRow = forwardRef(function ItemRow(
                     type="text"
                     className="input w-28 text-sm text-right border-rose-200 focus:border-rose-400 bg-rose-50/30 placeholder-rose-200"
                     value={item.hppRate}
-                    onChange={e => handleRateInput(e.target.value, v => onUpdate({ hppRate: v }))}
+                    onChange={e => handleHppChange(e.target.value)}
                     placeholder="opsional"
-                    onKeyDown={e => handleKey(e, titipanRef)}
+                    onKeyDown={e => handleKey(e, marginRef)}
                   />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-violet-500 mb-0.5">Margin % 🔒</span>
+                  <div className="relative">
+                    <input
+                      ref={marginRef}
+                      type="text"
+                      className="input w-20 text-sm text-right border-violet-200 focus:border-violet-400 bg-violet-50/30 placeholder-violet-200 pr-5"
+                      value={item.marginPct}
+                      onChange={e => handleMarginPctChange(e.target.value)}
+                      placeholder="0"
+                      onKeyDown={e => handleKey(e, titipanRef)}
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-violet-400">%</span>
+                  </div>
+                  {item.marginPct && parseNum(item.hppRate) > 0 && (
+                    <span className="text-[9px] text-violet-400 mt-0.5 text-right">
+                      +Rp {formatRp(Math.round(parseNum(item.hppRate) * (parseFloat(item.marginPct) || 0) / 100))}
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[10px] text-amber-500 mb-0.5">Titipan Klien 🔒</span>
@@ -942,7 +1021,42 @@ const ItemRow = forwardRef(function ItemRow(
         )}
       </div>
 
-      {/* Row 3: Flags */}
+      {/* Row 3: Vendor picker */}
+      <div className="ml-8 mt-1">
+        {item.vendorId ? (
+          <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded px-2 py-1 w-fit">
+            <span className="text-[11px] text-emerald-700">🏢 {item.vendorName}</span>
+            <button onClick={clearVendor} className="text-emerald-400 hover:text-red-500 text-[11px] ml-1">✕</button>
+          </div>
+        ) : (
+          <div className="relative w-56">
+            <input
+              type="text"
+              className="input text-[11px] py-1 pl-2 pr-6 w-full border-dashed text-gray-500 placeholder-gray-300"
+              placeholder="🏢 Pilih vendor (opsional)..."
+              value={vendorSearch}
+              onChange={e => { setVendorSearch(e.target.value); setShowVendorDrop(true) }}
+              onFocus={() => setShowVendorDrop(true)}
+              onBlur={() => setTimeout(() => setShowVendorDrop(false), 150)}
+            />
+            {showVendorDrop && (vendorSearch || filteredVendors.length > 0) && (
+              <div className="absolute z-20 top-full left-0 w-full bg-white border border-gray-200 rounded shadow-lg mt-0.5 max-h-40 overflow-y-auto">
+                {filteredVendors.length === 0 ? (
+                  <div className="px-3 py-2 text-[11px] text-gray-400">Tidak ada vendor ditemukan</div>
+                ) : filteredVendors.map(v => (
+                  <button key={v.id} className="w-full text-left px-3 py-1.5 hover:bg-gray-50 text-[11px]"
+                    onMouseDown={() => selectVendor(v)}>
+                    <span className="font-medium text-gray-700">{v.name}</span>
+                    {v.vendorType && <span className="text-gray-400 ml-1">· {v.vendorType}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Row 4: Flags */}
       <div className="flex flex-wrap items-center gap-3 ml-8">
         {agencyFeePercent > 0 && (
           <label className="flex items-center gap-1.5 cursor-pointer">

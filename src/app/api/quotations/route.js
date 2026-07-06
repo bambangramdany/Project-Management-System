@@ -93,6 +93,14 @@ export async function POST(req) {
         subtotal:            parseFloat(item.subtotal) || 0,
         includeAgencyFee:    !!item.includeAgencyFee,
         showInInvoiceDetail: item.showInInvoiceDetail !== false,
+        hppRate:             item.hppRate != null && item.hppRate !== '' ? parseFloat(item.hppRate) : null,
+        hppSubtotal:         item.hppRate != null && item.hppRate !== ''
+                               ? parseFloat(item.hppRate) * (parseFloat(item.qty) || 1) * (parseFloat(item.days) || 1)
+                               : null,
+        marginPct:           item.marginPct != null && item.marginPct !== '' ? parseFloat(item.marginPct) : null,
+        titipanKlien:        item.titipanKlien != null && item.titipanKlien !== '' ? parseFloat(item.titipanKlien) : null,
+        vendorId:            item.vendorId || null,
+        vendorName:          item.vendorName || null,
         order:               ii,
       })),
     },

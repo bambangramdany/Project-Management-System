@@ -79,6 +79,8 @@ export async function syncBudgetFromQuotation(projectId, quotationId) {
         note:                 item.detailText ? item.detailText.slice(0, 500) : null,
         sourceQuotationId:    quotationId,
         sourceQuotationNumber: quotation.quotationNumber,
+        vendorId:             item.vendorId  || null,
+        vendorName:           item.vendorName || null,
       })
     }
   }

@@ -498,8 +498,17 @@ model Vendor {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  enteredBy User? @relation(fields: [enteredById], references: [id], onDelete: SetNull)
-  ratings   VendorRating[]
+  // Payment / rekening info — dipakai auto-fill di form pengajuan pembayaran
+  bankName          String?
+  bankAccountNumber String?
+  accountHolder     String?   // nama pemilik rekening (bisa beda dengan picContact)
+  npwp              String?
+  email             String?
+
+  enteredBy      User?            @relation(fields: [enteredById], references: [id], onDelete: SetNull)
+  ratings        VendorRating[]
+  quotationItems QuotationItem[]
+  budgetItems    ProjectBudgetItem[]
 
   @@index([vendorType])
   @@index([city])
@@ -846,6 +855,13 @@ model ProjectBudgetItem {
   // Link ke quotation asal — untuk sinkronisasi otomatis (null = item manual)
   sourceQuotationId     String?
   sourceQuotationNumber String?
+
+  // Vendor yang diharapkan mengerjakan/menerima pembayaran untuk item ini
+  // Di-sync dari QuotationItem.vendorId saat budget-from-quotation dijalankan
+  vendorId   String?
+  vendorName String?  // cache nama vendor
+  vendor     Vendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -855,6 +871,7 @@ model ProjectBudgetItem {
 
   @@index([projectId])
   @@index([sourceQuotationId])
+  @@index([vendorId])
 }
 
 // Rincian vendor per item titipan — satu item bisa mencakup banyak vendor
@@ -1145,9 +1162,19 @@ model QuotationItem {
   // Rate jual ke klien = HPP + titipan + margin WTM (PM yang menentukan rate-nya)
   titipanKlien Float?  // nominal titipan yang melebur di item ini; null = tidak ada titipan
 
+  // Per-item margin % (opsional) — jika diisi, rate = hppRate × (1 + marginPct/100)
+  // Jika kosong, margin ditentukan manual oleh PM lewat kolom rate
+  marginPct Float?
+
+  // Vendor yang mengerjakan item ini (opsional) — auto-sync ke forecast & payment
+  vendorId   String?
+  vendorName String?  // cache nama vendor (agar tetap tampil jika vendor dihapus)
+  vendor     Vendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
   order Int
 
   @@index([sectionId])
+  @@index([vendorId])
 }
 
 // Post-WON supplemental cost — issued after the quotation is already won.

@@ -8,8 +8,9 @@ import { VENDOR_TYPES, VENDOR_STATUSES, VENDOR_SUBCATEGORIES } from '@/lib/const
 const EMPTY_FORM = {
   name: '', vendorType: '', subCategory: '', province: '', city: '', address: '', area: '',
   capacity: '', ballroomCapacity: '', meetingCapacity: '', website: '', instagram: '',
-  output: '', productService: '', status: 'Active', picContact: '', phone: '',
+  output: '', productService: '', status: 'Active', picContact: '', phone: '', email: '',
   priceMin: '', priceMax: '', priceNote: '', notes: '',
+  bankName: '', bankAccountNumber: '', accountHolder: '', npwp: '',
 }
 
 export default function VendorsPage() {
@@ -77,8 +78,10 @@ export default function VendorsPage() {
       capacity: v.capacity || '', ballroomCapacity: v.ballroomCapacity || '',
       meetingCapacity: v.meetingCapacity || '', website: v.website || '', instagram: v.instagram || '',
       output: v.output || '', productService: v.productService || '', status: v.status || 'Active',
-      picContact: v.picContact || '', phone: v.phone || '',
+      picContact: v.picContact || '', phone: v.phone || '', email: v.email || '',
       priceMin: v.priceMin ?? '', priceMax: v.priceMax ?? '', priceNote: v.priceNote || '', notes: v.notes || '',
+      bankName: v.bankName || '', bankAccountNumber: v.bankAccountNumber || '',
+      accountHolder: v.accountHolder || '', npwp: v.npwp || '',
     })
     setShowForm(true)
   }
@@ -421,10 +424,21 @@ export default function VendorsPage() {
                 <SelectField label="Status" value={form.status} onChange={v => setForm(f => ({ ...f, status: v }))} options={VENDOR_STATUSES} />
                 <Field label="PIC Kontak" value={form.picContact} onChange={v => setForm(f => ({ ...f, picContact: v }))} />
                 <Field label="Telepon" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} />
+                <Field label="Email" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} />
                 <Field label="Harga Min" type="number" value={form.priceMin} onChange={v => setForm(f => ({ ...f, priceMin: v }))} />
                 <Field label="Harga Max" type="number" value={form.priceMax} onChange={v => setForm(f => ({ ...f, priceMax: v }))} />
               </div>
               <Field label="Catatan Harga" value={form.priceNote} onChange={v => setForm(f => ({ ...f, priceNote: v }))} />
+              {/* ── Informasi Pembayaran / Rekening ── */}
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-xs font-semibold text-gray-500 mb-2">🏦 Informasi Rekening (untuk auto-fill pengajuan pembayaran)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Nama Bank" value={form.bankName} onChange={v => setForm(f => ({ ...f, bankName: v }))} placeholder="BCA, Mandiri, BRI..." />
+                  <Field label="No. Rekening" value={form.bankAccountNumber} onChange={v => setForm(f => ({ ...f, bankAccountNumber: v }))} placeholder="1234567890" />
+                  <Field label="Nama Pemilik Rekening" value={form.accountHolder} onChange={v => setForm(f => ({ ...f, accountHolder: v }))} />
+                  <Field label="NPWP" value={form.npwp} onChange={v => setForm(f => ({ ...f, npwp: v }))} placeholder="opsional" />
+                </div>
+              </div>
               <div>
                 <label className="text-xs text-gray-500">Catatan</label>
                 <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm" rows={3} />
@@ -461,10 +475,22 @@ export default function VendorsPage() {
               <Info label="Produk / Layanan" value={detail.productService} />
               <Info label="PIC Kontak" value={detail.picContact} />
               <Info label="Telepon" value={detail.phone} />
+              <Info label="Email" value={detail.email} />
               <Info label="Harga" value={fmtPrice(detail)} />
               <Info label="Catatan Harga" value={detail.priceNote} />
               <Info label="Diisi oleh" value={detail.enteredBy?.name || detail.enteredByName} />
             </div>
+            {(detail.bankName || detail.bankAccountNumber || detail.accountHolder) && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-emerald-700 mb-2">🏦 Informasi Rekening</p>
+                <div className="text-sm text-gray-700 grid grid-cols-2 gap-2">
+                  <Info label="Bank" value={detail.bankName} />
+                  <Info label="No. Rekening" value={detail.bankAccountNumber} />
+                  <Info label="Pemilik Rekening" value={detail.accountHolder} />
+                  <Info label="NPWP" value={detail.npwp} />
+                </div>
+              </div>
+            )}
             {detail.notes && (
               <div>
                 <div className="text-xs text-gray-500">Catatan</div>
@@ -632,11 +658,11 @@ export default function VendorsPage() {
   )
 }
 
-function Field({ label, value, onChange, type = 'text', required }) {
+function Field({ label, value, onChange, type = 'text', required, placeholder }) {
   return (
     <div>
       <label className="text-xs text-gray-500">{label}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} required={required} className="w-full border rounded-lg px-3 py-2 text-sm" />
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} required={required} placeholder={placeholder} className="w-full border rounded-lg px-3 py-2 text-sm" />
     </div>
   )
 }

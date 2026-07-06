@@ -8,6 +8,7 @@ const ALLOWED = [
   'name', 'vendorType', 'subCategory', 'province', 'city', 'address', 'area', 'capacity',
   'ballroomCapacity', 'meetingCapacity', 'website', 'instagram', 'output',
   'productService', 'status', 'picContact', 'phone', 'priceNote', 'notes',
+  'bankName', 'bankAccountNumber', 'accountHolder', 'npwp', 'email',
 ]
 
 export async function PATCH(req, { params }) {

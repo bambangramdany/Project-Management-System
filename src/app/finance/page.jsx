@@ -274,7 +274,14 @@ export default function FinancePage() {
     if (res.ok) {
       const data = await res.json()
       const items = data.budgetItems || []
-      setFormBudgetItems(items.filter(b => b.label).map(b => ({ label: b.label, category: b.category })))
+      // Simpan full data item termasuk vendor info untuk auto-fill
+      setFormBudgetItems(items.filter(b => b.label).map(b => ({
+        label: b.label,
+        category: b.category,
+        vendorId: b.vendorId || null,
+        vendorName: b.vendorName || null,
+        vendor: b.vendor || null, // full vendor object jika di-include
+      })))
       setFormBudgetEmpty(items.length === 0)
     }
   }
@@ -881,16 +888,33 @@ export default function FinancePage() {
                 <select
                   className="select"
                   value={form.budgetItemLabel}
-                  onChange={e => setForm(f => ({ ...f, budgetItemLabel: e.target.value }))}
+                  onChange={e => {
+                    const label = e.target.value
+                    const budgetItem = formBudgetItems.find(b => b.label === label)
+                    // Auto-fill vendor & rekening jika budget item punya vendor dengan data bank
+                    const v = budgetItem?.vendor
+                    setForm(f => ({
+                      ...f,
+                      budgetItemLabel: label,
+                      // Auto-fill hanya jika field masih kosong atau sebelumnya auto-filled
+                      vendor:         (budgetItem?.vendorName && !f.vendor)        ? budgetItem.vendorName : f.vendor,
+                      recipientName:  (v?.accountHolder    && !f.recipientName)    ? v.accountHolder       : f.recipientName,
+                      recipientAccount: (v?.bankAccountNumber && !f.recipientAccount)
+                        ? `${v.bankName ? v.bankName + ' - ' : ''}${v.bankAccountNumber}`
+                        : f.recipientAccount,
+                    }))
+                  }}
                   required
                   disabled={!form.projectId}
                 >
                   <option value="">Pilih komponen forecast...</option>
                   {formBudgetItems.map(b => (
-                    <option key={b.label} value={b.label}>{b.label} ({EXPENSE_CATEGORY_LABEL[b.category] || b.category})</option>
+                    <option key={b.label} value={b.label}>
+                      {b.label} ({EXPENSE_CATEGORY_LABEL[b.category] || b.category}){b.vendorName ? ` · ${b.vendorName}` : ''}
+                    </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-400 mt-1">Kategori pengajuan otomatis mengikuti kategori komponen forecast yang dipilih.</p>
+                <p className="text-xs text-gray-400 mt-1">Kategori pengajuan otomatis mengikuti kategori komponen forecast yang dipilih. Jika vendor sudah diisi di quotation, data rekening akan auto-fill.</p>
               </div>
               <div>
                 <label className="label">Nominal (Rp) *</label>
