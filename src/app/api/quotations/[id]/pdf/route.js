@@ -16,6 +16,13 @@ export async function GET(request, { params }) {
   if (!session) return new Response('Unauthorized', { status: 401 })
 
   const { id } = params
+  const { searchParams } = new URL(request.url)
+  const isDraft = searchParams.get('draft') === '1'
+
+  // Draft PDF hanya untuk role internal — bukan untuk klien
+  const role = session.user.role
+  const allowed = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER', 'PRODUCER']
+  if (!allowed.includes(role)) return new Response('Forbidden', { status: 403 })
 
   const quotation = await prisma.quotation.findUnique({
     where: { id },
@@ -33,23 +40,22 @@ export async function GET(request, { params }) {
 
   if (!quotation) return new Response('Quotation tidak ditemukan', { status: 404 })
 
-  const role = session.user.role
-  const allowed = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER', 'PRODUCER']
-  if (!allowed.includes(role)) return new Response('Forbidden', { status: 403 })
-
   try {
     const pdfBuffer = await renderToBuffer(
-      React.createElement(QuotationPDF, { quotation })
+      React.createElement(QuotationPDF, { quotation, isDraft })
     )
 
     const safeNumber = quotation.quotationNumber.replace(/\//g, '-')
-    const filename   = `${safeNumber}.pdf`
+    const filename   = isDraft ? `DRAFT-INTERNAL_${safeNumber}.pdf` : `${safeNumber}.pdf`
 
     return new Response(pdfBuffer, {
       status: 200,
       headers: {
         'Content-Type':        'application/pdf',
-        'Content-Disposition': `inline; filename="${filename}"`,
+        // draft = attachment (auto-download), normal = inline (preview di browser)
+        'Content-Disposition': isDraft
+          ? `attachment; filename="${filename}"`
+          : `inline; filename="${filename}"`,
         'Content-Length':      String(pdfBuffer.byteLength),
         'Cache-Control':       'no-store',
       },

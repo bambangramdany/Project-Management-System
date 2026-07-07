@@ -251,6 +251,17 @@ export default function QuotationDetailPage() {
             >
               ⬇ Download PDF
             </a>
+            {/* Draft internal PDF — hanya untuk role yang bisa lihat HPP */}
+            {canSeeHpp && (
+              <a
+                href={`/api/quotations/${q.id}/pdf?draft=1`}
+                download
+                title="Download PDF versi draft untuk review internal (berisi HPP & titipan)"
+                className="text-sm flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
+              >
+                🔒 Draft Internal
+              </a>
+            )}
 
             {/* Duplikasi — selalu tersedia untuk semua status */}
             {canManage(user) && (

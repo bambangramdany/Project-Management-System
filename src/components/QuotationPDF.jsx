@@ -98,6 +98,52 @@ const s = StyleSheet.create({
   // ── Footer ──
   footer:     { position: 'absolute', bottom: 22, left: 40, right: 40, borderTopWidth: 0.5, borderTopColor: COLOR.border, paddingTop: 5, flexDirection: 'row', justifyContent: 'space-between' },
   footerText: { fontSize: 6.5, color: COLOR.muted },
+
+  // ── Draft watermark ──
+  draftWatermark: {
+    position: 'absolute', top: 220, left: 40, right: 40,
+    textAlign: 'center', fontSize: 88, fontFamily: 'Helvetica-Bold',
+    color: '#FEE2E2', opacity: 0.55, transform: 'rotate(-35deg)',
+    letterSpacing: 18,
+  },
+
+  // ── Draft banner ──
+  draftBanner: {
+    backgroundColor: '#DC2626', borderRadius: 4,
+    paddingVertical: 7, paddingHorizontal: 10,
+    marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 6,
+  },
+  draftBannerText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#fff', flex: 1 },
+  draftBannerNote: { fontSize: 7, color: '#FCA5A5' },
+
+  // ── Internal breakdown table ──
+  internalWrap:   { marginTop: 12, marginBottom: 10, borderWidth: 1, borderColor: '#FCA5A5', borderRadius: 4 },
+  internalHead:   { flexDirection: 'row', backgroundColor: '#7F1D1D', paddingVertical: 5, paddingHorizontal: 4, borderRadius: 3 },
+  internalThTxt:  { color: '#fff', fontSize: 6.5, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', letterSpacing: 0.3 },
+  internalRow:    { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 4, borderBottomWidth: 0.5, borderBottomColor: '#FEE2E2' },
+  internalRowAlt: { backgroundColor: '#FFF1F2' },
+  internalSec:    { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 4, backgroundColor: '#FEE2E2' },
+  internalSecTxt: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#7F1D1D', flex: 1 },
+  internalTd:     { fontSize: 7.5, color: '#1F2937' },
+  internalTdMuted:{ fontSize: 7, color: '#6B7280', marginTop: 1 },
+  internalTdRed:  { fontSize: 7.5, color: '#DC2626', fontFamily: 'Helvetica-Bold' },
+  // internal cols
+  ciNo:     { width: 18 },
+  ciDesc:   { flex: 1 },
+  ciHpp:    { width: 72, textAlign: 'right' },
+  ciTitipan:{ width: 72, textAlign: 'right' },
+  ciMargin: { width: 60, textAlign: 'right' },
+  ciQuot:   { width: 72, textAlign: 'right' },
+
+  // ── Internal summary ──
+  internalSummaryWrap: { alignSelf: 'flex-end', width: 240, marginTop: 6, padding: 8, backgroundColor: '#FFF1F2', borderRadius: 4, borderWidth: 0.5, borderColor: '#FCA5A5' },
+  internalSummaryTitle:{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#7F1D1D', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 },
+  internalSummaryRow:  { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
+  internalSummaryLbl:  { fontSize: 7.5, color: '#6B7280' },
+  internalSummaryVal:  { fontSize: 7.5, color: '#1F2937', fontFamily: 'Helvetica-Bold' },
+  internalSummaryGrand:{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, paddingHorizontal: 6, backgroundColor: '#7F1D1D', borderRadius: 3, marginTop: 4 },
+  internalSummaryGLbl: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#fff' },
+  internalSummaryGVal: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#FCA5A5' },
 })
 
 // ── Totals calc ───────────────────────────────────────────────────────────────
@@ -119,20 +165,51 @@ function sectionTotal(sec) {
   return (sec.items || []).reduce((a, it) => a + (it.subtotal || 0), 0)
 }
 
+// ── Internal draft helpers ────────────────────────────────────────────────────
+function calcInternalTotals(q) {
+  const allItems = (q.sections || []).flatMap(sec => sec.items || [])
+  let totalHpp = 0, totalTitipan = 0, totalQuot = 0, hppFilled = 0
+  allItems.forEach(it => {
+    if (it.hppSubtotal != null) { totalHpp += it.hppSubtotal; hppFilled++ }
+    if (it.titipanKlien != null) totalTitipan += (it.titipanKlien * (it.qty || 1) * (it.days || 1))
+    totalQuot += it.subtotal || 0
+  })
+  const grossMargin = totalQuot - totalHpp - totalTitipan
+  const marginPct   = totalQuot > 0 ? (grossMargin / totalQuot) * 100 : null
+  return { totalHpp, totalTitipan, totalQuot, grossMargin, marginPct, hppFilled, itemCount: allItems.length }
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
-export function QuotationPDF({ quotation: q }) {
+export function QuotationPDF({ quotation: q, isDraft = false }) {
   const totals = calcTotals(q)
+  const internal = isDraft ? calcInternalTotals(q) : null
   let globalNo = 1
+  let globalNoInternal = 1
 
   return (
-    <Document title={q.quotationNumber} author={COMPANY.legalName} creator="Watermark PM">
+    <Document title={isDraft ? `[DRAFT] ${q.quotationNumber}` : q.quotationNumber} author={COMPANY.legalName} creator="Watermark PM">
       <Page size="A4" style={s.page}>
 
+        {/* DRAFT watermark — fixed so it appears on every page */}
+        {isDraft && (
+          <Text style={s.draftWatermark} fixed>DRAFT</Text>
+        )}
+
         <Letterhead
-          docTitle="QUOTATION"
+          docTitle={isDraft ? 'QUOTATION — DRAFT INTERNAL' : 'QUOTATION'}
           docNumber={q.quotationNumber}
           docSubtitle={null}
         />
+
+        {/* Draft banner */}
+        {isDraft && (
+          <View style={s.draftBanner}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.draftBannerText}>⚠  DOKUMEN INTERNAL — JANGAN DIKIRIM KE KLIEN</Text>
+              <Text style={s.draftBannerNote}>Draft ini berisi data HPP &amp; titipan klien yang bersifat rahasia. Hanya untuk review internal oleh reviewer dan direktur.</Text>
+            </View>
+          </View>
+        )}
 
         {/* Meta */}
         <View style={s.metaRow}>
@@ -260,6 +337,99 @@ export function QuotationPDF({ quotation: q }) {
           )}
         </View>
 
+        {/* ── INTERNAL BREAKDOWN (draft only) ── */}
+        {isDraft && (
+          <>
+            <View style={s.internalWrap}>
+              {/* Header */}
+              <View style={s.internalHead}>
+                <Text style={[s.internalThTxt, s.ciNo]}>No</Text>
+                <Text style={[s.internalThTxt, s.ciDesc]}>Item</Text>
+                <Text style={[s.internalThTxt, s.ciHpp]}>HPP/Modal 🔒</Text>
+                <Text style={[s.internalThTxt, s.ciTitipan]}>Titipan Klien 🔒</Text>
+                <Text style={[s.internalThTxt, s.ciMargin]}>Margin 🔒</Text>
+                <Text style={[s.internalThTxt, s.ciQuot]}>QUOT</Text>
+              </View>
+
+              {(q.sections || []).map(sec => {
+                let secHpp = 0, secTitipan = 0, secQuot = 0
+                return (
+                  <View key={sec.id}>
+                    <View style={s.internalSec}>
+                      <Text style={s.internalSecTxt}>{sec.letter}. {sec.name}</Text>
+                    </View>
+                    {(sec.items || []).map((it, i) => {
+                      const hpp      = it.hppSubtotal ?? null
+                      const titipan  = it.titipanKlien != null ? it.titipanKlien * (it.qty || 1) * (it.days || 1) : null
+                      const quot     = it.subtotal || 0
+                      const margin   = hpp != null ? quot - hpp - (titipan || 0) : null
+                      const marginP  = hpp != null && quot > 0 ? ((quot - hpp - (titipan || 0)) / quot * 100) : null
+                      secHpp     += hpp     ?? 0
+                      secTitipan += titipan ?? 0
+                      secQuot    += quot
+                      return (
+                        <View key={it.id || i} style={[s.internalRow, i % 2 === 1 && s.internalRowAlt]}>
+                          <Text style={[s.internalTd, s.ciNo]}>{globalNoInternal++}</Text>
+                          <View style={s.ciDesc}>
+                            <Text style={[s.internalTd, { fontFamily: 'Helvetica-Bold' }]}>{it.description}</Text>
+                            {it.vendorName && <Text style={s.internalTdMuted}>🏢 {it.vendorName}</Text>}
+                          </View>
+                          <Text style={[hpp == null ? s.internalTdMuted : s.internalTd, s.ciHpp]}>
+                            {hpp != null ? rp(hpp) : '—'}
+                          </Text>
+                          <Text style={[titipan == null ? s.internalTdMuted : s.internalTd, s.ciTitipan]}>
+                            {titipan != null ? rp(titipan) : '—'}
+                          </Text>
+                          <Text style={[margin == null ? s.internalTdMuted : s.internalTdRed, s.ciMargin]}>
+                            {margin != null ? `${rp(margin)}${marginP != null ? ` (${marginP.toFixed(1)}%)` : ''}` : '—'}
+                          </Text>
+                          <Text style={[s.internalTd, s.ciQuot]}>{rp(quot)}</Text>
+                        </View>
+                      )
+                    })}
+                  </View>
+                )
+              })}
+            </View>
+
+            {/* Internal summary */}
+            <View style={s.internalSummaryWrap}>
+              <Text style={s.internalSummaryTitle}>🔒 Ringkasan Internal</Text>
+              {internal.totalHpp > 0 && (
+                <View style={s.internalSummaryRow}>
+                  <Text style={s.internalSummaryLbl}>Total HPP/Modal ({internal.hppFilled}/{internal.itemCount} item)</Text>
+                  <Text style={s.internalSummaryVal}>{rp(internal.totalHpp)}</Text>
+                </View>
+              )}
+              {internal.totalTitipan > 0 && (
+                <View style={s.internalSummaryRow}>
+                  <Text style={s.internalSummaryLbl}>Total Titipan Klien</Text>
+                  <Text style={s.internalSummaryVal}>{rp(internal.totalTitipan)}</Text>
+                </View>
+              )}
+              <View style={s.internalSummaryRow}>
+                <Text style={s.internalSummaryLbl}>Total QUOT (sebelum PPN)</Text>
+                <Text style={s.internalSummaryVal}>{rp(internal.totalQuot)}</Text>
+              </View>
+              {internal.totalHpp > 0 && (
+                <View style={s.internalSummaryGrand}>
+                  <Text style={s.internalSummaryGLbl}>
+                    Gross Margin
+                  </Text>
+                  <Text style={s.internalSummaryGVal}>
+                    {rp(internal.grossMargin)}{internal.marginPct != null ? `  (${internal.marginPct.toFixed(1)}%)` : ''}
+                  </Text>
+                </View>
+              )}
+              {internal.hppFilled < internal.itemCount && (
+                <Text style={{ fontSize: 6.5, color: '#DC2626', marginTop: 4 }}>
+                  ⚠ {internal.itemCount - internal.hppFilled} item belum diisi HPP — margin belum lengkap
+                </Text>
+              )}
+            </View>
+          </>
+        )}
+
         {/* Notes */}
         {q.notes && (
           <View style={s.notesBlock}>
@@ -320,7 +490,9 @@ export function QuotationPDF({ quotation: q }) {
 
         {/* Footer */}
         <View style={s.footer} fixed>
-          <Text style={s.footerText}>{COMPANY.legalName}  ·  {q.quotationNumber}</Text>
+          <Text style={[s.footerText, isDraft && { color: '#DC2626', fontFamily: 'Helvetica-Bold' }]}>
+            {isDraft ? '🔒 DRAFT INTERNAL — RAHASIA  ·  ' : ''}{COMPANY.legalName}  ·  {q.quotationNumber}
+          </Text>
           <Text style={s.footerText} render={({ pageNumber, totalPages }) => `Halaman ${pageNumber} dari ${totalPages}`} />
         </View>
 
