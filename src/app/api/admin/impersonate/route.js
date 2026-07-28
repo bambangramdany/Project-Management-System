@@ -32,7 +32,7 @@ export async function POST(req) {
     actualUserId: session.user.id,
   }
 
-  const jwt = await encode({ token, secret: process.env.NEXTAUTH_SECRET })
+  const jwt = await encode({ token, secret: process.env.NEXTAUTH_SECRET, salt: COOKIE_NAME })
 
   const cookieStore = cookies()
   cookieStore.set(COOKIE_NAME, jwt, {

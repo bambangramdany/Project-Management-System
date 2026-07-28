@@ -27,7 +27,7 @@ export async function POST() {
     divisi: owner.divisi,
   }
 
-  const jwt = await encode({ token, secret: process.env.NEXTAUTH_SECRET })
+  const jwt = await encode({ token, secret: process.env.NEXTAUTH_SECRET, salt: COOKIE_NAME })
 
   const cookieStore = cookies()
   cookieStore.set(COOKIE_NAME, jwt, {
