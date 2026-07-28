@@ -26,13 +26,35 @@ export default function KpiGapSummary({ session, period: periodProp }) {
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
   const [filter, setFilter] = useState('all') // 'all' | 'high' | 'med' | 'low'
+  const [effectivePeriod, setEffectivePeriod] = useState(period)
+
+  async function fetchPeriod(p) {
+    const r = await fetch(`/api/kpi?period=${p}`)
+    return r.ok ? r.json() : []
+  }
 
   useEffect(() => {
     setLoading(true)
-    fetch(`/api/kpi?period=${period}`)
-      .then(r => r.ok ? r.json() : [])
-      .then(records => {
-        if (!Array.isArray(records)) { setData([]); setLoading(false); return }
+    setEffectivePeriod(period)
+
+    fetchPeriod(period).then(async records => {
+      // If no data for current period, try previous months (up to 6 back)
+      if (!Array.isArray(records) || !records.length) {
+        const [yr, mo] = period.split('-').map(Number)
+        for (let i = 1; i <= 6; i++) {
+          let m = mo - i, y = yr
+          if (m < 1) { m += 12; y -= 1 }
+          const prev = `${y}-${String(m).padStart(2, '0')}`
+          const prevRecords = await fetchPeriod(prev)
+          if (Array.isArray(prevRecords) && prevRecords.length) {
+            records = prevRecords
+            setEffectivePeriod(prev)
+            break
+          }
+        }
+      }
+
+      if (!Array.isArray(records)) { setData([]); setLoading(false); return }
 
         // Group by userId
         const byUser = {}
@@ -89,7 +111,7 @@ export default function KpiGapSummary({ session, period: periodProp }) {
 
         setData(result); setLoading(false)
       })
-  }, [period])
+  }, [period]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = data.filter(d => {
     if (filter === 'high') return d.priority.level === 'Tinggi'
@@ -106,6 +128,13 @@ export default function KpiGapSummary({ session, period: periodProp }) {
 
   return (
     <div className="space-y-3">
+      {/* Auto-fallback period notice */}
+      {!loading && data.length > 0 && effectivePeriod !== period && (
+        <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          Tidak ada data untuk periode {period} · Menampilkan periode terakhir yang tersedia: <strong>{effectivePeriod}</strong>
+        </div>
+      )}
+
       {/* Summary strip */}
       {!loading && data.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
@@ -128,7 +157,7 @@ export default function KpiGapSummary({ session, period: periodProp }) {
 
       {loading && <p className="text-sm text-gray-400 text-center py-8">Memuat analisis gap...</p>}
       {!loading && data.length === 0 && (
-        <p className="text-sm text-gray-400 text-center py-8">Belum ada penilaian KPI untuk periode {period}</p>
+        <p className="text-sm text-gray-400 text-center py-8">Belum ada penilaian KPI untuk periode {effectivePeriod}</p>
       )}
 
       <div className="space-y-2">
