@@ -129,7 +129,7 @@ export default function KpiPanel({ user, session, defaultOpen = false, period: p
         <div className="flex items-center gap-3 shrink-0">
           {canScore && (
             <span className="text-xs text-gray-400">
-              {session?.user?.id === user.id ? 'Penilaian Diri' : 'Penilaian Atasan'}
+              {session?.user?.id === user.id ? 'Penilaian Diri' : 'Penilaian Tim'}
             </span>
           )}
           {myAvg != null && <span className="text-sm font-bold text-brand-700">{myAvg.toFixed(1)}</span>}

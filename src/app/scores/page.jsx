@@ -277,11 +277,23 @@ export default function ScoresPage() {
                 <input type="month" className="input w-auto" value={teamKpiPeriod} onChange={e => setTeamKpiPeriod(e.target.value)} />
               </div>
               <p className="text-xs text-gray-400 mb-3">Periode {teamKpiPeriod} · Batas pengisian: tgl 23 setiap bulan</p>
-              <div className="space-y-3">
-                {team.map(m => (
-                  <KpiPanel key={m.id} user={m} session={session} period={teamKpiPeriod} projects={allProjects} />
-                ))}
-              </div>
+              {/* Penilaian Diri — tampil paling atas */}
+              {team.filter(m => m.id === session.user.id).map(m => (
+                <div key={m.id} className="rounded-xl border-2 border-brand-200 bg-brand-50/40 p-3 mb-1">
+                  <p className="text-[10px] font-bold text-brand-600 uppercase tracking-wide mb-2">👤 Penilaian Diri</p>
+                  <KpiPanel user={m} session={session} period={teamKpiPeriod} projects={allProjects} />
+                </div>
+              ))}
+
+              {/* Penilaian Tim */}
+              {team.filter(m => m.id !== session.user.id).length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide pt-1">👥 Penilaian Tim</p>
+                  {team.filter(m => m.id !== session.user.id).map(m => (
+                    <KpiPanel key={m.id} user={m} session={session} period={teamKpiPeriod} projects={allProjects} />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
