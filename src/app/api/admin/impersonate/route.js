@@ -32,7 +32,8 @@ export async function POST(req) {
     actualUserId: session.user.id,
   }
 
-  const jwt = await encode({ token, secret: process.env.NEXTAUTH_SECRET, salt: COOKIE_NAME })
+  const maxAge = 30 * 24 * 60 * 60 // 30 days, matching NextAuth default
+  const jwt = await encode({ token, secret: process.env.NEXTAUTH_SECRET, maxAge })
 
   const cookieStore = cookies()
   cookieStore.set(COOKIE_NAME, jwt, {
@@ -40,6 +41,7 @@ export async function POST(req) {
     sameSite: 'lax',
     secure: SECURE,
     path: '/',
+    maxAge,
   })
 
   return NextResponse.json({ ok: true })
