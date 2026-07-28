@@ -44,25 +44,44 @@ function priorityFromGaps(selfData, supData, kpiDefs) {
   return { level: 'Rendah', color: 'text-green-600 bg-green-50 border-green-200' }
 }
 
-export default function KpiMyResultPanel({ session, period: periodProp }) {
+export default function KpiMyResultPanel({ session, period: periodProp, onSelfAssess }) {
   const period = periodProp || resolveKpiPeriod()
   const [assessments, setAssessments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [effectivePeriod, setEffectivePeriod] = useState(period)
 
   useEffect(() => {
     if (!session?.user?.id) return
     setLoading(true)
-    fetch(`/api/kpi?userId=${session.user.id}&period=${period}`)
-      .then(r => r.ok ? r.json() : [])
-      .then(data => { setAssessments(Array.isArray(data) ? data : []); setLoading(false) })
-  }, [session?.user?.id, period])
+    setEffectivePeriod(period)
+
+    const tryFetch = async () => {
+      let data = await fetch(`/api/kpi?userId=${session.user.id}&period=${period}`).then(r => r.ok ? r.json() : [])
+      if (!Array.isArray(data) || !data.length) {
+        const [yr, mo] = period.split('-').map(Number)
+        for (let i = 1; i <= 6; i++) {
+          let m = mo - i, y = yr
+          if (m < 1) { m += 12; y -= 1 }
+          const prev = `${y}-${String(m).padStart(2, '0')}`
+          const prev_data = await fetch(`/api/kpi?userId=${session.user.id}&period=${prev}`).then(r => r.ok ? r.json() : [])
+          if (Array.isArray(prev_data) && prev_data.length) { data = prev_data; setEffectivePeriod(prev); break }
+        }
+      }
+      setAssessments(Array.isArray(data) ? data : [])
+      setLoading(false)
+    }
+    tryFetch()
+  }, [session?.user?.id, period]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <p className="text-sm text-gray-400 text-center py-6">Memuat...</p>
   if (!assessments.length) return (
     <div className="text-center py-8 text-gray-400 space-y-1">
       <p className="text-2xl">📊</p>
       <p className="text-sm font-medium">Belum ada penilaian untuk periode ini</p>
-      <p className="text-xs">Isi self-assessment di tab "Nilai Tim" dan tunggu supervisor mengisi penilaian mereka.</p>
+      {onSelfAssess
+        ? <button onClick={onSelfAssess} className="text-xs text-brand-600 underline hover:text-brand-800">Isi self-assessment sekarang →</button>
+        : <p className="text-xs">Isi self-assessment di tab "Nilai Tim" dan tunggu supervisor mengisi penilaian mereka.</p>
+      }
     </div>
   )
 
@@ -114,9 +133,13 @@ export default function KpiMyResultPanel({ session, period: periodProp }) {
           </div>
         )}
         {!hasSelf && (
-          <div className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5">
-            ⚠ Belum isi self-assessment
-          </div>
+          onSelfAssess
+            ? <button onClick={onSelfAssess} className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5 hover:bg-amber-100 transition-colors">
+                ⚠ Belum isi self-assessment — klik untuk mengisi →
+              </button>
+            : <div className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5">
+                ⚠ Belum isi self-assessment
+              </div>
         )}
         {!hasSup && (
           <div className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-full px-2 py-0.5">

@@ -675,7 +675,7 @@ export default function ScoresPage() {
                   onChange={e => setMyResultPeriod(e.target.value)}
                 />
               </div>
-              <KpiMyResultPanel session={session} period={myResultPeriod} />
+              <KpiMyResultPanel session={session} period={myResultPeriod} onSelfAssess={() => setActiveTab('nilai-tim')} />
             </div>
           )}
 
