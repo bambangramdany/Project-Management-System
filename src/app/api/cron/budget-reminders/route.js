@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { prisma } from '@/lib/prisma'
 import { notifyUser } from '@/lib/notify'
 import { NextResponse } from 'next/server'
