@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { getKpiByRole, MASUKAN_PREFIX, resolveKpiPeriod } from '@/lib/constants'
+import KpiEvaluationCard from '@/components/KpiEvaluationCard'
 
 function calcPriority(selfMap, supMap, kpiDefs) {
   const gaps = []
@@ -38,7 +39,8 @@ export default function KpiGapSummary({ session, period: periodProp }) {
         records.forEach(a => {
           if (a.kpiKey.startsWith(MASUKAN_PREFIX)) return
           if (['OWNER', 'DIRECTOR'].includes(a.user?.role)) return
-          if (!byUser[a.userId]) byUser[a.userId] = { user: a.user, self: {}, sup: {}, supNames: new Set(), masukan: {} }
+          if (!byUser[a.userId]) byUser[a.userId] = { user: a.user, self: {}, sup: {}, supNames: new Set(), masukan: {}, rawRecords: [] }
+          byUser[a.userId].rawRecords.push(a)
           if (a.evaluatorId === a.userId) {
             byUser[a.userId].self[a.kpiKey] = a.score
           } else {
@@ -77,7 +79,7 @@ export default function KpiGapSummary({ session, period: periodProp }) {
             ? supOverallValues.reduce((a, b) => a + b, 0) / supOverallValues.length
             : null
 
-          return { user, priority, criteriaGaps, selfOverall, supOverall, supNames: [...supNames], masukan, hasSelf: Object.keys(self).length > 0, hasSup: Object.keys(supAvg).length > 0 }
+          return { user, priority, criteriaGaps, selfOverall, supOverall, supNames: [...supNames], masukan, rawRecords: byUser[user.id]?.rawRecords || [], hasSelf: Object.keys(self).length > 0, hasSup: Object.keys(supAvg).length > 0 }
         })
 
         result.sort((a, b) => {
@@ -130,7 +132,7 @@ export default function KpiGapSummary({ session, period: periodProp }) {
       )}
 
       <div className="space-y-2">
-        {filtered.map(({ user, priority, criteriaGaps, selfOverall, supOverall, supNames, masukan, hasSelf, hasSup }) => {
+        {filtered.map(({ user, priority, criteriaGaps, selfOverall, supOverall, supNames, masukan, rawRecords, hasSelf, hasSup }) => {
           const isOpen = expanded === user.id
           const gapOverall = selfOverall != null && supOverall != null ? selfOverall - supOverall : null
 
@@ -226,6 +228,16 @@ export default function KpiGapSummary({ session, period: periodProp }) {
 
                   <div className="text-[10px] text-gray-400 pt-1">
                     Self = self-assessment · Atasan = rata-rata penilaian supervisor · Gap = Self − Atasan
+                  </div>
+
+                  {/* Evaluation & recommendations card */}
+                  <div className="pt-3 border-t border-gray-100">
+                    <KpiEvaluationCard
+                      user={user}
+                      assessments={rawRecords}
+                      canEdit={true}
+                      session={session}
+                    />
                   </div>
                 </div>
               )}

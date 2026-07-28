@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { getKpiByRole, KPI_GROUPS, KPI_SCORE_LABEL, MASUKAN_PREFIX, resolveKpiPeriod } from '@/lib/constants'
+import KpiEvaluationCard from '@/components/KpiEvaluationCard'
 
 const GROUP_ORDER = ['individu', 'tim', 'leadership', 'role']
 
@@ -221,6 +222,23 @@ export default function KpiMyResultPanel({ session, period: periodProp }) {
           </div>
         )
       })()}
+
+      {/* Evaluation & recommendations — visible to member for their own data */}
+      {hasSup && (
+        <div className="border border-indigo-100 rounded-xl overflow-hidden">
+          <div className="px-3 py-2 bg-indigo-50 border-b border-indigo-100">
+            <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide">📋 Evaluasi & Rekomendasi Pengembangan</p>
+          </div>
+          <div className="px-3 py-3">
+            <KpiEvaluationCard
+              user={session.user}
+              assessments={assessments}
+              canEdit={false}
+              session={session}
+            />
+          </div>
+        </div>
+      )}
 
       <p className="text-[10px] text-gray-400 text-center pt-1">
         Periode {period} · Self = penilaian diri sendiri · Atasan = rata-rata penilaian dari supervisor
