@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
@@ -7,6 +7,8 @@ import { PROJECT_SCORE_CRITERIA, KPI_BY_ROLE, resolveKpiPeriod } from '@/lib/con
 import ProjectBonusTab from '@/components/ProjectBonusTab'
 import KpiCriteriaEditor from '@/components/KpiCriteriaEditor'
 import KpiPanel, { canScoreKpiClient } from '@/components/KpiPanel'
+import KpiMyResultPanel from '@/components/KpiMyResultPanel'
+import KpiGapSummary from '@/components/KpiGapSummary'
 import clsx from 'clsx'
 
 const KPI_SUMMARY_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE']
@@ -77,6 +79,7 @@ export default function ScoresPage() {
   const [allProjects, setAllProjects] = useState([])
   const [reminding, setReminding] = useState(false)
   const [reminded, setReminded] = useState(null)
+  const [myResultPeriod, setMyResultPeriod] = useState(resolveKpiPeriod())
 
   // Tab default: PM/Producer/Admin langsung ke "Nilai Tim"; staff lihat skor diri sendiri dulu
   // Gunakan lazy init agar konsisten saat session belum tersedia di render pertama
@@ -404,8 +407,8 @@ export default function ScoresPage() {
                   </thead>
                   <tbody>
                     {data.team.map(({ user, summary }) => (
-                      <>
-                      <tr key={user.id} className="border-t border-gray-100">
+                      <React.Fragment key={user.id}>
+                      <tr className="border-t border-gray-100">
                         <td className="py-2 pr-2">
                           <p className="font-medium text-ink-800">{user.name}</p>
                           <p className="text-xs text-gray-400">{user.jobTitle || user.role}</p>
@@ -443,7 +446,7 @@ export default function ScoresPage() {
                           </td>
                         </tr>
                       )}
-                      </>
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -557,6 +560,25 @@ export default function ScoresPage() {
             )
           })()}
 
+          {/* Analisis Gap (Director/Owner only) */}
+          {KPI_SUMMARY_ROLES.includes(session.user.role) && (
+            <div className="card p-4 border-t-4 border-indigo-400">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-2 border-b border-gray-100">
+                <div>
+                  <p className="text-sm font-semibold text-ink-800">🔍 Analisis Gap — Self vs Atasan</p>
+                  <p className="text-xs text-gray-500">Identifikasi ketidakselarasan penilaian diri dan supervisor per anggota tim</p>
+                </div>
+                <input
+                  type="month"
+                  className="input w-auto"
+                  value={kpiPeriod}
+                  onChange={e => setKpiPeriod(e.target.value)}
+                />
+              </div>
+              <KpiGapSummary session={session} period={kpiPeriod} />
+            </div>
+          )}
+
           {/* Catatan dari tim untuk direktur */}
           {['DIRECTOR', 'OWNER'].includes(session.user.role) && (
             <div className="card p-4 border-t-4 border-purple-400">
@@ -638,30 +660,24 @@ export default function ScoresPage() {
             )}
           </div>
 
-          {/* KPI bulanan saya */}
-          {!KPI_SUMMARY_ROLES.includes(session.user.role) && myKpi.length > 0 && (() => {
-            const kpiDefs = KPI_BY_ROLE[session.user.role] || []
-            const overall = myKpi.reduce((s, a) => s + a.score, 0) / myKpi.length
-            return (
-              <div className="card p-4 border-t-4 border-brand-400">
-                <p className="text-sm font-semibold text-ink-800 mb-3">📊 KPI Bulanan Saya</p>
-                <div className="grid sm:grid-cols-3 gap-3 mb-2">
-                  {kpiDefs.map(def => {
-                    const rows = myKpi.filter(a => a.kpiKey === def.key)
-                    if (rows.length === 0) return null
-                    const avg = rows.reduce((s, a) => s + a.score, 0) / rows.length
-                    return (
-                      <div key={def.key} className="bg-brand-50 rounded-lg p-3">
-                        <p className="text-xs text-gray-500 mb-1">{def.label}</p>
-                        <p className="text-lg font-bold text-brand-700">{avg.toFixed(1)}</p>
-                      </div>
-                    )
-                  })}
+          {/* KPI Gap — self vs supervisor */}
+          {!KPI_SUMMARY_ROLES.includes(session.user.role) && (
+            <div className="card p-4 border-t-4 border-brand-400">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                <div>
+                  <p className="text-sm font-semibold text-ink-800">📊 KPI Bulanan Saya</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Perbandingan penilaian diri & atasan per kriteria</p>
                 </div>
-                <p className="text-xs text-gray-400">Rata-rata keseluruhan: <span className="font-semibold text-ink-800">{fmt(overall)}</span> dari {myKpi.length} penilaian</p>
+                <input
+                  type="month"
+                  className="input w-auto text-sm"
+                  value={myResultPeriod}
+                  onChange={e => setMyResultPeriod(e.target.value)}
+                />
               </div>
-            )
-          })()}
+              <KpiMyResultPanel session={session} period={myResultPeriod} />
+            </div>
+          )}
 
           {/* Disiplin Harian Saya */}
           {!KPI_SUMMARY_ROLES.includes(session.user.role) && myCheckIn && (

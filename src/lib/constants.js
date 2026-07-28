@@ -258,92 +258,104 @@ export const PAYMENT_STAGES_WITH_OWNER = [
 
 // ── KPI ──────────────────────────────────────────────────────────────────
 
+// Prefix for group-level masukan (text feedback) KPI keys — filtered from score averages.
+export const MASUKAN_PREFIX = '_masukan_'
+
+// Group metadata used by KpiPanel and KpiMyResultPanel for section rendering.
+export const KPI_GROUPS = {
+  individu:   { label: 'Kompetensi Individu',        masukanKey: '_masukan_individu',   color: 'blue' },
+  tim:        { label: 'Kerja Tim',                  masukanKey: '_masukan_tim',        color: 'green' },
+  leadership: { label: 'Kepemimpinan',               masukanKey: '_masukan_leadership', color: 'purple' },
+  role:       { label: 'Kompetensi Spesifik Role',   masukanKey: '_masukan_role',       color: 'amber' },
+  auto:       { label: 'Disiplin Harian (Otomatis)', masukanKey: null,                  color: 'teal' },
+}
+
 // 5 kompetensi inti — dipakai untuk SEMUA role sebagai dasar penilaian
-// kinerja bulanan (self-assessment & supervisor). Menggantikan dimensi-
-// dimensi lama yang tumpang tindih (Kecepatan Respons, Ketepatan Waktu,
-// Kualitas Hasil Kerja, Tanggung Jawab, Inisiatif, dst) dengan set yang
-// lebih ringkas namun tetap menangkap sinyal yang sama.
+// kinerja bulanan (self-assessment & supervisor).
 export const CORE_KPI = [
-  { key: 'response_communication', label: 'Kecepatan Respons & Komunikasi' },
-  { key: 'on_time_discipline', label: 'Ketepatan Waktu (Disiplin Deadline)' },
-  { key: 'work_quality', label: 'Kualitas Hasil Kerja' },
-  { key: 'responsibility_initiative', label: 'Tanggung Jawab & Inisiatif' },
-  { key: 'teamwork', label: 'Kolaborasi Tim' },
+  { key: 'response_communication', label: 'Kecepatan Respons & Komunikasi', group: 'individu' },
+  { key: 'on_time_discipline',     label: 'Ketepatan Waktu (Disiplin Deadline)', group: 'individu' },
+  { key: 'work_quality',           label: 'Kualitas Hasil Kerja', group: 'individu' },
+  { key: 'responsibility_initiative', label: 'Tanggung Jawab & Inisiatif', group: 'individu' },
+  { key: 'teamwork',               label: 'Kolaborasi Tim', group: 'tim' },
   // Auto-dihitung dari DailyCheckIn — tidak dinilai manual
-  { key: 'daily_checkin', label: 'Disiplin Check-in Pagi (09:00)', auto: true },
-  { key: 'evening_report', label: 'Laporan Progress Harian (17:00–20:00)', auto: true },
+  { key: 'daily_checkin',   label: 'Disiplin Check-in Pagi (09:00)', auto: true, group: 'auto' },
+  { key: 'evening_report',  label: 'Laporan Progress Harian (17:00–20:00)', auto: true, group: 'auto' },
 ]
 
-// 3 kompetensi tambahan — hanya untuk role dengan tanggung jawab memimpin
-// tim/divisi (PM, Director, Owner, Creative Lead).
+// 3 kompetensi tambahan — hanya untuk role dengan tanggung jawab memimpin.
 export const LEADERSHIP_KPI = [
-  { key: 'decision_making', label: 'Ketepatan Pengambilan Keputusan' },
-  { key: 'delegation', label: 'Arahan & Delegasi Tugas' },
-  { key: 'team_development', label: 'Pengembangan & Pembinaan Tim' },
+  { key: 'decision_making',   label: 'Ketepatan Pengambilan Keputusan', group: 'leadership' },
+  { key: 'delegation',        label: 'Arahan & Delegasi Tugas', group: 'leadership' },
+  { key: 'team_development',  label: 'Pengembangan & Pembinaan Tim', group: 'leadership' },
 ]
 
-// Indikator tambahan spesifik per role (di luar 5 kompetensi inti),
-// menangkap hal-hal yang memang khas tugas pokok role tersebut.
+// Indikator tambahan spesifik per role (di luar 5 kompetensi inti).
 const ROLE_SPECIFIC_KPI = {
   PROJECT_MANAGER: [
-    { key: 'win_rate', label: 'Win rate pitching sesuai target' },
-    { key: 'on_time_budget', label: 'Project berjalan sesuai timeline & budget' },
-    { key: 'client_satisfaction', label: 'Kepuasan klien (feedback / repeat order)' },
+    { key: 'win_rate',           label: 'Win rate pitching sesuai target', group: 'role' },
+    { key: 'on_time_budget',     label: 'Project berjalan sesuai timeline & budget', group: 'role' },
+    { key: 'client_satisfaction',label: 'Kepuasan klien (feedback / repeat order)', group: 'role' },
   ],
   PROJECT_OFFICER: [
-    { key: 'execution_sop', label: 'Eksekusi lapangan sesuai brief & SOP' },
-    { key: 'progress_update', label: 'Update progress & dokumentasi tepat waktu' },
-    { key: 'field_problem_solving', label: 'Penanganan masalah lapangan (problem-solving)' },
+    { key: 'execution_sop',        label: 'Eksekusi lapangan sesuai brief & SOP', group: 'role' },
+    { key: 'progress_update',      label: 'Update progress & dokumentasi tepat waktu', group: 'role' },
+    { key: 'field_problem_solving',label: 'Penanganan masalah lapangan (problem-solving)', group: 'role' },
   ],
   PRODUCTION: [
-    { key: 'equipment_ready', label: 'Kelengkapan & kesiapan alat/produksi' },
-    { key: 'zero_issue', label: 'Zero technical issue saat event/shooting' },
-    { key: 'budget_efficiency', label: 'Efisiensi penggunaan budget produksi' },
+    { key: 'equipment_ready',  label: 'Kelengkapan & kesiapan alat/produksi', group: 'role' },
+    { key: 'zero_issue',       label: 'Zero technical issue saat event/shooting', group: 'role' },
+    { key: 'budget_efficiency',label: 'Efisiensi penggunaan budget produksi', group: 'role' },
   ],
   PRODUCER: [
-    { key: 'production_planning', label: 'Kualitas perencanaan produksi (jadwal, crew, lokasi)' },
-    { key: 'client_creative_coordination', label: 'Koordinasi dengan klien/tim kreatif (revisi terkendali)' },
-    { key: 'production_budget_efficiency', label: 'Efisiensi budget produksi vs hasil akhir' },
+    { key: 'production_planning',           label: 'Kualitas perencanaan produksi (jadwal, crew, lokasi)', group: 'role' },
+    { key: 'client_creative_coordination',  label: 'Koordinasi dengan klien/tim kreatif (revisi terkendali)', group: 'role' },
+    { key: 'production_budget_efficiency',  label: 'Efisiensi budget produksi vs hasil akhir', group: 'role' },
   ],
   EDITOR: [
-    { key: 'edit_on_time', label: 'Ketepatan waktu delivery hasil edit' },
-    { key: 'edit_quality', label: 'Kualitas hasil edit (sesuai brief: color/audio/pacing)' },
-    { key: 'edit_revision_count', label: 'Jumlah revisi minimal (≤2x per deliverable)' },
+    { key: 'edit_on_time',       label: 'Ketepatan waktu delivery hasil edit', group: 'role' },
+    { key: 'edit_quality',       label: 'Kualitas hasil edit (sesuai brief: color/audio/pacing)', group: 'role' },
+    { key: 'edit_revision_count',label: 'Jumlah revisi minimal (≤2x per deliverable)', group: 'role' },
   ],
   CREATIVE_LEAD: [
-    { key: 'concept_approved', label: 'Konsep kreatif disetujui klien di percobaan pertama' },
-    { key: 'quality_consistency', label: 'Konsistensi kualitas & branding tim' },
+    { key: 'concept_approved',   label: 'Konsep kreatif disetujui klien di percobaan pertama', group: 'role' },
+    { key: 'quality_consistency',label: 'Konsistensi kualitas & branding tim', group: 'role' },
   ],
   GRAPHIC_DESIGNER: [
-    { key: 'on_time_design', label: 'Ketepatan waktu desain sesuai deadline' },
-    { key: 'minimal_revision', label: 'Revisi minimal (≤2x per deliverable)' },
-    { key: 'brand_guideline', label: 'Kesesuaian dengan brand guideline' },
+    { key: 'on_time_design',  label: 'Ketepatan waktu desain sesuai deadline', group: 'role' },
+    { key: 'minimal_revision',label: 'Revisi minimal (≤2x per deliverable)', group: 'role' },
+    { key: 'brand_guideline', label: 'Kesesuaian dengan brand guideline', group: 'role' },
   ],
   STAGE_DESIGNER: [
-    { key: 'design_brief_budget', label: 'Desain panggung/3D sesuai brief & budget' },
-    { key: 'on_time_file', label: 'Ketepatan waktu delivery file produksi' },
+    { key: 'design_brief_budget',label: 'Desain panggung/3D sesuai brief & budget', group: 'role' },
+    { key: 'on_time_file',       label: 'Ketepatan waktu delivery file produksi', group: 'role' },
   ],
   CONTENT_CREATOR: [
-    { key: 'content_calendar', label: 'Output konten sesuai kalender konten' },
-    { key: 'on_time_publish', label: 'Ketepatan waktu editing & publish' },
+    { key: 'content_calendar',label: 'Output konten sesuai kalender konten', group: 'role' },
+    { key: 'on_time_publish', label: 'Ketepatan waktu editing & publish', group: 'role' },
   ],
   FINANCE: [
-    { key: 'payment_sla', label: 'Proses pembayaran tepat waktu (sesuai SLA)' },
-    { key: 'budget_accuracy', label: 'Akurasi laporan budget vs realisasi' },
-    { key: 'compliance', label: 'Kepatuhan dokumen & approval' },
+    { key: 'payment_sla',    label: 'Proses pembayaran tepat waktu (sesuai SLA)', group: 'role' },
+    { key: 'budget_accuracy',label: 'Akurasi laporan budget vs realisasi', group: 'role' },
+    { key: 'compliance',     label: 'Kepatuhan dokumen & approval', group: 'role' },
+  ],
+  FINANCE_STAFF: [
+    { key: 'payment_sla',    label: 'Proses pembayaran tepat waktu (sesuai SLA)', group: 'role' },
+    { key: 'budget_accuracy',label: 'Akurasi laporan budget vs realisasi', group: 'role' },
+    { key: 'compliance',     label: 'Kepatuhan dokumen & approval', group: 'role' },
   ],
   MEMBER: [
-    { key: 'task_on_time', label: 'Penyelesaian task sesuai deadline' },
-    { key: 'admin_complete', label: 'Kelengkapan administrasi & dokumentasi' },
+    { key: 'task_on_time',   label: 'Penyelesaian task sesuai deadline', group: 'role' },
+    { key: 'admin_complete', label: 'Kelengkapan administrasi & dokumentasi', group: 'role' },
   ],
   INTERNSHIP: [
-    { key: 'task_on_time', label: 'Penyelesaian task sesuai deadline' },
-    { key: 'learning_speed', label: 'Kecepatan belajar & adaptasi' },
-    { key: 'proactivity', label: 'Inisiatif & proaktif bertanya/membantu' },
+    { key: 'task_on_time',  label: 'Penyelesaian task sesuai deadline', group: 'role' },
+    { key: 'learning_speed',label: 'Kecepatan belajar & adaptasi', group: 'role' },
+    { key: 'proactivity',   label: 'Inisiatif & proaktif bertanya/membantu', group: 'role' },
   ],
   DIRECTOR: [
-    { key: 'approval_speed', label: 'Approval pengajuan tepat waktu' },
-    { key: 'team_health', label: 'Kesehatan pipeline & utilisasi tim divisi' },
+    { key: 'approval_speed',label: 'Approval pengajuan tepat waktu', group: 'role' },
+    { key: 'team_health',   label: 'Kesehatan pipeline & utilisasi tim divisi', group: 'role' },
   ],
 }
 
@@ -361,6 +373,15 @@ export const KPI_BY_ROLE = Object.fromEntries(
     ],
   ])
 )
+
+// Fallback for roles without ROLE_SPECIFIC_KPI entry (e.g. OWNER)
+export function getKpiByRole(role) {
+  if (KPI_BY_ROLE[role]) return KPI_BY_ROLE[role]
+  return [
+    ...CORE_KPI,
+    ...(LEADERSHIP_ROLES.includes(role) ? LEADERSHIP_KPI : []),
+  ]
+}
 
 export const KPI_SCORE_LABEL = { 1: 'Kurang', 2: 'Cukup', 3: 'Baik', 4: 'Sangat Baik', 5: 'Istimewa' }
 

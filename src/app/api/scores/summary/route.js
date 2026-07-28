@@ -84,7 +84,9 @@ export async function GET() {
       where: { userId: { in: userIds } },
       include: { project: { select: { id: true, code: true, name: true } } },
     })
-    const allKpi = await prisma.kpiAssessment.findMany({ where: { userId: { in: userIds } } })
+    const allKpi = await prisma.kpiAssessment.findMany({
+      where: { userId: { in: userIds }, NOT: { kpiKey: { startsWith: '_masukan_' } } },
+    })
 
     // Monthly progress-update deduction: missing updates (submitted after the
     // 20:00 deadline) and Delayed/Hold/Problem statuses on assigned tasks/to-dos
