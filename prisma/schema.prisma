@@ -57,6 +57,8 @@ model User {
   invoicesCreated       Invoice[]     @relation("InvoiceCreator")
   vendorRatings         VendorRating[] @relation("VendorRatingCreator")
   dailyCheckIns         DailyCheckIn[]
+  sharingSessions       SharingSession[] @relation("SharingSessionPresenter")
+  sharingSessionsCreated SharingSession[] @relation("SharingSessionCreator")
 }
 
 // Global audit trail of important changes across the system, for Direksi/Owner
@@ -1252,6 +1254,23 @@ model Invoice {
 
 // Invoice line items — copied from QuotationItems when the invoice is created.
 // Finance can toggle showInDetail per item to control what appears in DETAIL mode PDF.
+model SharingSession {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation("SharingSessionPresenter", fields: [userId], references: [id])
+  scheduledDate DateTime
+  topic         String?
+  notes         String?   // catatan dari HRD
+  status        String    @default("UPCOMING") // UPCOMING | DONE | CANCELLED
+  createdById   String
+  createdBy     User      @relation("SharingSessionCreator", fields: [createdById], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([scheduledDate])
+}
+
 model InvoiceItem {
   id               String  @id @default(cuid())
   invoiceId        String

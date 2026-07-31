@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
+import { MySharingSessionCard } from '@/components/SharingSessionCard'
 import clsx from 'clsx'
 
 const STATUS_OPTIONS = [
@@ -289,6 +290,7 @@ export default function MyTasksPage() {
   const [adding, setAdding] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [checkIn, setCheckIn] = useState(null)
+  const [sharingSessions, setSharingSessions] = useState([])
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -308,6 +310,16 @@ export default function MyTasksPage() {
     fetch('/api/daily-checkin').then(r => r.ok ? r.json() : null).then(d => {
       if (d) setCheckIn(d)
     })
+  }, [status])
+
+  function loadSharingSessions() {
+    fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(data => {
+      if (Array.isArray(data)) setSharingSessions(data)
+    })
+  }
+
+  useEffect(() => {
+    if (status === 'authenticated') loadSharingSessions()
   }, [status])
 
   async function handleMorningAck() {
@@ -481,6 +493,14 @@ export default function MyTasksPage() {
             <div className="card p-4 border-l-4 border-l-amber-400 bg-amber-50">
               <p className="text-sm font-semibold text-amber-700">{myPending.length} tugas kamu belum di-update — pastikan diisi sebelum pukul 20:00.</p>
             </div>
+          )}
+
+          {/* Sharing Session Card */}
+          {sharingSessions.filter(s => s.userId === session?.user?.id).length > 0 && (
+            <MySharingSessionCard
+              sessions={sharingSessions.filter(s => s.userId === session?.user?.id)}
+              onUpdate={loadSharingSessions}
+            />
           )}
 
           {/* ── Seksi 1: Tugas Saya ── */}
