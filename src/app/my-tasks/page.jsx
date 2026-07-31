@@ -440,6 +440,10 @@ export default function MyTasksPage() {
           {data.groups.map(group => (
             <DivisionGroup key={group.divisi} group={group} onSave={saveProgress} />
           ))}
+
+          <CollapsibleSection title="Jadwal Sharing Session" count={sharingSessions.filter(s => s.status === 'UPCOMING').length} defaultOpen={true} icon="🎤">
+            <AllSharingSessionsTable sessions={sharingSessions} currentUser={session?.user} onUpdate={loadSharingSessions} />
+          </CollapsibleSection>
         </main>
       </div>
     )
