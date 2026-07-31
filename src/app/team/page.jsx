@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
-import { SharingSessionScheduleSection } from '@/components/SharingSessionCard'
 
 const ROLE_LABEL = {
   OWNER: 'Direktur Utama', PROJECT_MANAGER: 'Project Manager', PRODUCTION: 'Production',
@@ -32,17 +31,10 @@ export default function TeamPage() {
   const router = useRouter()
   const [team, setTeam] = useState([])
   const [loading, setLoading] = useState(true)
-  const [sharingSessions, setSharingSessions] = useState([])
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
-
-  function loadSharingSessions() {
-    fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(data => {
-      if (Array.isArray(data)) setSharingSessions(data)
-    })
-  }
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -50,7 +42,6 @@ export default function TeamPage() {
         setTeam(Array.isArray(data) ? data : [])
         setLoading(false)
       })
-      loadSharingSessions()
     }
   }, [status])
 
@@ -115,14 +106,6 @@ export default function TeamPage() {
               </div>
             )}
 
-            {/* Sharing Session Schedule */}
-            <div className="card p-4 sm:p-6">
-              <SharingSessionScheduleSection
-                sessions={sharingSessions}
-                currentUser={session?.user}
-                onUpdate={loadSharingSessions}
-              />
-            </div>
           </>
         )}
       </main>

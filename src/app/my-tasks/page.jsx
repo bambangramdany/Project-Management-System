@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
-import { MySharingSessionCard } from '@/components/SharingSessionCard'
+import { MySharingSessionCard, AllSharingSessionsTable } from '@/components/SharingSessionCard'
 import clsx from 'clsx'
 
 const STATUS_OPTIONS = [
@@ -573,6 +573,10 @@ export default function MyTasksPage() {
             </div>
           )}
 
+          <CollapsibleSection title="Jadwal Sharing Session" count={sharingSessions.filter(s => s.status === 'UPCOMING').length} defaultOpen={true} icon="🎤">
+            <AllSharingSessionsTable sessions={sharingSessions} currentUser={session?.user} onUpdate={loadSharingSessions} />
+          </CollapsibleSection>
+
         </main>
       </div>
     )
@@ -582,53 +586,44 @@ export default function MyTasksPage() {
   const projectTasks = data.items.filter(i => i.kind === 'task')
   const personalTasks = data.items.filter(i => i.kind === 'personal')
   const pendingToday = data.items.filter(i => !i.hasTodayUpdate)
+  const mySharing = sharingSessions.filter(s => s.userId === session?.user?.id)
 
   return (
     <div className="min-h-screen bg-brand-50">
       <Navbar />
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Tugas Saya</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Update progress setiap malam, paling lambat pukul 20:00. Keterlambatan update atau progress yang
-            tersendat tanpa catatan yang jelas akan mengurangi poin kinerja bulanan.
-          </p>
+          <p className="text-sm text-gray-500 mt-1">Update progress setiap malam, paling lambat pukul 20:00.</p>
         </div>
 
         {data.deadlinePassed && pendingToday.length > 0 && (
           <div className="card p-4 border-l-4 border-l-red-400 bg-red-50">
-            <p className="text-sm font-semibold text-red-700">
-              ⏰ Sudah lewat jam 20:00 dan ada {pendingToday.length} item yang belum di-update hari ini.
-            </p>
+            <p className="text-sm font-semibold text-red-700">⏰ Sudah lewat jam 20:00 dan ada {pendingToday.length} item yang belum di-update.</p>
             <p className="text-xs text-red-600 mt-1">Segera isi update progress agar tidak mengurangi poin kinerja bulanan.</p>
           </div>
         )}
         {!data.deadlinePassed && pendingToday.length > 0 && (
           <div className="card p-4 border-l-4 border-l-amber-400 bg-amber-50">
-            <p className="text-sm font-semibold text-amber-700">
-              {pendingToday.length} item belum di-update hari ini — pastikan diisi sebelum pukul 20:00.
-            </p>
+            <p className="text-sm font-semibold text-amber-700">{pendingToday.length} item belum di-update — pastikan diisi sebelum pukul 20:00.</p>
           </div>
         )}
 
-        {/* Daily check-in banner */}
-        <DailyCheckInBanner
-          checkIn={checkIn}
-          onMorningAck={handleMorningAck}
-          onEveningSubmit={handleEveningSubmit}
-        />
+        <DailyCheckInBanner checkIn={checkIn} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} />
 
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-ink-800">Task Project ({projectTasks.length})</h2>
-          {projectTasks.length === 0 && <p className="text-sm text-gray-400">Tidak ada task project yang aktif.</p>}
-          {projectTasks.map(item => (
-            <TaskRow key={item.id} item={item} onSave={saveProgress} />
-          ))}
-        </section>
+        {mySharing.length > 0 && (
+          <MySharingSessionCard sessions={mySharing} onUpdate={loadSharingSessions} />
+        )}
 
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-ink-800">Catatan / To-Do Manual ({personalTasks.length})</h2>
-          <form onSubmit={addPersonalTask} className="card p-4 space-y-2">
+        <CollapsibleSection title="Task Project" count={projectTasks.length} defaultOpen={projectTasks.length > 0}>
+          {projectTasks.length === 0
+            ? <p className="text-sm text-gray-400">Tidak ada task project yang aktif.</p>
+            : projectTasks.map(item => <TaskRow key={item.id} item={item} onSave={saveProgress} />)
+          }
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Catatan / To-Do" count={personalTasks.length} defaultOpen={true}>
+          <form onSubmit={addPersonalTask} className="card p-4 space-y-2 mb-2">
             <div className="flex flex-col sm:flex-row gap-2">
               <input className="input flex-1" placeholder="Tambah item baru..." value={newTitle} onChange={e => setNewTitle(e.target.value)} />
               <input type="date" className="input sm:w-44" value={newDue} onChange={e => setNewDue(e.target.value)} />
@@ -643,14 +638,14 @@ export default function MyTasksPage() {
             </div>
             {!newProjectId && (
               <div className="flex flex-col sm:flex-row gap-2">
-                <input className="input flex-1" placeholder="Nama klien (jika project baru / di luar sistem)" value={newClientName} onChange={e => setNewClientName(e.target.value)} />
-                <input className="input flex-1" placeholder="Nama project (jika project baru / di luar sistem)" value={newProjectName} onChange={e => setNewProjectName(e.target.value)} />
+                <input className="input flex-1" placeholder="Nama klien (opsional)" value={newClientName} onChange={e => setNewClientName(e.target.value)} />
+                <input className="input flex-1" placeholder="Nama project (opsional)" value={newProjectName} onChange={e => setNewProjectName(e.target.value)} />
               </div>
             )}
             <button className="btn-primary px-4" disabled={adding}>Tambah</button>
           </form>
           {personalTasks.map(item => (
-            <div key={item.id} className="relative">
+            <div key={item.id} className="relative mb-2">
               <TaskRow item={item} onSave={saveProgress} />
               {confirmDeleteId === item.id ? (
                 <div className="absolute top-2 right-2 flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1 shadow-sm">
@@ -659,16 +654,36 @@ export default function MyTasksPage() {
                   <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
                 </div>
               ) : (
-                <button
-                  onClick={() => setConfirmDeleteId(item.id)}
-                  className="absolute top-3 right-3 text-xs text-gray-300 hover:text-red-500"
-                  title="Hapus"
-                >✕</button>
+                <button onClick={() => setConfirmDeleteId(item.id)} className="absolute top-3 right-3 text-xs text-gray-300 hover:text-red-500" title="Hapus">✕</button>
               )}
             </div>
           ))}
-        </section>
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Jadwal Sharing Session" count={sharingSessions.filter(s => s.status === 'UPCOMING').length} defaultOpen={true} icon="🎤">
+          <AllSharingSessionsTable sessions={sharingSessions} currentUser={session?.user} onUpdate={loadSharingSessions} />
+        </CollapsibleSection>
       </main>
+    </div>
+  )
+}
+
+function CollapsibleSection({ title, count, defaultOpen = true, icon, children }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="card overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50/50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          {icon && <span>{icon}</span>}
+          <span className="text-sm font-semibold text-ink-800">{title}</span>
+          {count != null && <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{count}</span>}
+        </div>
+        <span className="text-gray-400 text-xs">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && <div className="px-4 pb-4 space-y-2">{children}</div>}
     </div>
   )
 }
