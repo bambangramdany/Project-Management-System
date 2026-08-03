@@ -555,6 +555,170 @@ function PenilaianBulananSection() {
   )
 }
 
+// ── Ringkasan Penilaian Tim ──────────────────────────────────────────────────
+function RingkasanTimSection() {
+  const today = new Date()
+  const [viewType, setViewType] = useState('monthly')
+  const [period, setPeriod] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`)
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [sortBy, setSortBy] = useState('name') // name | final | kpi | attitude | skill | sharing | attendance
+  const [sortDir, setSortDir] = useState('asc')
+  const [filterDivisi, setFilterDivisi] = useState('ALL')
+
+  const periodOptions = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
+    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const label = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+    return { val, label }
+  })
+
+  useEffect(() => {
+    setLoading(true)
+    fetch(`/api/hrd/accumulation/team?period=${period}&type=${viewType}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { setData(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [period, viewType])
+
+  const sc = v => v == null ? null : v >= 4 ? 'text-green-600' : v >= 3 ? 'text-amber-600' : 'text-red-500'
+  const fmt = v => v == null ? <span className="text-gray-300">—</span> : <span className={sc(v)}>{v.toFixed(2)}</span>
+
+  function toggleSort(col) {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortBy(col); setSortDir(col === 'name' ? 'asc' : 'desc') }
+  }
+
+  const SortBtn = ({ col, label }) => (
+    <button onClick={() => toggleSort(col)}
+      className={`flex items-center gap-0.5 hover:text-gray-700 transition-colors ${sortBy === col ? 'text-orange-600 font-semibold' : ''}`}>
+      {label}
+      <span className="text-[9px]">{sortBy === col ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}</span>
+    </button>
+  )
+
+  const results = data?.results ?? []
+
+  const divisis = ['ALL', ...Array.from(new Set(results.map(r => r.user.divisi).filter(Boolean)))]
+
+  const filtered = results.filter(r => filterDivisi === 'ALL' || r.user.divisi === filterDivisi)
+
+  const sorted = [...filtered].sort((a, b) => {
+    let va, vb
+    if (sortBy === 'name') { va = a.user.name; vb = b.user.name; return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va) }
+    const getVal = (r) => ({ final: r.finalScore, kpi: r.components.kpi, attitude: r.components.attitude, skill: r.components.skill, sharing: r.components.sharing, attendance: r.components.attendance })[sortBy]
+    va = getVal(a) ?? -1; vb = getVal(b) ?? -1
+    return sortDir === 'asc' ? va - vb : vb - va
+  })
+
+  const DIVISI_LABEL = { EVENT: 'Event', CREATIVE: 'Creative', PH: 'PH', FINANCE_HRGA: 'Finance/HRD' }
+
+  // Summary stats
+  const withScore = sorted.filter(r => r.finalScore != null)
+  const teamAvg = withScore.length ? (withScore.reduce((s, r) => s + r.finalScore, 0) / withScore.length) : null
+  const top = withScore.length ? [...withScore].sort((a, b) => b.finalScore - a.finalScore)[0] : null
+  const needDev = withScore.filter(r => r.finalScore < 3)
+
+  return (
+    <Section title="Ringkasan Penilaian Tim" icon="📊" defaultOpen={true}>
+      {/* Filter bar */}
+      <div className="mt-3 flex flex-wrap gap-2 items-center mb-4">
+        <div className="flex gap-1">
+          {[['monthly', 'Bulanan'], ['quarterly', 'Per 3 Bulan'], ['yearly', 'Tahunan']].map(([v, l]) => (
+            <button key={v} onClick={() => setViewType(v)}
+              className={`text-xs px-3 py-1 rounded-full border transition-colors ${viewType === v ? 'bg-orange-500 text-white border-orange-500' : 'border-gray-200 text-gray-600 hover:border-orange-300'}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+        <select className="border border-gray-200 rounded px-2 py-1 text-sm"
+          value={period} onChange={e => setPeriod(e.target.value)}>
+          {periodOptions.map(o => <option key={o.val} value={o.val}>{o.label}</option>)}
+        </select>
+        {divisis.length > 2 && (
+          <select className="border border-gray-200 rounded px-2 py-1 text-sm"
+            value={filterDivisi} onChange={e => setFilterDivisi(e.target.value)}>
+            <option value="ALL">Semua Divisi</option>
+            {divisis.filter(d => d !== 'ALL').map(d => <option key={d} value={d}>{DIVISI_LABEL[d] || d}</option>)}
+          </select>
+        )}
+      </div>
+
+      {loading && <div className="py-8 text-center text-gray-400 text-sm">Menghitung...</div>}
+
+      {!loading && data && (
+        <>
+          {/* KPI cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            {[
+              { label: 'Rata-rata Tim', value: teamAvg, icon: '👥' },
+              { label: 'Tertinggi', value: top?.finalScore, sub: top?.user.name, icon: '🏆' },
+              { label: 'Perlu Pengembangan', value: needDev.length, isCount: true, sub: needDev.length ? needDev.map(r => r.user.name.split(' ')[0]).join(', ') : null, icon: '📈' },
+              { label: 'Data tersedia', value: withScore.length, isCount: true, sub: `dari ${sorted.length} anggota`, icon: '📋' },
+            ].map(({ label, value, sub, icon, isCount }) => (
+              <div key={label} className="card p-3 text-center">
+                <p className="text-lg">{icon}</p>
+                <p className={`text-xl font-bold mt-1 ${isCount ? 'text-gray-700' : sc(value) || 'text-gray-400'}`}>
+                  {value == null ? '—' : isCount ? value : value.toFixed(2)}
+                </p>
+                <p className="text-[10px] text-gray-500 mt-0.5">{label}</p>
+                {sub && <p className="text-[10px] text-gray-400 truncate mt-0.5">{sub}</p>}
+              </div>
+            ))}
+          </div>
+
+          {/* Table */}
+          {sorted.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">Belum ada data untuk periode ini</p>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-gray-100">
+              <table className="w-full text-sm min-w-[700px]">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-[10px] text-gray-500 uppercase tracking-wide">
+                    <th className="text-left px-3 py-2.5"><SortBtn col="name" label="Nama" /></th>
+                    <th className="px-3 py-2.5 text-center"><SortBtn col="final" label="Akhir" /></th>
+                    <th className="px-3 py-2.5 text-center hidden sm:table-cell"><SortBtn col="kpi" label={`KPI (${data.weights?.kpi}%)`} /></th>
+                    <th className="px-3 py-2.5 text-center hidden sm:table-cell"><SortBtn col="attendance" label={`Absensi (${data.weights?.attendance}%)`} /></th>
+                    <th className="px-3 py-2.5 text-center hidden md:table-cell"><SortBtn col="sharing" label={`Sharing (${data.weights?.sharing}%)`} /></th>
+                    <th className="px-3 py-2.5 text-center hidden md:table-cell"><SortBtn col="attitude" label={`Attitude (${data.weights?.attitude}%)`} /></th>
+                    <th className="px-3 py-2.5 text-center hidden md:table-cell"><SortBtn col="skill" label={`Skill (${data.weights?.skill}%)`} /></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {sorted.map(({ user, components, finalScore }) => (
+                    <tr key={user.id} className="hover:bg-orange-50/30 transition-colors">
+                      <td className="px-3 py-2.5">
+                        <p className="text-xs font-semibold text-gray-800">{user.name}</p>
+                        <p className="text-[10px] text-gray-400">{user.jobTitle || user.role}{user.divisi ? ` · ${DIVISI_LABEL[user.divisi] || user.divisi}` : ''}</p>
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span className={`text-sm font-bold ${sc(finalScore) || 'text-gray-300'}`}>
+                          {finalScore != null ? finalScore.toFixed(2) : '—'}
+                        </span>
+                        {finalScore != null && (
+                          <div className="w-12 mx-auto mt-1 bg-gray-100 rounded-full h-1 overflow-hidden">
+                            <div className={`h-full rounded-full ${finalScore >= 4 ? 'bg-green-400' : finalScore >= 3 ? 'bg-amber-400' : 'bg-red-400'}`}
+                              style={{ width: `${(finalScore / 5) * 100}%` }} />
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-center text-xs hidden sm:table-cell">{fmt(components.kpi)}</td>
+                      <td className="px-3 py-2.5 text-center text-xs hidden sm:table-cell">{fmt(components.attendance)}</td>
+                      <td className="px-3 py-2.5 text-center text-xs hidden md:table-cell">{fmt(components.sharing)}</td>
+                      <td className="px-3 py-2.5 text-center text-xs hidden md:table-cell">{fmt(components.attitude)}</td>
+                      <td className="px-3 py-2.5 text-center text-xs hidden md:table-cell">{fmt(components.skill)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </Section>
+  )
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function HrdEvaluationsPage() {
   const { data: session, status } = useSession()
@@ -573,12 +737,13 @@ export default function HrdEvaluationsPage() {
   return (
     <div className="min-h-screen bg-brand-50">
       <Navbar />
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Input Penilaian HRD</h1>
           <p className="text-sm text-gray-500 mt-0.5">Data akan masuk ke akumulasi penilaian masing-masing anggota</p>
         </div>
         <BobotSection />
+        <RingkasanTimSection />
         <JadwalSection />
         <SharingScoringSection />
         <PenilaianBulananSection />
