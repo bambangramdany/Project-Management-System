@@ -29,30 +29,80 @@ function getHoroscope(birthDate) {
   const d = new Date(birthDate)
   const m = d.getMonth() + 1
   const day = d.getDate()
+  // Pick message variation based on today's date — rotates daily, no randomness for SSR safety
+  const msgIdx = new Date().getDate() % 3
   const signs = [
-    { sign: 'Capricorn',   symbol: '♑', from: [12,22], to: [1,19],  msg: "The stars have aligned perfectly for you today, Capricorn — your patience and perseverance are your greatest gifts. Wishing you a year full of well-deserved victories!" },
-    { sign: 'Aquarius',    symbol: '♒', from: [1,20],  to: [2,18],  msg: "Aquarius, your visionary spirit lights up every room you walk into. On your special day, may the universe reward your brilliant, boundless mind!" },
-    { sign: 'Pisces',      symbol: '♓', from: [2,19],  to: [3,20],  msg: "Dear Pisces, your creativity and empathy are truly a gift to everyone around you. May this birthday bring you the magic you so freely give to others!" },
-    { sign: 'Aries',       symbol: '♈', from: [3,21],  to: [4,19],  msg: "Bold Aries, you lead the way with fire and courage! On your birthday, may your unstoppable energy open every door you've been meant to walk through." },
-    { sign: 'Taurus',      symbol: '♉', from: [4,20],  to: [5,20],  msg: "Steadfast Taurus, your loyalty and warmth make you irreplaceable. Here's to a birthday as beautiful and abundant as the world you build for those you love!" },
-    { sign: 'Gemini',      symbol: '♊', from: [5,21],  to: [6,20],  msg: "Gemini, your wit and adaptability are endlessly fascinating. May this birthday bring you twice the joy, twice the adventure, and twice the fun!" },
-    { sign: 'Cancer',      symbol: '♋', from: [6,21],  to: [7,22],  msg: "Caring Cancer, your heart holds an ocean of love. May this birthday fill you with the same warmth and happiness you generously pour into everyone else!" },
-    { sign: 'Leo',         symbol: '♌', from: [7,23],  to: [8,22],  msg: "Magnificent Leo, the whole world brightens when you shine. On your birthday, may you roar with joy and receive the royal celebration you deserve!" },
-    { sign: 'Virgo',       symbol: '♍', from: [8,23],  to: [9,22],  msg: "Detail-perfect Virgo, your dedication and thoughtfulness inspire everyone around you. Wishing you a birthday as beautifully curated as everything you do!" },
-    { sign: 'Libra',       symbol: '♎', from: [9,23],  to: [10,22], msg: "Harmonious Libra, you bring balance and grace wherever you go. May your birthday be surrounded by the beauty and love you always seek to create!" },
-    { sign: 'Scorpio',     symbol: '♏', from: [10,23], to: [11,21], msg: "Intense Scorpio, your passion and determination are truly unmatched. On your birthday, may the depth of your spirit carry you to extraordinary new heights!" },
-    { sign: 'Sagittarius', symbol: '♐', from: [11,22], to: [12,21], msg: "Free-spirited Sagittarius, your optimism and sense of adventure inspire everyone around you. May this birthday launch you toward your most exciting chapter yet!" },
+    { sign: 'Capricorn',   symbol: '♑', from: [12,22], to: [1,19],  msgs: [
+      "The stars have aligned perfectly for you today, Capricorn — your patience and perseverance are your greatest gifts. Wishing you a year full of well-deserved victories! 🏆",
+      "Capricorn, your quiet strength moves mountains. On this special day, may the universe return every ounce of dedication you've poured into your work and the people you love. 🌟",
+      "A true architect of dreams, Capricorn. Your ambition and discipline are legendary — here's to a birthday that marks the beginning of your greatest chapter yet! 🎯",
+    ]},
+    { sign: 'Aquarius',    symbol: '♒', from: [1,20],  to: [2,18],  msgs: [
+      "Aquarius, your visionary spirit lights up every room you walk into. On your special day, may the universe reward your brilliant, boundless mind! 💡",
+      "You were born to change the world, Aquarius. Your originality and heart for humanity make you truly one of a kind — have a birthday as extraordinary as you are! 🌈",
+      "Dear Aquarius, your ideas spark revolutions and your kindness sparks connections. May this birthday be filled with the innovation and freedom your soul craves! ✨",
+    ]},
+    { sign: 'Pisces',      symbol: '♓', from: [2,19],  to: [3,20],  msgs: [
+      "Dear Pisces, your creativity and empathy are truly a gift to everyone around you. May this birthday bring you the magic you so freely give to others! 🌊",
+      "Pisces, your imagination and compassion create ripples of beauty wherever you go. Here's to a birthday as dreamy and magical as your soul! 🎨",
+      "You feel the world more deeply than most, Pisces, and that sensitivity is your superpower. May this birthday fill your heart with all the wonder and love you deserve! 🌙",
+    ]},
+    { sign: 'Aries',       symbol: '♈', from: [3,21],  to: [4,19],  msgs: [
+      "Bold Aries, you lead the way with fire and courage! On your birthday, may your unstoppable energy open every door you've been meant to walk through. 🔥",
+      "Aries, your fearless spirit is the spark that ignites every room. Happy birthday to the trailblazer who never backs down from a challenge! ⚡",
+      "First and fiercest, Aries — your passion and drive inspire everyone around you. May this birthday charge you up for your most triumphant year yet! 🎉",
+    ]},
+    { sign: 'Taurus',      symbol: '♉', from: [4,20],  to: [5,20],  msgs: [
+      "Steadfast Taurus, your loyalty and warmth make you irreplaceable. Here's to a birthday as beautiful and abundant as the world you build for those you love! 🌸",
+      "Taurus, you are the rock everyone leans on — dependable, generous, and wonderful. On your special day, it's time for others to celebrate YOU! 🌺",
+      "Dear Taurus, your strength and grace make the world a more beautiful place. May this birthday bring you every comfort, joy, and well-deserved indulgence! 🎂",
+    ]},
+    { sign: 'Gemini',      symbol: '♊', from: [5,21],  to: [6,20],  msgs: [
+      "Gemini, your wit and adaptability are endlessly fascinating. May this birthday bring you twice the joy, twice the adventure, and twice the fun! 🎊",
+      "You light up every conversation and every room, Gemini. Your curiosity and charm make life so much more vibrant — here's to a birthday as lively as you! 🗣️",
+      "Gemini, your dual nature is your superpower — clever and kind, bold and playful. May this birthday be a beautiful mix of everything your wonderful soul loves! 🌟",
+    ]},
+    { sign: 'Cancer',      symbol: '♋', from: [6,21],  to: [7,22],  msgs: [
+      "Caring Cancer, your heart holds an ocean of love. May this birthday fill you with the same warmth and happiness you generously pour into everyone else! 🌊",
+      "Cancer, your nurturing spirit creates a safe harbor for everyone you love. On your birthday, let others be that haven for you — you deserve it! 🏠",
+      "Dear Cancer, your emotional depth and fierce loyalty are rare treasures. Wishing you a birthday as warm, cozy, and full of love as you make everything around you! 💙",
+    ]},
+    { sign: 'Leo',         symbol: '♌', from: [7,23],  to: [8,22],  msgs: [
+      "Magnificent Leo, the whole world brightens when you shine. On your birthday, may you roar with joy and receive the royal celebration you deserve! 👑",
+      "Leo, your generosity, warmth, and unshakable confidence inspire everyone around you. Today, the spotlight is all yours — own it completely! 🌟",
+      "Born to lead and born to shine, Leo — your heart is as big as your presence. May this birthday be the grandest, most glorious day of your incredible year! 🎺",
+    ]},
+    { sign: 'Virgo',       symbol: '♍', from: [8,23],  to: [9,22],  msgs: [
+      "Detail-perfect Virgo, your dedication and thoughtfulness inspire everyone around you. Wishing you a birthday as beautifully curated as everything you do! 🌿",
+      "Virgo, your precision and care elevate everything you touch. Today, may every detail of your birthday be as perfect as you always make things for others! ✨",
+      "Dear Virgo, your humble brilliance and servant heart make the world run better. Wishing you a birthday full of the peace, order, and beauty you bring to everyone else! 🌱",
+    ]},
+    { sign: 'Libra',       symbol: '♎', from: [9,23],  to: [10,22], msgs: [
+      "Harmonious Libra, you bring balance and grace wherever you go. May your birthday be surrounded by the beauty and love you always seek to create! ⚖️",
+      "Libra, your sense of fairness, charm, and elegance make you a joy to be around. On your special day, may the scales tip toward pure happiness for you! 🌸",
+      "Dear Libra, your artistic soul and peaceful heart create harmony in every space you occupy. Wishing you a birthday as lovely and balanced as you are! 🎨",
+    ]},
+    { sign: 'Scorpio',     symbol: '♏', from: [10,23], to: [11,21], msgs: [
+      "Intense Scorpio, your passion and determination are truly unmatched. On your birthday, may the depth of your spirit carry you to extraordinary new heights! 🦂",
+      "Scorpio, your magnetic presence and unwavering focus make you unstoppable. Today, may the universe reveal all the wonderful things your power has been building toward! 🔮",
+      "Dear Scorpio, beneath your strength lies a loyalty and sensitivity few ever see — those who do are truly blessed. Wishing you a birthday as deep and transformative as your soul! 🌙",
+    ]},
+    { sign: 'Sagittarius', symbol: '♐', from: [11,22], to: [12,21], msgs: [
+      "Free-spirited Sagittarius, your optimism and sense of adventure inspire everyone around you. May this birthday launch you toward your most exciting chapter yet! 🏹",
+      "Sagittarius, your laughter is contagious and your wanderlust is legendary. Here's to a birthday full of new horizons, bold discoveries, and pure joy! 🌍",
+      "Dear Sagittarius, your philosophical mind and adventurous heart make life so much bigger and brighter. Wishing you a birthday as limitless as your spirit! 🎉",
+    ]},
   ]
   for (const s of signs) {
     const [fm, fd] = s.from
     const [tm, td] = s.to
     if (fm > tm) { // wraps year (Capricorn)
-      if ((m === fm && day >= fd) || (m === 1 && day <= td)) return s
+      if ((m === fm && day >= fd) || (m === 1 && day <= td)) return { ...s, msg: s.msgs[msgIdx] }
     } else {
-      if ((m === fm && day >= fd) || (m > fm && m < tm) || (m === tm && day <= td)) return s
+      if ((m === fm && day >= fd) || (m > fm && m < tm) || (m === tm && day <= td)) return { ...s, msg: s.msgs[msgIdx] }
     }
   }
-  return signs[0]
+  return { ...signs[0], msg: signs[0].msgs[msgIdx] }
 }
 
 function AnnouncementBanner() {
@@ -83,14 +133,35 @@ function AnnouncementBanner() {
       {birthdayPeople.map(u => {
         const horo = u.birthDate ? getHoroscope(u.birthDate) : null
         return (
-          <div key={u.id} className="flex items-start gap-3 rounded-xl border border-pink-200 bg-gradient-to-r from-pink-50 to-yellow-50 px-4 py-3">
-            <span className="text-2xl flex-shrink-0 mt-0.5">🎂</span>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-pink-800">
-                Happy Birthday, {u.name}! 🎉
-                {horo && <span className="ml-2 text-xs font-normal text-pink-500">{horo.symbol} {horo.sign}</span>}
-              </p>
-              {horo && <p className="text-xs text-pink-600 mt-0.5 leading-relaxed">{horo.msg}</p>}
+          <div key={u.id} className="relative overflow-hidden rounded-2xl border-2 border-pink-300 px-5 py-4"
+            style={{ background: 'linear-gradient(135deg, #fdf2f8 0%, #fef9c3 50%, #fce7f3 100%)' }}>
+            {/* Confetti dots */}
+            <div className="absolute inset-0 pointer-events-none" aria-hidden>
+              {['🎊','🎈','⭐','🎊','🎈','✨','🎉','⭐','🎊','🎈'].map((e, i) => (
+                <span key={i} className="absolute text-base opacity-25 select-none"
+                  style={{ top: `${[10,25,60,80,15,70,40,55,85,30][i]}%`, left: `${[5,90,15,85,50,70,30,8,60,95][i]}%` }}>{e}</span>
+              ))}
+            </div>
+            <div className="relative flex items-start gap-3">
+              <div className="flex-shrink-0 text-3xl leading-none select-none">🎂</div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <p className="text-base font-extrabold" style={{ background: 'linear-gradient(90deg, #be185d, #d97706, #7c3aed)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    🎉 Happy Birthday, {u.name}! 🥳
+                  </p>
+                  {horo && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-pink-700 bg-pink-100 border border-pink-200 rounded-full px-2 py-0.5">
+                      {horo.symbol} {horo.sign}
+                    </span>
+                  )}
+                </div>
+                {horo && (
+                  <p className="text-sm text-rose-700 leading-relaxed">{horo.msg}</p>
+                )}
+                <div className="flex gap-1 mt-2 text-lg select-none" aria-hidden>
+                  <span>🎁</span><span>🎈</span><span>🎺</span><span>🎶</span><span>🪅</span>
+                </div>
+              </div>
             </div>
           </div>
         )
