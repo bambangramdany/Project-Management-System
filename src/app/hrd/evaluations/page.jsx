@@ -96,13 +96,144 @@ function BobotSection() {
           </div>
         ))}
         <div className={`text-sm font-semibold ${Math.abs(total - 100) < 0.01 ? 'text-green-600' : 'text-red-500'}`}>
-          Total: {total}%
+          Total: {total}% {Math.abs(total - 100) > 0.01 && <span className="font-normal text-xs">(harus tepat 100% untuk bisa disimpan)</span>}
         </div>
         {msg && <p className={`text-xs ${msg.type === 'ok' ? 'text-green-600' : 'text-red-500'}`}>{msg.text}</p>}
         <button onClick={save} disabled={saving || Math.abs(total - 100) > 0.01}
-          className="btn-primary text-sm py-1.5 px-4 disabled:opacity-40">
+          className="btn-primary text-sm py-1.5 px-4 disabled:opacity-40 disabled:cursor-not-allowed">
           {saving ? 'Menyimpan...' : 'Simpan Bobot'}
         </button>
+      </div>
+    </Section>
+  )
+}
+
+// ── Jadwal Sharing Session ───────────────────────────────────────────────────
+function JadwalSection() {
+  const [sessions, setSessions] = useState([])
+  const [allUsers, setAllUsers] = useState([])
+  const [form, setForm] = useState({ userId: '', scheduledDate: '', notes: '' })
+  const [saving, setSaving] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+  const [filterStatus, setFilterStatus] = useState('UPCOMING')
+
+  const load = useCallback(() => {
+    fetch('/api/sharing-sessions').then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setSessions(data)
+    })
+  }, [])
+
+  useEffect(() => {
+    load()
+    fetch('/api/team').then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setAllUsers(data)
+    })
+  }, [load])
+
+  async function create() {
+    if (!form.userId || !form.scheduledDate) return
+    setSaving(true)
+    await fetch('/api/sharing-sessions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
+    setSaving(false)
+    setShowForm(false)
+    setForm({ userId: '', scheduledDate: '', notes: '' })
+    load()
+  }
+
+  async function markDone(id) {
+    await fetch(`/api/sharing-sessions/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'DONE' }),
+    })
+    load()
+  }
+
+  async function del(id) {
+    if (!confirm('Hapus jadwal ini?')) return
+    await fetch(`/api/sharing-sessions/${id}`, { method: 'DELETE' })
+    load()
+  }
+
+  const STATUS_LABEL = { UPCOMING: 'Mendatang', DONE: 'Selesai', CANCELLED: 'Dibatalkan' }
+  const STATUS_COLOR = {
+    UPCOMING: 'bg-brand-100 text-brand-700 border-brand-200',
+    DONE: 'bg-green-100 text-green-700 border-green-200',
+    CANCELLED: 'bg-gray-100 text-gray-500 border-gray-200',
+  }
+
+  const list = sessions
+    .filter(s => filterStatus === 'ALL' ? true : s.status === filterStatus)
+    .sort((a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate))
+
+  return (
+    <Section title="Jadwal Sharing Session" icon="📅">
+      <div className="mt-3 flex flex-wrap gap-2 items-center justify-between mb-3">
+        <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs">
+          {['UPCOMING', 'DONE', 'ALL'].map(s => (
+            <button key={s} onClick={() => setFilterStatus(s)}
+              className={`px-3 py-1.5 transition-colors ${filterStatus === s ? 'bg-brand-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+              {s === 'UPCOMING' ? 'Mendatang' : s === 'DONE' ? 'Selesai' : 'Semua'}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => setShowForm(f => !f)} className="btn-primary text-xs px-3 py-1.5">
+          {showForm ? 'Tutup' : '+ Jadwalkan'}
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="rounded-xl border border-brand-200 bg-brand-50 p-4 space-y-3 mb-4">
+          <p className="text-xs font-semibold text-brand-700">Jadwal Baru</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] text-gray-500 mb-1 block">Presenter</label>
+              <select className="select w-full text-sm" value={form.userId} onChange={e => setForm(f => ({ ...f, userId: e.target.value }))}>
+                <option value="">Pilih anggota tim...</option>
+                {allUsers.sort((a, b) => a.name.localeCompare(b.name)).map(u => (
+                  <option key={u.id} value={u.id}>{u.name} ({u.jobTitle || u.role})</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-500 mb-1 block">Tanggal</label>
+              <input type="date" className="input w-full text-sm" value={form.scheduledDate} onChange={e => setForm(f => ({ ...f, scheduledDate: e.target.value }))} />
+            </div>
+          </div>
+          <input className="input w-full text-sm" placeholder="Catatan HRD (opsional)" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+          <div className="flex gap-2">
+            <button onClick={create} disabled={saving || !form.userId || !form.scheduledDate} className="btn-primary text-xs px-4 py-1.5 disabled:opacity-40">
+              {saving ? 'Menyimpan...' : 'Simpan Jadwal'}
+            </button>
+            <button onClick={() => setShowForm(false)} className="text-xs text-gray-500 hover:text-gray-700">Batal</button>
+          </div>
+        </div>
+      )}
+
+      {list.length === 0 && <p className="text-sm text-gray-400 py-4 text-center">Tidak ada jadwal</p>}
+
+      <div className="space-y-2">
+        {list.map(s => (
+          <div key={s.id} className="border border-gray-100 rounded-lg p-3 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-800">{s.user?.name}</p>
+              <p className="text-xs text-gray-500">{new Date(s.scheduledDate).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</p>
+              {s.topic && <p className="text-xs text-gray-600 mt-0.5">💡 {s.topic}</p>}
+              {s.notes && <p className="text-xs text-gray-400 mt-0.5">📌 {s.notes}</p>}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${STATUS_COLOR[s.status]}`}>
+                {STATUS_LABEL[s.status]}
+              </span>
+              {s.status === 'UPCOMING' && (
+                <button onClick={() => markDone(s.id)} className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-700 hover:bg-green-100 border border-green-100 whitespace-nowrap">✓ Selesai</button>
+              )}
+              <button onClick={() => del(s.id)} className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-500 hover:bg-red-100 border border-red-100">✕</button>
+            </div>
+          </div>
+        ))}
       </div>
     </Section>
   )
@@ -433,6 +564,7 @@ export default function HrdEvaluationsPage() {
           <p className="text-sm text-gray-500 mt-0.5">Data akan masuk ke akumulasi penilaian masing-masing anggota</p>
         </div>
         <BobotSection />
+        <JadwalSection />
         <SharingScoringSection />
         <PenilaianBulananSection />
       </main>

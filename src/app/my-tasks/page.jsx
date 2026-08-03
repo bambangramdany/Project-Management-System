@@ -442,7 +442,7 @@ export default function MyTasksPage() {
           ))}
 
           <CollapsibleSection title="Jadwal Sharing Session" count={sharingSessions.filter(s => s.status === 'UPCOMING').length} defaultOpen={true} icon="🎤">
-            <AllSharingSessionsTable sessions={sharingSessions} currentUser={session?.user} onUpdate={loadSharingSessions} />
+            <AllSharingSessionsTable sessions={sharingSessions} />
           </CollapsibleSection>
         </main>
       </div>
@@ -578,7 +578,7 @@ export default function MyTasksPage() {
           )}
 
           <CollapsibleSection title="Jadwal Sharing Session" count={sharingSessions.filter(s => s.status === 'UPCOMING').length} defaultOpen={true} icon="🎤">
-            <AllSharingSessionsTable sessions={sharingSessions} currentUser={session?.user} onUpdate={loadSharingSessions} />
+            <AllSharingSessionsTable sessions={sharingSessions} />
           </CollapsibleSection>
 
         </main>
@@ -665,7 +665,7 @@ export default function MyTasksPage() {
         </CollapsibleSection>
 
         <CollapsibleSection title="Jadwal Sharing Session" count={sharingSessions.filter(s => s.status === 'UPCOMING').length} defaultOpen={true} icon="🎤">
-          <AllSharingSessionsTable sessions={sharingSessions} currentUser={session?.user} onUpdate={loadSharingSessions} />
+          <AllSharingSessionsTable sessions={sharingSessions} />
         </CollapsibleSection>
       </main>
     </div>

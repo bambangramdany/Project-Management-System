@@ -110,50 +110,10 @@ export function MySharingSessionCard({ sessions, onUpdate }) {
   )
 }
 
-// ── Tabel semua jadwal (tampil di Tugas Saya — untuk semua orang) ───────────
-export function AllSharingSessionsTable({ sessions, currentUser, onUpdate }) {
-  const canManage = currentUser?.role === 'OWNER' || currentUser?.divisi === 'FINANCE_HRGA'
-  const [showForm, setShowForm] = useState(false)
-  const [allUsers, setAllUsers] = useState([])
-  const [formData, setFormData] = useState({ userId: '', scheduledDate: '', notes: '' })
-  const [saving, setSaving] = useState(false)
-  const [sortBy, setSortBy] = useState('date') // date | name
+// ── Tabel semua jadwal (tampil di Tugas Saya — read-only, hanya info) ───────
+export function AllSharingSessionsTable({ sessions }) {
+  const [sortBy, setSortBy] = useState('date')
   const [filterStatus, setFilterStatus] = useState('UPCOMING')
-
-  async function loadUsers() {
-    if (allUsers.length) return
-    const data = await fetch('/api/team').then(r => r.json())
-    setAllUsers(Array.isArray(data) ? data : [])
-  }
-
-  async function createSession() {
-    if (!formData.userId || !formData.scheduledDate) return
-    setSaving(true)
-    await fetch('/api/sharing-sessions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
-    })
-    setSaving(false)
-    setShowForm(false)
-    setFormData({ userId: '', scheduledDate: '', notes: '' })
-    onUpdate?.()
-  }
-
-  async function markStatus(id, status) {
-    await fetch(`/api/sharing-sessions/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    })
-    onUpdate?.()
-  }
-
-  async function deleteSession(id) {
-    if (!confirm('Hapus jadwal ini?')) return
-    await fetch(`/api/sharing-sessions/${id}`, { method: 'DELETE' })
-    onUpdate?.()
-  }
 
   const filtered = sessions.filter(s => filterStatus === 'ALL' ? true : s.status === filterStatus)
   const sorted = [...filtered].sort((a, b) => {
@@ -181,45 +141,7 @@ export function AllSharingSessionsTable({ sessions, currentUser, onUpdate }) {
           <button onClick={() => setSortBy('date')} className={`px-2 py-1 rounded border ${sortBy === 'date' ? 'border-brand-400 text-brand-700 bg-brand-50' : 'border-gray-200 text-gray-500'}`}>Tanggal</button>
           <button onClick={() => setSortBy('name')} className={`px-2 py-1 rounded border ${sortBy === 'name' ? 'border-brand-400 text-brand-700 bg-brand-50' : 'border-gray-200 text-gray-500'}`}>Nama</button>
         </div>
-        <div className="flex-1" />
-        {canManage && (
-          <button
-            onClick={() => { setShowForm(s => !s); loadUsers() }}
-            className="btn-primary text-xs px-3 py-1.5"
-          >
-            + Jadwalkan
-          </button>
-        )}
       </div>
-
-      {/* Form tambah jadwal */}
-      {showForm && (
-        <div className="rounded-xl border border-brand-200 bg-brand-50 p-4 space-y-3">
-          <p className="text-xs font-semibold text-brand-700">Tambah Jadwal Baru</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-[10px] text-gray-500 mb-1 block">Presenter</label>
-              <select className="select w-full text-sm" value={formData.userId} onChange={e => setFormData(d => ({ ...d, userId: e.target.value }))}>
-                <option value="">Pilih anggota tim...</option>
-                {allUsers.map(u => (
-                  <option key={u.id} value={u.id}>{u.name} ({u.jobTitle || u.role})</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] text-gray-500 mb-1 block">Tanggal</label>
-              <input type="date" className="input w-full text-sm" value={formData.scheduledDate} onChange={e => setFormData(d => ({ ...d, scheduledDate: e.target.value }))} />
-            </div>
-          </div>
-          <input className="input w-full text-sm" placeholder="Catatan dari HRD (opsional)" value={formData.notes} onChange={e => setFormData(d => ({ ...d, notes: e.target.value }))} />
-          <div className="flex gap-2">
-            <button onClick={createSession} disabled={saving || !formData.userId || !formData.scheduledDate} className="btn-primary text-xs px-4 py-1.5">
-              {saving ? 'Menyimpan...' : 'Simpan Jadwal'}
-            </button>
-            <button onClick={() => setShowForm(false)} className="text-xs text-gray-500 hover:text-gray-700">Batal</button>
-          </div>
-        </div>
-      )}
 
       {/* Tabel */}
       {sorted.length === 0 ? (
@@ -237,7 +159,6 @@ export function AllSharingSessionsTable({ sessions, currentUser, onUpdate }) {
                 <th className="text-left px-3 py-2 hidden sm:table-cell">Topik</th>
                 <th className="text-left px-3 py-2 hidden sm:table-cell">Catatan HRD</th>
                 <th className="text-left px-3 py-2">Status</th>
-                {canManage && <th className="px-3 py-2" />}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -262,16 +183,6 @@ export function AllSharingSessionsTable({ sessions, currentUser, onUpdate }) {
                       {STATUS_LABEL[s.status]}
                     </span>
                   </td>
-                  {canManage && (
-                    <td className="px-3 py-2.5">
-                      <div className="flex gap-1">
-                        {s.status === 'UPCOMING' && (
-                          <button onClick={() => markStatus(s.id, 'DONE')} className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-700 hover:bg-green-100 border border-green-100 whitespace-nowrap">✓ Selesai</button>
-                        )}
-                        <button onClick={() => deleteSession(s.id)} className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-500 hover:bg-red-100 border border-red-100">✕</button>
-                      </div>
-                    </td>
-                  )}
                 </tr>
               ))}
             </tbody>

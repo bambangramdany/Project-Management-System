@@ -28,6 +28,7 @@ export async function POST(req) {
     email: target.email,
     role: target.role,
     divisi: target.divisi,
+    canHrdEvaluate: target.canHrdEvaluate ?? false,
     impersonating: true,
     actualUserId: session.user.id,
   }
