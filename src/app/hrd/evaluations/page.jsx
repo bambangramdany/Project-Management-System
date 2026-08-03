@@ -62,14 +62,19 @@ function BobotSection() {
 
   async function save() {
     setSaving(true); setMsg(null)
-    const res = await fetch('/api/hrd/weights', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...bobot, kpiWeight: Number(bobot.kpiWeight), attendanceWeight: Number(bobot.attendanceWeight), sharingWeight: Number(bobot.sharingWeight), attitudeWeight: Number(bobot.attitudeWeight), skillWeight: Number(bobot.skillWeight) }),
-    })
-    const data = await res.json()
-    setSaving(false)
-    if (!res.ok) setMsg({ type: 'error', text: data.error })
-    else setMsg({ type: 'ok', text: 'Bobot berhasil disimpan' })
+    try {
+      const res = await fetch('/api/hrd/weights', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kpiWeight: Number(bobot.kpiWeight), attendanceWeight: Number(bobot.attendanceWeight), sharingWeight: Number(bobot.sharingWeight), attitudeWeight: Number(bobot.attitudeWeight), skillWeight: Number(bobot.skillWeight) }),
+      })
+      const data = await res.json()
+      if (!res.ok) setMsg({ type: 'error', text: data.error || 'Gagal menyimpan' })
+      else setMsg({ type: 'ok', text: 'Bobot berhasil disimpan' })
+    } catch (e) {
+      setMsg({ type: 'error', text: `Error: ${e.message}` })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const fields = [
@@ -276,15 +281,20 @@ function SharingScoringSection() {
 
   async function saveScore() {
     setSaving(true); setMsg(null)
-    const res = await fetch(`/api/sharing-sessions/${selected.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
-    const data = await res.json()
-    setSaving(false)
-    if (!res.ok) { setMsg({ type: 'error', text: data.error }); return }
-    setSelected(null)
-    load()
+    try {
+      const res = await fetch(`/api/sharing-sessions/${selected.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      if (!res.ok) { setMsg({ type: 'error', text: data.error || 'Gagal menyimpan' }); return }
+      setSelected(null)
+      load()
+    } catch (e) {
+      setMsg({ type: 'error', text: `Error: ${e.message}` })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const avgScore = form.scoreMateri && form.scorePenyampaian && form.scoreInteraksi && form.scoreWaktu
@@ -418,15 +428,20 @@ function PenilaianBulananSection() {
 
   async function save() {
     setSaving(true); setMsg(null)
-    const res = await fetch('/api/hrd/evaluations', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: selected.id, period, ...form }),
-    })
-    const data = await res.json()
-    setSaving(false)
-    if (!res.ok) { setMsg({ type: 'error', text: data.error }); return }
-    setSelected(null)
-    loadEvals()
+    try {
+      const res = await fetch('/api/hrd/evaluations', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selected.id, period, ...form }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setMsg({ type: 'error', text: data.error || 'Gagal menyimpan' }); return }
+      setSelected(null)
+      loadEvals()
+    } catch (e) {
+      setMsg({ type: 'error', text: `Error: ${e.message}` })
+    } finally {
+      setSaving(false)
+    }
   }
 
   // generate period options: current month - 11 months
