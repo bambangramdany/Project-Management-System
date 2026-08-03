@@ -64,6 +64,27 @@ model User {
   hrdEvaluationsReceived HrdMonthlyEvaluation[] @relation("HrdEvaluatee")
   evaluationWeightsSet   EvaluationWeight[]    @relation("WeightUpdater")
   canHrdEvaluate         Boolean               @default(false)
+  birthDate              DateTime?
+  birthPlace             String?
+  gender                 String?               // L / P
+  joinDate               DateTime?
+  ktpNumber              String?
+  npwpNumber             String?
+  maritalStatus          String?
+  education              String?
+  educationMajor         String?
+  personalEmail          String?
+  emergencyContact       String?
+  emergencyContactRel    String?
+  bankName               String?
+  bankAccount            String?
+  addressKtp             String?
+  addressDomicili        String?
+  hobby                  String?
+  motherName             String?
+  fatherName             String?
+  npk                    String?
+  announcements          Announcement[]        @relation("AnnouncementAuthor")
 }
 
 // Global audit trail of important changes across the system, for Direksi/Owner
@@ -1340,4 +1361,21 @@ model InvoiceItem {
   order            Int
 
   @@index([invoiceId])
+}
+
+model Announcement {
+  id          String    @id @default(cuid())
+  title       String
+  content     String?
+  type        String    @default("INFO") // INFO | BIRTHDAY | WARNING | EVENT
+  authorId    String
+  author      User      @relation("AnnouncementAuthor", fields: [authorId], references: [id])
+  publishedAt DateTime  @default(now())
+  expiresAt   DateTime?
+  pinned      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([publishedAt])
+  @@index([expiresAt])
 }

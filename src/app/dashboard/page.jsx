@@ -25,6 +25,92 @@ const PIPELINE_STAGES = [
 // Order for the morning briefing list — pitching through invoicing
 const BRIEFING_ORDER = ['PITCHING', 'WAITING_PITCH_RESULT', 'PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING']
 
+function getHoroscope(birthDate) {
+  const d = new Date(birthDate)
+  const m = d.getMonth() + 1
+  const day = d.getDate()
+  const signs = [
+    { sign: 'Capricorn',   symbol: '♑', from: [12,22], to: [1,19],  msg: "The stars have aligned perfectly for you today, Capricorn — your patience and perseverance are your greatest gifts. Wishing you a year full of well-deserved victories!" },
+    { sign: 'Aquarius',    symbol: '♒', from: [1,20],  to: [2,18],  msg: "Aquarius, your visionary spirit lights up every room you walk into. On your special day, may the universe reward your brilliant, boundless mind!" },
+    { sign: 'Pisces',      symbol: '♓', from: [2,19],  to: [3,20],  msg: "Dear Pisces, your creativity and empathy are truly a gift to everyone around you. May this birthday bring you the magic you so freely give to others!" },
+    { sign: 'Aries',       symbol: '♈', from: [3,21],  to: [4,19],  msg: "Bold Aries, you lead the way with fire and courage! On your birthday, may your unstoppable energy open every door you've been meant to walk through." },
+    { sign: 'Taurus',      symbol: '♉', from: [4,20],  to: [5,20],  msg: "Steadfast Taurus, your loyalty and warmth make you irreplaceable. Here's to a birthday as beautiful and abundant as the world you build for those you love!" },
+    { sign: 'Gemini',      symbol: '♊', from: [5,21],  to: [6,20],  msg: "Gemini, your wit and adaptability are endlessly fascinating. May this birthday bring you twice the joy, twice the adventure, and twice the fun!" },
+    { sign: 'Cancer',      symbol: '♋', from: [6,21],  to: [7,22],  msg: "Caring Cancer, your heart holds an ocean of love. May this birthday fill you with the same warmth and happiness you generously pour into everyone else!" },
+    { sign: 'Leo',         symbol: '♌', from: [7,23],  to: [8,22],  msg: "Magnificent Leo, the whole world brightens when you shine. On your birthday, may you roar with joy and receive the royal celebration you deserve!" },
+    { sign: 'Virgo',       symbol: '♍', from: [8,23],  to: [9,22],  msg: "Detail-perfect Virgo, your dedication and thoughtfulness inspire everyone around you. Wishing you a birthday as beautifully curated as everything you do!" },
+    { sign: 'Libra',       symbol: '♎', from: [9,23],  to: [10,22], msg: "Harmonious Libra, you bring balance and grace wherever you go. May your birthday be surrounded by the beauty and love you always seek to create!" },
+    { sign: 'Scorpio',     symbol: '♏', from: [10,23], to: [11,21], msg: "Intense Scorpio, your passion and determination are truly unmatched. On your birthday, may the depth of your spirit carry you to extraordinary new heights!" },
+    { sign: 'Sagittarius', symbol: '♐', from: [11,22], to: [12,21], msg: "Free-spirited Sagittarius, your optimism and sense of adventure inspire everyone around you. May this birthday launch you toward your most exciting chapter yet!" },
+  ]
+  for (const s of signs) {
+    const [fm, fd] = s.from
+    const [tm, td] = s.to
+    if (fm > tm) { // wraps year (Capricorn)
+      if ((m === fm && day >= fd) || (m === 1 && day <= td)) return s
+    } else {
+      if ((m === fm && day >= fd) || (m > fm && m < tm) || (m === tm && day <= td)) return s
+    }
+  }
+  return signs[0]
+}
+
+function AnnouncementBanner() {
+  const [data, setData] = useState(null)
+  const [dismissed, setDismissed] = useState(new Set())
+
+  useEffect(() => {
+    fetch('/api/announcements').then(r => r.json()).then(d => setData(d)).catch(() => {})
+  }, [])
+
+  if (!data) return null
+
+  const birthdayPeople = data.birthdayToday || []
+  const announcements = (data.announcements || []).filter(a => !dismissed.has(a.id))
+
+  if (birthdayPeople.length === 0 && announcements.length === 0) return null
+
+  const TYPE_STYLE = {
+    INFO: 'bg-blue-50 border-blue-200 text-blue-800',
+    EVENT: 'bg-purple-50 border-purple-200 text-purple-800',
+    WARNING: 'bg-amber-50 border-amber-300 text-amber-800',
+    BIRTHDAY: 'bg-pink-50 border-pink-200 text-pink-800',
+  }
+  const TYPE_ICON = { INFO: 'ℹ️', EVENT: '📅', WARNING: '⚠️', BIRTHDAY: '🎂' }
+
+  return (
+    <div className="space-y-2 mb-2">
+      {birthdayPeople.map(u => {
+        const horo = u.birthDate ? getHoroscope(u.birthDate) : null
+        return (
+          <div key={u.id} className="flex items-start gap-3 rounded-xl border border-pink-200 bg-gradient-to-r from-pink-50 to-yellow-50 px-4 py-3">
+            <span className="text-2xl flex-shrink-0 mt-0.5">🎂</span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-pink-800">
+                Happy Birthday, {u.name}! 🎉
+                {horo && <span className="ml-2 text-xs font-normal text-pink-500">{horo.symbol} {horo.sign}</span>}
+              </p>
+              {horo && <p className="text-xs text-pink-600 mt-0.5 leading-relaxed">{horo.msg}</p>}
+            </div>
+          </div>
+        )
+      })}
+      {announcements.map(ann => (
+        <div key={ann.id} className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${TYPE_STYLE[ann.type] || TYPE_STYLE.INFO}`}>
+          <span className="text-lg flex-shrink-0 mt-0.5">{TYPE_ICON[ann.type] || TYPE_ICON.INFO}</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">{ann.title}</p>
+            {ann.content && <p className="text-xs mt-0.5 opacity-80 line-clamp-2">{ann.content}</p>}
+          </div>
+          <button onClick={() => setDismissed(d => new Set([...d, ann.id]))}
+            className="flex-shrink-0 text-xs opacity-50 hover:opacity-100 px-1.5 py-0.5 rounded hover:bg-black/10 transition-opacity"
+            aria-label="Tutup">✕</button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -107,6 +193,8 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-brand-50">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <AnnouncementBanner />
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

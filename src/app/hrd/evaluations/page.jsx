@@ -719,6 +719,218 @@ function RingkasanTimSection() {
   )
 }
 
+// ── Data Tanggal Lahir ────────────────────────────────────────────────────────
+function BirthdaySection() {
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState({})
+  const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    fetch('/api/users/birthdays').then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setUsers(data)
+      setLoading(false)
+    })
+  }, [])
+
+  async function saveBirthday(userId, birthDate) {
+    setSaving(s => ({ ...s, [userId]: true }))
+    try {
+      const res = await fetch('/api/users/birthdays', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, birthDate: birthDate || null }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setUsers(us => us.map(u => u.id === userId ? { ...u, birthDate: data.birthDate } : u))
+      }
+    } finally {
+      setSaving(s => ({ ...s, [userId]: false }))
+    }
+  }
+
+  const filtered = users.filter(u => u.name.toLowerCase().includes(search.toLowerCase()))
+
+  function toInputDate(dateStr) {
+    if (!dateStr) return ''
+    return new Date(dateStr).toISOString().split('T')[0]
+  }
+
+  function formatBirthday(dateStr) {
+    if (!dateStr) return null
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })
+  }
+
+  const today = new Date()
+  const todayMD = `${String(today.getMonth() + 1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
+
+  return (
+    <Section title="Data Tanggal Lahir Tim" icon="🎂">
+      <div className="mt-3">
+        <input placeholder="Cari anggota..." value={search} onChange={e => setSearch(e.target.value)}
+          className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm mb-3 focus:outline-none focus:border-brand-400" />
+        {loading ? <p className="text-sm text-gray-400">Memuat...</p> : (
+          <div className="space-y-2">
+            {filtered.map(u => {
+              const bdStr = toInputDate(u.birthDate)
+              const isBdToday = bdStr && bdStr.slice(5) === todayMD
+              return (
+                <div key={u.id} className={`flex items-center gap-3 rounded-lg px-3 py-2 ${isBdToday ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'}`}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{u.name} {isBdToday && '🎉'}</p>
+                    <p className="text-xs text-gray-400">{u.divisi || u.jobTitle || ''}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {u.birthDate && (
+                      <span className="text-xs text-gray-500 hidden sm:block">{formatBirthday(u.birthDate)}</span>
+                    )}
+                    <input type="date" value={bdStr}
+                      onChange={e => saveBirthday(u.id, e.target.value)}
+                      className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-brand-400" />
+                    {saving[u.id] && <span className="text-xs text-gray-400">💾</span>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </Section>
+  )
+}
+
+// ── Pengumuman HRD ────────────────────────────────────────────────────────────
+const TYPE_LABELS = { INFO: { label: 'Info', color: 'bg-blue-100 text-blue-700' }, EVENT: { label: 'Event', color: 'bg-purple-100 text-purple-700' }, WARNING: { label: 'Perhatian', color: 'bg-amber-100 text-amber-700' }, BIRTHDAY: { label: 'Ulang Tahun', color: 'bg-pink-100 text-pink-700' } }
+
+function AnnouncementSection() {
+  const [announcements, setAnnouncements] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState({ title: '', content: '', type: 'INFO', expiresAt: '', pinned: false })
+  const [saving, setSaving] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+
+  const load = useCallback(() => {
+    fetch('/api/announcements').then(r => r.json()).then(data => {
+      if (data.announcements) setAnnouncements(data.announcements)
+      setLoading(false)
+    })
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  async function saveAnnouncement() {
+    if (!form.title.trim()) return
+    setSaving(true)
+    try {
+      const res = await fetch('/api/announcements', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, expiresAt: form.expiresAt || null }),
+      })
+      if (res.ok) {
+        setForm({ title: '', content: '', type: 'INFO', expiresAt: '', pinned: false })
+        setShowForm(false)
+        load()
+      }
+    } finally { setSaving(false) }
+  }
+
+  async function deleteAnnouncement(id) {
+    if (!confirm('Hapus pengumuman ini?')) return
+    await fetch(`/api/announcements/${id}`, { method: 'DELETE' })
+    load()
+  }
+
+  async function togglePin(ann) {
+    await fetch(`/api/announcements/${ann.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pinned: !ann.pinned }),
+    })
+    load()
+  }
+
+  return (
+    <Section title="Pengumuman HRD" icon="📢">
+      <div className="mt-3 space-y-3">
+        {!showForm ? (
+          <button onClick={() => setShowForm(true)} className="btn-primary text-sm py-1.5 px-4">+ Buat Pengumuman</button>
+        ) : (
+          <div className="border border-gray-200 rounded-lg p-4 space-y-3 bg-blue-50">
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="text-xs text-gray-500 block mb-1">Judul *</label>
+                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="Judul pengumuman" className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Tipe</label>
+                <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+                  className="border border-gray-200 rounded px-2 py-1.5 text-sm">
+                  {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Isi (opsional)</label>
+              <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+                rows={3} placeholder="Detail pengumuman..." className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm resize-none" />
+            </div>
+            <div className="flex gap-4 items-center flex-wrap">
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Berlaku sampai (opsional)</label>
+                <input type="date" value={form.expiresAt} onChange={e => setForm(f => ({ ...f, expiresAt: e.target.value }))}
+                  className="border border-gray-200 rounded px-2 py-1 text-sm" />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-gray-600 mt-4">
+                <input type="checkbox" checked={form.pinned} onChange={e => setForm(f => ({ ...f, pinned: e.target.checked }))} />
+                Pinned (tampil di atas)
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={saveAnnouncement} disabled={saving || !form.title.trim()}
+                className="btn-primary text-sm py-1.5 px-4 disabled:opacity-40">{saving ? 'Menyimpan...' : 'Simpan'}</button>
+              <button onClick={() => setShowForm(false)} className="btn-outline text-sm py-1.5 px-4">Batal</button>
+            </div>
+          </div>
+        )}
+
+        {loading ? <p className="text-sm text-gray-400">Memuat...</p> : announcements.length === 0 ? (
+          <p className="text-sm text-gray-400 py-2">Belum ada pengumuman aktif.</p>
+        ) : (
+          <div className="space-y-2">
+            {announcements.map(ann => {
+              const tl = TYPE_LABELS[ann.type] || TYPE_LABELS.INFO
+              return (
+                <div key={ann.id} className="flex items-start gap-3 border border-gray-200 rounded-lg px-3 py-2.5 bg-white">
+                  {ann.pinned && <span className="text-xs mt-0.5">📌</span>}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${tl.color}`}>{tl.label}</span>
+                      <p className="text-sm font-medium text-gray-800">{ann.title}</p>
+                    </div>
+                    {ann.content && <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{ann.content}</p>}
+                    <p className="text-xs text-gray-400 mt-1">
+                      {ann.author?.name} · {new Date(ann.publishedAt).toLocaleDateString('id-ID')}
+                      {ann.expiresAt && ` · s/d ${new Date(ann.expiresAt).toLocaleDateString('id-ID')}`}
+                    </p>
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button onClick={() => togglePin(ann)} title={ann.pinned ? 'Unpin' : 'Pin'}
+                      className="text-gray-400 hover:text-gray-600 text-xs px-1.5 py-1 rounded hover:bg-gray-100">📌</button>
+                    <button onClick={() => deleteAnnouncement(ann.id)}
+                      className="text-red-400 hover:text-red-600 text-xs px-1.5 py-1 rounded hover:bg-red-50">✕</button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </Section>
+  )
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function HrdEvaluationsPage() {
   const { data: session, status } = useSession()
@@ -744,6 +956,8 @@ export default function HrdEvaluationsPage() {
         </div>
         <BobotSection />
         <RingkasanTimSection />
+        <BirthdaySection />
+        <AnnouncementSection />
         <JadwalSection />
         <SharingScoringSection />
         <PenilaianBulananSection />
