@@ -16,13 +16,13 @@ export const authOptions = {
         if (!user) return null
         const valid = await bcrypt.compare(credentials.password, user.hashedPassword)
         if (!valid) return null
-        return { id: user.id, name: user.name, email: user.email, role: user.role, divisi: user.divisi }
+        return { id: user.id, name: user.name, email: user.email, role: user.role, divisi: user.divisi, canHrdEvaluate: user.canHrdEvaluate ?? false }
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) { token.id = user.id; token.role = user.role; token.divisi = user.divisi }
+      if (user) { token.id = user.id; token.role = user.role; token.divisi = user.divisi; token.canHrdEvaluate = user.canHrdEvaluate ?? false }
       return token
     },
     async session({ session, token }) {
@@ -32,6 +32,7 @@ export const authOptions = {
         session.user.divisi = token.divisi
         session.user.name = token.name
         session.user.email = token.email
+        session.user.canHrdEvaluate = token.canHrdEvaluate ?? false
         if (token.impersonating) {
           session.user.impersonating = true
           session.user.actualUserId = token.actualUserId

@@ -35,6 +35,7 @@ const NAV_ITEMS = [
   { href: '/salary',   label: 'Gaji',       roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
 
   // ── Admin ──
+  { href: '/hrd/evaluations', label: 'Input HRD', hrdOnly: true },
   { href: '/settings', label: 'Pengaturan', settingsOnly: true },
 ]
 
@@ -49,6 +50,7 @@ export default function Navbar() {
     if (item.settingsOnly) return session?.user.role === 'OWNER' || canSeeAudit
     if (item.cashOnly) return canSeeCash
     if (item.financeStaffOk) return canSeeFinanceStaff
+    if (item.hrdOnly) return session?.user?.canHrdEvaluate || session?.user?.role === 'OWNER'
     return !item.roles || item.roles.includes(session?.user.role)
   })
 

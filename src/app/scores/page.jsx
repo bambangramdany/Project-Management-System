@@ -184,6 +184,8 @@ export default function ScoresPage() {
     ...(session.user.role !== 'OWNER'
       ? [{ key: 'penilaian-saya', label: '👤 Penilaian Saya', desc: 'Skor, KPI & disiplin saya sendiri' }]
       : []),
+    // Semua bisa lihat akumulasi penilaian
+    { key: 'akumulasi', label: '📊 Akumulasi', desc: 'Nilai akhir bulanan, kuartalan, tahunan' },
   ]
   // Owner punya tab Nilai Tim saja (+ Semua Catatan), tidak ada tab diri sendiri
 
@@ -716,7 +718,142 @@ export default function ScoresPage() {
         </div>
         )}
 
+        {/* ══════════════════════════════════════════════
+            TAB: AKUMULASI
+        ══════════════════════════════════════════════ */}
+        {activeTab === 'akumulasi' && (
+          <AkumulasiTab userId={session.user.id} isOwner={session.user.role === 'OWNER'} canHrdEvaluate={session.user.canHrdEvaluate} />
+        )}
+
       </main>
+    </div>
+  )
+}
+
+// ── Akumulasi Tab ────────────────────────────────────────────────────────────
+function AkumulasiTab({ userId, isOwner, canHrdEvaluate }) {
+  const today = new Date()
+  const [viewType, setViewType] = useState('monthly') // monthly | quarterly | yearly
+  const [period, setPeriod] = useState(() => {
+    const y = today.getFullYear(), m = today.getMonth() + 1
+    return `${y}-${String(m).padStart(2, '0')}`
+  })
+  const [viewUserId, setViewUserId] = useState(userId)
+  const [team, setTeam] = useState([])
+  const [result, setResult] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (isOwner || canHrdEvaluate) {
+      fetch('/api/team').then(r => r.json()).then(data => {
+        if (Array.isArray(data)) setTeam(data.filter(u => u.role !== 'OWNER'))
+      })
+    }
+  }, [isOwner, canHrdEvaluate])
+
+  useEffect(() => {
+    setLoading(true)
+    fetch(`/api/hrd/accumulation?userId=${viewUserId}&period=${period}&type=${viewType}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { setResult(data); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [viewUserId, period, viewType])
+
+  const periodOptions = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
+    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const label = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+    return { val, label }
+  })
+
+  const scoreColor = (s) => s == null ? 'text-gray-400' : s >= 4 ? 'text-green-600' : s >= 3 ? 'text-amber-600' : 'text-red-500'
+  const scoreLabel = (s) => s == null ? '—' : s >= 4.5 ? 'Istimewa' : s >= 3.5 ? 'Sangat Baik' : s >= 2.5 ? 'Baik' : s >= 1.5 ? 'Cukup' : 'Kurang'
+
+  return (
+    <div className="space-y-4">
+      {/* Filter bar */}
+      <div className="card p-3 flex flex-wrap gap-3 items-center">
+        <div className="flex gap-1">
+          {[['monthly', 'Per Bulan'], ['quarterly', 'Per 3 Bulan'], ['yearly', 'Per Tahun']].map(([v, l]) => (
+            <button key={v} onClick={() => setViewType(v)}
+              className={`text-xs px-3 py-1 rounded-full border transition-colors ${viewType === v ? 'bg-orange-500 text-white border-orange-500' : 'border-gray-200 text-gray-600 hover:border-orange-300'}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+        <select className="border border-gray-200 rounded px-2 py-1 text-sm"
+          value={period} onChange={e => setPeriod(e.target.value)}>
+          {periodOptions.map(o => <option key={o.val} value={o.val}>{o.label}</option>)}
+        </select>
+        {(isOwner || canHrdEvaluate) && team.length > 0 && (
+          <select className="border border-gray-200 rounded px-2 py-1 text-sm"
+            value={viewUserId} onChange={e => setViewUserId(e.target.value)}>
+            <option value={userId}>Saya</option>
+            {team.sort((a, b) => a.name.localeCompare(b.name)).map(u => (
+              <option key={u.id} value={u.id}>{u.name}</option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {loading && <div className="text-center py-8 text-gray-400 text-sm">Menghitung...</div>}
+
+      {!loading && !result && (
+        <div className="card p-6 text-center text-gray-400 text-sm">
+          Belum ada data penilaian untuk periode ini
+        </div>
+      )}
+
+      {!loading && result && (
+        <>
+          {/* Score summary card */}
+          <div className="card p-5 border-t-4 border-orange-400">
+            <div className="text-center mb-4">
+              <p className="text-xs text-gray-500 mb-1">Nilai Akhir Tertimbang</p>
+              <p className={`text-5xl font-bold ${scoreColor(result.finalScore)}`}>
+                {result.finalScore != null ? result.finalScore.toFixed(2) : '—'}
+              </p>
+              <p className={`text-sm font-medium mt-1 ${scoreColor(result.finalScore)}`}>
+                {scoreLabel(result.finalScore)}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">{result.periodLabel}</p>
+            </div>
+
+            {/* Component breakdown */}
+            <div className="space-y-2">
+              {[
+                { label: 'KPI', score: result.components?.kpi, weight: result.weights?.kpi },
+                { label: 'Absensi', score: result.components?.attendance, weight: result.weights?.attendance },
+                { label: 'Sharing Session', score: result.components?.sharing, weight: result.weights?.sharing },
+                { label: 'Attitude / Kedisiplinan', score: result.components?.attitude, weight: result.weights?.attitude },
+                { label: 'Skill Development', score: result.components?.skill, weight: result.weights?.skill },
+              ].map(({ label, score, weight }) => (
+                <div key={label} className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 w-36 shrink-0">{label}</span>
+                  <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${score >= 4 ? 'bg-green-400' : score >= 3 ? 'bg-amber-400' : score != null ? 'bg-red-400' : 'bg-gray-200'}`}
+                      style={{ width: score != null ? `${(score / 5) * 100}%` : '0%' }} />
+                  </div>
+                  <span className={`text-xs font-semibold w-10 text-right ${scoreColor(score)}`}>
+                    {score != null ? score.toFixed(2) : '—'}
+                  </span>
+                  <span className="text-xs text-gray-400 w-10 text-right">{weight != null ? `${weight}%` : ''}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Notes */}
+          {result.notes?.length > 0 && (
+            <div className="card p-4 space-y-2">
+              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Catatan HRD</p>
+              {result.notes.map((n, i) => (
+                <div key={i} className="text-xs text-gray-600 border-l-2 border-orange-200 pl-3 py-1">{n}</div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

@@ -8,6 +8,10 @@ function canManage(user) {
   return user.role === 'OWNER' || user.divisi === 'FINANCE_HRGA'
 }
 
+function canScore(user) {
+  return user?.canHrdEvaluate || user?.role === 'OWNER'
+}
+
 export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions)
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -32,6 +36,20 @@ export async function PATCH(req, { params }) {
     if (body.notes !== undefined) data.notes = body.notes
     if (body.status !== undefined) data.status = body.status
     if (body.topic !== undefined) data.topic = body.topic
+    if (body.agenda !== undefined) data.agenda = body.agenda
+  }
+  // HRD khusus (canHrdEvaluate / OWNER) bisa input skor penilaian
+  if (canScore(session.user)) {
+    if (body.scoreMateri !== undefined) data.scoreMateri = body.scoreMateri
+    if (body.scorePenyampaian !== undefined) data.scorePenyampaian = body.scorePenyampaian
+    if (body.scoreInteraksi !== undefined) data.scoreInteraksi = body.scoreInteraksi
+    if (body.scoreWaktu !== undefined) data.scoreWaktu = body.scoreWaktu
+    if (body.scoreNotes !== undefined) data.scoreNotes = body.scoreNotes
+    if (body.scoreMateri !== undefined || body.scorePenyampaian !== undefined ||
+        body.scoreInteraksi !== undefined || body.scoreWaktu !== undefined) {
+      data.scoredById = session.user.id
+      data.scoredAt = new Date()
+    }
   }
 
   const updated = await prisma.sharingSession.update({

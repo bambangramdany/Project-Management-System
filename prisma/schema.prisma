@@ -57,8 +57,13 @@ model User {
   invoicesCreated       Invoice[]     @relation("InvoiceCreator")
   vendorRatings         VendorRating[] @relation("VendorRatingCreator")
   dailyCheckIns         DailyCheckIn[]
-  sharingSessions       SharingSession[] @relation("SharingSessionPresenter")
-  sharingSessionsCreated SharingSession[] @relation("SharingSessionCreator")
+  sharingSessions        SharingSession[]      @relation("SharingSessionPresenter")
+  sharingSessionsCreated SharingSession[]      @relation("SharingSessionCreator")
+  sharingSessionsScored  SharingSession[]      @relation("SharingSessionScorer")
+  hrdEvaluationsGiven    HrdMonthlyEvaluation[] @relation("HrdEvaluator")
+  hrdEvaluationsReceived HrdMonthlyEvaluation[] @relation("HrdEvaluatee")
+  evaluationWeightsSet   EvaluationWeight[]    @relation("WeightUpdater")
+  canHrdEvaluate         Boolean               @default(false)
 }
 
 // Global audit trail of important changes across the system, for Direksi/Owner
@@ -1260,15 +1265,62 @@ model SharingSession {
   user          User      @relation("SharingSessionPresenter", fields: [userId], references: [id])
   scheduledDate DateTime
   topic         String?
+  agenda        String?   // agenda resmi dari HRD
   notes         String?   // catatan dari HRD
   status        String    @default("UPCOMING") // UPCOMING | DONE | CANCELLED
   createdById   String
   createdBy     User      @relation("SharingSessionCreator", fields: [createdById], references: [id])
+
+  // Penilaian dari HRD (skala 1-5 per aspek)
+  scoreMateri       Float?  // kualitas materi/konten
+  scorePenyampaian  Float?  // cara penyampaian/presentasi
+  scoreInteraksi    Float?  // interaksi & Q&A dengan audience
+  scoreWaktu        Float?  // ketepatan waktu & persiapan
+  scoreNotes        String? // catatan evaluasi dari HRD
+  scoredById        String?
+  scoredBy          User?   @relation("SharingSessionScorer", fields: [scoredById], references: [id])
+  scoredAt          DateTime?
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   @@index([userId])
   @@index([scheduledDate])
+}
+
+model HrdMonthlyEvaluation {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation("HrdEvaluatee", fields: [userId], references: [id])
+  period  String // YYYY-MM
+
+  attitudeScore    Float?  // 1-5: sikap & kedisiplinan
+  attitudeNotes    String?
+  skillScore       Float?  // 1-5: perkembangan skill & inisiatif belajar
+  skillNotes       String?
+  skillActivities  String? // training, sertifikasi, dll yang diikuti
+
+  evaluatorId String
+  evaluator   User   @relation("HrdEvaluator", fields: [evaluatorId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, period])
+  @@index([userId])
+  @@index([period])
+}
+
+model EvaluationWeight {
+  id             String @id @default(cuid())
+  kpiWeight      Float  @default(40)   // % bobot KPI
+  attendanceWeight Float @default(20)  // % bobot absensi
+  sharingWeight  Float  @default(15)   // % bobot sharing session
+  attitudeWeight Float  @default(15)   // % bobot attitude HRD
+  skillWeight    Float  @default(10)   // % bobot skill HRD
+  updatedById    String
+  updatedBy      User   @relation("WeightUpdater", fields: [updatedById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model InvoiceItem {
