@@ -338,9 +338,11 @@ export default function DashboardPage() {
                 🔍 Audit Data
               </Link>
             )}
-            <Link href="/projects/new" className="btn-primary self-start sm:self-auto">
-              + Project Baru
-            </Link>
+            {['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR'].includes(session?.user?.role) && (
+              <Link href="/projects/new" className="btn-primary self-start sm:self-auto">
+                + Project Baru
+              </Link>
+            )}
           </div>
         </div>
 
