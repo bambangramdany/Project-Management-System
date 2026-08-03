@@ -120,64 +120,122 @@ function AnnouncementBanner() {
 
   if (birthdayPeople.length === 0 && announcements.length === 0) return null
 
-  const TYPE_STYLE = {
-    INFO: 'bg-blue-50 border-blue-200 text-blue-800',
-    EVENT: 'bg-purple-50 border-purple-200 text-purple-800',
-    WARNING: 'bg-amber-50 border-amber-300 text-amber-800',
-    BIRTHDAY: 'bg-pink-50 border-pink-200 text-pink-800',
+  const TYPE_CONFIG = {
+    WARNING: {
+      gradient: 'linear-gradient(120deg, #78350f 0%, #92400e 40%, #b45309 100%)',
+      rail: '#fbbf24',
+      ring: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+      tag: 'Peringatan',
+      tagBg: 'rgba(251,191,36,.22)',
+      tagColor: '#fde68a',
+      icon: '⚠️',
+      textColor: '#fef3c7',
+    },
+    INFO: {
+      gradient: 'linear-gradient(120deg, #1e1b4b 0%, #312e81 50%, #3730a3 100%)',
+      rail: '#818cf8',
+      ring: 'linear-gradient(135deg, #6366f1, #818cf8)',
+      tag: 'Informasi',
+      tagBg: 'rgba(129,140,248,.2)',
+      tagColor: '#c7d2fe',
+      icon: 'ℹ️',
+      textColor: '#e0e7ff',
+    },
+    EVENT: {
+      gradient: 'linear-gradient(120deg, #0c4a6e 0%, #075985 50%, #0369a1 100%)',
+      rail: '#38bdf8',
+      ring: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
+      tag: 'Event',
+      tagBg: 'rgba(56,189,248,.18)',
+      tagColor: '#bae6fd',
+      icon: '📅',
+      textColor: '#e0f2fe',
+    },
+    BIRTHDAY: {
+      gradient: 'linear-gradient(120deg, #831843 0%, #9d174d 30%, #be185d 60%, #a21caf 100%)',
+      rail: 'linear-gradient(180deg, #f9a8d4, #e879f9)',
+      ring: 'linear-gradient(135deg, #ec4899, #d946ef)',
+      tag: 'Ulang Tahun Hari Ini 🎉',
+      tagBg: 'rgba(249,168,212,.2)',
+      tagColor: '#fbcfe8',
+      icon: '🎂',
+      textColor: '#fdf2f8',
+    },
   }
-  const TYPE_ICON = { INFO: 'ℹ️', EVENT: '📅', WARNING: '⚠️', BIRTHDAY: '🎂' }
 
   return (
-    <div className="space-y-2 mb-2">
+    <div className="space-y-2.5 mb-2">
       {birthdayPeople.map(u => {
         const horo = u.birthDate ? getHoroscope(u.birthDate) : null
+        const cfg = TYPE_CONFIG.BIRTHDAY
         return (
-          <div key={u.id} className="relative overflow-hidden rounded-2xl border-2 border-pink-300 px-5 py-4"
-            style={{ background: 'linear-gradient(135deg, #fdf2f8 0%, #fef9c3 50%, #fce7f3 100%)' }}>
-            {/* Confetti dots */}
-            <div className="absolute inset-0 pointer-events-none" aria-hidden>
-              {['🎊','🎈','⭐','🎊','🎈','✨','🎉','⭐','🎊','🎈'].map((e, i) => (
-                <span key={i} className="absolute text-base opacity-25 select-none"
-                  style={{ top: `${[10,25,60,80,15,70,40,55,85,30][i]}%`, left: `${[5,90,15,85,50,70,30,8,60,95][i]}%` }}>{e}</span>
-              ))}
-            </div>
-            <div className="relative flex items-start gap-3">
-              <div className="flex-shrink-0 text-3xl leading-none select-none">🎂</div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <p className="text-base font-extrabold" style={{ background: 'linear-gradient(90deg, #be185d, #d97706, #7c3aed)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                    🎉 Happy Birthday, {u.name}! 🥳
-                  </p>
-                  {horo && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-pink-700 bg-pink-100 border border-pink-200 rounded-full px-2 py-0.5">
-                      {horo.symbol} {horo.sign}
-                    </span>
-                  )}
-                </div>
-                {horo && (
-                  <p className="text-sm text-rose-700 leading-relaxed">{horo.msg}</p>
-                )}
-                <div className="flex gap-1 mt-2 text-lg select-none" aria-hidden>
-                  <span>🎁</span><span>🎈</span><span>🎺</span><span>🎶</span><span>🪅</span>
-                </div>
+          <div key={u.id} className="relative overflow-hidden rounded-2xl flex items-stretch"
+            style={{ background: cfg.gradient, boxShadow: '0 4px 20px -4px rgba(0,0,0,.25), 0 1px 4px rgba(0,0,0,.1)' }}>
+            {/* Left rail */}
+            <div className="w-1.5 flex-shrink-0" style={{ background: cfg.rail }} />
+            {/* Icon */}
+            <div className="flex-shrink-0 flex items-center justify-center px-3 py-3.5">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
+                style={{ background: cfg.ring, boxShadow: '0 0 0 3px rgba(255,255,255,.22), 0 2px 10px rgba(0,0,0,.18)' }}>
+                {cfg.icon}
               </div>
+            </div>
+            {/* Content */}
+            <div className="flex-1 min-w-0 py-3 pr-3">
+              <div className="text-[9px] font-extrabold tracking-widest uppercase rounded px-1.5 py-0.5 inline-block mb-1"
+                style={{ background: cfg.tagBg, color: cfg.tagColor }}>{cfg.tag}</div>
+              <p className="text-sm font-extrabold leading-snug" style={{ color: cfg.textColor }}>
+                Happy Birthday, {u.name}! 🥳
+              </p>
+              {horo && <p className="text-xs mt-1 leading-relaxed opacity-90" style={{ color: cfg.textColor }}>{horo.msg}</p>}
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                {horo && (
+                  <span className="text-[10px] font-bold rounded-full px-2 py-0.5 inline-flex items-center gap-1"
+                    style={{ background: 'rgba(255,255,255,.18)', border: '1px solid rgba(255,255,255,.28)', color: cfg.textColor }}>
+                    {horo.symbol} {horo.sign}
+                  </span>
+                )}
+                <span className="text-sm tracking-wider select-none" style={{ letterSpacing: '4px' }}>🎁🎈🎺🎶🪅</span>
+              </div>
+            </div>
+            {/* Confetti overlay */}
+            <div className="absolute top-1.5 right-10 text-sm opacity-20 pointer-events-none select-none tracking-widest">
+              🎊 🎈 ✨ 🎉 ⭐
             </div>
           </div>
         )
       })}
-      {announcements.map(ann => (
-        <div key={ann.id} className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${TYPE_STYLE[ann.type] || TYPE_STYLE.INFO}`}>
-          <span className="text-lg flex-shrink-0 mt-0.5">{TYPE_ICON[ann.type] || TYPE_ICON.INFO}</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold">{ann.title}</p>
-            {ann.content && <p className="text-xs mt-0.5 opacity-80 line-clamp-2">{ann.content}</p>}
+      {announcements.map(ann => {
+        const cfg = TYPE_CONFIG[ann.type] || TYPE_CONFIG.INFO
+        return (
+          <div key={ann.id} className="relative overflow-hidden rounded-2xl flex items-stretch"
+            style={{ background: cfg.gradient, boxShadow: '0 4px 20px -4px rgba(0,0,0,.22), 0 1px 4px rgba(0,0,0,.08)' }}>
+            {/* Left rail */}
+            <div className="w-1.5 flex-shrink-0" style={{ background: cfg.rail }} />
+            {/* Icon */}
+            <div className="flex-shrink-0 flex items-center justify-center px-3 py-3.5">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
+                style={{ background: cfg.ring, boxShadow: '0 0 0 3px rgba(255,255,255,.22), 0 2px 10px rgba(0,0,0,.18)' }}>
+                {cfg.icon}
+              </div>
+            </div>
+            {/* Content */}
+            <div className="flex-1 min-w-0 py-3 pr-2">
+              <div className="text-[9px] font-extrabold tracking-widest uppercase rounded px-1.5 py-0.5 inline-block mb-1"
+                style={{ background: cfg.tagBg, color: cfg.tagColor }}>{cfg.tag}</div>
+              <p className="text-sm font-extrabold leading-snug" style={{ color: cfg.textColor }}>{ann.title}</p>
+              {ann.content && <p className="text-xs mt-0.5 leading-relaxed line-clamp-2 opacity-85" style={{ color: cfg.textColor }}>{ann.content}</p>}
+            </div>
+            {/* Dismiss */}
+            <div className="flex-shrink-0 flex items-start pt-3 pr-3">
+              <button onClick={() => setDismissed(d => new Set([...d, ann.id]))}
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] transition-all"
+                style={{ background: 'rgba(255,255,255,.18)', border: '1px solid rgba(255,255,255,.25)', color: cfg.textColor }}
+                aria-label="Tutup">✕</button>
+            </div>
           </div>
-          <button onClick={() => setDismissed(d => new Set([...d, ann.id]))}
-            className="flex-shrink-0 text-xs opacity-50 hover:opacity-100 px-1.5 py-0.5 rounded hover:bg-black/10 transition-opacity"
-            aria-label="Tutup">✕</button>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
