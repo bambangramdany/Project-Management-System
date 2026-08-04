@@ -318,6 +318,18 @@ export default function DashboardPage() {
   const attentionProjects = projects.filter(p => p.health && ['red', 'yellow'].includes(p.health.level))
     .sort((a, b) => (a.health.level === 'red' ? -1 : 1) - (b.health.level === 'red' ? -1 : 1))
 
+  const uid = session?.user?.id
+  const myProjects = projects.filter(p =>
+    p.picId === uid || p.members?.some(m => m.user?.id === uid)
+  )
+  const myActive   = myProjects.filter(p => ACTIVE_STATUSES.includes(p.status))
+  const myWon      = myProjects.filter(p => p.pitchResult === 'WIN')
+  const myLose     = myProjects.filter(p => p.pitchResult === 'LOSE')
+  const myPitched  = myWon.length + myLose.length
+  const myWinRate  = myPitched > 0 ? Math.round((myWon.length / myPitched) * 100) : 0
+  const myAsPic    = myProjects.filter(p => p.picId === uid)
+  const isLeadRole = ['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR'].includes(session?.user?.role)
+
   return (
     <div className="min-h-screen bg-brand-50">
       <Navbar />
@@ -338,7 +350,7 @@ export default function DashboardPage() {
                 🔍 Audit Data
               </Link>
             )}
-            {['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR'].includes(session?.user?.role) && (
+            {isLeadRole && (
               <Link href="/projects/new" className="btn-primary self-start sm:self-auto">
                 + Project Baru
               </Link>
@@ -359,6 +371,136 @@ export default function DashboardPage() {
             onYearChange={setTrendsYear}
           />
         )}
+
+        {/* ── Company + Personal stats — visible to all roles ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Company-wide overview */}
+          <div className="card overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2"
+              style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)' }}>
+              <span className="text-base">🏢</span>
+              <h3 className="text-sm font-bold text-white">Overview Tim Watermark</h3>
+              <span className="ml-auto text-[10px] font-semibold text-violet-300 uppercase tracking-wide">Keseluruhan</span>
+            </div>
+            <div className="grid grid-cols-2 divide-x divide-y divide-gray-100">
+              <div className="p-4">
+                <p className="text-xs text-gray-400">Total Project</p>
+                <p className="text-2xl font-extrabold text-gray-900 mt-0.5">{projects.length}</p>
+                <p className="text-[11px] text-gray-400">sepanjang tahun ini</p>
+              </div>
+              <div className="p-4">
+                <p className="text-xs text-gray-400">Sedang Berjalan</p>
+                <p className="text-2xl font-extrabold text-orange-500 mt-0.5">{activeProjects.length}</p>
+                <p className="text-[11px] text-gray-400">project aktif</p>
+              </div>
+              <div className="p-4">
+                <p className="text-xs text-gray-400">Win Rate Tim</p>
+                <p className="text-2xl font-extrabold text-green-600 mt-0.5">{winRate}%</p>
+                <p className="text-[11px] text-gray-400">{wonProjects.length} menang dari {pitchedTotal} pitch</p>
+              </div>
+              <div className="p-4">
+                <p className="text-xs text-gray-400">Sudah Selesai</p>
+                <p className="text-2xl font-extrabold text-blue-600 mt-0.5">{projects.filter(p => p.status === 'DONE').length}</p>
+                <p className="text-[11px] text-gray-400">project lunas</p>
+              </div>
+            </div>
+            {/* Pipeline mini bar */}
+            <div className="px-5 py-3 border-t border-gray-100 bg-gray-50">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Pipeline saat ini</p>
+              <div className="flex gap-1.5 flex-wrap">
+                {PIPELINE_STAGES.map(s => {
+                  const cnt = projects.filter(p => p.status === s.key).length
+                  if (cnt === 0) return null
+                  return (
+                    <Link key={s.key} href={`/projects?status=${s.key}`}
+                      className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-600 hover:border-violet-300 hover:text-violet-700 transition-colors">
+                      <span className="w-4 h-4 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-[9px]">{cnt}</span>
+                      {s.label}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Personal contribution */}
+          <div className="card overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2"
+              style={{ background: 'linear-gradient(135deg, #065f46 0%, #059669 100%)' }}>
+              <span className="text-base">🙋</span>
+              <h3 className="text-sm font-bold text-white">Pencapaian Saya</h3>
+              <span className="ml-auto text-[10px] font-semibold text-emerald-200 uppercase tracking-wide">{session?.user?.name?.split(' ')[0]}</span>
+            </div>
+            {myProjects.length === 0 ? (
+              <div className="p-6 text-center">
+                <p className="text-sm text-gray-400">Belum terlibat di project manapun tahun ini</p>
+                {isLeadRole && (
+                  <Link href="/projects/new" className="text-xs text-violet-500 hover:underline mt-1 block">+ Buat project baru</Link>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 divide-x divide-y divide-gray-100">
+                  <div className="p-4">
+                    <p className="text-xs text-gray-400">Project Saya</p>
+                    <p className="text-2xl font-extrabold text-gray-900 mt-0.5">{myProjects.length}</p>
+                    <p className="text-[11px] text-gray-400">
+                      dari {projects.length} total tim
+                      {projects.length > 0 && <span className="ml-1 font-semibold text-emerald-600">({Math.round(myProjects.length/projects.length*100)}%)</span>}
+                    </p>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-xs text-gray-400">Aktif Sekarang</p>
+                    <p className="text-2xl font-extrabold text-orange-500 mt-0.5">{myActive.length}</p>
+                    <p className="text-[11px] text-gray-400">
+                      dari {activeProjects.length} aktif tim
+                      {activeProjects.length > 0 && <span className="ml-1 font-semibold text-orange-500">({Math.round(myActive.length/activeProjects.length*100)}%)</span>}
+                    </p>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-xs text-gray-400">Win Rate Saya</p>
+                    <p className="text-2xl font-extrabold mt-0.5" style={{ color: myWinRate >= winRate ? '#16a34a' : '#dc2626' }}>
+                      {myPitched > 0 ? `${myWinRate}%` : '—'}
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      {myPitched > 0
+                        ? <>{myWon.length} menang dari {myPitched} pitch{myWinRate >= winRate ? ' 🔥' : ''}</>
+                        : 'belum ada pitch'}
+                    </p>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-xs text-gray-400">{isLeadRole ? 'Saya sebagai PIC' : 'Sudah Selesai'}</p>
+                    <p className="text-2xl font-extrabold text-blue-600 mt-0.5">
+                      {isLeadRole ? myAsPic.length : myProjects.filter(p => p.status === 'DONE').length}
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      {isLeadRole ? 'project dipimpin' : 'project lunas'}
+                    </p>
+                  </div>
+                </div>
+                {/* My active projects mini list */}
+                {myActive.length > 0 && (
+                  <div className="px-5 py-3 border-t border-gray-100 bg-gray-50">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Project aktif saya</p>
+                    <div className="space-y-1.5">
+                      {myActive.slice(0, 3).map(p => (
+                        <Link key={p.id} href={`/projects/${p.id}`}
+                          className="flex items-center gap-2 text-xs text-gray-700 hover:text-violet-700 group">
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${p.health?.level === 'red' ? 'bg-red-400' : p.health?.level === 'yellow' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                          <span className="truncate group-hover:underline font-medium">{p.name}</span>
+                          <span className="ml-auto flex-shrink-0 text-gray-400 text-[10px]">{STATUS_LABEL[p.status] || p.status}</span>
+                        </Link>
+                      ))}
+                      {myActive.length > 3 && (
+                        <Link href="/my-tasks" className="text-[10px] text-violet-500 hover:underline">+{myActive.length - 3} project lainnya →</Link>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
 
         {/* Finance alerts: overdue piutang + pending approvals */}
         {((piutangAlerts?.count ?? 0) > 0 || (pendingPRCount?.count ?? 0) > 0) && (
@@ -401,20 +543,6 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
-
-        {/* Stats cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Total Project" value={projects.length} sub="sepanjang tahun" color="text-gray-900" />
-          <StatCard label="Project Aktif" value={activeProjects.length} sub="sedang berjalan" color="text-orange-600" />
-          <StatCard label="Win Rate" value={`${winRate}%`} sub={`${wonProjects.length} menang dari ${pitchedTotal} pitch`} color="text-green-600" />
-          <StatCard label="Project Selesai" value={projects.filter(p => p.status === 'DONE').length} sub="sudah lunas" color="text-blue-600" />
-        </div>
-
-        {/* Breakdown EO / PH */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <DivisionSummaryCard title="Event Organizer (EO)" projects={eoProjects} />
-          <DivisionSummaryCard title="Production House (PH)" projects={phProjects} />
-        </div>
 
         {/* Cash position — Owner / Finance / Finance Director only */}
         {cashPosition && <CashPositionCard data={cashPosition} />}
