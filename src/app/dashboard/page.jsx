@@ -891,14 +891,14 @@ const DEBT_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE'] // Hutang termasuk Finance (
 function FinanceOverviewCard({ data, range, setRange, role }) {
   const showDebt = DEBT_ROLES.includes(role)
   const cards = [
-    { key: 'omset', label: 'Total Omset', value: formatCompactRupiah(data.totalOmset), sub: `${MONTH_LABEL[Number(range.from.split('-')[1]) - 1]} ${range.from.split('-')[0]} – ${MONTH_LABEL[Number(range.to.split('-')[1]) - 1]} ${range.to.split('-')[0]}`, icon: '📈', color: 'blue' },
-    { key: 'ekspektasi', label: 'Ekspektasi Profit', value: formatCompactRupiah(data.ekspektasiProfit), sub: 'estimasi margin vs forecast', icon: '📊', color: 'emerald' },
-    { key: 'aktual', label: 'Aktual Nett Profit', value: formatCompactRupiah(data.aktualNettProfit), sub: 'margin aktual − opex', icon: '✅', color: 'emerald' },
-    { key: 'opex', label: 'Total Opex', value: formatCompactRupiah(data.totalOpex), sub: 'biaya operasional', icon: '↙️', color: 'rose' },
-    { key: 'piutang', label: 'Piutang', value: formatCompactRupiah(data.piutang.amount), sub: `${data.piutang.count} project invoicing`, icon: '📄', color: 'orange' },
-    { key: 'pitchgagal', label: 'Pitch Gagal', value: formatCompactRupiah(data.pitchGagal.value), sub: `Profit hilang: ${formatCompactRupiah(data.pitchGagal.lostProfit)}`, icon: '📉', color: 'rose' },
-    { key: 'aset', label: 'Total Nilai Aset', value: formatCompactRupiah(data.totalNilaiAset.value), sub: `${data.totalNilaiAset.count} aset tercatat`, icon: '🗂️', color: 'blue' },
-    ...(showDebt ? [{ key: 'hutang', label: 'Total Hutang Aktif', value: formatCompactRupiah(data.totalHutangAktif.value), sub: `Bunga/bln: ${formatCompactRupiah(data.totalHutangAktif.monthlyInterest)}`, icon: '🏦', color: 'rose' }] : []),
+    { key: 'omset', label: 'Total Omset', value: formatCompactRupiah(data.totalOmset), sub: `${MONTH_LABEL[Number(range.from.split('-')[1]) - 1]} ${range.from.split('-')[0]} – ${MONTH_LABEL[Number(range.to.split('-')[1]) - 1]} ${range.to.split('-')[0]}`, icon: '📈', color: 'blue', href: '/finance' },
+    { key: 'ekspektasi', label: 'Ekspektasi Profit', value: formatCompactRupiah(data.ekspektasiProfit), sub: 'estimasi margin vs forecast', icon: '📊', color: 'emerald', href: '/finance' },
+    { key: 'aktual', label: 'Aktual Nett Profit', value: formatCompactRupiah(data.aktualNettProfit), sub: 'margin aktual − opex', icon: '✅', color: 'emerald', href: '/finance' },
+    { key: 'opex', label: 'Total Opex', value: formatCompactRupiah(data.totalOpex), sub: 'biaya operasional', icon: '↙️', color: 'rose', href: '/opex' },
+    { key: 'piutang', label: 'Piutang', value: formatCompactRupiah(data.piutang.amount), sub: `${data.piutang.count} project invoicing`, icon: '📄', color: 'orange', href: '/invoice' },
+    { key: 'pitchgagal', label: 'Pitch Gagal', value: formatCompactRupiah(data.pitchGagal.value), sub: `Profit hilang: ${formatCompactRupiah(data.pitchGagal.lostProfit)}`, icon: '📉', color: 'rose', href: '/projects?pitchResult=LOSE' },
+    { key: 'aset', label: 'Total Nilai Aset', value: formatCompactRupiah(data.totalNilaiAset.value), sub: `${data.totalNilaiAset.count} aset tercatat`, icon: '🗂️', color: 'blue', href: '/assets' },
+    ...(showDebt ? [{ key: 'hutang', label: 'Total Hutang Aktif', value: formatCompactRupiah(data.totalHutangAktif.value), sub: `Bunga/bln: ${formatCompactRupiah(data.totalHutangAktif.monthlyInterest)}`, icon: '🏦', color: 'rose', href: '/debts' }] : []),
   ]
   const colorMap = {
     blue: { border: 'border-blue-400', bg: 'bg-blue-100', text: 'text-blue-600' },
@@ -924,14 +924,15 @@ function FinanceOverviewCard({ data, range, setRange, role }) {
         {cards.map(c => {
           const cm = colorMap[c.color]
           return (
-            <div key={c.key} className={`p-3 rounded-xl border-t-4 ${cm.border} bg-gray-50`}>
+            <Link key={c.key} href={c.href} className={`block p-3 rounded-xl border-t-4 ${cm.border} bg-gray-50 hover:bg-white hover:shadow-md transition-all duration-150 group`}>
               <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-500">{c.label}</p>
+                <p className="text-xs text-gray-500 group-hover:text-gray-700">{c.label}</p>
                 <span className={`w-5 h-5 rounded-full ${cm.bg} ${cm.text} flex items-center justify-center text-[10px]`}>{c.icon}</span>
               </div>
               <p className="text-base sm:text-lg font-bold text-gray-900 mt-1 break-words">{c.value}</p>
-              <p className="text-[11px] text-gray-400 mt-0.5 truncate">{c.sub}</p>
-            </div>
+              <p className="text-[11px] text-gray-400 mt-0.5 truncate group-hover:text-gray-500">{c.sub}</p>
+              <p className={`text-[10px] font-medium mt-1.5 ${cm.text} opacity-0 group-hover:opacity-100 transition-opacity`}>Lihat detail →</p>
+            </Link>
           )
         })}
       </div>
