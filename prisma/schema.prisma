@@ -533,6 +533,12 @@ model Vendor {
   npwp              String?
   email             String?
 
+  // SCM tier & scorecard fields
+  qualityTier        String?   // 'A' | 'B' | 'C'
+  scorecardAvg       Float?    // weighted avg dari semua VendorRating
+  lastUsedDate       DateTime?
+  totalProjectsUsed  Int       @default(0)
+
   enteredBy      User?            @relation(fields: [enteredById], references: [id], onDelete: SetNull)
   ratings        VendorRating[]
   quotationItems QuotationItem[]
@@ -540,6 +546,7 @@ model Vendor {
 
   @@index([vendorType])
   @@index([city])
+  @@index([qualityTier])
 }
 
 model VendorRating {
@@ -547,7 +554,13 @@ model VendorRating {
   vendorId    String
   projectId   String?
   projectName String?
-  rating      Int       // 1-5 bintang
+  // 5-dimension scorecard (SCM standard)
+  ratingQuality       Int?   // Kualitas output (35%)
+  ratingTimeliness    Int?   // Ketepatan waktu (25%)
+  ratingCommunication Int?   // Komunikasi & koordinasi (20%)
+  ratingValue         Int?   // Value for money (10%)
+  ratingFlexibility   Int?   // Fleksibilitas & problem-solving (10%)
+  rating      Int            // weighted overall score (computed on save)
   review      String?
   usageDate   DateTime?
   createdById String

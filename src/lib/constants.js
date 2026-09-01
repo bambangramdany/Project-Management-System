@@ -505,6 +505,49 @@ export const VENDOR_TYPES = [
 
 export const VENDOR_STATUSES = ['Active', 'Inactive', 'Blacklist']
 
+// ── SCM Tier System ──────────────────────────────────────────────────────
+export const VENDOR_TIERS = ['A', 'B', 'C']
+
+export const VENDOR_TIER_LABEL = {
+  A: 'Tier A — Premium',
+  B: 'Tier B — Standar',
+  C: 'Tier C — Cadangan',
+}
+
+export const VENDOR_TIER_SHORT = {
+  A: 'Premium',
+  B: 'Standar',
+  C: 'Cadangan',
+}
+
+export const VENDOR_TIER_COLOR = {
+  A: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', badge: 'bg-yellow-400 text-yellow-900' },
+  B: { bg: 'bg-gray-100',   text: 'text-gray-700',   border: 'border-gray-300',   badge: 'bg-gray-400 text-white'        },
+  C: { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300', badge: 'bg-orange-500 text-white'      },
+}
+
+export const VENDOR_TIER_MIN_SLOTS = 4  // minimum vendor per tier per sub-category
+
+// 5-dimension scorecard weights (must sum to 1)
+export const SCORECARD_DIMENSIONS = [
+  { key: 'ratingQuality',       label: 'Kualitas Output',          weight: 0.35 },
+  { key: 'ratingTimeliness',    label: 'Ketepatan Waktu',          weight: 0.25 },
+  { key: 'ratingCommunication', label: 'Komunikasi & Koordinasi',  weight: 0.20 },
+  { key: 'ratingValue',         label: 'Value for Money',          weight: 0.10 },
+  { key: 'ratingFlexibility',   label: 'Fleksibilitas',            weight: 0.10 },
+]
+
+export function computeScorecardAvg(dims) {
+  const total = SCORECARD_DIMENSIONS.reduce((sum, d) => {
+    const val = dims[d.key]
+    return val != null ? sum + val * d.weight : sum
+  }, 0)
+  const weightSum = SCORECARD_DIMENSIONS.reduce((sum, d) => {
+    return dims[d.key] != null ? sum + d.weight : sum
+  }, 0)
+  return weightSum > 0 ? Math.round((total / weightSum) * 10) / 10 : null
+}
+
 // Sub-categories per vendor type — used to narrow down search/filter
 // (e.g. Talent / Entertainment -> MC, Band, Dancer, etc).
 export const VENDOR_SUBCATEGORIES = {

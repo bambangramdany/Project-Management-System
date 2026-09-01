@@ -11,6 +11,8 @@ const ALLOWED = [
   'bankName', 'bankAccountNumber', 'accountHolder', 'npwp', 'email',
 ]
 
+const TIER_VALUES = ['A', 'B', 'C']
+
 export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -25,6 +27,7 @@ export async function PATCH(req, { params }) {
   }
   if ('priceMin' in body) data.priceMin = body.priceMin !== '' && body.priceMin != null ? parseFloat(body.priceMin) : null
   if ('priceMax' in body) data.priceMax = body.priceMax !== '' && body.priceMax != null ? parseFloat(body.priceMax) : null
+  if ('qualityTier' in body) data.qualityTier = TIER_VALUES.includes(body.qualityTier) ? body.qualityTier : null
   if (data.name) data.name = data.name.trim()
 
   const vendor = await prisma.vendor.update({

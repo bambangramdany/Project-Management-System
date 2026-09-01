@@ -6,7 +6,19 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { computeScorecardAvg, SCORECARD_DIMENSIONS } from '@/lib/constants'
 import { NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
+
+function calcWeightedRating(dims) {
+  let total = 0, weightSum = 0
+  for (const d of SCORECARD_DIMENSIONS) {
+    const val = dims[d.key]
+    if (val != null) { total += val * d.weight; weightSum += d.weight }
+  }
+  return weightSum > 0 ? Math.round(total / weightSum) : 3
+}
 
 export async function GET(req, { params }) {
   const session = await getServerSession(authOptions)
@@ -22,7 +34,14 @@ export async function GET(req, { params }) {
     ? ratings.reduce((s, r) => s + r.rating, 0) / ratings.length
     : null
 
-  return NextResponse.json({ ratings, avg, count: ratings.length })
+  // Compute per-dimension averages
+  const dimAvgs = {}
+  for (const d of SCORECARD_DIMENSIONS) {
+    const vals = ratings.map(r => r[d.key]).filter(v => v != null)
+    dimAvgs[d.key] = vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null
+  }
+
+  return NextResponse.json({ ratings, avg, count: ratings.length, dimAvgs })
 }
 
 export async function POST(req, { params }) {
@@ -30,9 +49,30 @@ export async function POST(req, { params }) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const rating = parseInt(body.rating)
-  if (!rating || rating < 1 || rating > 5) {
-    return NextResponse.json({ error: 'Rating harus antara 1–5 bintang' }, { status: 400 })
+
+  // Support both scorecard mode and legacy single-rating mode
+  const dims = {
+    ratingQuality:       body.ratingQuality       != null ? parseInt(body.ratingQuality)       : null,
+    ratingTimeliness:    body.ratingTimeliness     != null ? parseInt(body.ratingTimeliness)    : null,
+    ratingCommunication: body.ratingCommunication  != null ? parseInt(body.ratingCommunication) : null,
+    ratingValue:         body.ratingValue          != null ? parseInt(body.ratingValue)         : null,
+    ratingFlexibility:   body.ratingFlexibility    != null ? parseInt(body.ratingFlexibility)   : null,
+  }
+
+  // Validate each dimension in range 1-5 if provided
+  for (const [key, val] of Object.entries(dims)) {
+    if (val != null && (val < 1 || val > 5)) {
+      return NextResponse.json({ error: `${key} harus antara 1–5` }, { status: 400 })
+    }
+  }
+
+  const hasScorecard = Object.values(dims).some(v => v != null)
+  let overallRating = body.rating ? parseInt(body.rating) : null
+
+  if (hasScorecard) {
+    overallRating = calcWeightedRating(dims)
+  } else if (!overallRating || overallRating < 1 || overallRating > 5) {
+    return NextResponse.json({ error: 'Isi minimal satu dimensi penilaian (1–5)' }, { status: 400 })
   }
 
   const created = await prisma.vendorRating.create({
@@ -40,12 +80,29 @@ export async function POST(req, { params }) {
       vendorId:    params.id,
       projectId:   body.projectId   || null,
       projectName: body.projectName || null,
-      rating,
+      ...dims,
+      rating: overallRating,
       review:    body.review?.trim()    || null,
       usageDate: body.usageDate ? new Date(body.usageDate) : null,
       createdById: session.user.id,
     },
     include: { createdBy: { select: { id: true, name: true } } },
+  })
+
+  // Recompute vendor scorecardAvg and totalProjectsUsed
+  const allRatings = await prisma.vendorRating.findMany({ where: { vendorId: params.id } })
+  const scorecardAvg = allRatings.length > 0
+    ? allRatings.reduce((s, r) => s + r.rating, 0) / allRatings.length
+    : null
+  const totalProjectsUsed = allRatings.length
+
+  await prisma.vendor.update({
+    where: { id: params.id },
+    data: {
+      scorecardAvg: scorecardAvg != null ? Math.round(scorecardAvg * 10) / 10 : null,
+      totalProjectsUsed,
+      lastUsedDate: created.usageDate ?? created.createdAt,
+    },
   })
 
   return NextResponse.json(created, { status: 201 })
@@ -68,5 +125,20 @@ export async function DELETE(req, { params }) {
   }
 
   await prisma.vendorRating.delete({ where: { id: ratingId } })
+
+  // Recompute after delete
+  const allRatings = await prisma.vendorRating.findMany({ where: { vendorId: params.id } })
+  const scorecardAvg = allRatings.length > 0
+    ? allRatings.reduce((s, r) => s + r.rating, 0) / allRatings.length
+    : null
+
+  await prisma.vendor.update({
+    where: { id: params.id },
+    data: {
+      scorecardAvg: scorecardAvg != null ? Math.round(scorecardAvg * 10) / 10 : null,
+      totalProjectsUsed: allRatings.length,
+    },
+  })
+
   return NextResponse.json({ ok: true })
 }

@@ -13,11 +13,13 @@ export async function GET(req) {
   const vendorType = searchParams.get('vendorType')
   const subCategory = searchParams.get('subCategory')
   const city = searchParams.get('city')
+  const tier = searchParams.get('tier')
 
   const where = { AND: [] }
   if (vendorType) where.AND.push({ vendorType })
   if (subCategory) where.AND.push({ subCategory })
   if (city) where.AND.push({ city: { equals: city, mode: 'insensitive' } })
+  if (tier) where.AND.push({ qualityTier: tier })
   if (q) {
     where.AND.push({
       OR: [
@@ -33,28 +35,17 @@ export async function GET(req) {
   }
   if (where.AND.length === 0) delete where.AND
 
-  const [vendors, ratingAgg] = await Promise.all([
-    prisma.vendor.findMany({
-      where,
-      include: { enteredBy: { select: { id: true, name: true } } },
-      orderBy: { createdAt: 'desc' },
-      take: 500,
-    }),
-    prisma.vendorRating.groupBy({
-      by: ['vendorId'],
-      _avg: { rating: true },
-      _count: { id: true },
-    }),
-  ])
+  const vendors = await prisma.vendor.findMany({
+    where,
+    include: { enteredBy: { select: { id: true, name: true } } },
+    orderBy: [{ qualityTier: 'asc' }, { scorecardAvg: 'desc' }, { name: 'asc' }],
+    take: 500,
+  })
 
-  const ratingMap = {}
-  for (const r of ratingAgg) {
-    ratingMap[r.vendorId] = { avgRating: r._avg.rating, ratingCount: r._count.id }
-  }
   const enriched = vendors.map(v => ({
     ...v,
-    avgRating:   ratingMap[v.id]?.avgRating   ?? null,
-    ratingCount: ratingMap[v.id]?.ratingCount  ?? 0,
+    avgRating:   v.scorecardAvg,
+    ratingCount: v.totalProjectsUsed,
   }))
 
   return NextResponse.json(enriched)
@@ -99,6 +90,7 @@ export async function POST(req) {
     accountHolder: body.accountHolder || null,
     npwp: body.npwp || null,
     email: body.email || null,
+    qualityTier: ['A', 'B', 'C'].includes(body.qualityTier) ? body.qualityTier : null,
     enteredById: session.user.id,
     enteredByName: session.user.name,
   }

@@ -1,690 +1,641 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import Navbar from '@/components/Navbar'
-import { VENDOR_TYPES, VENDOR_STATUSES, VENDOR_SUBCATEGORIES } from '@/lib/constants'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import Link from 'next/link'
+import {
+  VENDOR_TYPES, VENDOR_SUBCATEGORIES, VENDOR_STATUSES,
+  VENDOR_TIERS, VENDOR_TIER_LABEL, VENDOR_TIER_SHORT, VENDOR_TIER_COLOR, VENDOR_TIER_MIN_SLOTS,
+  SCORECARD_DIMENSIONS,
+} from '@/lib/constants'
 
+// ── helpers ──────────────────────────────────────────────────────────────────
+const fmt = n => n == null ? '–' : `${(n / 1_000_000).toFixed(0)} jt`
+const star = n => n == null ? '–' : `★ ${n.toFixed(1)}`
+const tierStyle = t => VENDOR_TIER_COLOR[t] ?? { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-200', badge: 'bg-gray-300 text-white' }
+
+function TierBadge({ tier }) {
+  if (!tier) return <span className="text-[10px] text-gray-400 italic">Belum tier</span>
+  const s = tierStyle(tier)
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${s.badge}`}>
+      Tier {tier}
+    </span>
+  )
+}
+
+function ScoreBar({ value, max = 5 }) {
+  if (value == null) return <span className="text-xs text-gray-400">–</span>
+  const pct = (value / max) * 100
+  const color = value >= 4 ? 'bg-green-400' : value >= 3 ? 'bg-yellow-400' : 'bg-red-400'
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+        <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-[11px] font-medium text-gray-700 w-6 text-right">{value.toFixed(1)}</span>
+    </div>
+  )
+}
+
+function SlotProgress({ filled, min = VENDOR_TIER_MIN_SLOTS, tier }) {
+  const s = tierStyle(tier)
+  const pct = Math.min((filled / min) * 100, 100)
+  const isOk = filled >= min
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${isOk ? 'bg-green-200' : 'bg-gray-200'}`}>
+        <div
+          className={`h-full rounded-full ${isOk ? 'bg-green-500' : 'bg-orange-400'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className={`text-[10px] font-semibold ${isOk ? 'text-green-700' : 'text-orange-600'}`}>
+        {filled}/{min}
+      </span>
+    </div>
+  )
+}
+
+// ── Vendor card (compact) ─────────────────────────────────────────────────────
+function VendorCard({ vendor, onEdit, onRate }) {
+  const tier = vendor.qualityTier
+  const s = tierStyle(tier)
+  return (
+    <div className={`rounded-xl border ${tier ? s.border : 'border-gray-200'} bg-white shadow-sm hover:shadow-md transition-shadow group`}>
+      <div className={`px-3 py-2 border-b ${tier ? `${s.bg} ${s.border}` : 'border-gray-100 bg-gray-50'} rounded-t-xl flex items-center justify-between`}>
+        <TierBadge tier={tier} />
+        <span className={`text-[10px] font-semibold ${tier ? s.text : 'text-gray-400'}`}>
+          {star(vendor.scorecardAvg)}
+        </span>
+      </div>
+      <div className="px-3 py-2">
+        <p className="text-sm font-semibold text-gray-900 truncate" title={vendor.name}>{vendor.name}</p>
+        <p className="text-[11px] text-gray-500 truncate">{vendor.city || '–'}</p>
+        {vendor.picContact && <p className="text-[11px] text-gray-400 truncate">{vendor.picContact}</p>}
+        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${vendor.status === 'Active' ? 'bg-green-100 text-green-700' : vendor.status === 'Blacklist' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
+            {vendor.status}
+          </span>
+          {vendor.totalProjectsUsed > 0 && (
+            <span className="text-[10px] text-gray-400">{vendor.totalProjectsUsed}× pakai</span>
+          )}
+        </div>
+      </div>
+      <div className="px-3 pb-2 flex gap-1.5">
+        <button
+          onClick={() => onEdit(vendor)}
+          className="flex-1 text-[11px] py-1 rounded-lg border border-violet-200 text-violet-600 hover:bg-violet-50 transition-colors"
+        >
+          Edit
+        </button>
+        <button
+          onClick={() => onRate(vendor)}
+          className="flex-1 text-[11px] py-1 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
+        >
+          + Nilai
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Tier column (inside sub-category grid) ───────────────────────────────────
+function TierColumn({ tier, vendors, onEdit, onRate }) {
+  const s = tierStyle(tier)
+  const label = VENDOR_TIER_SHORT[tier]
+  return (
+    <div className={`flex-1 min-w-[180px] rounded-xl border-2 ${s.border} ${s.bg} p-2`}>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className={`text-xs font-bold ${s.text} uppercase tracking-wide`}>{label}</span>
+        <TierBadge tier={tier} />
+      </div>
+      <SlotProgress filled={vendors.length} tier={tier} />
+      <div className="mt-2 space-y-2">
+        {vendors.map(v => (
+          <VendorCard key={v.id} vendor={v} onEdit={onEdit} onRate={onRate} />
+        ))}
+        {vendors.length === 0 && (
+          <p className="text-[11px] text-gray-400 italic text-center py-3">Belum ada vendor</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Sub-category section ──────────────────────────────────────────────────────
+function SubCategorySection({ subCat, vendorType, vendors, onEdit, onRate, isOpen, onToggle }) {
+  const byTier = {}
+  for (const t of VENDOR_TIERS) byTier[t] = vendors.filter(v => v.qualityTier === t)
+  const untiered = vendors.filter(v => !v.qualityTier)
+  const total = vendors.length
+  const isComplete = VENDOR_TIERS.every(t => byTier[t].length >= VENDOR_TIER_MIN_SLOTS)
+
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <span className="font-semibold text-gray-900 text-sm">{subCat || vendorType}</span>
+          <span className="text-xs text-gray-500">{total} vendor</span>
+          {isComplete && <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold">✓ AVL Lengkap</span>}
+        </div>
+        <div className="flex items-center gap-3">
+          {VENDOR_TIERS.map(t => (
+            <span key={t} className={`text-[11px] font-semibold ${byTier[t].length >= VENDOR_TIER_MIN_SLOTS ? 'text-green-700' : 'text-orange-500'}`}>
+              {t}: {byTier[t].length}/{VENDOR_TIER_MIN_SLOTS}
+            </span>
+          ))}
+          <svg className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+      {isOpen && (
+        <div className="p-3 bg-gray-50 border-t border-gray-200">
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {VENDOR_TIERS.map(t => (
+              <TierColumn
+                key={t}
+                tier={t}
+                vendors={byTier[t]}
+                onEdit={onEdit}
+                onRate={onRate}
+              />
+            ))}
+            {untiered.length > 0 && (
+              <div className="flex-1 min-w-[160px] rounded-xl border-2 border-dashed border-gray-300 p-2">
+                <div className="text-xs font-semibold text-gray-500 mb-2">Belum di-tier ({untiered.length})</div>
+                {untiered.map(v => (
+                  <VendorCard key={v.id} vendor={v} onEdit={onEdit} onRate={onRate} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Rating modal (5-dimension scorecard) ─────────────────────────────────────
+function RatingModal({ vendor, onClose, onSaved }) {
+  const [dims, setDims] = useState({ ratingQuality: 3, ratingTimeliness: 3, ratingCommunication: 3, ratingValue: 3, ratingFlexibility: 3 })
+  const [projectName, setProjectName] = useState('')
+  const [review, setReview] = useState('')
+  const [usageDate, setUsageDate] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const weighted = useMemo(() => {
+    let total = 0, wSum = 0
+    for (const d of SCORECARD_DIMENSIONS) {
+      total += dims[d.key] * d.weight
+      wSum += d.weight
+    }
+    return wSum > 0 ? (total / wSum).toFixed(1) : '–'
+  }, [dims])
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/vendors/${vendor.id}/ratings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...dims, projectName: projectName || null, review: review || null, usageDate: usageDate || null }),
+      })
+      if (!res.ok) { const e = await res.json(); alert(e.error || 'Gagal'); return }
+      onSaved()
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+          <div>
+            <p className="font-bold text-gray-900">{vendor.name}</p>
+            <p className="text-xs text-gray-500">5-Dimension Scorecard</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+        <div className="px-5 py-4 space-y-4">
+          <div>
+            <label className="label">Nama Project</label>
+            <input className="input" value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="Opsional" />
+          </div>
+          <div>
+            <label className="label">Tanggal Pemakaian</label>
+            <input type="date" className="input" value={usageDate} onChange={e => setUsageDate(e.target.value)} />
+          </div>
+          <div className="border border-gray-200 rounded-xl p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">Penilaian Dimensi</p>
+              <span className="text-sm font-bold text-violet-700">Overall: ★ {weighted}</span>
+            </div>
+            {SCORECARD_DIMENSIONS.map(d => (
+              <div key={d.key}>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-xs text-gray-600">{d.label}</label>
+                  <span className="text-xs font-semibold text-gray-900">{dims[d.key]}/5</span>
+                </div>
+                <div className="flex gap-1.5">
+                  {[1,2,3,4,5].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setDims(p => ({ ...p, [d.key]: n }))}
+                      className={`flex-1 h-8 rounded-lg text-sm font-bold border transition-all ${dims[d.key] === n ? 'bg-violet-600 border-violet-600 text-white' : 'border-gray-200 text-gray-400 hover:border-violet-300 hover:text-violet-500'}`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div>
+            <label className="label">Catatan / Review</label>
+            <textarea className="input resize-none" rows={3} value={review} onChange={e => setReview(e.target.value)} placeholder="Opsional — ceritakan pengalaman bekerjasama" />
+          </div>
+        </div>
+        <div className="px-5 pb-5 flex gap-2">
+          <button onClick={onClose} className="btn-secondary flex-1">Batal</button>
+          <button onClick={handleSave} disabled={saving} className="btn-primary flex-1">{saving ? 'Menyimpan...' : 'Simpan Nilai'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Vendor form modal (add / edit) ────────────────────────────────────────────
 const EMPTY_FORM = {
-  name: '', vendorType: '', subCategory: '', province: '', city: '', address: '', area: '',
-  capacity: '', ballroomCapacity: '', meetingCapacity: '', website: '', instagram: '',
-  output: '', productService: '', status: 'Active', picContact: '', phone: '', email: '',
-  priceMin: '', priceMax: '', priceNote: '', notes: '',
+  name: '', vendorType: '', subCategory: '', qualityTier: '',
+  province: '', city: '', address: '', area: '',
+  capacity: '', ballroomCapacity: '', meetingCapacity: '',
+  website: '', instagram: '', output: '', productService: '', status: 'Active',
+  picContact: '', phone: '', email: '', priceMin: '', priceMax: '', priceNote: '', notes: '',
   bankName: '', bankAccountNumber: '', accountHolder: '', npwp: '',
 }
 
-export default function VendorsPage() {
-  const { status } = useSession()
-  const router = useRouter()
-  const [vendors, setVendors] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [q, setQ] = useState('')
-  const [vendorType, setVendorType] = useState('')
-  const [subCategory, setSubCategory] = useState('')
-  const [city, setCity] = useState('')
-  const [priceMin, setPriceMin] = useState('')
-  const [priceMax, setPriceMax] = useState('')
-  const [sortBy, setSortBy] = useState('createdAt_desc')
-  const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState(EMPTY_FORM)
+function VendorFormModal({ vendor, onClose, onSaved }) {
+  const isEdit = !!vendor
+  const [form, setForm] = useState(isEdit ? { ...EMPTY_FORM, ...vendor, qualityTier: vendor.qualityTier || '' } : EMPTY_FORM)
   const [saving, setSaving] = useState(false)
-  const [detail, setDetail] = useState(null)
-  const [uploading, setUploading] = useState(false)
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
-  const [ratings, setRatings] = useState([])
-  const [ratingsAvg, setRatingsAvg] = useState(null)
-  const [ratingsLoading, setRatingsLoading] = useState(false)
-  const [ratingForm, setRatingForm] = useState({ rating: 5, review: '', projectName: '', usageDate: '' })
-  const [savingRating, setSavingRating] = useState(false)
-  const [showRatingForm, setShowRatingForm] = useState(false)
-  const [previewFile, setPreviewFile] = useState(null) // { url, name }
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
-  useEffect(() => {
-    if (status === 'unauthenticated') router.push('/login')
-  }, [status, router])
+  const subCats = form.vendorType ? (VENDOR_SUBCATEGORIES[form.vendorType] || []) : []
 
-  const load = useCallback(() => {
-    const params = new URLSearchParams()
-    if (q) params.set('q', q)
-    if (vendorType) params.set('vendorType', vendorType)
-    if (subCategory) params.set('subCategory', subCategory)
-    if (city) params.set('city', city)
-    setLoading(true)
-    fetch(`/api/vendors?${params.toString()}`).then(r => r.json()).then(data => {
-      setVendors(Array.isArray(data) ? data : [])
-      setLoading(false)
-    })
-  }, [q, vendorType, subCategory, city])
-
-  useEffect(() => {
-    if (status === 'authenticated') {
-      const t = setTimeout(load, 300)
-      return () => clearTimeout(t)
-    }
-  }, [status, load])
-
-  const openAdd = () => {
-    setEditing(null)
-    setForm(EMPTY_FORM)
-    setShowForm(true)
-  }
-
-  const openEdit = (v) => {
-    setEditing(v)
-    setForm({
-      name: v.name || '', vendorType: v.vendorType || '', subCategory: v.subCategory || '', province: v.province || '',
-      city: v.city || '', address: v.address || '', area: v.area || '',
-      capacity: v.capacity || '', ballroomCapacity: v.ballroomCapacity || '',
-      meetingCapacity: v.meetingCapacity || '', website: v.website || '', instagram: v.instagram || '',
-      output: v.output || '', productService: v.productService || '', status: v.status || 'Active',
-      picContact: v.picContact || '', phone: v.phone || '', email: v.email || '',
-      priceMin: v.priceMin ?? '', priceMax: v.priceMax ?? '', priceNote: v.priceNote || '', notes: v.notes || '',
-      bankName: v.bankName || '', bankAccountNumber: v.bankAccountNumber || '',
-      accountHolder: v.accountHolder || '', npwp: v.npwp || '',
-    })
-    setShowForm(true)
-  }
-
-  const submit = async (e) => {
-    e.preventDefault()
+  async function handleSave() {
+    if (!form.name.trim()) { alert('Nama vendor wajib diisi'); return }
+    if (!form.vendorType) { alert('Jenis vendor wajib dipilih'); return }
     setSaving(true)
-    const url = editing ? `/api/vendors/${editing.id}` : '/api/vendors'
-    const method = editing ? 'PATCH' : 'POST'
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
-    setSaving(false)
-    if (res.ok) {
-      setShowForm(false)
-      load()
-    } else {
-      const err = await res.json().catch(() => ({}))
-      alert(err.error || 'Gagal menyimpan')
-    }
-  }
-
-  const remove = async (v) => {
-    const res = await fetch(`/api/vendors/${v.id}`, { method: 'DELETE' })
-    if (res.ok) {
-      setConfirmDeleteId(null)
-      if (detail?.id === v.id) setDetail(null)
-      load()
-    }
-  }
-
-  const MAX_FILE_BYTES = 1 * 1024 * 1024 // 1 MB
-
-  // Kompresi gambar pakai Canvas sebelum upload (max 1200px, quality 0.80)
-  // Jika setelah kompres masih > 1MB, turunkan quality secara bertahap sampai muat
-  const compressImage = (file) => new Promise((resolve, reject) => {
-    if (!file.type.startsWith('image/')) { resolve(file); return }
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      const MAX = 1200
-      let { width, height } = img
-      if (width > MAX || height > MAX) {
-        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
-        else { width = Math.round(width * MAX / height); height = MAX }
-      }
-      const canvas = document.createElement('canvas')
-      canvas.width = width; canvas.height = height
-      canvas.getContext('2d').drawImage(img, 0, 0, width, height)
-
-      // Coba kompres mulai quality 0.80, turun terus sampai < 1MB
-      const tryCompress = (quality) => {
-        canvas.toBlob(blob => {
-          if (blob.size <= MAX_FILE_BYTES || quality <= 0.30) {
-            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
-          } else {
-            tryCompress(Math.round((quality - 0.10) * 100) / 100)
-          }
-        }, 'image/jpeg', quality)
-      }
-      tryCompress(0.80)
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
-    img.src = url
-  })
-
-  const uploadPhoto = async (vendorId, file) => {
-    // Validasi ukuran file non-gambar sebelum upload
-    if (!file.type.startsWith('image/') && file.size > MAX_FILE_BYTES) {
-      alert(`Ukuran file terlalu besar (${(file.size / 1024 / 1024).toFixed(1)} MB). Maksimal 1 MB untuk PDF/dokumen.`)
-      return
-    }
-    setUploading(true)
-    const compressed = await compressImage(file)
-    // Cek ulang setelah kompresi (edge case gambar sangat detail)
-    if (compressed.size > MAX_FILE_BYTES) {
-      setUploading(false)
-      alert(`File masih terlalu besar setelah dikompres (${(compressed.size / 1024 / 1024).toFixed(1)} MB). Coba foto dengan resolusi lebih rendah.`)
-      return
-    }
-    const fd = new FormData()
-    fd.append('file', compressed)
-    const res = await fetch(`/api/vendors/${vendorId}/photos`, { method: 'POST', body: fd })
-    setUploading(false)
-    if (res.ok) {
-      const updated = await res.json()
-      setDetail(updated)
-      load()
-    } else {
-      const err = await res.json().catch(() => ({}))
-      alert(err.error || 'Gagal upload')
-    }
-  }
-
-  const loadRatings = (vendorId) => {
-    setRatingsLoading(true)
-    setRatings([])
-    setRatingsAvg(null)
-    fetch(`/api/vendors/${vendorId}/ratings`)
-      .then(r => r.json())
-      .then(data => {
-        setRatings(data.ratings || [])
-        setRatingsAvg(data.avg ?? null)
-        setRatingsLoading(false)
+    try {
+      const url = isEdit ? `/api/vendors/${vendor.id}` : '/api/vendors'
+      const method = isEdit ? 'PATCH' : 'POST'
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, qualityTier: form.qualityTier || null }),
       })
+      if (!res.ok) { const e = await res.json(); alert(e.error || 'Gagal'); return }
+      onSaved()
+    } finally { setSaving(false) }
   }
 
-  const submitRating = async (e) => {
-    e.preventDefault()
-    setSavingRating(true)
-    const res = await fetch(`/api/vendors/${detail.id}/ratings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(ratingForm),
-    })
-    setSavingRating(false)
-    if (res.ok) {
-      setShowRatingForm(false)
-      setRatingForm({ rating: 5, review: '', projectName: '', usageDate: '' })
-      loadRatings(detail.id)
-    }
-  }
-
-  const deleteRating = async (ratingId) => {
-    const res = await fetch(`/api/vendors/${detail.id}/ratings?ratingId=${ratingId}`, { method: 'DELETE' })
-    if (res.ok) loadRatings(detail.id)
-  }
-
-  const removePhoto = async (vendorId, url) => {
-    const res = await fetch(`/api/vendors/${vendorId}/photos`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
-    if (res.ok) {
-      const updated = await res.json()
-      setDetail(updated)
-      load()
-    }
-  }
-
-  const fmtPrice = (v) => {
-    if (v.priceMin == null && v.priceMax == null) return '-'
-    const f = (n) => n != null ? `Rp${Number(n).toLocaleString('id-ID')}` : '?'
-    if (v.priceMin != null && v.priceMax != null && v.priceMin !== v.priceMax) return `${f(v.priceMin)} - ${f(v.priceMax)}`
-    return f(v.priceMin ?? v.priceMax)
-  }
-
-  const effectivePrice = (v) => v.priceMin ?? v.priceMax ?? null
-
-  const displayed = vendors
-    .filter(v => {
-      const pMin = priceMin !== '' ? parseFloat(priceMin) : null
-      const pMax = priceMax !== '' ? parseFloat(priceMax) : null
-      const ep = effectivePrice(v)
-      if (pMin != null && (ep == null || (v.priceMax ?? v.priceMin ?? 0) < pMin)) return false
-      if (pMax != null && (ep == null || (v.priceMin ?? v.priceMax ?? Infinity) > pMax)) return false
-      return true
-    })
-    .slice()
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'name_asc': return a.name.localeCompare(b.name)
-        case 'name_desc': return b.name.localeCompare(a.name)
-        case 'price_asc': {
-          const pa = effectivePrice(a) ?? Infinity, pb = effectivePrice(b) ?? Infinity
-          return pa - pb
-        }
-        case 'price_desc': {
-          const pa = effectivePrice(a) ?? -Infinity, pb = effectivePrice(b) ?? -Infinity
-          return pb - pa
-        }
-        case 'city_asc': return (a.city || '').localeCompare(b.city || '')
-        default: return new Date(b.createdAt) - new Date(a.createdAt)
-      }
-    })
+  const F = ({ label, k, type = 'text', placeholder = '' }) => (
+    <div>
+      <label className="label">{label}</label>
+      <input className="input" type={type} value={form[k]} onChange={e => set(k, e.target.value)} placeholder={placeholder} />
+    </div>
+  )
 
   return (
-    <div className="min-h-screen bg-brand-50">
-      <Navbar />
-
-      {/* File Preview Modal */}
-      {previewFile && (
-        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4" onClick={() => setPreviewFile(null)}>
-          <div className="relative max-w-4xl w-full max-h-[90vh] bg-white rounded-xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
-              <span className="text-sm font-medium text-gray-700 truncate max-w-[70%]">{previewFile.name || 'Preview File'}</span>
-              <div className="flex items-center gap-2">
-                <a href={previewFile.url} target="_blank" rel="noreferrer" className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                  ↗ Buka di tab baru
-                </a>
-                <button onClick={() => setPreviewFile(null)} className="text-gray-500 hover:text-gray-800 text-xl font-bold px-2">✕</button>
-              </div>
-            </div>
-            <div className="overflow-auto max-h-[80vh] flex items-center justify-center bg-gray-100 p-4">
-              {/\.(jpg|jpeg|png|gif|webp)$/i.test(previewFile.name || previewFile.url) ? (
-                <img src={previewFile.url} alt={previewFile.name} className="max-w-full max-h-[75vh] object-contain rounded" />
-              ) : /\.pdf$/i.test(previewFile.name || previewFile.url) ? (
-                <iframe src={previewFile.url} className="w-full h-[75vh] rounded" title={previewFile.name} />
-              ) : (
-                <div className="text-center py-12">
-                  <div className="text-5xl mb-4">📎</div>
-                  <p className="text-gray-600 mb-4 text-sm">{previewFile.name}</p>
-                  <a href={previewFile.url} target="_blank" rel="noreferrer" className="text-sm px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                    Download / Buka File
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+          <p className="font-bold text-gray-900 text-lg">{isEdit ? 'Edit Vendor' : 'Tambah Vendor Baru'}</p>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
         </div>
-      )}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h1 className="text-xl font-bold text-gray-900">Database Vendor</h1>
-          <button onClick={openAdd} className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700">+ Tambah Vendor</button>
-        </div>
+        <div className="px-5 py-4 grid grid-cols-2 gap-3">
+          <div className="col-span-2"><F label="Nama Vendor *" k="name" /></div>
 
-        <div className="flex flex-wrap gap-2">
-          <input
-            value={q} onChange={e => setQ(e.target.value)}
-            placeholder="Cari nama, kota, area, produk, PIC, catatan..."
-            className="flex-1 min-w-[220px] border rounded-lg px-3 py-2 text-sm"
-          />
-          <select value={vendorType} onChange={e => { setVendorType(e.target.value); setSubCategory('') }} className="border rounded-lg px-3 py-2 text-sm">
-            <option value="">Semua Jenis</option>
-            {VENDOR_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-          {vendorType && VENDOR_SUBCATEGORIES[vendorType] && (
-            <select value={subCategory} onChange={e => setSubCategory(e.target.value)} className="border rounded-lg px-3 py-2 text-sm">
-              <option value="">Semua Sub-kategori</option>
-              {VENDOR_SUBCATEGORIES[vendorType].map(s => <option key={s} value={s}>{s}</option>)}
+          <div>
+            <label className="label">Jenis Vendor *</label>
+            <select className="select" value={form.vendorType} onChange={e => { set('vendorType', e.target.value); set('subCategory', '') }}>
+              <option value="">— Pilih —</option>
+              {VENDOR_TYPES.map(t => <option key={t}>{t}</option>)}
             </select>
-          )}
+          </div>
+          <div>
+            <label className="label">Sub-Kategori</label>
+            <select className="select" value={form.subCategory} onChange={e => set('subCategory', e.target.value)} disabled={!subCats.length}>
+              <option value="">— Pilih —</option>
+              {subCats.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Tier Kualitas (SCM)</label>
+            <select className="select" value={form.qualityTier} onChange={e => set('qualityTier', e.target.value)}>
+              <option value="">— Belum ditentukan —</option>
+              {VENDOR_TIERS.map(t => <option key={t} value={t}>{VENDOR_TIER_LABEL[t]}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label">Status</label>
+            <select className="select" value={form.status} onChange={e => set('status', e.target.value)}>
+              {VENDOR_STATUSES.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+
+          <F label="Kota" k="city" />
+          <F label="Provinsi" k="province" />
+          <div className="col-span-2"><F label="Alamat" k="address" /></div>
+          <F label="Area / Kawasan" k="area" />
+          <F label="PIC / Kontak" k="picContact" />
+          <F label="Nomor HP / WA" k="phone" type="tel" />
+          <F label="Email" k="email" type="email" />
+          <F label="Website" k="website" />
+          <F label="Instagram" k="instagram" placeholder="@handle" />
+          <div className="col-span-2"><F label="Output / Produk & Jasa" k="productService" /></div>
+          <F label="Harga Min (Rp)" k="priceMin" type="number" />
+          <F label="Harga Max (Rp)" k="priceMax" type="number" />
+          <div className="col-span-2"><F label="Catatan Harga" k="priceNote" /></div>
+          <div className="col-span-2">
+            <label className="label">Catatan Umum</label>
+            <textarea className="input resize-none" rows={3} value={form.notes} onChange={e => set('notes', e.target.value)} />
+          </div>
+
+          <div className="col-span-2 border-t border-gray-100 pt-3">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Info Rekening</p>
+          </div>
+          <F label="Bank" k="bankName" />
+          <F label="No. Rekening" k="bankAccountNumber" />
+          <F label="Nama Pemilik Rekening" k="accountHolder" />
+          <F label="NPWP" k="npwp" />
+        </div>
+        <div className="px-5 pb-5 flex gap-2 border-t border-gray-100 pt-3">
+          <button onClick={onClose} className="btn-secondary flex-1">Batal</button>
+          <button onClick={handleSave} disabled={saving} className="btn-primary flex-1">{saving ? 'Menyimpan...' : (isEdit ? 'Simpan Perubahan' : 'Tambah Vendor')}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+export default function VendorsPage() {
+  const [vendors, setVendors] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [filterType, setFilterType] = useState('')
+  const [filterTier, setFilterTier] = useState('')
+  const [filterStatus, setFilterStatus] = useState('Active')
+  const [q, setQ] = useState('')
+  const [view, setView] = useState('scm')  // 'scm' | 'table'
+  const [openSections, setOpenSections] = useState({})
+  const [editVendor, setEditVendor] = useState(null)
+  const [rateVendor, setRateVendor] = useState(null)
+  const [showAdd, setShowAdd] = useState(false)
+
+  async function load() {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (filterType) params.set('vendorType', filterType)
+      if (filterTier) params.set('tier', filterTier)
+      const res = await fetch(`/api/vendors?${params}`)
+      if (res.ok) setVendors(await res.json())
+    } finally { setLoading(false) }
+  }
+
+  useEffect(() => { load() }, [filterType, filterTier])
+
+  function onSaved() {
+    setShowAdd(false)
+    setEditVendor(null)
+    setRateVendor(null)
+    load()
+  }
+
+  // Filtered list
+  const filtered = useMemo(() => {
+    let list = vendors
+    if (filterStatus) list = list.filter(v => v.status === filterStatus)
+    if (q) {
+      const lq = q.toLowerCase()
+      list = list.filter(v =>
+        v.name.toLowerCase().includes(lq) ||
+        (v.city ?? '').toLowerCase().includes(lq) ||
+        (v.picContact ?? '').toLowerCase().includes(lq)
+      )
+    }
+    return list
+  }, [vendors, filterStatus, q])
+
+  // SCM view: group by vendorType → subCategory → tier
+  const scmGroups = useMemo(() => {
+    const typeList = filterType ? [filterType] : VENDOR_TYPES
+    return typeList.map(vt => {
+      const vtVendors = filtered.filter(v => v.vendorType === vt)
+      if (!vtVendors.length) return null
+
+      const allSubCats = [
+        ...(VENDOR_SUBCATEGORIES[vt] ?? []),
+        ...[...new Set(vtVendors.map(v => v.subCategory).filter(Boolean))].filter(s => !(VENDOR_SUBCATEGORIES[vt] ?? []).includes(s)),
+      ]
+
+      const sections = allSubCats
+        .map(sub => ({ sub, vendors: vtVendors.filter(v => v.subCategory === sub) }))
+        .filter(s => s.vendors.length > 0)
+
+      // Vendors without subCategory
+      const noSub = vtVendors.filter(v => !v.subCategory)
+      if (noSub.length) sections.push({ sub: null, vendors: noSub })
+
+      return { vt, sections }
+    }).filter(Boolean)
+  }, [filtered, filterType])
+
+  function toggleSection(key) {
+    setOpenSections(p => ({ ...p, [key]: !p[key] }))
+  }
+
+  const totalVendors = filtered.length
+  const tieredVendors = filtered.filter(v => v.qualityTier).length
+  const avgScore = filtered.filter(v => v.scorecardAvg).length > 0
+    ? (filtered.reduce((s, v) => s + (v.scorecardAvg ?? 0), 0) / filtered.filter(v => v.scorecardAvg).length).toFixed(1)
+    : null
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-screen-xl mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Vendor Management</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Approved Vendor List (AVL) · SCM Tier System</p>
+          </div>
+          <button onClick={() => setShowAdd(true)} className="btn-primary">
+            + Tambah Vendor
+          </button>
+        </div>
+
+        {/* Stats strip */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+          {[
+            { label: 'Total Vendor', value: totalVendors, color: 'blue' },
+            { label: 'Sudah Tier', value: tieredVendors, color: 'violet' },
+            { label: 'Avg. Scorecard', value: avgScore ? `★ ${avgScore}` : '–', color: 'amber' },
+            { label: 'Belum Tier', value: totalVendors - tieredVendors, color: 'orange' },
+          ].map(s => (
+            <div key={s.label} className="card p-3">
+              <p className="text-xs text-gray-500">{s.label}</p>
+              <p className="text-xl font-bold text-gray-900 mt-0.5">{s.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="card p-3 mb-4 flex flex-wrap gap-2 items-center">
           <input
-            value={city} onChange={e => setCity(e.target.value)}
-            placeholder="Kota"
-            className="border rounded-lg px-3 py-2 text-sm w-32"
+            className="input w-48"
+            placeholder="Cari nama, kota, PIC…"
+            value={q}
+            onChange={e => setQ(e.target.value)}
           />
-          <input
-            type="number" value={priceMin} onChange={e => setPriceMin(e.target.value)}
-            placeholder="Harga Min"
-            className="border rounded-lg px-3 py-2 text-sm w-32"
-          />
-          <input
-            type="number" value={priceMax} onChange={e => setPriceMax(e.target.value)}
-            placeholder="Harga Max"
-            className="border rounded-lg px-3 py-2 text-sm w-32"
-          />
-          <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="border rounded-lg px-3 py-2 text-sm">
-            <option value="createdAt_desc">Terbaru</option>
-            <option value="name_asc">Nama A-Z</option>
-            <option value="name_desc">Nama Z-A</option>
-            <option value="price_asc">Harga Terendah</option>
-            <option value="price_desc">Harga Tertinggi</option>
-            <option value="city_asc">Kota A-Z</option>
+          <select className="select w-52" value={filterType} onChange={e => setFilterType(e.target.value)}>
+            <option value="">Semua Jenis</option>
+            {VENDOR_TYPES.map(t => <option key={t}>{t}</option>)}
           </select>
-        </div>
-
-        {loading && <div className="text-center py-12 text-gray-400 text-sm">Memuat...</div>}
-
-        {!loading && (
-          <div className="bg-white rounded-xl shadow overflow-x-auto">
-            <div className="min-w-[900px]">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-gray-500 border-b">
-                  <th className="px-3 py-2">Nama Vendor</th>
-                  <th className="px-3 py-2">Jenis</th>
-                  <th className="px-3 py-2 hidden sm:table-cell">Kota / Area</th>
-                  <th className="px-3 py-2">PIC / Kontak</th>
-                  <th className="px-3 py-2">Harga</th>
-                  <th className="px-3 py-2 hidden md:table-cell">Rating</th>
-                  <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2 hidden sm:table-cell">Diisi oleh</th>
-                  <th className="px-3 py-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayed.map(v => (
-                  <tr key={v.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => { setDetail(v); loadRatings(v.id) }}>
-                    <td className="px-3 py-2 font-medium text-gray-900">{v.name}</td>
-                    <td className="px-3 py-2 text-gray-600">{v.vendorType}{v.subCategory && <span className="text-gray-400"> · {v.subCategory}</span>}</td>
-                    <td className="px-3 py-2 text-gray-600 hidden sm:table-cell">{[v.city, v.area].filter(Boolean).join(' / ') || '-'}</td>
-                    <td className="px-3 py-2 text-gray-600">{[v.picContact, v.phone].filter(Boolean).join(' - ') || '-'}</td>
-                    <td className="px-3 py-2 text-gray-600">{fmtPrice(v)}</td>
-                    <td className="px-3 py-2 hidden md:table-cell">
-                      {v.avgRating != null ? (
-                        <span className="text-amber-400 text-xs whitespace-nowrap">
-                          {'★'.repeat(Math.round(v.avgRating))}{'☆'.repeat(5 - Math.round(v.avgRating))}
-                          <span className="text-gray-500 ml-1 text-[10px]">{v.avgRating.toFixed(1)}</span>
-                        </span>
-                      ) : <span className="text-gray-300 text-xs">—</span>}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className={`px-2 py-0.5 rounded text-xs ${v.status === 'Active' ? 'bg-green-100 text-green-700' : v.status === 'Blacklist' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>{v.status}</span>
-                    </td>
-                    <td className="px-3 py-2 text-gray-500 hidden sm:table-cell">{v.enteredBy?.name || v.enteredByName || '-'}</td>
-                    <td className="px-3 py-2 text-right">
-                      <button onClick={(e) => { e.stopPropagation(); openEdit(v) }} className="text-blue-600 hover:underline text-xs mr-2">Edit</button>
-                      {confirmDeleteId === v.id ? (
-                        <>
-                          <button onClick={(e) => { e.stopPropagation(); remove(v) }} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white mr-1">Ya</button>
-                          <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null) }} className="text-xs text-gray-400 hover:underline">Batal</button>
-                        </>
-                      ) : (
-                        <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(v.id) }} className="text-red-500 hover:underline text-xs">Hapus</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {displayed.length === 0 && (
-                  <tr><td colSpan={9} className="px-3 py-8 text-center text-gray-400">Tidak ada vendor ditemukan</td></tr>
-                )}
-              </tbody>
-            </table>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* Add/Edit form modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4">
-            <h2 className="text-lg font-bold">{editing ? 'Edit Vendor' : 'Tambah Vendor'}</h2>
-            <form onSubmit={submit} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Nama Vendor *" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} required />
-                <SelectField label="Jenis Vendor *" value={form.vendorType} onChange={v => setForm(f => ({ ...f, vendorType: v, subCategory: '' }))} options={VENDOR_TYPES} required />
-                {form.vendorType && VENDOR_SUBCATEGORIES[form.vendorType] && (
-                  <SelectField label="Sub-kategori" value={form.subCategory} onChange={v => setForm(f => ({ ...f, subCategory: v }))} options={VENDOR_SUBCATEGORIES[form.vendorType]} />
-                )}
-                <Field label="Provinsi" value={form.province} onChange={v => setForm(f => ({ ...f, province: v }))} />
-                <Field label="Kota" value={form.city} onChange={v => setForm(f => ({ ...f, city: v }))} />
-                <Field label="Area" value={form.area} onChange={v => setForm(f => ({ ...f, area: v }))} />
-                <Field label="Alamat" value={form.address} onChange={v => setForm(f => ({ ...f, address: v }))} />
-                <Field label="Kapasitas" value={form.capacity} onChange={v => setForm(f => ({ ...f, capacity: v }))} />
-                <Field label="Kapasitas Ballroom" value={form.ballroomCapacity} onChange={v => setForm(f => ({ ...f, ballroomCapacity: v }))} />
-                <Field label="Kapasitas Meeting" value={form.meetingCapacity} onChange={v => setForm(f => ({ ...f, meetingCapacity: v }))} />
-                <Field label="Website" value={form.website} onChange={v => setForm(f => ({ ...f, website: v }))} />
-                <Field label="Instagram" value={form.instagram} onChange={v => setForm(f => ({ ...f, instagram: v }))} />
-                <Field label="Output" value={form.output} onChange={v => setForm(f => ({ ...f, output: v }))} />
-                <Field label="Produk / Layanan" value={form.productService} onChange={v => setForm(f => ({ ...f, productService: v }))} />
-                <SelectField label="Status" value={form.status} onChange={v => setForm(f => ({ ...f, status: v }))} options={VENDOR_STATUSES} />
-                <Field label="PIC Kontak" value={form.picContact} onChange={v => setForm(f => ({ ...f, picContact: v }))} />
-                <Field label="Telepon" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} />
-                <Field label="Email" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} />
-                <Field label="Harga Min" type="number" value={form.priceMin} onChange={v => setForm(f => ({ ...f, priceMin: v }))} />
-                <Field label="Harga Max" type="number" value={form.priceMax} onChange={v => setForm(f => ({ ...f, priceMax: v }))} />
-              </div>
-              <Field label="Catatan Harga" value={form.priceNote} onChange={v => setForm(f => ({ ...f, priceNote: v }))} />
-              {/* ── Informasi Pembayaran / Rekening ── */}
-              <div className="pt-2 border-t border-gray-100">
-                <p className="text-xs font-semibold text-gray-500 mb-2">🏦 Informasi Rekening (untuk auto-fill pengajuan pembayaran)</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Nama Bank" value={form.bankName} onChange={v => setForm(f => ({ ...f, bankName: v }))} placeholder="BCA, Mandiri, BRI..." />
-                  <Field label="No. Rekening" value={form.bankAccountNumber} onChange={v => setForm(f => ({ ...f, bankAccountNumber: v }))} placeholder="1234567890" />
-                  <Field label="Nama Pemilik Rekening" value={form.accountHolder} onChange={v => setForm(f => ({ ...f, accountHolder: v }))} />
-                  <Field label="NPWP" value={form.npwp} onChange={v => setForm(f => ({ ...f, npwp: v }))} placeholder="opsional" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500">Catatan</label>
-                <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm" rows={3} />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm rounded-lg border">Batal</button>
-                <button type="submit" disabled={saving} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white disabled:opacity-50">{saving ? 'Menyimpan...' : 'Simpan'}</button>
-              </div>
-            </form>
+          <select className="select w-40" value={filterTier} onChange={e => setFilterTier(e.target.value)}>
+            <option value="">Semua Tier</option>
+            {VENDOR_TIERS.map(t => <option key={t} value={t}>{VENDOR_TIER_LABEL[t]}</option>)}
+            <option value="">— Belum tier</option>
+          </select>
+          <select className="select w-36" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            <option value="">Semua Status</option>
+            {VENDOR_STATUSES.map(s => <option key={s}>{s}</option>)}
+          </select>
+          <div className="flex rounded-xl border border-gray-200 overflow-hidden ml-auto">
+            {[{ key: 'scm', label: 'SCM View' }, { key: 'table', label: 'Tabel' }].map(v => (
+              <button key={v.key} onClick={() => setView(v.key)}
+                className={`px-3 py-1.5 text-xs font-semibold transition-colors ${view === v.key ? 'bg-violet-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}>
+                {v.label}
+              </button>
+            ))}
           </div>
         </div>
-      )}
 
-      {/* Detail modal */}
-      {detail && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" onClick={() => setDetail(null)}>
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-3" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold">{detail.name}</h2>
-              <button onClick={() => setDetail(null)} className="text-gray-400 hover:text-gray-600">✕</button>
-            </div>
-            <div className="text-sm text-gray-700 grid grid-cols-2 gap-2">
-              <Info label="Jenis" value={detail.vendorType} />
-              <Info label="Status" value={detail.status} />
-              <Info label="Provinsi / Kota" value={[detail.province, detail.city].filter(Boolean).join(' / ')} />
-              <Info label="Area" value={detail.area} />
-              <Info label="Alamat" value={detail.address} />
-              <Info label="Kapasitas" value={detail.capacity} />
-              <Info label="Kapasitas Ballroom" value={detail.ballroomCapacity} />
-              <Info label="Kapasitas Meeting" value={detail.meetingCapacity} />
-              <Info label="Website" value={detail.website} />
-              <Info label="Instagram" value={detail.instagram} />
-              <Info label="Output" value={detail.output} />
-              <Info label="Produk / Layanan" value={detail.productService} />
-              <Info label="PIC Kontak" value={detail.picContact} />
-              <Info label="Telepon" value={detail.phone} />
-              <Info label="Email" value={detail.email} />
-              <Info label="Harga" value={fmtPrice(detail)} />
-              <Info label="Catatan Harga" value={detail.priceNote} />
-              <Info label="Diisi oleh" value={detail.enteredBy?.name || detail.enteredByName} />
-            </div>
-            {(detail.bankName || detail.bankAccountNumber || detail.accountHolder) && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-                <p className="text-xs font-semibold text-emerald-700 mb-2">🏦 Informasi Rekening</p>
-                <div className="text-sm text-gray-700 grid grid-cols-2 gap-2">
-                  <Info label="Bank" value={detail.bankName} />
-                  <Info label="No. Rekening" value={detail.bankAccountNumber} />
-                  <Info label="Pemilik Rekening" value={detail.accountHolder} />
-                  <Info label="NPWP" value={detail.npwp} />
+        {loading ? (
+          <div className="text-center py-16 text-gray-400">Memuat data vendor…</div>
+        ) : view === 'scm' ? (
+          /* ── SCM View ───────────────────────────────────────────────────── */
+          <div className="space-y-5">
+            {scmGroups.length === 0 && (
+              <div className="text-center py-16 text-gray-400">Tidak ada vendor ditemukan</div>
+            )}
+            {scmGroups.map(({ vt, sections }) => (
+              <div key={vt} className="card overflow-hidden">
+                <div className="px-4 py-3 bg-gradient-to-r from-violet-50 to-purple-50 border-b border-violet-100">
+                  <h2 className="font-bold text-gray-900">{vt}</h2>
+                  <p className="text-xs text-gray-500">{sections.reduce((s, sec) => s + sec.vendors.length, 0)} vendor</p>
                 </div>
-              </div>
-            )}
-            {detail.notes && (
-              <div>
-                <div className="text-xs text-gray-500">Catatan</div>
-                <div className="text-sm whitespace-pre-wrap">{detail.notes}</div>
-              </div>
-            )}
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs text-gray-500 font-medium">Foto / Dokumen</div>
-                <label className={`text-xs px-3 py-1.5 rounded-lg border cursor-pointer transition-colors ${uploading ? 'opacity-50 pointer-events-none bg-gray-50 text-gray-400' : 'border-brand-300 text-brand-600 hover:bg-brand-50'}`}>
-                  {uploading ? (
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 border border-brand-400 border-t-transparent rounded-full animate-spin inline-block" />
-                      Mengompres...
-                    </span>
-                  ) : '+ Lampirkan File'}
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
-                    className="hidden"
-                    disabled={uploading}
-                    onChange={e => e.target.files[0] && uploadPhoto(detail.id, e.target.files[0])}
-                  />
-                </label>
-              </div>
-              <p className="text-[10px] text-gray-400 mb-2">Gambar otomatis dikompres hingga &lt;1 MB. PDF/dokumen maks. 1 MB.</p>
-              {(Array.isArray(detail.photos) ? detail.photos : []).length === 0 ? (
-                <p className="text-xs text-gray-400 italic">Belum ada file terlampir.</p>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {(Array.isArray(detail.photos) ? detail.photos : []).map((p, i) => {
-                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(p.name || p.url)
+                <div className="p-3 space-y-2">
+                  {sections.map(({ sub, vendors: secVendors }) => {
+                    const key = `${vt}__${sub ?? '__nosub'}`
                     return (
-                      <div key={i} className="relative group rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex flex-col">
-                        <div className="cursor-pointer" onClick={() => setPreviewFile({ url: p.url, name: p.name })}>
-                          {isImage ? (
-                            <img src={p.url} alt={p.name} className="w-full h-20 object-cover" />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center h-20 p-2 hover:bg-gray-100 transition-colors">
-                              <span className="text-2xl mb-1">{/\.pdf$/i.test(p.name || '') ? '📄' : '📎'}</span>
-                              <span className="text-[10px] text-gray-500 text-center leading-tight line-clamp-2">{p.name || 'File'}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between px-1.5 py-1 border-t bg-white">
-                          <button
-                            onClick={() => setPreviewFile({ url: p.url, name: p.name })}
-                            className="text-[10px] text-blue-600 hover:text-blue-800 font-medium"
-                          >🔍 Preview</button>
-                          <button
-                            onClick={() => removePhoto(detail.id, p.url)}
-                            className="text-[10px] text-red-500 hover:text-red-700 font-medium"
-                          >✕ Hapus</button>
-                        </div>
-                      </div>
+                      <SubCategorySection
+                        key={key}
+                        subCat={sub}
+                        vendorType={vt}
+                        vendors={secVendors}
+                        onEdit={setEditVendor}
+                        onRate={setRateVendor}
+                        isOpen={openSections[key] ?? (sections.length === 1)}
+                        onToggle={() => toggleSection(key)}
+                      />
                     )
                   })}
                 </div>
-              )}
-            </div>
-
-            {/* Rating & Ulasan */}
-            <div className="border-t pt-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-gray-700">⭐ Rating & Ulasan</span>
-                  {ratingsAvg !== null && (
-                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
-                      {ratingsAvg.toFixed(1)} / 5 ({ratings.length} ulasan)
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowRatingForm(v => !v)}
-                  className="text-xs px-2.5 py-1 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50"
-                >+ Beri Rating</button>
               </div>
-
-              {showRatingForm && (
-                <form onSubmit={submitRating} className="p-3 bg-gray-50 rounded-lg space-y-2 text-sm">
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs text-gray-500 w-16 shrink-0">Bintang</label>
-                    <div className="flex gap-0.5">
-                      {[1,2,3,4,5].map(n => (
-                        <button key={n} type="button"
-                          onClick={() => setRatingForm(f => ({ ...f, rating: n }))}
-                          className={`text-2xl transition-colors ${n <= ratingForm.rating ? 'text-amber-400' : 'text-gray-300'}`}>★</button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs text-gray-500 w-16 shrink-0">Project</label>
-                    <input className="flex-1 border rounded px-2 py-1 text-xs"
-                      placeholder="Nama project (opsional)"
-                      value={ratingForm.projectName}
-                      onChange={e => setRatingForm(f => ({ ...f, projectName: e.target.value }))} />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs text-gray-500 w-16 shrink-0">Tgl Pakai</label>
-                    <input type="date" className="border rounded px-2 py-1 text-xs"
-                      value={ratingForm.usageDate}
-                      onChange={e => setRatingForm(f => ({ ...f, usageDate: e.target.value }))} />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs text-gray-500 w-16 shrink-0">Ulasan</label>
-                    <textarea className="flex-1 border rounded px-2 py-1 text-xs" rows={2}
-                      placeholder="Catatan pengalaman memakai vendor ini..."
-                      value={ratingForm.review}
-                      onChange={e => setRatingForm(f => ({ ...f, review: e.target.value }))} />
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <button type="button" onClick={() => setShowRatingForm(false)} className="text-xs px-3 py-1 border rounded">Batal</button>
-                    <button type="submit" disabled={savingRating} className="text-xs px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-50">
-                      {savingRating ? 'Menyimpan...' : 'Simpan'}
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {ratingsLoading ? (
-                <p className="text-xs text-gray-400 italic">Memuat ulasan...</p>
-              ) : ratings.length === 0 ? (
-                <p className="text-xs text-gray-400 italic">Belum ada ulasan. Jadilah yang pertama memberi rating!</p>
-              ) : (
-                <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
-                  {ratings.map(r => (
-                    <div key={r.id} className="flex gap-2 p-2.5 rounded-lg bg-gray-50 text-xs">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-amber-400">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
-                          <span className="font-medium text-gray-700">{r.createdBy?.name}</span>
-                          {r.projectName && <span className="text-gray-400">· {r.projectName}</span>}
-                          {r.usageDate && (
-                            <span className="text-gray-400">
-                              · {new Date(r.usageDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                            </span>
-                          )}
-                        </div>
-                        {r.review && <p className="mt-0.5 text-gray-600 leading-relaxed">{r.review}</p>}
-                      </div>
-                      <button onClick={() => deleteRating(r.id)}
-                        className="text-gray-300 hover:text-red-400 shrink-0 self-start" title="Hapus ulasan">✕</button>
-                    </div>
+            ))}
+          </div>
+        ) : (
+          /* ── Table View ─────────────────────────────────────────────────── */
+          <div className="card overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 text-left">
+                  {['Vendor', 'Jenis', 'Sub-Kategori', 'Tier', 'Score', 'Kota', 'PIC', 'Status', ''].map(h => (
+                    <th key={h} className="px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                   ))}
-                </div>
-              )}
-            </div>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 && (
+                  <tr><td colSpan={9} className="text-center py-10 text-gray-400">Tidak ada vendor</td></tr>
+                )}
+                {filtered.map(v => (
+                  <tr key={v.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="px-3 py-2.5 font-medium text-gray-900 max-w-[180px] truncate">{v.name}</td>
+                    <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{v.vendorType}</td>
+                    <td className="px-3 py-2.5 text-gray-500">{v.subCategory || '–'}</td>
+                    <td className="px-3 py-2.5"><TierBadge tier={v.qualityTier} /></td>
+                    <td className="px-3 py-2.5 font-semibold text-gray-900">{star(v.scorecardAvg)}</td>
+                    <td className="px-3 py-2.5 text-gray-500">{v.city || '–'}</td>
+                    <td className="px-3 py-2.5 text-gray-500 max-w-[140px] truncate">{v.picContact || '–'}</td>
+                    <td className="px-3 py-2.5">
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${v.status === 'Active' ? 'bg-green-100 text-green-700' : v.status === 'Blacklist' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {v.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex gap-1">
+                        <button onClick={() => setEditVendor(v)} className="text-[11px] px-2 py-1 rounded-lg border border-violet-200 text-violet-600 hover:bg-violet-50">Edit</button>
+                        <button onClick={() => setRateVendor(v)} className="text-[11px] px-2 py-1 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50">Nilai</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => { setDetail(null); openEdit(detail) }} className="px-4 py-2 text-sm rounded-lg border">Edit</button>
-              {confirmDeleteId === detail?.id ? (
-                <>
-                  <button onClick={() => remove(detail)} className="px-4 py-2 text-sm rounded-lg bg-red-500 text-white">Ya, Hapus</button>
-                  <button onClick={() => setConfirmDeleteId(null)} className="px-4 py-2 text-sm rounded-lg border">Batal</button>
-                </>
-              ) : (
-                <button onClick={() => setConfirmDeleteId(detail?.id)} className="px-4 py-2 text-sm rounded-lg border border-red-200 text-red-600">Hapus</button>
-              )}
-            </div>
+      {/* Tier legend */}
+      <div className="max-w-screen-xl mx-auto px-4 pb-6">
+        <div className="card p-4 mt-4">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Panduan Tier SCM</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {VENDOR_TIERS.map(t => {
+              const s = tierStyle(t)
+              const desc = { A: 'Output premium, reputasi terbaik, harga kompetitif. Prioritas utama untuk project high-value.', B: 'Kualitas standar terpercaya, harga moderat. Pilihan utama untuk mayoritas project.', C: 'Cadangan strategis, harga lebih terjangkau, cocok untuk project budget-sensitive.' }
+              return (
+                <div key={t} className={`rounded-xl border ${s.border} ${s.bg} p-3`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <TierBadge tier={t} />
+                    <span className={`text-xs font-bold ${s.text}`}>{VENDOR_TIER_LABEL[t]}</span>
+                  </div>
+                  <p className="text-[11px] text-gray-600">{desc[t]}</p>
+                  <p className="text-[10px] text-gray-400 mt-1">Min. {VENDOR_TIER_MIN_SLOTS} vendor per sub-kategori</p>
+                </div>
+              )
+            })}
           </div>
         </div>
+      </div>
+
+      {/* Modals */}
+      {(showAdd || editVendor) && (
+        <VendorFormModal
+          vendor={editVendor}
+          onClose={() => { setShowAdd(false); setEditVendor(null) }}
+          onSaved={onSaved}
+        />
       )}
-    </div>
-  )
-}
-
-function Field({ label, value, onChange, type = 'text', required, placeholder }) {
-  return (
-    <div>
-      <label className="text-xs text-gray-500">{label}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} required={required} placeholder={placeholder} className="w-full border rounded-lg px-3 py-2 text-sm" />
-    </div>
-  )
-}
-
-function SelectField({ label, value, onChange, options, required }) {
-  return (
-    <div>
-      <label className="text-xs text-gray-500">{label}</label>
-      <select value={value} onChange={e => onChange(e.target.value)} required={required} className="w-full border rounded-lg px-3 py-2 text-sm">
-        <option value="">- Pilih -</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </div>
-  )
-}
-
-function Info({ label, value }) {
-  if (!value) return null
-  return (
-    <div>
-      <div className="text-xs text-gray-500">{label}</div>
-      <div>{value}</div>
+      {rateVendor && (
+        <RatingModal vendor={rateVendor} onClose={() => setRateVendor(null)} onSaved={onSaved} />
+      )}
     </div>
   )
 }
