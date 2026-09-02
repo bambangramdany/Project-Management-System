@@ -153,6 +153,11 @@ export async function PUT(req, { params }) {
         order: idx,
       }
       if (canNote) data.note = item.note || null
+      // Vendor linking — siapapun yang canEdit boleh set vendor
+      if ('vendorId' in item) {
+        data.vendorId   = item.vendorId   || null
+        data.vendorName = item.vendorName || null
+      }
       // Titipan fields — hanya bisa diubah oleh role yang berhak
       if (canSeeTitipan) {
         data.isTitipan = !!item.isTitipan

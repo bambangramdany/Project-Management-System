@@ -626,12 +626,31 @@ model Project {
   quotations  Quotation[]
   scores    ProjectScore[]
   briefItems ProjectBriefItem[]
+  milestones ProjectMilestone[]
 
   @@index([status])
   @@index([division])
   @@index([picId])
   @@index([updatedAt])
   @@index([clientId])
+}
+
+model ProjectMilestone {
+  id          String    @id @default(cuid())
+  projectId   String
+  title       String
+  date        DateTime
+  done        Boolean   @default(false)
+  color       String    @default("violet")  // violet|blue|green|orange|red
+  note        String?
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([date])
 }
 
 model ProjectBriefItem {
