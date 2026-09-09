@@ -84,6 +84,7 @@ model User {
   motherName             String?
   fatherName             String?
   npk                    String?
+  siblingCount           Int?
   announcements          Announcement[]        @relation("AnnouncementAuthor")
   eventRundowns          EventRundown[]
   eventIssues            EventIssue[]
@@ -459,6 +460,7 @@ enum Divisi {
   CREATIVE
   PH
   FINANCE_HRGA
+  MARKETING
 }
 
 enum EmployeeStatus {
