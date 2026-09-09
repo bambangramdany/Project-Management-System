@@ -30,11 +30,11 @@ function StarInput({ value, onChange }) {
   )
 }
 
-function Section({ title, icon, children, defaultOpen = true }) {
+function Section({ title, icon, children, defaultOpen = true, onToggle }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="card overflow-hidden">
-      <button onClick={() => setOpen(o => !o)}
+      <button onClick={() => { setOpen(o => !o); onToggle?.() }}
         className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors">
         <span className="flex items-center gap-2 text-sm font-semibold text-ink-800">
           {icon && <span>{icon}</span>}{title}
@@ -1002,7 +1002,7 @@ function DataKaryawanSection() {
     })
 
   return (
-    <Section title="Data Karyawan" defaultOpen={false} onToggle={toggle}>
+    <Section title="Data Karyawan" defaultOpen={false} onToggle={() => { if (!loaded) toggle() }}>
       {addingNew && <NewEmployeeModal onClose={() => setAddingNew(false)} onSaved={() => { reload(); setAddingNew(false) }} />}
       {editing   && <EditModal user={editing} onClose={() => setEditing(null)} onSaved={() => { reload(); setEditing(null) }} />}
 
