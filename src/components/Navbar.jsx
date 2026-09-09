@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: '/my-tasks',  label: 'Tugas Saya' },
   { href: '/projects',  label: 'Projects' },
   { href: '/workload',  label: 'Workload Tim', roles: ['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'] },
+  { href: '/reports',   label: 'Laporan Kinerja', roles: ['OWNER', 'DIRECTOR', 'FINANCE', 'PROJECT_MANAGER'] },
   { href: '/scores',    label: 'Penilaian' },
 
   // ── Network ──

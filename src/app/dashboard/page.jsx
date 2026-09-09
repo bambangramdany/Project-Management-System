@@ -256,9 +256,14 @@ export default function DashboardPage() {
   const [pendingPRCount, setPendingPRCount] = useState(null)
   const [teamStats, setTeamStats] = useState(null)
 
+  const MANAGER_ROLES = ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'FINANCE']
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
-  }, [status, router])
+    if (status === 'authenticated' && session?.user?.role && !MANAGER_ROLES.includes(session.user.role)) {
+      router.replace('/my-tasks')
+    }
+  }, [status, session, router])
 
   const fetchProjects = () => {
     fetch('/api/projects').then(r => r.json()).then(data => {

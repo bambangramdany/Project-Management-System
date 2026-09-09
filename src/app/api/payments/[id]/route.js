@@ -204,5 +204,23 @@ export async function PATCH(req, { params }) {
     return NextResponse.json(updated)
   }
 
+  // Invoice update — any finance/owner role can attach invoice to APPROVED_BY_DIRECTOR or PAID
+  if (action === 'update_invoice') {
+    const allowed = ['OWNER','FINANCE','FINANCE_STAFF','DIRECTOR'].includes(session.user.role)
+    if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!['APPROVED_BY_DIRECTOR','PAID'].includes(payment.status)) {
+      return NextResponse.json({ error: 'Invoice hanya bisa dilampirkan setelah disetujui' }, { status: 400 })
+    }
+    const updated = await prisma.paymentRequest.update({
+      where: { id },
+      data: {
+        invoiceNumber: body.invoiceNumber ?? payment.invoiceNumber,
+        invoiceDate:   body.invoiceDate ? new Date(body.invoiceDate) : payment.invoiceDate,
+        invoiceUrl:    body.invoiceUrl  ?? payment.invoiceUrl,
+      },
+    })
+    return NextResponse.json(updated)
+  }
+
   return NextResponse.json({ error: 'Aksi tidak dikenali' }, { status: 400 })
 }

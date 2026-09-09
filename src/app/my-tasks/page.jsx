@@ -5,193 +5,223 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
 import { MySharingSessionCard, AllSharingSessionsTable } from '@/components/SharingSessionCard'
-import clsx from 'clsx'
+import EventDayBanner from '@/components/EventDayBanner'
+import PersonalStatsWidget from '@/components/PersonalStatsWidget'
+
+// ── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS = [
-  { value: 'ON_TRACK', label: 'On Track', color: 'bg-green-100 text-green-700 border-green-300' },
-  { value: 'DELAYED', label: 'Delayed', color: 'bg-amber-100 text-amber-700 border-amber-300' },
-  { value: 'HOLD', label: 'Hold', color: 'bg-orange-100 text-orange-700 border-orange-300' },
-  { value: 'PROBLEM', label: 'Bermasalah', color: 'bg-red-100 text-red-700 border-red-300' },
-  { value: 'DONE', label: 'Selesai', color: 'bg-sky-100 text-sky-700 border-sky-300' },
+  { value: 'ON_TRACK',  label: 'Berjalan',   color: 'bg-green-500',  text: 'text-green-700',  bg: 'bg-green-50',  border: 'border-green-300' },
+  { value: 'DELAYED',   label: 'Terlambat',  color: 'bg-amber-500',  text: 'text-amber-700',  bg: 'bg-amber-50',  border: 'border-amber-300' },
+  { value: 'HOLD',      label: 'Hold',       color: 'bg-orange-400', text: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-300' },
+  { value: 'PROBLEM',   label: 'Bermasalah', color: 'bg-red-500',    text: 'text-red-700',    bg: 'bg-red-50',    border: 'border-red-300' },
+  { value: 'DONE',      label: 'Selesai',    color: 'bg-blue-500',   text: 'text-blue-700',   bg: 'bg-blue-50',   border: 'border-blue-300' },
 ]
-
-const STATUS_LABEL = Object.fromEntries(STATUS_OPTIONS.map(s => [s.value, s.label]))
-const STATUS_COLOR = Object.fromEntries(STATUS_OPTIONS.map(s => [s.value, s.color]))
+const STATUS_MAP  = Object.fromEntries(STATUS_OPTIONS.map(s => [s.value, s]))
 const NOTE_REQUIRED = ['DELAYED', 'HOLD', 'PROBLEM']
 
-const DIV_COLOR = {
-  EVENT:        { border: 'border-t-blue-400',   badge: 'bg-blue-100 text-blue-700',   icon: '🎪' },
-  CREATIVE:     { border: 'border-t-violet-400',  badge: 'bg-violet-100 text-violet-700', icon: '🎨' },
-  PH:           { border: 'border-t-amber-400',  badge: 'bg-amber-100 text-amber-700', icon: '🎬' },
-  FINANCE_HRGA: { border: 'border-t-emerald-400', badge: 'bg-emerald-100 text-emerald-700', icon: '💼' },
+const DIV_STYLE = {
+  EVENT:        { gradient: 'from-blue-500 to-blue-600',      abbr: 'EO' },
+  CREATIVE:     { gradient: 'from-violet-500 to-violet-600',  abbr: 'CR' },
+  PH:           { gradient: 'from-amber-500 to-amber-600',    abbr: 'PH' },
+  FINANCE_HRGA: { gradient: 'from-emerald-500 to-emerald-600', abbr: 'FN' },
 }
 
-// ── TaskRow: kartu update progress ──────────────────────────────────────────
-function TaskRow({ item, onSave, readOnly = false }) {
+function fmtDate(d) {
+  if (!d) return null
+  const dt = new Date(d)
+  const today = new Date(); today.setHours(0,0,0,0)
+  const diff = Math.floor((dt - today) / 86400000)
+  if (diff < 0) return { label: `Terlambat ${Math.abs(diff)} hari`, urgent: true }
+  if (diff === 0) return { label: 'Deadline hari ini', urgent: true }
+  if (diff === 1) return { label: 'Besok', urgent: false }
+  return { label: dt.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }), urgent: false }
+}
+
+// ── ProgressRing ─────────────────────────────────────────────────────────────
+
+function ProgressRing({ done, total }) {
+  const pct = total > 0 ? done / total : 0
+  const r = 28, circ = 2 * Math.PI * r
+  const dash = circ * pct
+  const color = pct === 1 ? '#22c55e' : pct > 0.5 ? '#f59e0b' : '#6366f1'
+
+  return (
+    <div className="relative flex items-center justify-center w-16 h-16 shrink-0">
+      <svg width="64" height="64" className="-rotate-90">
+        <circle cx="32" cy="32" r={r} fill="none" stroke="#e5e7eb" strokeWidth="5" />
+        <circle cx="32" cy="32" r={r} fill="none" stroke={color} strokeWidth="5"
+          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+          style={{ transition: 'stroke-dasharray 0.6s ease' }} />
+      </svg>
+      <div className="absolute text-center">
+        <p className="text-sm font-bold text-gray-800 leading-none">{done}</p>
+        <p className="text-[10px] text-gray-400">/{total}</p>
+      </div>
+    </div>
+  )
+}
+
+// ── TaskCard ──────────────────────────────────────────────────────────────────
+
+function TaskCard({ item, onSave, readOnly = false, onDelete }) {
   const [statusVal, setStatusVal] = useState(item.latestUpdate?.status || '')
   const [note, setNote] = useState(item.hasTodayUpdate ? (item.latestUpdate?.note || '') : '')
+  const [showNote, setShowNote] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [confirmDel, setConfirmDel] = useState(false)
+
+  const currentStatus = STATUS_MAP[statusVal]
+  const lastStatus    = STATUS_MAP[item.latestUpdate?.status]
+  const dateInfo = fmtDate(item.dueDate)
+  const needNote = NOTE_REQUIRED.includes(statusVal)
+
+  useEffect(() => {
+    if (NOTE_REQUIRED.includes(statusVal)) setShowNote(true)
+  }, [statusVal])
 
   async function save() {
-    if (!statusVal) { setError('Pilih status progress dulu'); return }
-    if (NOTE_REQUIRED.includes(statusVal) && !note.trim()) {
-      setError('Isi catatan alasan terlebih dahulu'); return
-    }
-    setError('')
-    setSaving(true)
+    if (!statusVal) { setError('Pilih status dulu'); return }
+    if (needNote && !note.trim()) { setError('Isi catatan alasan'); return }
+    setError(''); setSaving(true)
     await onSave(item, statusVal, note)
-    setSaving(false)
+    setSaving(false); setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  if (readOnly) {
+    return (
+      <div className="flex items-start gap-3 px-3 py-3 rounded-xl bg-white border border-gray-100 hover:border-gray-200 transition-colors">
+        <div className="flex-1 min-w-0">
+          {item.assignee && <p className="text-[11px] font-semibold text-violet-600 mb-0.5">{item.assignee.name}</p>}
+          <p className="text-sm font-medium text-gray-900 leading-tight">{item.title}</p>
+          {item.project && (
+            <Link href={`/projects/${item.project.id}`} className="text-[11px] text-violet-500 hover:underline">
+              {item.project.code} · {item.project.name}
+            </Link>
+          )}
+        </div>
+        {lastStatus ? (
+          <span className={`text-[11px] px-2 py-1 rounded-lg font-semibold shrink-0 ${lastStatus.bg} ${lastStatus.text} border ${lastStatus.border}`}>
+            {lastStatus.label}
+          </span>
+        ) : (
+          <span className="text-[11px] px-2 py-1 rounded-lg font-semibold shrink-0 bg-gray-100 text-gray-400">Belum ada update</span>
+        )}
+      </div>
+    )
   }
 
   return (
-    <div className={clsx('card p-4 border-l-4', item.hasTodayUpdate ? 'border-l-green-400' : 'border-l-gray-200')}>
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="min-w-0">
-          {/* Nama anggota (tampil di view direktur) */}
-          {item.assignee && (
-            <p className="text-xs font-semibold text-brand-600 mb-0.5">
-              👤 {item.assignee.name}
-            </p>
-          )}
-          <p className="font-medium text-ink-800">{item.title}</p>
-          {item.project ? (
-            <Link href={`/projects/${item.project.id}`} className="text-xs text-brand-600 hover:underline">
-              {item.project.code} · {item.project.name}{item.clientName ? ` (${item.clientName})` : ''}
-            </Link>
-          ) : (item.clientName || item.projectName) ? (
-            <p className="text-xs text-gray-500">{[item.clientName, item.projectName].filter(Boolean).join(' · ')}</p>
-          ) : null}
-          {item.description && <p className="text-xs text-gray-400 mt-0.5">{item.description}</p>}
-          {item.dueDate && (
-            <p className="text-xs text-gray-400 mt-0.5">Deadline: {new Date(item.dueDate).toLocaleDateString('id-ID')}</p>
-          )}
+    <div className={`rounded-2xl border-2 overflow-hidden transition-all duration-300 ${
+      saved ? 'border-green-400 bg-green-50/30' :
+      item.hasTodayUpdate ? 'border-green-200 bg-white' :
+      dateInfo?.urgent ? 'border-red-200 bg-red-50/20' :
+      'border-gray-100 bg-white'
+    }`}>
+      {/* Card header */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-gray-900 leading-tight">{item.title}</p>
+            {item.project ? (
+              <Link href={`/projects/${item.project.id}`} className="text-xs text-violet-500 hover:underline mt-0.5 block">
+                {item.project.code} · {item.project.name}
+                {item.clientName ? ` · ${item.clientName}` : ''}
+              </Link>
+            ) : (item.clientName || item.projectName) ? (
+              <p className="text-xs text-gray-400 mt-0.5">{[item.clientName, item.projectName].filter(Boolean).join(' · ')}</p>
+            ) : null}
+            {item.description && <p className="text-xs text-gray-400 mt-1 line-clamp-2">{item.description}</p>}
+          </div>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            {item.hasTodayUpdate && !saved && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-600">✓ Updated</span>
+            )}
+            {saved && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500 text-white">Tersimpan</span>
+            )}
+            {dateInfo && (
+              <span className={`text-[11px] font-semibold ${dateInfo.urgent ? 'text-red-500' : 'text-gray-400'}`}>
+                {dateInfo.urgent ? '⚠ ' : ''}{dateInfo.label}
+              </span>
+            )}
+            {onDelete && !confirmDel && (
+              <button onClick={() => setConfirmDel(true)} className="text-[11px] text-gray-300 hover:text-red-400 mt-1">✕</button>
+            )}
+            {confirmDel && (
+              <div className="flex gap-1 mt-1">
+                <button onClick={() => onDelete(item.id)} className="text-[10px] px-1.5 py-0.5 bg-red-500 text-white rounded">Hapus</button>
+                <button onClick={() => setConfirmDel(false)} className="text-[10px] text-gray-400">Batal</button>
+              </div>
+            )}
+          </div>
         </div>
-        {item.hasTodayUpdate && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-200 whitespace-nowrap shrink-0">
-            ✓ Update hari ini
-          </span>
-        )}
       </div>
 
-      {/* Status update — hidden di read-only (view direktur per task orang lain) */}
-      {!readOnly && (
-        <>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {STATUS_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setStatusVal(opt.value)}
-                className={clsx(
-                  'text-xs px-3 py-1.5 rounded-full border transition',
-                  statusVal === opt.value ? opt.color + ' font-semibold' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+      {/* Status chips */}
+      <div className="px-4 pb-2">
+        <div className="flex gap-1.5 flex-wrap">
+          {STATUS_OPTIONS.map(opt => (
+            <button key={opt.value} type="button" onClick={() => setStatusVal(opt.value)}
+              className={`text-xs px-3 py-1.5 rounded-xl font-semibold border-2 transition-all duration-150 active:scale-95 ${
+                statusVal === opt.value
+                  ? `${opt.bg} ${opt.text} ${opt.border} shadow-sm scale-105`
+                  : 'bg-gray-50 text-gray-500 border-transparent hover:bg-gray-100'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Note field — shown for NOTE_REQUIRED statuses or if manually toggled */}
+      {(showNote || needNote) && (
+        <div className="px-4 pb-2">
           <textarea
-            className="input text-sm mb-2"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 resize-none placeholder-gray-300"
             rows={2}
-            placeholder={NOTE_REQUIRED.includes(statusVal) ? 'Wajib: jelaskan alasan...' : 'Catatan tambahan (opsional)'}
+            placeholder={needNote ? '⚠ Wajib — jelaskan alasannya...' : 'Catatan tambahan (opsional)...'}
             value={note}
             onChange={e => setNote(e.target.value)}
           />
-          {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
-          <div className="flex items-center justify-between gap-2">
-            {item.latestUpdate ? (
-              <p className="text-xs text-gray-400">
-                Update terakhir:{' '}
-                <span className={clsx('px-1.5 py-0.5 rounded text-[11px] border', STATUS_COLOR[item.latestUpdate.status])}>
-                  {STATUS_LABEL[item.latestUpdate.status]}
-                </span>{' '}
-                ({new Date(item.latestUpdate.date).toLocaleDateString('id-ID')})
-              </p>
-            ) : <span />}
-            <button onClick={save} disabled={saving} className="btn-primary text-sm px-4 py-1.5">
-              {saving ? 'Menyimpan...' : 'Simpan Update'}
+        </div>
+      )}
+
+      {/* Footer: prev update + action */}
+      <div className="px-4 pb-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {!showNote && !needNote && (
+            <button onClick={() => setShowNote(v => !v)}
+              className="text-[11px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+              ✏ Catatan
             </button>
-          </div>
-        </>
-      )}
-
-      {/* Read-only: hanya tampilkan status terakhir */}
-      {readOnly && item.latestUpdate && (
-        <p className="text-xs text-gray-500 mt-1">
-          Status:{' '}
-          <span className={clsx('px-1.5 py-0.5 rounded text-[11px] border', STATUS_COLOR[item.latestUpdate.status])}>
-            {STATUS_LABEL[item.latestUpdate.status]}
-          </span>{' '}
-          · {new Date(item.latestUpdate.date).toLocaleDateString('id-ID')}
-          {item.latestUpdate.note && <span className="ml-2 text-gray-400">"{item.latestUpdate.note}"</span>}
-        </p>
-      )}
-      {readOnly && !item.latestUpdate && (
-        <p className="text-xs text-gray-400 mt-1 italic">Belum ada update</p>
-      )}
-    </div>
-  )
-}
-
-// ── DivisionGroup: section collapsible per divisi (view direktur) ────────────
-function DivisionGroup({ group, onSave }) {
-  const [open, setOpen] = useState(true)
-  const style = DIV_COLOR[group.divisi] || DIV_COLOR.EVENT
-  const doneCount = group.items.filter(i => i.hasTodayUpdate).length
-  const totalCount = group.items.length
-  const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0
-
-  return (
-    <div className={clsx('card border-t-4 overflow-hidden', style.border)}>
-      {/* Header — klik untuk expand/collapse */}
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50/60 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <span className="text-xl">{style.icon}</span>
-          <div>
-            <p className="font-semibold text-gray-800">{group.label}</p>
-            <p className="text-xs text-gray-500">{totalCount} tugas aktif</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 shrink-0 ml-4">
-          {/* Progress bar update hari ini */}
-          <div className="hidden sm:flex flex-col items-end gap-1">
-            <p className="text-xs text-gray-500">{doneCount}/{totalCount} update hari ini</p>
-            <div className="w-28 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-              <div
-                className={clsx('h-full rounded-full transition-all', pct === 100 ? 'bg-green-400' : pct > 50 ? 'bg-amber-400' : 'bg-red-400')}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-          </div>
-          <span className={clsx('text-xs font-semibold px-2 py-0.5 rounded-full', style.badge)}>
-            {pct}%
-          </span>
-          <span className={`text-gray-400 transition-transform duration-200 text-lg ${open ? 'rotate-180' : ''}`}>⌄</span>
-        </div>
-      </button>
-
-      {/* Items */}
-      {open && (
-        <div className="px-5 pb-5 border-t border-gray-100 space-y-3 pt-4">
-          {group.items.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">Tidak ada tugas aktif di divisi ini.</p>
           )}
-          {group.items.map(item => (
-            <TaskRow key={`${item.kind}-${item.id}`} item={item} onSave={onSave} readOnly={true} />
-          ))}
+          {lastStatus && (
+            <span className="text-[11px] text-gray-400 hidden sm:block">
+              Sebelumnya: <span className={`font-semibold ${lastStatus.text}`}>{lastStatus.label}</span>
+            </span>
+          )}
         </div>
-      )}
+        {error && <p className="text-[11px] text-red-500">{error}</p>}
+        <button onClick={save} disabled={saving || !statusVal}
+          className={`px-5 py-2 rounded-xl text-sm font-bold transition-all duration-150 active:scale-95 ${
+            !statusVal ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
+            saving ? 'bg-violet-400 text-white' :
+            'bg-violet-600 text-white hover:bg-violet-700 shadow-md shadow-violet-200'
+          }`}>
+          {saving ? 'Menyimpan...' : 'Simpan'}
+        </button>
+      </div>
     </div>
   )
 }
 
-// ── DailyCheckInBanner: banner morning ack + evening progress ───────────────
-function DailyCheckInBanner({ checkIn, onMorningAck, onEveningSubmit }) {
+// ── CheckInCard ───────────────────────────────────────────────────────────────
+
+function CheckInCard({ checkIn, onMorningAck, onEveningSubmit }) {
   const [eveningNote, setEveningNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(!!checkIn?.eveningAt)
@@ -199,75 +229,60 @@ function DailyCheckInBanner({ checkIn, onMorningAck, onEveningSubmit }) {
   const hasMorning = !!checkIn?.morningAckAt
   const hasEvening = !!checkIn?.eveningAt || submitted
   const showEvening = checkIn?.showEveningForm
-  const isOverdue = checkIn?.eveningOverdue
+  const isOverdue   = checkIn?.eveningOverdue
 
   async function submitEvening(e) {
     e.preventDefault()
     if (!eveningNote.trim()) return
     setSubmitting(true)
     await onEveningSubmit(eveningNote)
-    setSubmitted(true)
-    setSubmitting(false)
+    setSubmitted(true); setSubmitting(false)
   }
 
   if (!checkIn) return null
 
   return (
     <div className="space-y-2">
-      {/* Morning check-in */}
       {!hasMorning ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center justify-between gap-4">
+        <div className="rounded-2xl bg-gradient-to-r from-red-500 to-rose-500 p-4 flex items-center justify-between gap-4 shadow-lg shadow-red-100">
           <div>
-            <p className="font-semibold text-red-700 text-sm">🔔 Belum check-in pagi ini!</p>
-            <p className="text-xs text-red-500 mt-0.5">Klik tombol untuk konfirmasi kamu sudah lihat daftar tugas hari ini (batas 09:30 WIB)</p>
+            <p className="font-bold text-white text-sm">Belum check-in pagi!</p>
+            <p className="text-xs text-red-100 mt-0.5">Konfirmasi kamu sudah lihat tugas hari ini (batas 09:30)</p>
           </div>
-          <button
-            onClick={onMorningAck}
-            className="shrink-0 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors"
-          >
-            ✓ Saya sudah cek tugas
+          <button onClick={onMorningAck}
+            className="shrink-0 px-4 py-2 rounded-xl bg-white text-red-600 text-sm font-bold hover:bg-red-50 transition-colors active:scale-95">
+            ✓ Sudah Cek
           </button>
         </div>
-      ) : (
-        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 flex items-center gap-2">
-          <span className="text-green-600 text-sm">✅</span>
-          <p className="text-sm text-green-700 font-medium">
-            Check-in pagi tercatat pukul {new Date(checkIn.morningAckAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB
+      ) : !showEvening ? (
+        <div className="rounded-2xl bg-green-50 border border-green-200 px-4 py-2.5 flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+          <p className="text-sm text-green-700 font-semibold">
+            Check-in pagi tercatat — {new Date(checkIn.morningAckAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB
           </p>
         </div>
-      )}
+      ) : null}
 
-      {/* Evening progress report */}
       {showEvening && (
         hasEvening ? (
-          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 flex items-center gap-2">
-            <span className="text-blue-600 text-sm">📋</span>
-            <p className="text-sm text-blue-700 font-medium">
-              Laporan progress sore sudah dikirim
-              {checkIn.eveningAt && ` pukul ${new Date(checkIn.eveningAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB`}
-            </p>
+          <div className="rounded-2xl bg-blue-50 border border-blue-200 px-4 py-2.5 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+            <p className="text-sm text-blue-700 font-semibold">Laporan sore sudah dikirim {checkIn.eveningAt ? `· ${new Date(checkIn.eveningAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB` : ''}</p>
           </div>
         ) : (
-          <form onSubmit={submitEvening} className={clsx('rounded-xl border p-4 space-y-3', isOverdue ? 'border-orange-300 bg-orange-50' : 'border-blue-200 bg-blue-50')}>
+          <form onSubmit={submitEvening} className={`rounded-2xl border-2 p-4 space-y-3 ${isOverdue ? 'border-orange-300 bg-orange-50' : 'border-blue-200 bg-blue-50/50'}`}>
             <div>
-              <p className={clsx('font-semibold text-sm', isOverdue ? 'text-orange-700' : 'text-blue-700')}>
-                {isOverdue ? '⚠️ Terlambat — laporan progress harus dikirim sebelum 20:00 WIB!' : '📋 Laporan Progress Sore (17:00–20:00 WIB)'}
+              <p className={`font-bold text-sm ${isOverdue ? 'text-orange-700' : 'text-blue-700'}`}>
+                {isOverdue ? 'Terlambat — laporan harus dikirim sebelum 20:00' : 'Laporan Progress Sore (17:00–20:00 WIB)'}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">Ceritakan apa yang sudah dikerjakan hari ini dan status setiap tugas</p>
+              <p className="text-xs text-gray-500 mt-0.5">Ceritakan apa yang sudah dikerjakan dan status setiap tugas</p>
             </div>
-            <textarea
-              value={eveningNote}
-              onChange={e => setEveningNote(e.target.value)}
-              rows={3}
-              placeholder="Contoh: Sudah selesaikan survey lokasi venue BAIC. Sedang proses rundown, target selesai besok pagi..."
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white resize-none"
-            />
-            <button
-              type="submit"
-              disabled={submitting || !eveningNote.trim()}
-              className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              {submitting ? 'Mengirim...' : 'Kirim Laporan Progress'}
+            <textarea value={eveningNote} onChange={e => setEveningNote(e.target.value)} rows={3}
+              placeholder="Contoh: Sudah survey lokasi, sedang proses rundown target selesai besok pagi..."
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none" />
+            <button type="submit" disabled={submitting || !eveningNote.trim()}
+              className="px-5 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors active:scale-95">
+              {submitting ? 'Mengirim...' : 'Kirim Laporan'}
             </button>
           </form>
         )
@@ -276,21 +291,140 @@ function DailyCheckInBanner({ checkIn, onMorningAck, onEveningSubmit }) {
   )
 }
 
-// ── Main page ────────────────────────────────────────────────────────────────
+// ── AddTaskForm ───────────────────────────────────────────────────────────────
+
+function AddTaskForm({ projectOptions, onAdd }) {
+  const [open, setOpen] = useState(false)
+  const [title, setTitle] = useState('')
+  const [due, setDue] = useState('')
+  const [projectId, setProjectId] = useState('')
+  const [adding, setAdding] = useState(false)
+
+  async function submit(e) {
+    e.preventDefault()
+    if (!title.trim()) return
+    setAdding(true)
+    await onAdd({ title, dueDate: due || null, projectId: projectId || null })
+    setTitle(''); setDue(''); setProjectId(''); setOpen(false)
+    setAdding(false)
+  }
+
+  if (!open) return (
+    <button onClick={() => setOpen(true)}
+      className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border-2 border-dashed border-violet-200 text-violet-500 hover:bg-violet-50 hover:border-violet-400 transition-all font-medium text-sm">
+      <span className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-lg leading-none">+</span>
+      Tambah tugas personal
+    </button>
+  )
+
+  return (
+    <div className="rounded-2xl border-2 border-violet-300 bg-violet-50/40 p-4 space-y-3">
+      <p className="text-sm font-bold text-violet-700">Tugas Baru</p>
+      <input className="input w-full" placeholder="Nama tugas..." value={title} onChange={e => setTitle(e.target.value)} autoFocus />
+      <div className="flex gap-2">
+        <input type="date" className="input flex-1" value={due} onChange={e => setDue(e.target.value)} />
+        <select className="select flex-1" value={projectId} onChange={e => setProjectId(e.target.value)}>
+          <option value="">Tanpa project</option>
+          {(projectOptions || []).map(p => (
+            <option key={p.id} value={p.id}>{p.code} · {p.name}</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex gap-2">
+        <button onClick={() => setOpen(false)} className="btn-secondary flex-1 py-2">Batal</button>
+        <button onClick={submit} disabled={adding || !title.trim()} className="btn-primary flex-1 py-2">{adding ? 'Menyimpan...' : 'Tambah'}</button>
+      </div>
+    </div>
+  )
+}
+
+// ── SectionHeader ─────────────────────────────────────────────────────────────
+
+function SectionHeader({ label, count, accent = 'bg-gray-400', color = 'text-gray-700' }) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <div className={`w-1 h-4 rounded-full shrink-0 ${accent}`} />
+      <span className={`text-sm font-bold ${color}`}>{label}</span>
+      {count > 0 && (
+        <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5 font-semibold">{count}</span>
+      )}
+    </div>
+  )
+}
+
+// ── DivisionGroup (director view) ─────────────────────────────────────────────
+
+function DivisionGroup({ group, onSave }) {
+  const [open, setOpen] = useState(true)
+  const style = DIV_STYLE[group.divisi] || DIV_STYLE.EVENT
+  const doneCount  = group.items.filter(i => i.hasTodayUpdate).length
+  const totalCount = group.items.length
+  const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0
+
+  return (
+    <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+      <button onClick={() => setOpen(v => !v)}
+        className={`w-full flex items-center justify-between px-5 py-4 text-left bg-gradient-to-r ${style.gradient} hover:opacity-95 transition-opacity`}>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center text-white font-black text-xs shrink-0">{style.abbr}</div>
+          <div>
+            <p className="font-bold text-white text-sm">{group.label}</p>
+            <p className="text-xs text-white/70">{totalCount} tugas aktif</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-right hidden sm:block">
+            <p className="text-xs text-white/80">{doneCount}/{totalCount} update hari ini</p>
+            <div className="w-28 h-1.5 rounded-full bg-white/30 overflow-hidden mt-1">
+              <div className={`h-full rounded-full bg-white transition-all`} style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+          <span className="text-sm font-black text-white bg-white/20 px-2.5 py-1 rounded-full">{pct}%</span>
+          <span className={`text-white text-lg transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>⌄</span>
+        </div>
+      </button>
+      {open && (
+        <div className="bg-white px-4 pb-4 space-y-2 pt-3">
+          {group.items.length === 0
+            ? <p className="text-sm text-gray-400 text-center py-4">Tidak ada tugas aktif.</p>
+            : group.items.map(item => (
+                <TaskCard key={`${item.kind}-${item.id}`} item={item} onSave={onSave} readOnly={true} />
+              ))
+          }
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CollapsibleSection({ title, count, defaultOpen = true, icon, children }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="rounded-2xl overflow-hidden border border-gray-100 bg-white shadow-sm">
+      <button onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50/60 transition-colors">
+        <div className="flex items-center gap-2">
+          {icon && <span>{icon}</span>}
+          <span className="text-sm font-semibold text-gray-800">{title}</span>
+          {count != null && <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{count}</span>}
+        </div>
+        <span className="text-gray-400 text-xs">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && <div className="px-4 pb-4 space-y-2">{children}</div>}
+    </div>
+  )
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
 export default function MyTasksPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [data, setData] = useState(null)
+  const [data, setData]   = useState(null)
   const [loading, setLoading] = useState(true)
-  const [newTitle, setNewTitle] = useState('')
-  const [newDue, setNewDue] = useState('')
-  const [newProjectId, setNewProjectId] = useState('')
-  const [newClientName, setNewClientName] = useState('')
-  const [newProjectName, setNewProjectName] = useState('')
-  const [adding, setAdding] = useState(false)
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [checkIn, setCheckIn] = useState(null)
   const [sharingSessions, setSharingSessions] = useState([])
+  const [todayEvents, setTodayEvents] = useState([])
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -304,390 +438,352 @@ export default function MyTasksPage() {
     })
   }, [])
 
-  // Load daily check-in status
   useEffect(() => {
     if (status !== 'authenticated') return
-    fetch('/api/daily-checkin').then(r => r.ok ? r.json() : null).then(d => {
-      if (d) setCheckIn(d)
-    })
-  }, [status])
-
-  function loadSharingSessions() {
-    fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(data => {
-      if (Array.isArray(data)) setSharingSessions(data)
-    })
-  }
-
-  useEffect(() => {
-    if (status === 'authenticated') loadSharingSessions()
-  }, [status])
+    fetch('/api/daily-checkin').then(r => r.ok ? r.json() : null).then(d => { if (d) setCheckIn(d) })
+    fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setSharingSessions(d) })
+    fetch('/api/event-day').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setTodayEvents(d) })
+    load()
+  }, [status, load])
 
   async function handleMorningAck() {
-    const res = await fetch('/api/daily-checkin', { method: 'POST' })
-    if (res.ok) {
-      const d = await res.json()
-      setCheckIn(prev => ({ ...prev, today: d, morningAckAt: d.morningAckAt }))
-      // Reload to show updated state
-      fetch('/api/daily-checkin').then(r => r.ok ? r.json() : null).then(d => { if (d) setCheckIn(d) })
-    }
+    await fetch('/api/daily-checkin', { method: 'POST' })
+    fetch('/api/daily-checkin').then(r => r.ok ? r.json() : null).then(d => { if (d) setCheckIn(d) })
   }
 
   async function handleEveningSubmit(note) {
     const res = await fetch('/api/daily-checkin', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ eveningNote: note }),
     })
-    if (res.ok) {
-      const d = await res.json()
-      setCheckIn(prev => ({ ...prev, today: d, eveningAt: d.eveningAt }))
-    }
+    if (res.ok) { const d = await res.json(); setCheckIn(prev => ({ ...prev, today: d, eveningAt: d.eveningAt })) }
   }
-
-  useEffect(() => {
-    if (status === 'authenticated') load()
-  }, [status, load])
 
   async function saveProgress(item, statusVal, note) {
     const payload = { status: statusVal, note }
     if (item.kind === 'task') payload.taskId = item.id
     else payload.personalTaskId = item.id
     const res = await fetch('/api/my-tasks/progress', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
     if (res.ok) load()
-    else {
-      const err = await res.json().catch(() => ({}))
-      alert(err.error || 'Gagal menyimpan')
-    }
+    else { const err = await res.json().catch(() => ({})); alert(err.error || 'Gagal menyimpan') }
   }
 
-  async function addPersonalTask(e) {
-    e.preventDefault()
-    if (!newTitle.trim()) return
-    setAdding(true)
+  async function addPersonalTask({ title, dueDate, projectId }) {
     const res = await fetch('/api/my-tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: newTitle,
-        dueDate: newDue || null,
-        projectId: newProjectId || null,
-        clientName: newProjectId ? null : (newClientName || null),
-        projectName: newProjectId ? null : (newProjectName || null),
-      }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, dueDate, projectId }),
     })
-    if (res.ok) {
-      setNewTitle(''); setNewDue(''); setNewProjectId(''); setNewClientName(''); setNewProjectName('')
-      load()
-    }
-    setAdding(false)
+    if (res.ok) load()
   }
 
   async function removePersonalTask(id) {
     await fetch(`/api/my-tasks/personal/${id}`, { method: 'DELETE' })
-    setConfirmDeleteId(null)
     load()
   }
 
   if (status !== 'authenticated' || loading || !data) {
     return (
-      <div className="min-h-screen bg-brand-50">
+      <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
-          <p className="text-sm text-gray-400 text-center py-8">Memuat...</p>
+        <main className="max-w-2xl mx-auto px-4 py-10 space-y-4">
+          {[1,2,3].map(i => (
+            <div key={i} className="rounded-2xl bg-white border border-gray-100 p-5 animate-pulse">
+              <div className="h-4 bg-gray-100 rounded w-2/3 mb-3" />
+              <div className="h-3 bg-gray-100 rounded w-1/3" />
+            </div>
+          ))}
         </main>
       </div>
     )
   }
 
-  // ── OWNER VIEW ─────────────────────────────────────────────────────────────
+  // ── DIRECTOR VIEW ───────────────────────────────────────────────────────────
   if (data.mode === 'director') {
-    const allItems = data.groups.flatMap(g => g.items)
-    const totalPending = allItems.filter(i => !i.hasTodayUpdate).length
-    const totalDone = allItems.filter(i => i.hasTodayUpdate).length
-
+    const allItems   = data.groups.flatMap(g => g.items)
+    const totalDone  = allItems.filter(i => i.hasTodayUpdate).length
+    const totalItems = allItems.length
     return (
-      <div className="min-h-screen bg-brand-50">
+      <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <main className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+          <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Tugas Tim</h1>
-              <p className="text-sm text-gray-500 mt-1">Semua tugas aktif seluruh tim — dikelompokkan per divisi</p>
+              <h1 className="text-xl font-bold text-gray-900">Monitoring Tim</h1>
+              <p className="text-sm text-gray-500 mt-0.5">Progress update seluruh tim hari ini</p>
             </div>
-            <div className="flex gap-3">
-              <div className="card px-4 py-2 text-center">
-                <p className="text-lg font-bold text-green-600">{totalDone}</p>
-                <p className="text-xs text-gray-500">Update hari ini</p>
-              </div>
-              <div className="card px-4 py-2 text-center">
-                <p className="text-lg font-bold text-red-500">{totalPending}</p>
-                <p className="text-xs text-gray-500">Belum update</p>
+            <div className="flex items-center gap-3">
+              <ProgressRing done={totalDone} total={totalItems} />
+              <div>
+                <p className="text-sm font-bold text-gray-800">{totalDone} selesai</p>
+                <p className="text-xs text-gray-400">{totalItems - totalDone} belum update</p>
               </div>
             </div>
           </div>
-          {data.deadlinePassed && totalPending > 0 && (
-            <div className="card p-4 border-l-4 border-l-red-400 bg-red-50">
-              <p className="text-sm font-semibold text-red-700">⏰ Sudah lewat jam 20:00 — {totalPending} tugas belum di-update hari ini.</p>
+          {data.deadlinePassed && (totalItems - totalDone) > 0 && (
+            <div className="rounded-2xl bg-red-50 border-2 border-red-200 px-4 py-3">
+              <p className="text-sm font-bold text-red-700">⏰ Sudah lewat jam 20:00 — {totalItems - totalDone} anggota belum update</p>
             </div>
-          )}
-          {data.groups.length === 0 && (
-            <div className="card p-8 text-center text-gray-400">Tidak ada tugas aktif di seluruh tim.</div>
           )}
           {data.groups.map(group => (
             <DivisionGroup key={group.divisi} group={group} onSave={saveProgress} />
           ))}
-
-          <CollapsibleSection title="Jadwal Sharing Session" count={sharingSessions.filter(s => s.status === 'UPCOMING').length} defaultOpen={true} icon="🎤">
-            <AllSharingSessionsTable sessions={sharingSessions} />
-          </CollapsibleSection>
+          {sharingSessions.filter(s => s.status === 'UPCOMING').length > 0 && (
+            <CollapsibleSection title="Jadwal Sharing Session" count={sharingSessions.filter(s => s.status === 'UPCOMING').length}>
+              <AllSharingSessionsTable sessions={sharingSessions} />
+            </CollapsibleSection>
+          )}
         </main>
       </div>
     )
   }
 
-  // ── TEAM LEAD VIEW (Director/PM/Finance Staff dengan tim) ──────────────────
+  // ── TEAM LEAD VIEW ──────────────────────────────────────────────────────────
   if (data.mode === 'team_lead') {
-    const myProjectTasks  = data.myItems.filter(i => i.kind === 'task')
-    const myPersonalTasks = data.myItems.filter(i => i.kind === 'personal')
-    const myPending       = data.myItems.filter(i => !i.hasTodayUpdate)
-    const teamAllItems    = data.groups.flatMap(g => g.items)
-    const teamPending     = teamAllItems.filter(i => !i.hasTodayUpdate).length
-    const teamDone        = teamAllItems.filter(i => i.hasTodayUpdate).length
+    const myItems      = data.myItems || []
+    const teamItems    = data.groups.flatMap(g => g.items)
+    const myDone       = myItems.filter(i => i.hasTodayUpdate).length
+    const teamDone     = teamItems.filter(i => i.hasTodayUpdate).length
+    const myPending    = myItems.filter(i => !i.hasTodayUpdate)
+    const myProjectTasks  = myItems.filter(i => i.kind === 'task')
+    const myPersonalTasks = myItems.filter(i => i.kind === 'personal')
+    const mySharing = sharingSessions.filter(s => s.userId === session?.user?.id)
 
     return (
-      <div className="min-h-screen bg-brand-50">
+      <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-
-          {/* Header + ringkasan tim */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Tugas Saya & Tim</h1>
-              <p className="text-sm text-gray-500 mt-1">Update progress setiap malam sebelum pukul 20:00</p>
-            </div>
-            <div className="flex gap-3">
-              <div className="card px-4 py-2 text-center">
-                <p className="text-lg font-bold text-green-600">{teamDone}</p>
-                <p className="text-xs text-gray-500">Tim update</p>
+        <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+          {/* Header */}
+          <div className="rounded-2xl bg-gradient-to-br from-violet-600 to-violet-700 p-5 text-white shadow-lg shadow-violet-200">
+            <p className="text-sm text-violet-200 font-medium">Halo, {session?.user?.name?.split(' ')[0]}</p>
+            <p className="text-xs text-violet-300 mt-0.5">{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+            <div className="flex items-center justify-between mt-4">
+              <div>
+                <p className="text-2xl font-black">{myDone}<span className="text-lg text-violet-300">/{myItems.length}</span></p>
+                <p className="text-xs text-violet-200 mt-0.5">tugasmu sudah diupdate</p>
               </div>
-              <div className="card px-4 py-2 text-center">
-                <p className="text-lg font-bold text-red-500">{teamPending}</p>
-                <p className="text-xs text-gray-500">Tim belum update</p>
+              <div className="text-right">
+                <p className="text-lg font-bold">{teamDone}/{teamItems.length}</p>
+                <p className="text-xs text-violet-200">tim sudah update</p>
               </div>
             </div>
-          </div>
-
-          {/* Daily check-in banner */}
-          <DailyCheckInBanner
-            checkIn={checkIn}
-            onMorningAck={handleMorningAck}
-            onEveningSubmit={handleEveningSubmit}
-          />
-
-          {data.deadlinePassed && myPending.length > 0 && (
-            <div className="card p-4 border-l-4 border-l-red-400 bg-red-50">
-              <p className="text-sm font-semibold text-red-700">⏰ Sudah lewat jam 20:00 — {myPending.length} tugas kamu belum di-update hari ini.</p>
-            </div>
-          )}
-          {!data.deadlinePassed && myPending.length > 0 && (
-            <div className="card p-4 border-l-4 border-l-amber-400 bg-amber-50">
-              <p className="text-sm font-semibold text-amber-700">{myPending.length} tugas kamu belum di-update — pastikan diisi sebelum pukul 20:00.</p>
-            </div>
-          )}
-
-          {/* Sharing Session Card */}
-          {sharingSessions.filter(s => s.userId === session?.user?.id).length > 0 && (
-            <MySharingSessionCard
-              sessions={sharingSessions.filter(s => s.userId === session?.user?.id)}
-              onUpdate={loadSharingSessions}
-            />
-          )}
-
-          {/* ── Seksi 1: Tugas Saya ── */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-base">👤</span>
-              <h2 className="text-base font-bold text-gray-800">Tugas Saya</h2>
-              <span className="text-xs text-gray-400">({data.myItems.length} aktif)</span>
-            </div>
-
-            {myProjectTasks.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide pl-1">Task Project ({myProjectTasks.length})</p>
-                {myProjectTasks.map(item => (
-                  <TaskRow key={`task-${item.id}`} item={item} onSave={saveProgress} />
-                ))}
+            {myItems.length > 0 && (
+              <div className="mt-3 h-1.5 rounded-full bg-white/20 overflow-hidden">
+                <div className="h-full rounded-full bg-white transition-all duration-700"
+                  style={{ width: `${myItems.length > 0 ? (myDone / myItems.length) * 100 : 0}%` }} />
               </div>
             )}
-
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide pl-1">Catatan / To-Do ({myPersonalTasks.length})</p>
-              <form onSubmit={addPersonalTask} className="card p-4 space-y-2">
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input className="input flex-1" placeholder="Tambah item baru..." value={newTitle} onChange={e => setNewTitle(e.target.value)} />
-                  <input type="date" className="input sm:w-44" value={newDue} onChange={e => setNewDue(e.target.value)} />
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <select className="select flex-1" value={newProjectId} onChange={e => { setNewProjectId(e.target.value); if (e.target.value) { setNewClientName(''); setNewProjectName('') } }}>
-                    <option value="">Pilih project (opsional)...</option>
-                    {(data.projectOptions || []).map(p => (
-                      <option key={p.id} value={p.id}>{p.code} · {p.name}{p.clientName ? ` (${p.clientName})` : ''}</option>
-                    ))}
-                  </select>
-                </div>
-                {!newProjectId && (
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input className="input flex-1" placeholder="Nama klien (jika di luar sistem)" value={newClientName} onChange={e => setNewClientName(e.target.value)} />
-                    <input className="input flex-1" placeholder="Nama project (jika di luar sistem)" value={newProjectName} onChange={e => setNewProjectName(e.target.value)} />
-                  </div>
-                )}
-                <button className="btn-primary px-4" disabled={adding}>Tambah</button>
-              </form>
-              {myPersonalTasks.map(item => (
-                <div key={item.id} className="relative">
-                  <TaskRow item={item} onSave={saveProgress} />
-                  {confirmDeleteId === item.id ? (
-                    <div className="absolute top-2 right-2 flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1 shadow-sm">
-                      <span className="text-xs text-gray-500">Hapus?</span>
-                      <button onClick={() => removePersonalTask(item.id)} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Ya</button>
-                      <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setConfirmDeleteId(item.id)} className="absolute top-3 right-3 text-xs text-gray-300 hover:text-red-500" title="Hapus">✕</button>
-                  )}
-                </div>
-              ))}
-              {myPersonalTasks.length === 0 && myProjectTasks.length === 0 && (
-                <p className="text-sm text-gray-400 pl-1">Tidak ada tugas aktif — tambahkan di atas.</p>
-              )}
-            </div>
           </div>
 
-          {/* ── Seksi 2+: Grup Tim per Divisi ── */}
-          {data.groups.map(group => (
-            <DivisionGroup key={group.divisi} group={group} onSave={saveProgress} />
-          ))}
-          {data.groups.every(g => g.items.length === 0) && (
-            <div className="card p-6 text-center text-gray-400 text-sm">
-              Belum ada tugas aktif dari anggota tim.
+          <CheckInCard checkIn={checkIn} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} />
+
+          {mySharing.length > 0 && <MySharingSessionCard sessions={mySharing} onUpdate={() => fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setSharingSessions(d))} />}
+
+          {todayEvents.length > 0 && (
+            <EventDayBanner events={todayEvents} canManageRundown={true} />
+          )}
+
+          {/* Overdue alert */}
+          {data.deadlinePassed && myPending.length > 0 && (
+            <div className="rounded-2xl bg-red-50 border-2 border-red-200 px-4 py-3">
+              <p className="text-sm font-bold text-red-700">⏰ Sudah lewat 20:00 — {myPending.length} tugasmu belum di-update</p>
             </div>
           )}
 
-          <CollapsibleSection title="Jadwal Sharing Session" count={sharingSessions.filter(s => s.status === 'UPCOMING').length} defaultOpen={true} icon="🎤">
-            <AllSharingSessionsTable sessions={sharingSessions} />
-          </CollapsibleSection>
+          {/* My tasks */}
+          {myProjectTasks.length > 0 && (
+            <div>
+              <SectionHeader label="Task Project Saya" count={myProjectTasks.length} accent="bg-violet-400" />
+              <div className="space-y-3">
+                {myProjectTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
+              </div>
+            </div>
+          )}
 
+          {/* Personal tasks */}
+          <div>
+            <SectionHeader label="Catatan & To-Do Saya" count={myPersonalTasks.length} accent="bg-gray-300" />
+            <div className="space-y-3">
+              {myPersonalTasks.map(item => (
+                <TaskCard key={item.id} item={item} onSave={saveProgress}
+                  onDelete={removePersonalTask} />
+              ))}
+              <AddTaskForm projectOptions={data.projectOptions} onAdd={addPersonalTask} />
+            </div>
+          </div>
+
+          {/* Team sections */}
+          {data.groups.length > 0 && (
+            <div>
+              <SectionHeader label="Update Tim" accent="bg-blue-400" />
+              <div className="space-y-3">
+                {data.groups.map(group => <DivisionGroup key={group.divisi} group={group} onSave={saveProgress} />)}
+              </div>
+            </div>
+          )}
+
+          {sharingSessions.filter(s => s.status === 'UPCOMING').length > 0 && (
+            <CollapsibleSection title="Jadwal Sharing Session" count={sharingSessions.filter(s => s.status === 'UPCOMING').length}>
+              <AllSharingSessionsTable sessions={sharingSessions} />
+            </CollapsibleSection>
+          )}
         </main>
       </div>
     )
   }
 
-  // ── PERSONAL VIEW (user biasa) ─────────────────────────────────────────────
-  const projectTasks = data.items.filter(i => i.kind === 'task')
-  const personalTasks = data.items.filter(i => i.kind === 'personal')
-  const pendingToday = data.items.filter(i => !i.hasTodayUpdate)
+  // ── PERSONAL VIEW (operational staff) ──────────────────────────────────────
+  const allItems    = data.items || []
+  const projectTasks  = allItems.filter(i => i.kind === 'task')
+  const personalTasks = allItems.filter(i => i.kind === 'personal')
+  const doneToday   = allItems.filter(i => i.hasTodayUpdate).length
+  const pendingCount = allItems.filter(i => !i.hasTodayUpdate).length
   const mySharing = sharingSessions.filter(s => s.userId === session?.user?.id)
 
+  // Group project tasks by urgency
+  const today = new Date(); today.setHours(0,0,0,0)
+  const overdueTasks  = projectTasks.filter(t => !t.hasTodayUpdate && t.dueDate && new Date(t.dueDate) < today)
+  const dueTodayTasks = projectTasks.filter(t => !t.hasTodayUpdate && t.dueDate && new Date(t.dueDate).setHours(0,0,0,0) === today.getTime())
+  const ongoingTasks  = projectTasks.filter(t => !t.hasTodayUpdate && (!t.dueDate || new Date(t.dueDate) >= today) && !dueTodayTasks.includes(t))
+  const updatedTasks  = projectTasks.filter(t => t.hasTodayUpdate)
+
+  const pct = allItems.length > 0 ? Math.round((doneToday / allItems.length) * 100) : 0
+
   return (
-    <div className="min-h-screen bg-brand-50">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-4">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Tugas Saya</h1>
-          <p className="text-sm text-gray-500 mt-1">Update progress setiap malam, paling lambat pukul 20:00.</p>
-        </div>
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-5">
 
-        {data.deadlinePassed && pendingToday.length > 0 && (
-          <div className="card p-4 border-l-4 border-l-red-400 bg-red-50">
-            <p className="text-sm font-semibold text-red-700">⏰ Sudah lewat jam 20:00 dan ada {pendingToday.length} item yang belum di-update.</p>
-            <p className="text-xs text-red-600 mt-1">Segera isi update progress agar tidak mengurangi poin kinerja bulanan.</p>
-          </div>
-        )}
-        {!data.deadlinePassed && pendingToday.length > 0 && (
-          <div className="card p-4 border-l-4 border-l-amber-400 bg-amber-50">
-            <p className="text-sm font-semibold text-amber-700">{pendingToday.length} item belum di-update — pastikan diisi sebelum pukul 20:00.</p>
-          </div>
-        )}
-
-        <DailyCheckInBanner checkIn={checkIn} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} />
-
-        {mySharing.length > 0 && (
-          <MySharingSessionCard sessions={mySharing} onUpdate={loadSharingSessions} />
-        )}
-
-        <CollapsibleSection title="Task Project" count={projectTasks.length} defaultOpen={projectTasks.length > 0}>
-          {projectTasks.length === 0
-            ? <p className="text-sm text-gray-400">Tidak ada task project yang aktif.</p>
-            : projectTasks.map(item => <TaskRow key={item.id} item={item} onSave={saveProgress} />)
-          }
-        </CollapsibleSection>
-
-        <CollapsibleSection title="Catatan / To-Do" count={personalTasks.length} defaultOpen={true}>
-          <form onSubmit={addPersonalTask} className="card p-4 space-y-2 mb-2">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input className="input flex-1" placeholder="Tambah item baru..." value={newTitle} onChange={e => setNewTitle(e.target.value)} />
-              <input type="date" className="input sm:w-44" value={newDue} onChange={e => setNewDue(e.target.value)} />
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <select className="select flex-1" value={newProjectId} onChange={e => { setNewProjectId(e.target.value); if (e.target.value) { setNewClientName(''); setNewProjectName('') } }}>
-                <option value="">Pilih project yang sudah ada (opsional)...</option>
-                {(data.projectOptions || []).map(p => (
-                  <option key={p.id} value={p.id}>{p.code} · {p.name}{p.clientName ? ` (${p.clientName})` : ''}</option>
-                ))}
-              </select>
-            </div>
-            {!newProjectId && (
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input className="input flex-1" placeholder="Nama klien (opsional)" value={newClientName} onChange={e => setNewClientName(e.target.value)} />
-                <input className="input flex-1" placeholder="Nama project (opsional)" value={newProjectName} onChange={e => setNewProjectName(e.target.value)} />
+        {/* ── Hero header ── */}
+        <div className="rounded-2xl bg-gradient-to-br from-violet-600 via-violet-600 to-indigo-700 p-5 text-white shadow-lg shadow-violet-200/50">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <p className="text-sm text-violet-200 font-medium">
+                Halo, {session?.user?.name?.split(' ')[0]}
+              </p>
+              <p className="text-xs text-violet-300 mt-0.5">
+                {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+              <div className="mt-4">
+                {pct === 100 ? (
+                  <p className="text-lg font-black">Semua tugas sudah diupdate.</p>
+                ) : pendingCount === 0 && allItems.length === 0 ? (
+                  <p className="text-lg font-bold">Tidak ada tugas hari ini.</p>
+                ) : (
+                  <>
+                    <p className="text-2xl font-black">{pendingCount} <span className="text-lg font-bold text-violet-200">tugas perlu update</span></p>
+                    <p className="text-xs text-violet-300 mt-0.5">Update sebelum pukul 20:00 WIB</p>
+                  </>
+                )}
               </div>
-            )}
-            <button className="btn-primary px-4" disabled={adding}>Tambah</button>
-          </form>
-          {personalTasks.map(item => (
-            <div key={item.id} className="relative mb-2">
-              <TaskRow item={item} onSave={saveProgress} />
-              {confirmDeleteId === item.id ? (
-                <div className="absolute top-2 right-2 flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1 shadow-sm">
-                  <span className="text-xs text-gray-500">Hapus?</span>
-                  <button onClick={() => removePersonalTask(item.id)} className="text-xs px-1.5 py-0.5 rounded bg-red-500 text-white">Ya</button>
-                  <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-gray-400 hover:underline">Batal</button>
-                </div>
-              ) : (
-                <button onClick={() => setConfirmDeleteId(item.id)} className="absolute top-3 right-3 text-xs text-gray-300 hover:text-red-500" title="Hapus">✕</button>
-              )}
             </div>
-          ))}
-        </CollapsibleSection>
-
-        <CollapsibleSection title="Jadwal Sharing Session" count={sharingSessions.filter(s => s.status === 'UPCOMING').length} defaultOpen={true} icon="🎤">
-          <AllSharingSessionsTable sessions={sharingSessions} />
-        </CollapsibleSection>
-      </main>
-    </div>
-  )
-}
-
-function CollapsibleSection({ title, count, defaultOpen = true, icon, children }) {
-  const [open, setOpen] = useState(defaultOpen)
-  return (
-    <div className="card overflow-hidden">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50/50 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          {icon && <span>{icon}</span>}
-          <span className="text-sm font-semibold text-ink-800">{title}</span>
-          {count != null && <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{count}</span>}
+            <ProgressRing done={doneToday} total={allItems.length} />
+          </div>
+          {allItems.length > 0 && (
+            <div className="mt-4 h-1.5 rounded-full bg-white/20 overflow-hidden">
+              <div className="h-full rounded-full bg-white transition-all duration-700"
+                style={{ width: `${pct}%` }} />
+            </div>
+          )}
         </div>
-        <span className="text-gray-400 text-xs">{open ? '▲' : '▼'}</span>
-      </button>
-      {open && <div className="px-4 pb-4 space-y-2">{children}</div>}
+
+        {/* ── Check-in ── */}
+        <CheckInCard checkIn={checkIn} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} />
+
+        {/* ── Event Day Mode ── */}
+        {todayEvents.length > 0 && (
+          <EventDayBanner
+            events={todayEvents}
+            canManageRundown={false}
+          />
+        )}
+
+        {/* ── Deadline alert ── */}
+        {data.deadlinePassed && pendingCount > 0 && (
+          <div className="rounded-2xl bg-red-50 border-2 border-red-200 px-4 py-3">
+            <p className="text-sm font-bold text-red-700">Sudah lewat jam 20:00</p>
+            <p className="text-xs text-red-500 mt-0.5">{pendingCount} tugas belum di-update — segera isi sebelum dicatat sebagai tidak hadir</p>
+          </div>
+        )}
+
+        {/* ── Sharing session ── */}
+        {mySharing.length > 0 && (
+          <MySharingSessionCard sessions={mySharing}
+            onUpdate={() => fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setSharingSessions(d))} />
+        )}
+
+        {/* ── Terlambat ── */}
+        {overdueTasks.length > 0 && (
+          <div>
+            <SectionHeader label="Terlambat" count={overdueTasks.length} accent="bg-red-500" color="text-red-600" />
+            <div className="space-y-3">
+              {overdueTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
+            </div>
+          </div>
+        )}
+
+        {/* ── Deadline Hari Ini ── */}
+        {dueTodayTasks.length > 0 && (
+          <div>
+            <SectionHeader label="Deadline Hari Ini" count={dueTodayTasks.length} accent="bg-amber-500" color="text-amber-700" />
+            <div className="space-y-3">
+              {dueTodayTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
+            </div>
+          </div>
+        )}
+
+        {/* ── Berjalan ── */}
+        {ongoingTasks.length > 0 && (
+          <div>
+            <SectionHeader label="Task Berjalan" count={ongoingTasks.length} accent="bg-violet-400" />
+            <div className="space-y-3">
+              {ongoingTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
+            </div>
+          </div>
+        )}
+
+        {/* ── Personal tasks ── */}
+        <div>
+          <SectionHeader label="Catatan & To-Do" count={personalTasks.length} accent="bg-gray-300" />
+          <div className="space-y-3">
+            {personalTasks.map(item => (
+              <TaskCard key={item.id} item={item} onSave={saveProgress} onDelete={removePersonalTask} />
+            ))}
+            <AddTaskForm projectOptions={data.projectOptions} onAdd={addPersonalTask} />
+          </div>
+        </div>
+
+        {/* ── Sudah di-update (collapsed) ── */}
+        {updatedTasks.length > 0 && (
+          <CollapsibleSection title="Sudah Di-update Hari Ini" count={updatedTasks.length} defaultOpen={false}>
+            <div className="space-y-2">
+              {updatedTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
+            </div>
+          </CollapsibleSection>
+        )}
+
+        {/* ── Sharing sessions ── */}
+        {sharingSessions.filter(s => s.status === 'UPCOMING').length > 0 && (
+          <CollapsibleSection title="Jadwal Sharing Session" count={sharingSessions.filter(s => s.status === 'UPCOMING').length}>
+            <AllSharingSessionsTable sessions={sharingSessions} />
+          </CollapsibleSection>
+        )}
+
+        {/* ── Kinerja & Pengumuman ── */}
+        <PersonalStatsWidget />
+
+        {/* Empty state */}
+        {allItems.length === 0 && personalTasks.length === 0 && (
+          <div className="text-center py-12 text-gray-400">
+            <p className="text-4xl mb-3">🎯</p>
+            <p className="font-semibold text-gray-500">Tidak ada tugas aktif</p>
+            <p className="text-sm mt-1">Tambahkan to-do atau tunggu PM assign task baru</p>
+          </div>
+        )}
+
+      </main>
     </div>
   )
 }

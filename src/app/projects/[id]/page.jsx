@@ -10,6 +10,7 @@ import ProjectBonusTab from '@/components/ProjectBonusTab'
 import QuotationProjectTab from '@/components/QuotationProjectTab'
 import ProjectTimelineTab from '@/components/ProjectTimelineTab'
 import VendorShortlistTab from '@/components/VendorShortlistTab'
+import ProjectProfitabilityTab from '@/components/ProjectProfitabilityTab'
 import Link from 'next/link'
 
 export default function ProjectDetailPage() {
@@ -558,7 +559,7 @@ export default function ProjectDetailPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-gray-200 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
-          {['tasks', 'timeline', 'vendors', 'quotation', 'team', 'activity', 'info', ...(canScoreProject(session?.user, project) ? ['bonus'] : [])].map(tab => (
+          {['tasks', 'timeline', 'vendors', 'quotation', ...(isManager ? ['profitability'] : []), 'team', 'activity', 'info', ...(canScoreProject(session?.user, project) ? ['bonus'] : [])].map(tab => (
             <button
               key={tab}
               onClick={() => {
@@ -574,7 +575,7 @@ export default function ProjectDetailPage() {
                 activeTab === tab ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
               }`}
             >
-              {tab === 'tasks' ? `Tasks (${totalTasks})` : tab === 'timeline' ? 'Timeline' : tab === 'vendors' ? 'Vendor AVL' : tab === 'quotation' ? 'Quotation' : tab === 'team' ? `Tim (${(project.members?.length || 0) + (project.pic ? 1 : 0)})` : tab === 'bonus' ? 'Penilaian Tim' : tab === 'activity' ? 'Aktivitas' : 'Info'}
+              {tab === 'tasks' ? `Tasks (${totalTasks})` : tab === 'timeline' ? 'Timeline' : tab === 'vendors' ? 'Vendor AVL' : tab === 'quotation' ? 'Quotation' : tab === 'profitability' ? 'Profitabilitas' : tab === 'team' ? `Tim (${(project.members?.length || 0) + (project.pic ? 1 : 0)})` : tab === 'bonus' ? 'Penilaian Tim' : tab === 'activity' ? 'Aktivitas' : 'Info'}
             </button>
           ))}
         </div>
@@ -838,6 +839,10 @@ export default function ProjectDetailPage() {
 
         {activeTab === 'vendors' && (
           <VendorShortlistTab project={project} />
+        )}
+
+        {activeTab === 'profitability' && (
+          <ProjectProfitabilityTab project={project} />
         )}
 
         {/* TAB: Info */}

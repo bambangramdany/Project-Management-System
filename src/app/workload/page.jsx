@@ -181,6 +181,7 @@ export default function WorkloadPage() {
             <div className="flex gap-1 border-b border-gray-200">
               {[
                 { key: 'workload', label: '📊 Workload Tim' },
+                { key: 'gantt', label: '📅 Timeline Project' },
                 { key: 'kpi', label: '⭐ Nilai KPI Tim' },
                 { key: 'recap', label: '📋 Rekap Bulanan' },
               ].map(tab => (
@@ -221,6 +222,11 @@ export default function WorkloadPage() {
             </div>
           )}
         </div>
+
+        {/* ── GANTT / TIMELINE TAB ── */}
+        {activeTab === 'gantt' && isManager && (
+          <GanttView workload={workload} dateFrom={dateFrom} dateTo={dateTo} />
+        )}
 
         {/* ── REKAP BULANAN TAB ── */}
         {activeTab === 'recap' && isManager && (
@@ -685,6 +691,184 @@ function UserDetail({ data, session, teamList = [], canReassign = false }) {
           <p className="text-sm text-gray-400 text-center py-4">Tidak ada project aktif</p>
         )}
       </div>
+    </div>
+  )
+}
+
+// ── Gantt / Timeline view ────────────────────────────────────────────────
+const STATUS_GANTT_COLOR = {
+  HOLD: 'bg-gray-300',
+  PITCHING: 'bg-blue-400',
+  WAITING_PITCH_RESULT: 'bg-yellow-400',
+  PREPARATION: 'bg-orange-400',
+  EVENT_DAY: 'bg-purple-500',
+  REPORTING: 'bg-indigo-400',
+  INVOICING: 'bg-teal-400',
+  DONE: 'bg-green-400',
+  FAILED: 'bg-red-300',
+  CANCELED: 'bg-slate-300',
+}
+
+function GanttView({ workload, dateFrom, dateTo }) {
+  const [groupBy, setGroupBy] = useState('person') // 'person' | 'division'
+  const [ganttFrom, setGanttFrom] = useState(dateFrom || new Date().toISOString().slice(0, 10))
+  const [ganttTo, setGanttTo] = useState(dateTo || new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10))
+  const [hovered, setHovered] = useState(null)
+
+  const startD = new Date(ganttFrom)
+  const endD = new Date(new Date(ganttTo).setHours(23,59,59,999))
+  const totalDays = Math.max(1, Math.ceil((endD - startD) / 86400000))
+
+  // Collect unique projects across all users
+  const allProjects = []
+  const seen = new Set()
+  for (const w of workload) {
+    for (const p of (w.projects || [])) {
+      if (!seen.has(p.id) && (p.startDate || p.endDate)) {
+        seen.add(p.id)
+        allProjects.push({ ...p, picName: workload.find(x => x.projects?.some(pp => pp.id === p.id && pp.isPic))?.user?.name })
+      }
+    }
+  }
+
+  // Build rows
+  const rows = groupBy === 'person'
+    ? workload.filter(w => (w.projects || []).some(p => p.startDate || p.endDate)).map(w => ({
+        label: w.user.name,
+        sub: w.user.jobTitle || w.user.role,
+        divisi: w.user.divisi,
+        projects: (w.projects || []).filter(p => p.startDate || p.endDate),
+        loadScore: w.loadScore,
+      }))
+    : (() => {
+        const byDiv = {}
+        for (const w of workload) {
+          const d = w.user.divisi || 'Lainnya'
+          if (!byDiv[d]) byDiv[d] = { label: `Divisi ${d}`, sub: '', divisi: d, projects: [], loadScore: 0, count: 0 }
+          byDiv[d].count++
+          byDiv[d].loadScore += w.loadScore
+          for (const p of (w.projects || [])) {
+            if ((p.startDate || p.endDate) && !byDiv[d].projects.find(x => x.id === p.id)) {
+              byDiv[d].projects.push(p)
+            }
+          }
+        }
+        return Object.values(byDiv).map(d => ({ ...d, loadScore: d.count > 0 ? d.loadScore / d.count : 0 }))
+      })()
+
+  function barStyle(p) {
+    const ps = p.startDate ? new Date(p.startDate) : startD
+    const pe = p.endDate ? new Date(new Date(p.endDate).setHours(23,59,59,999)) : endD
+    const left = Math.max(0, Math.min(100, ((ps - startD) / (endD - startD)) * 100))
+    const right = Math.max(0, Math.min(100, ((endD - pe) / (endD - startD)) * 100))
+    const width = Math.max(1, 100 - left - right)
+    return { left: `${left}%`, width: `${width}%` }
+  }
+
+  // Month tick markers
+  const monthTicks = []
+  const cur = new Date(startD.getFullYear(), startD.getMonth(), 1)
+  while (cur <= endD) {
+    const pct = ((cur - startD) / (endD - startD)) * 100
+    if (pct >= 0 && pct <= 100) {
+      monthTicks.push({ pct, label: cur.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' }) })
+    }
+    cur.setMonth(cur.getMonth() + 1)
+  }
+
+  // Today marker
+  const todayPct = ((new Date() - startD) / (endD - startD)) * 100
+
+  return (
+    <div className="card p-4 space-y-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2">📅 Timeline Project</h2>
+        <div className="flex gap-1 ml-auto">
+          {[{k:'person',l:'Per Orang'},{k:'division',l:'Per Divisi'}].map(g => (
+            <button key={g.k} onClick={() => setGroupBy(g.k)}
+              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${groupBy === g.k ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+              {g.l}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 text-xs items-center">
+          <input type="date" className="input text-xs py-1" value={ganttFrom} onChange={e => setGanttFrom(e.target.value)} />
+          <span className="text-gray-400">–</span>
+          <input type="date" className="input text-xs py-1" value={ganttTo} onChange={e => setGanttTo(e.target.value)} />
+        </div>
+      </div>
+
+      {rows.length === 0 ? (
+        <p className="text-sm text-gray-400 text-center py-8">Tidak ada project dengan tanggal dalam rentang ini.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          {/* Timeline header */}
+          <div className="relative h-6 border-b border-gray-200 mb-1" style={{ minWidth: '600px' }}>
+            {monthTicks.map((t, i) => (
+              <div key={i} className="absolute top-0 flex flex-col items-start" style={{ left: `${t.pct}%` }}>
+                <div className="h-full border-l border-dashed border-gray-200" />
+                <span className="text-[10px] text-gray-400 pl-1 whitespace-nowrap">{t.label}</span>
+              </div>
+            ))}
+            {todayPct >= 0 && todayPct <= 100 && (
+              <div className="absolute top-0 bottom-0 border-l-2 border-red-400 border-dashed" style={{ left: `${todayPct}%` }}>
+                <span className="absolute -top-0 left-1 text-[9px] text-red-400 font-semibold whitespace-nowrap">Hari ini</span>
+              </div>
+            )}
+          </div>
+
+          {/* Rows */}
+          <div className="space-y-1" style={{ minWidth: '600px' }}>
+            {rows.map((row, ri) => (
+              <div key={ri} className="flex items-start gap-2">
+                {/* Person label */}
+                <div className="w-36 shrink-0 pt-1">
+                  <p className="text-xs font-semibold text-gray-800 truncate">{row.label}</p>
+                  <p className="text-[10px] text-gray-400 truncate">{row.sub}</p>
+                </div>
+                {/* Bars track */}
+                <div className="flex-1 relative h-8 rounded bg-gray-50 border border-gray-100" style={{ minHeight: `${Math.max(32, row.projects.length * 20)}px` }}>
+                  {/* Today line */}
+                  {todayPct >= 0 && todayPct <= 100 && (
+                    <div className="absolute top-0 bottom-0 w-px bg-red-300 opacity-50 z-10" style={{ left: `${todayPct}%` }} />
+                  )}
+                  {/* Project bars */}
+                  {row.projects.map((p, pi) => {
+                    const style = barStyle(p)
+                    const color = STATUS_GANTT_COLOR[p.status] || 'bg-gray-300'
+                    const isHov = hovered === p.id
+                    return (
+                      <div key={p.id}
+                        onMouseEnter={() => setHovered(p.id)}
+                        onMouseLeave={() => setHovered(null)}
+                        className={`absolute rounded-sm text-white text-[10px] font-medium overflow-hidden whitespace-nowrap px-1 flex items-center cursor-default transition-all ${color} ${isHov ? 'z-20 shadow-lg ring-2 ring-white opacity-100' : 'opacity-80'}`}
+                        style={{ ...style, top: `${pi * 20 + 4}px`, height: '16px' }}
+                        title={`${p.code} — ${p.name}\n${p.startDate ? new Date(p.startDate).toLocaleDateString('id-ID') : '?'} → ${p.endDate ? new Date(p.endDate).toLocaleDateString('id-ID') : '?'}\nStatus: ${p.status}`}
+                      >
+                        {p.code}
+                      </div>
+                    )
+                  })}
+                </div>
+                {/* Load badge */}
+                <div className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded mt-1 ${LOAD_COLOR(row.loadScore)}`}>
+                  {formatScore(row.loadScore)}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-wrap gap-3 mt-3 text-[10px] text-gray-500">
+            {Object.entries(STATUS_GANTT_COLOR).map(([s, c]) => (
+              <span key={s} className="flex items-center gap-1">
+                <span className={`w-3 h-2 rounded-sm inline-block ${c}`} />
+                {STATUS_LABEL[s] || s}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

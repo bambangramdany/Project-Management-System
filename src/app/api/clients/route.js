@@ -21,15 +21,43 @@ export async function GET(req) {
     })
   }
 
-  const clients = await prisma.client.findMany({
-    include: {
-      _count: { select: { projects: true } },
-      contacts: { orderBy: { createdAt: 'asc' } },
-    },
-    orderBy: { name: 'asc' },
-  })
+  const [clients, revAgg] = await Promise.all([
+    prisma.client.findMany({
+      include: {
+        _count: { select: { projects: true } },
+        contacts: { orderBy: { createdAt: 'asc' } },
+        projects: {
+          select: {
+            id: true, code: true, name: true, status: true,
+            projectValue: true, startDate: true, endDate: true,
+            category: true, division: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+      orderBy: { name: 'asc' },
+    }),
+    prisma.project.groupBy({
+      by: ['clientId'],
+      _sum: { projectValue: true },
+      _count: { id: true },
+      where: { clientId: { not: null }, status: { in: ['PREPARATION','EVENT_DAY','REPORTING','INVOICING','DONE'] } },
+    }),
+  ])
 
-  return NextResponse.json(clients, {
+  const revMap = {}
+  for (const r of revAgg) {
+    if (r.clientId) revMap[r.clientId] = { totalRevenue: r._sum.projectValue ?? 0, wonProjects: r._count.id }
+  }
+
+  const enriched = clients.map(c => ({
+    ...c,
+    totalRevenue: revMap[c.id]?.totalRevenue ?? 0,
+    wonProjects: revMap[c.id]?.wonProjects ?? 0,
+    repeatOrder: (revMap[c.id]?.wonProjects ?? 0) > 1,
+  }))
+
+  return NextResponse.json(enriched, {
     headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=300' },
   })
 }
@@ -43,7 +71,17 @@ export async function POST(req) {
 
   try {
     const client = await prisma.client.create({
-      data: { name: body.name.trim(), industry: body.industry || null, contact: body.contact || null, notes: body.notes || null },
+      data: {
+        name: body.name.trim(),
+        industry: body.industry || null,
+        contact: body.contact || null,
+        phone: body.phone || null,
+        email: body.email || null,
+        website: body.website || null,
+        address: body.address || null,
+        npwp: body.npwp || null,
+        notes: body.notes || null,
+      },
     })
     return NextResponse.json(client, { status: 201 })
   } catch (e) {

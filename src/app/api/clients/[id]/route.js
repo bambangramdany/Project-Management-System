@@ -16,6 +16,14 @@ export async function PATCH(req, { params }) {
     if (!body.name.trim()) return NextResponse.json({ error: 'Nama client tidak boleh kosong' }, { status: 400 })
     data.name = body.name.trim()
   }
+  if ('industry'  in body) data.industry  = body.industry  || null
+  if ('contact'   in body) data.contact   = body.contact   || null
+  if ('phone'     in body) data.phone     = body.phone     || null
+  if ('email'     in body) data.email     = body.email     || null
+  if ('website'   in body) data.website   = body.website   || null
+  if ('address'   in body) data.address   = body.address   || null
+  if ('npwp'      in body) data.npwp      = body.npwp      || null
+  if ('notes'     in body) data.notes     = body.notes     || null
 
   const client = await prisma.client.update({ where: { id: params.id }, data })
   return NextResponse.json(client)

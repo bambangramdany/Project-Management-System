@@ -1025,6 +1025,7 @@ const ItemRow = forwardRef(function ItemRow(
       <div className="ml-8 mt-1">
         {item.vendorId ? (
           <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded px-2 py-1 w-fit">
+            {(() => { const v = vendors.find(x => x.id === item.vendorId); return v?.qualityTier ? <span className={`text-[9px] font-bold px-1 rounded ${v.qualityTier === 'A' ? 'bg-violet-100 text-violet-700' : v.qualityTier === 'B' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>{v.qualityTier}</span> : null })()}
             <span className="text-[11px] text-emerald-700">🏢 {item.vendorName}</span>
             <button onClick={clearVendor} className="text-emerald-400 hover:text-red-500 text-[11px] ml-1">✕</button>
           </div>
@@ -1046,8 +1047,16 @@ const ItemRow = forwardRef(function ItemRow(
                 ) : filteredVendors.map(v => (
                   <button key={v.id} className="w-full text-left px-3 py-1.5 hover:bg-gray-50 text-[11px]"
                     onMouseDown={() => selectVendor(v)}>
-                    <span className="font-medium text-gray-700">{v.name}</span>
-                    {v.vendorType && <span className="text-gray-400 ml-1">· {v.vendorType}</span>}
+                    <div className="flex items-center gap-1.5">
+                      {v.qualityTier && (
+                        <span className={`text-[9px] font-bold px-1 rounded ${v.qualityTier === 'A' ? 'bg-violet-100 text-violet-700' : v.qualityTier === 'B' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {v.qualityTier}
+                        </span>
+                      )}
+                      <span className="font-medium text-gray-700">{v.name}</span>
+                      {v.vendorType && <span className="text-gray-400">· {v.vendorType}</span>}
+                      {v.scorecardAvg > 0 && <span className="text-amber-500 ml-auto">★ {v.scorecardAvg.toFixed(1)}</span>}
+                    </div>
                   </button>
                 ))}
               </div>

@@ -145,7 +145,7 @@ export default function FinancePage() {
 
   const fetchPayments = useCallback(() => {
     const params = new URLSearchParams()
-    if (filterStatus) params.set('status', filterStatus)
+    if (filterStatus && filterStatus !== 'NO_INVOICE') params.set('status', filterStatus)
     fetch(`/api/payments?${params}`).then(r => r.json()).then(data => {
       setPayments(Array.isArray(data) ? data : [])
       setLoading(false)
@@ -779,8 +779,12 @@ export default function FinancePage() {
     )
   })
 
-  // Payments filtered by tab
-  const displayedPayments = paymentTab === 'urgent' ? urgentPayments : payments
+  // Payments filtered by tab — NO_INVOICE is a client-side pseudo-filter
+  const displayedPayments = paymentTab === 'urgent'
+    ? urgentPayments
+    : filterStatus === 'NO_INVOICE'
+      ? payments.filter(p => ['APPROVED_BY_DIRECTOR','PAID'].includes(p.status) && !p.invoiceNumber)
+      : payments
 
   // Tab definitions per role
   const isAnalyticsRole = role === 'OWNER' || role === 'FINANCE' || role === 'DIRECTOR' || isFinanceDirector(session.user)
@@ -1018,6 +1022,27 @@ export default function FinancePage() {
             </button>
           </div>
 
+          {/* Invoice aging alert */}
+          {(() => {
+            const noInvoice = payments.filter(p => ['APPROVED_BY_DIRECTOR','PAID'].includes(p.status) && !p.invoiceNumber)
+            const overdue = noInvoice.filter(p => {
+              const ref = p.financeApprovedAt || p.approvedAt || p.createdAt
+              return ref && Math.floor((Date.now() - new Date(ref)) / 86400000) > 7
+            })
+            if (noInvoice.length === 0) return null
+            return (
+              <button onClick={() => { setPaymentTab('all'); setFilterStatus('NO_INVOICE') }}
+                className="w-full flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-2.5 text-xs text-left hover:bg-orange-100 transition-colors">
+                <span className="text-xl">🧾</span>
+                <div>
+                  <span className="font-semibold text-orange-700">{noInvoice.length} payment belum dilampirkan invoice vendor</span>
+                  {overdue.length > 0 && <span className="ml-2 text-red-600 font-bold">· {overdue.length} sudah &gt;7 hari</span>}
+                </div>
+                <span className="ml-auto text-orange-500 font-semibold">Lihat →</span>
+              </button>
+            )
+          })()}
+
           {/* Filter status — hanya di tab Semua */}
           {paymentTab === 'all' && (
             <select className="select w-56" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
@@ -1025,6 +1050,7 @@ export default function FinancePage() {
               {Object.entries(PAYMENT_STATUS_LABEL).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
+              <option value="NO_INVOICE">⚠ Belum Ada Invoice</option>
             </select>
           )}
 
@@ -1061,28 +1087,18 @@ export default function FinancePage() {
                     </span>
                   </div>
 
-                  {p.status !== 'REJECTED' && <PaymentStepper status={p.status} hasOwnerStage={!!p.owner || p.status === 'PENDING_OWNER'} hasDivisionStage={p.status === 'PENDING_DIRECTOR' || !!p.director} />}
+                  <ApprovalTimeline payment={p} />
 
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
                     <span>Nominal: <strong className="text-gray-800">{formatRupiah(p.amount)}</strong></span>
                     <span>Termin: {PAYMENT_TERM_LABEL[p.paymentTerm] || PAYMENT_TERM_LABEL.FULL}</span>
-                    <span>Diajukan: {p.requestedBy?.name}</span>
+                    <span>Diajukan oleh: <strong className="text-gray-700">{p.requestedBy?.name}</strong> · {new Date(p.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                     {p.neededDate && <span className={new Date(p.neededDate) < new Date() && !['PAID','REJECTED'].includes(p.status) ? 'text-red-500 font-semibold' : ''}>Dibutuhkan: {new Date(p.neededDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
                   </div>
                   {(p.recipientName || p.recipientAccount) && (
                     <p className="text-xs text-gray-500">Penerima: {p.recipientName || '—'}{p.recipientAccount ? ` · ${p.recipientAccount}` : ''}</p>
                   )}
                   {p.description && <p className="text-xs text-gray-600">{p.description}</p>}
-                  <div className="text-[11px] text-gray-400 space-y-0.5">
-                    {p.owner && <p>✓ Direktur Utama: {p.owner.name} · {new Date(p.ownerApprovedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
-                    {p.director && <p>✓ Direktur Divisi: {p.director.name} · {new Date(p.approvedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
-                    {p.financeDirector && <p>✓ Direktur Finance: {p.financeDirector.name} · {new Date(p.financeApprovedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
-                    {p.financeBy && <p>✓ Dibayar oleh: {p.financeBy.name} · {new Date(p.paidAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
-                  </div>
-                  {p.ownerNote && <p className="text-xs text-amber-600">Catatan Direktur Utama: {p.ownerNote}</p>}
-                  {p.directorNote && <p className="text-xs text-amber-600">Catatan Direktur Divisi{p.director ? ` (${p.director.name})` : ''}: {p.directorNote}</p>}
-                  {p.financeDirectorNote && <p className="text-xs text-amber-600">Catatan Direktur Finance{p.financeDirector ? ` (${p.financeDirector.name})` : ''}: {p.financeDirectorNote}</p>}
-                  {p.financeNote && <p className="text-xs text-amber-600">Catatan Finance{p.financeBy ? ` (${p.financeBy.name})` : ''}: {p.financeNote}</p>}
 
                   {(canActOwner || canActDivision || canActFinanceDirector) && (
                     <div className="flex gap-2 pt-1">
@@ -1095,6 +1111,7 @@ export default function FinancePage() {
                       <button onClick={() => doAction(p.id, 'mark_paid')} className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 active:scale-95 font-medium transition-all">💳 Tandai Sudah Dibayar</button>
                     </div>
                   )}
+                  <InvoicePanel payment={p} onUpdated={(updated) => setPayments(prev => prev.map(x => x.id === updated.id ? { ...x, ...updated } : x))} canEdit={['OWNER','FINANCE','FINANCE_STAFF','DIRECTOR'].includes(session?.user?.role)} />
                 </div>
               )
             })}
@@ -2105,6 +2122,203 @@ export default function FinancePage() {
         )}
 
       </main>
+    </div>
+  )
+}
+
+function InvoicePanel({ payment: p, onUpdated, canEdit }) {
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({ invoiceNumber: p.invoiceNumber || '', invoiceDate: p.invoiceDate ? p.invoiceDate.slice(0, 10) : '', invoiceUrl: p.invoiceUrl || '' })
+  const [saving, setSaving] = useState(false)
+
+  // Only show for APPROVED_BY_DIRECTOR or PAID
+  if (!['APPROVED_BY_DIRECTOR', 'PAID'].includes(p.status)) return null
+
+  const hasInvoice = !!p.invoiceNumber
+  const approvedAt = p.financeApprovedAt || p.approvedAt || p.createdAt
+  const agingDays = approvedAt ? Math.floor((Date.now() - new Date(approvedAt)) / 86400000) : null
+
+  async function save() {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/payments/${p.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_invoice', ...form, invoiceDate: form.invoiceDate || null }),
+      })
+      if (res.ok) { const updated = await res.json(); onUpdated(updated); setEditing(false) }
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <div className={`rounded-xl border px-3 py-2.5 text-xs ${hasInvoice ? 'border-emerald-200 bg-emerald-50/40' : 'border-orange-200 bg-orange-50/40'}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`font-bold ${hasInvoice ? 'text-emerald-700' : 'text-orange-600'}`}>
+            {hasInvoice ? '🧾 Invoice Vendor' : '⚠ Invoice Belum Dilampirkan'}
+          </span>
+          {!hasInvoice && agingDays !== null && (
+            <span className={`px-1.5 py-0.5 rounded-full font-semibold ${agingDays > 14 ? 'bg-red-100 text-red-600' : agingDays > 7 ? 'bg-orange-100 text-orange-600' : 'bg-yellow-100 text-yellow-600'}`}>
+              {agingDays} hari sejak disetujui
+            </span>
+          )}
+          {hasInvoice && (
+            <span className="text-emerald-600">
+              {p.invoiceNumber}
+              {p.invoiceDate && <span className="text-gray-400 ml-2">{new Date(p.invoiceDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+            </span>
+          )}
+          {p.invoiceUrl && (
+            <a href={p.invoiceUrl} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">Lihat Invoice ↗</a>
+          )}
+        </div>
+        {canEdit && !editing && (
+          <button onClick={() => { setForm({ invoiceNumber: p.invoiceNumber || '', invoiceDate: p.invoiceDate ? p.invoiceDate.slice(0, 10) : '', invoiceUrl: p.invoiceUrl || '' }); setEditing(true) }}
+            className="text-[11px] px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:bg-white">
+            {hasInvoice ? 'Edit' : '+ Lampirkan'}
+          </button>
+        )}
+      </div>
+      {editing && (
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          <div>
+            <label className="label">No. Invoice Vendor</label>
+            <input className="input text-xs py-1" value={form.invoiceNumber} onChange={e => setForm(f => ({ ...f, invoiceNumber: e.target.value }))} placeholder="INV-001" />
+          </div>
+          <div>
+            <label className="label">Tgl Invoice</label>
+            <input type="date" className="input text-xs py-1" value={form.invoiceDate} onChange={e => setForm(f => ({ ...f, invoiceDate: e.target.value }))} />
+          </div>
+          <div>
+            <label className="label">URL / Link Scan</label>
+            <input className="input text-xs py-1" value={form.invoiceUrl} onChange={e => setForm(f => ({ ...f, invoiceUrl: e.target.value }))} placeholder="https://..." />
+          </div>
+          <div className="col-span-3 flex gap-2">
+            <button onClick={() => setEditing(false)} className="btn-secondary text-xs py-1 px-3">Batal</button>
+            <button onClick={save} disabled={saving} className="btn-primary text-xs py-1 px-3">{saving ? 'Menyimpan…' : 'Simpan'}</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ApprovalTimeline({ payment: p }) {
+  const fmtDt = d => d ? new Date(d).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null
+  const isRejected = p.status === 'REJECTED'
+
+  // Build timeline steps from payment data
+  const steps = []
+
+  // Step 0: Submission
+  steps.push({
+    role: 'Pengajuan',
+    person: p.requestedBy?.name,
+    at: fmtDt(p.createdAt),
+    note: null,
+    state: 'done',
+    icon: '📝',
+  })
+
+  // Step 1: Owner (legacy)
+  if (p.owner || p.status === 'PENDING_OWNER') {
+    steps.push({
+      role: 'Direktur Utama',
+      person: p.owner?.name,
+      at: fmtDt(p.ownerApprovedAt),
+      note: p.ownerNote,
+      state: p.owner ? 'done' : isRejected ? 'rejected' : 'pending',
+      icon: '👤',
+    })
+  }
+
+  // Step 2: Division director (if applicable)
+  if (p.director || p.status === 'PENDING_DIRECTOR') {
+    steps.push({
+      role: 'Direktur Divisi',
+      person: p.director?.name,
+      at: fmtDt(p.approvedAt),
+      note: p.directorNote,
+      state: p.director ? 'done' : isRejected ? 'rejected' : p.status === 'PENDING_DIRECTOR' ? 'active' : 'pending',
+      icon: '🏢',
+    })
+  }
+
+  // Step 3: Finance Director
+  steps.push({
+    role: 'Direktur Finance',
+    person: p.financeDirector?.name,
+    at: fmtDt(p.financeApprovedAt),
+    note: p.financeDirectorNote,
+    state: p.financeDirector ? 'done' : isRejected ? 'rejected' : p.status === 'PENDING_FINANCE_DIRECTOR' ? 'active' : ['APPROVED_BY_DIRECTOR','PAID'].includes(p.status) ? 'done' : 'pending',
+    icon: '💼',
+  })
+
+  // Step 4: Payment execution
+  steps.push({
+    role: 'Pembayaran',
+    person: p.financeBy?.name,
+    at: fmtDt(p.paidAt),
+    note: p.financeNote,
+    state: p.financeBy ? 'done' : isRejected ? 'rejected' : p.status === 'APPROVED_BY_DIRECTOR' ? 'active' : 'pending',
+    icon: '💳',
+  })
+
+  return (
+    <div className="rounded-xl border border-gray-100 bg-gray-50/60 px-3 py-3 space-y-0">
+      {isRejected && (
+        <div className="mb-2 text-xs font-semibold text-red-600 bg-red-50 rounded-lg px-2 py-1.5">
+          ✕ Pengajuan ditolak
+        </div>
+      )}
+      <div className="flex items-start gap-0">
+        {steps.map((step, idx) => {
+          const isLast = idx === steps.length - 1
+          const isDone = step.state === 'done'
+          const isActive = step.state === 'active'
+          const isPending = step.state === 'pending'
+          const isRej = step.state === 'rejected'
+          return (
+            <div key={idx} className="flex flex-col items-center flex-1 last:flex-none min-w-0 group">
+              {/* Connector + node row */}
+              <div className="flex items-center w-full">
+                {idx > 0 && (
+                  <div className={`h-0.5 flex-1 transition-colors ${isDone || (isActive && idx > 0) ? 'bg-emerald-400' : 'bg-gray-200'}`} />
+                )}
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm shrink-0 ring-2 transition-all ${
+                  isDone ? 'bg-emerald-500 ring-emerald-200 text-white' :
+                  isActive ? 'bg-violet-500 ring-violet-200 text-white animate-pulse' :
+                  isRej ? 'bg-red-400 ring-red-200 text-white' :
+                  'bg-white ring-gray-200 text-gray-300'
+                }`}>
+                  {isDone ? '✓' : isRej ? '✕' : isActive ? step.icon : <span className="text-gray-300 text-xs">{idx + 1}</span>}
+                </div>
+                {!isLast && (
+                  <div className={`h-0.5 flex-1 transition-colors ${isDone ? 'bg-emerald-400' : 'bg-gray-200'}`} />
+                )}
+              </div>
+              {/* Labels below node */}
+              <div className="text-center mt-1.5 px-0.5 min-w-0 w-full">
+                <p className={`text-[10px] font-semibold leading-tight truncate ${isActive ? 'text-violet-700' : isDone ? 'text-emerald-700' : 'text-gray-400'}`}>
+                  {step.role}
+                </p>
+                {step.person && (
+                  <p className="text-[10px] text-gray-600 leading-tight truncate font-medium">{step.person}</p>
+                )}
+                {step.at && (
+                  <p className="text-[9px] text-gray-400 leading-tight">{step.at}</p>
+                )}
+                {step.note && (
+                  <p className="text-[10px] text-amber-600 leading-tight mt-0.5 italic">"{step.note}"</p>
+                )}
+                {isActive && !step.person && (
+                  <p className="text-[10px] text-violet-500 font-medium">Menunggu…</p>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

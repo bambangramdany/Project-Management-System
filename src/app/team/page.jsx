@@ -31,6 +31,8 @@ export default function TeamPage() {
   const router = useRouter()
   const [team, setTeam] = useState([])
   const [loading, setLoading] = useState(true)
+  const canDelete = session?.user?.role === 'OWNER'
+  const removeUser = (id) => setTeam(prev => prev.filter(u => u.id !== id))
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -80,7 +82,7 @@ export default function TeamPage() {
             <div>
               <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3 text-center">Manajemen</h2>
               <div className="flex flex-wrap justify-center gap-3">
-                {owners.map(u => <PersonCard key={u.id} u={u} />)}
+                {owners.map(u => <PersonCard key={u.id} u={u} canDelete={canDelete} onDelete={removeUser} />)}
                 {divisionMembers.filter(d => d.director).map(d => <PersonCard key={d.director.id} u={d.director} />)}
               </div>
             </div>
@@ -91,7 +93,7 @@ export default function TeamPage() {
                 <div key={d.key} className="space-y-3">
                   <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide text-center">{d.title}</h2>
                   <div className="space-y-2">
-                    {d.rest.map(u => <PersonCard key={u.id} u={u} />)}
+                    {d.rest.map(u => <PersonCard key={u.id} u={u} canDelete={canDelete} onDelete={removeUser} />)}
                   </div>
                 </div>
               ))}
@@ -101,7 +103,7 @@ export default function TeamPage() {
               <div>
                 <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">Lainnya</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {others.map(u => <PersonCard key={u.id} u={u} />)}
+                  {others.map(u => <PersonCard key={u.id} u={u} canDelete={canDelete} onDelete={removeUser} />)}
                 </div>
               </div>
             )}
@@ -113,18 +115,41 @@ export default function TeamPage() {
   )
 }
 
-function PersonCard({ u }) {
+function PersonCard({ u, canDelete, onDelete }) {
   const label = u.role === 'OWNER' ? 'Management' : (u.jobTitle || ROLE_LABEL[u.role])
+  const [confirming, setConfirming] = useState(false)
+
+  async function handleDelete() {
+    if (!confirming) { setConfirming(true); return }
+    const res = await fetch(`/api/team/members/${u.id}`, { method: 'DELETE' })
+    if (res.ok) onDelete(u.id)
+    else { const d = await res.json(); alert(d.error || 'Gagal menghapus') }
+    setConfirming(false)
+  }
+
   return (
     <div className="card p-4 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 w-full">
       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white font-bold shrink-0">
         {u.name[0]}
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-gray-900">{u.name}</p>
         <p className="text-xs text-gray-500">{label}</p>
         {u.email && <p className="text-xs text-gray-400 truncate">{u.email}</p>}
       </div>
+      {canDelete && u.role !== 'OWNER' && (
+        <button
+          onClick={handleDelete}
+          onBlur={() => setConfirming(false)}
+          className={`text-xs px-2 py-1 rounded shrink-0 transition-colors ${
+            confirming
+              ? 'bg-red-600 text-white'
+              : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
+          }`}
+        >
+          {confirming ? 'Yakin?' : 'Hapus'}
+        </button>
+      )}
     </div>
   )
 }
