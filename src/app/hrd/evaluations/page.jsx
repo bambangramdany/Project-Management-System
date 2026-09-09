@@ -931,6 +931,326 @@ function AnnouncementSection() {
   )
 }
 
+// ── Data Karyawan Section ─────────────────────────────────────────────────────
+const DIVISI_LABEL = { EVENT: 'Event', PH: 'PH', CREATIVE: 'Creative', FINANCE_HRGA: 'Finance', MARKETING: 'Marketing' }
+const DIVISI_FULL  = { EVENT: 'Event Organizer', PH: 'Production House', CREATIVE: 'Creative', FINANCE_HRGA: 'Finance & HRGA', MARKETING: 'Marketing' }
+const SORT_COLS    = ['name', 'divisi', 'role', 'joinDate', 'completeness']
+
+function DataKaryawanSection() {
+  const [open, setOpen]         = useState(false)
+  const [members, setMembers]   = useState([])
+  const [loading, setLoading]   = useState(false)
+  const [loaded, setLoaded]     = useState(false)
+  const [search, setSearch]     = useState('')
+  const [divisiF, setDivisiF]   = useState('ALL')
+  const [sort, setSort]         = useState({ col: 'name', dir: 'asc' })
+  const [editing, setEditing]   = useState(null)
+  const [addingNew, setAddingNew] = useState(false)
+
+  function toggle() {
+    if (!open && !loaded) {
+      setLoading(true)
+      fetch('/api/team/members').then(r => r.json()).then(data => {
+        if (Array.isArray(data)) setMembers(data)
+        setLoading(false); setLoaded(true)
+      })
+    }
+    setOpen(o => !o)
+  }
+
+  function reload() {
+    fetch('/api/team/members').then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setMembers(data)
+    })
+  }
+
+  function completeness(m) {
+    return [m.npk, m.birthDate, m.gender, m.joinDate, m.phone, m.personalEmail,
+            m.maritalStatus, m.education, m.ktpNumber, m.bankName, m.bankAccount
+           ].filter(Boolean).length
+  }
+
+  function cycleSort(col) {
+    setSort(s => s.col === col
+      ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' }
+      : { col, dir: 'asc' })
+  }
+
+  function SortTh({ col, label }) {
+    const active = sort.col === col
+    return (
+      <th onClick={() => cycleSort(col)}
+          className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer select-none whitespace-nowrap hover:text-gray-700">
+        {label}{active ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : ''}
+      </th>
+    )
+  }
+
+  const filtered = members
+    .filter(m => {
+      if (divisiF !== 'ALL' && m.divisi !== divisiF) return false
+      if (search && !m.name.toLowerCase().includes(search.toLowerCase()) &&
+          !(m.jobTitle || '').toLowerCase().includes(search.toLowerCase())) return false
+      return true
+    })
+    .sort((a, b) => {
+      let va, vb
+      if (sort.col === 'completeness') { va = completeness(a); vb = completeness(b) }
+      else if (sort.col === 'joinDate') { va = a.joinDate || ''; vb = b.joinDate || '' }
+      else { va = (a[sort.col] || '').toLowerCase(); vb = (b[sort.col] || '').toLowerCase() }
+      return sort.dir === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1)
+    })
+
+  return (
+    <Section title="Data Karyawan" defaultOpen={false} onToggle={toggle}>
+      {addingNew && <NewEmployeeModal onClose={() => setAddingNew(false)} onSaved={() => { reload(); setAddingNew(false) }} />}
+      {editing   && <EditModal user={editing} onClose={() => setEditing(null)} onSaved={() => { reload(); setEditing(null) }} />}
+
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
+          <div className="flex gap-1.5 flex-wrap">
+            {['ALL', ...Object.keys(DIVISI_FULL)].map(d => (
+              <button key={d} onClick={() => setDivisiF(d)}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${divisiF === d ? 'bg-brand-500 text-white border-brand-500' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                {d === 'ALL' ? 'Semua' : DIVISI_LABEL[d]}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <input placeholder="Cari nama…" value={search} onChange={e => setSearch(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-brand-400 flex-1 sm:w-48" />
+            <button onClick={() => setAddingNew(true)} className="btn-primary text-xs py-1.5 px-3 whitespace-nowrap">+ Karyawan</button>
+          </div>
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-gray-400 py-4 text-center">Memuat…</p>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <SortTh col="name"         label="Nama" />
+                  <SortTh col="divisi"       label="Divisi" />
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Jabatan</th>
+                  <SortTh col="joinDate"     label="Masuk" />
+                  <SortTh col="completeness" label="Kelengkapan" />
+                  <th className="px-3 py-2" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.length === 0 && (
+                  <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-400 text-xs">Tidak ada data</td></tr>
+                )}
+                {filtered.map(m => {
+                  const pct = Math.round((completeness(m) / 11) * 100)
+                  return (
+                    <tr key={m.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">{m.name}</td>
+                      <td className="px-3 py-2.5 text-gray-500 text-xs whitespace-nowrap">{DIVISI_LABEL[m.divisi] || '—'}</td>
+                      <td className="px-3 py-2.5 text-gray-500 text-xs">{m.jobTitle || '—'}</td>
+                      <td className="px-3 py-2.5 text-gray-500 text-xs whitespace-nowrap">
+                        {m.joinDate ? new Date(m.joinDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${pct >= 80 ? 'bg-green-400' : pct >= 50 ? 'bg-amber-400' : 'bg-red-400'}`} style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-xs text-gray-400">{pct}%</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        <button onClick={() => setEditing(m)} className="text-xs text-brand-600 hover:underline">Edit</button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-xs text-gray-400">{filtered.length} dari {members.length} karyawan</p>
+      </div>
+    </Section>
+  )
+}
+
+// ── Shared form (from hrd/tim) ────────────────────────────────────────────────
+const ROLE_OPTIONS = [
+  { value: 'MEMBER', label: 'Member' }, { value: 'PROJECT_MANAGER', label: 'Project Manager' },
+  { value: 'PRODUCER', label: 'Producer' }, { value: 'PRODUCTION', label: 'Production' },
+  { value: 'FINANCE', label: 'Finance' }, { value: 'FINANCE_STAFF', label: 'Finance Staff' },
+  { value: 'DIRECTOR', label: 'Director' },
+]
+const EMPTY_FORM = {
+  name: '', email: '', password: '', role: 'MEMBER', jobTitle: '', divisi: '',
+  gender: '', npk: '', birthPlace: '', birthDate: '', joinDate: '',
+  maritalStatus: '', education: '', educationMajor: '',
+  personalEmail: '', phone: '', emergencyContact: '', emergencyContactRel: '',
+  bankName: '', bankAccount: '', ktpNumber: '', npwpNumber: '',
+  addressKtp: '', addressDomicili: '', hobby: '', motherName: '', fatherName: '',
+}
+function toInputDate(d) { if (!d) return ''; return new Date(d).toISOString().split('T')[0] }
+
+function EmployeeFormFields({ form, set, isNew }) {
+  const inp = 'border border-gray-200 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:border-brand-400'
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Identitas Utama</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div><label className="text-xs text-gray-500 block mb-1">NPK</label><input className={inp} value={form.npk} onChange={e => set('npk', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">Nama Lengkap *</label><input className={inp} value={form.name} onChange={e => set('name', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">Email Login *</label><input className={inp} type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="xxx@watermark.co.id" /></div>
+          {isNew && <div><label className="text-xs text-gray-500 block mb-1">Password Awal</label><input className={inp} value={form.password} onChange={e => set('password', e.target.value)} placeholder="Default: watermark2026" /></div>}
+          <div><label className="text-xs text-gray-500 block mb-1">Jabatan</label><input className={inp} value={form.jobTitle} onChange={e => set('jobTitle', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">Divisi</label>
+            <select className={inp} value={form.divisi} onChange={e => set('divisi', e.target.value)}>
+              <option value="">— Pilih —</option>
+              {Object.entries(DIVISI_FULL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </div>
+          <div><label className="text-xs text-gray-500 block mb-1">Role Sistem</label>
+            <select className={inp} value={form.role} onChange={e => set('role', e.target.value)}>
+              {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+          </div>
+          <div><label className="text-xs text-gray-500 block mb-1">Jenis Kelamin</label>
+            <select className={inp} value={form.gender} onChange={e => set('gender', e.target.value)}>
+              <option value="">— Pilih —</option>
+              <option value="L">Laki-laki</option>
+              <option value="P">Perempuan</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Data Pribadi</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div><label className="text-xs text-gray-500 block mb-1">Tempat Lahir</label><input className={inp} value={form.birthPlace} onChange={e => set('birthPlace', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">Tanggal Lahir</label><input type="date" className={inp} value={form.birthDate} onChange={e => set('birthDate', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">Status Pernikahan</label><input className={inp} value={form.maritalStatus} onChange={e => set('maritalStatus', e.target.value)} placeholder="Belum Menikah / Menikah" /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">Pendidikan Terakhir</label><input className={inp} value={form.education} onChange={e => set('education', e.target.value)} /></div>
+          <div className="sm:col-span-2"><label className="text-xs text-gray-500 block mb-1">Jurusan</label><input className={inp} value={form.educationMajor} onChange={e => set('educationMajor', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">Nama Ibu Kandung</label><input className={inp} value={form.motherName} onChange={e => set('motherName', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">Nama Ayah Kandung</label><input className={inp} value={form.fatherName} onChange={e => set('fatherName', e.target.value)} /></div>
+          <div className="sm:col-span-2"><label className="text-xs text-gray-500 block mb-1">Hobi</label><input className={inp} value={form.hobby} onChange={e => set('hobby', e.target.value)} /></div>
+        </div>
+      </div>
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Kontak & Kepegawaian</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div><label className="text-xs text-gray-500 block mb-1">No. HP Kerja</label><input className={inp} value={form.phone} onChange={e => set('phone', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">Email Pribadi</label><input className={inp} type="email" value={form.personalEmail} onChange={e => set('personalEmail', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">Tanggal Masuk Kerja</label><input type="date" className={inp} value={form.joinDate} onChange={e => set('joinDate', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">Kontak Darurat</label><input className={inp} value={form.emergencyContact} onChange={e => set('emergencyContact', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">Hubungan Kontak Darurat</label><input className={inp} value={form.emergencyContactRel} onChange={e => set('emergencyContactRel', e.target.value)} /></div>
+        </div>
+      </div>
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Dokumen & Bank</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div><label className="text-xs text-gray-500 block mb-1">No. KTP</label><input className={inp} value={form.ktpNumber} onChange={e => set('ktpNumber', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">No. NPWP</label><input className={inp} value={form.npwpNumber} onChange={e => set('npwpNumber', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">Bank</label><input className={inp} value={form.bankName} onChange={e => set('bankName', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">No. Rekening</label><input className={inp} value={form.bankAccount} onChange={e => set('bankAccount', e.target.value)} /></div>
+        </div>
+      </div>
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Alamat</p>
+        <div className="space-y-3">
+          <div><label className="text-xs text-gray-500 block mb-1">Alamat KTP</label><textarea rows={2} className={inp + ' resize-none'} value={form.addressKtp} onChange={e => set('addressKtp', e.target.value)} /></div>
+          <div><label className="text-xs text-gray-500 block mb-1">Alamat Domisili</label><textarea rows={2} className={inp + ' resize-none'} value={form.addressDomicili} onChange={e => set('addressDomicili', e.target.value)} /></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EditModal({ user, onClose, onSaved }) {
+  const [form, setForm] = useState({ ...EMPTY_FORM,
+    name: user.name || '', email: user.email || '', role: user.role || 'MEMBER',
+    jobTitle: user.jobTitle || '', divisi: user.divisi || '', gender: user.gender || '',
+    npk: user.npk || '', birthPlace: user.birthPlace || '',
+    birthDate: toInputDate(user.birthDate), joinDate: toInputDate(user.joinDate),
+    maritalStatus: user.maritalStatus || '', education: user.education || '',
+    educationMajor: user.educationMajor || '', personalEmail: user.personalEmail || '',
+    phone: user.phone || '', emergencyContact: user.emergencyContact || '',
+    emergencyContactRel: user.emergencyContactRel || '', bankName: user.bankName || '',
+    bankAccount: user.bankAccount || '', ktpNumber: user.ktpNumber || '',
+    npwpNumber: user.npwpNumber || '', addressKtp: user.addressKtp || '',
+    addressDomicili: user.addressDomicili || '', hobby: user.hobby || '',
+    motherName: user.motherName || '', fatherName: user.fatherName || '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState(null)
+  function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
+  async function save() {
+    setSaving(true); setError(null)
+    const res = await fetch(`/api/team/members/${user.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, birthDate: form.birthDate || null, joinDate: form.joinDate || null }),
+    })
+    if (res.ok) onSaved()
+    else { const d = await res.json(); setError(d.error || 'Gagal menyimpan') }
+    setSaving(false)
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+          <h2 className="font-bold text-gray-900">Edit Data: {user.name}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+        <div className="p-5"><EmployeeFormFields form={form} set={set} isNew={false} /></div>
+        {error && <p className="text-xs text-red-500 px-5">{error}</p>}
+        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-5 py-4 flex gap-2 justify-end">
+          <button onClick={onClose} className="btn-outline text-sm py-1.5 px-4">Batal</button>
+          <button onClick={save} disabled={saving} className="btn-primary text-sm py-1.5 px-4 disabled:opacity-40">{saving ? 'Menyimpan...' : 'Simpan'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function NewEmployeeModal({ onClose, onSaved }) {
+  const [form, setForm] = useState({ ...EMPTY_FORM })
+  const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState(null)
+  function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
+  async function save() {
+    if (!form.name.trim() || !form.email.trim()) { setError('Nama dan email wajib diisi'); return }
+    setSaving(true); setError(null)
+    const res = await fetch('/api/team/members', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, birthDate: form.birthDate || null, joinDate: form.joinDate || null }),
+    })
+    if (res.ok) onSaved()
+    else { const d = await res.json(); setError(d.error || 'Gagal menyimpan') }
+    setSaving(false)
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+          <div>
+            <h2 className="font-bold text-gray-900">Tambah Karyawan Baru</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Akun langsung bisa digunakan untuk login</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+        <div className="p-5"><EmployeeFormFields form={form} set={set} isNew={true} /></div>
+        {error && <p className="text-xs text-red-500 px-5">{error}</p>}
+        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-5 py-4 flex gap-2 justify-end">
+          <button onClick={onClose} className="btn-outline text-sm py-1.5 px-4">Batal</button>
+          <button onClick={save} disabled={saving} className="btn-primary text-sm py-1.5 px-4 disabled:opacity-40">{saving ? 'Menyimpan...' : '+ Tambah Karyawan'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function HrdEvaluationsPage() {
   const { data: session, status } = useSession()
@@ -961,6 +1281,7 @@ export default function HrdEvaluationsPage() {
         <JadwalSection />
         <SharingScoringSection />
         <PenilaianBulananSection />
+        <DataKaryawanSection />
       </main>
     </div>
   )

@@ -37,7 +37,6 @@ const NAV_ITEMS = [
 
   // ── Admin ──
   { href: '/hrd/evaluations', label: 'Input HRD', hrdOnly: true },
-  { href: '/hrd/tim',        label: 'Data Karyawan', hrdOnly: true },
   { href: '/settings', label: 'Pengaturan', settingsOnly: true },
 ]
 
