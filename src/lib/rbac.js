@@ -8,10 +8,10 @@ export function canViewAllProjects(role) {
 // Team leads who maintain the project list (divisi/status/tanggal pelaksanaan)
 // for their division even if their role isn't PROJECT_MANAGER/DIRECTOR.
 export const PROJECT_LIST_EDITOR_EMAILS = [
-  'wulan@watermark.co.id',
-  'irham@watermark.co.id',
-  'bastya@watermark.co.id',
-  'jamal@watermark.co.id',
+  'triwulanaprilia18@gmail.com',
+  'irhamalifakhri@gmail.com',
+  'bagastyaindrawan@gmail.com',
+  'jamal.ludin.jl7@gmail.com',
 ]
 
 // Can the user use the quick-edit (divisi/status/tanggal) on the projects list?
@@ -134,11 +134,13 @@ export function canLockBudget(user, project) {
 // ── KPI RBAC ─────────────────────────────────────────────────────────────
 
 // Wulan has cross-team scoring privilege (can score other PMs and any team member)
-export const CROSS_TEAM_PM_EMAIL = 'wulan@watermark.co.id'
+export const CROSS_TEAM_PM_EMAIL = 'triwulanaprilia18@gmail.com'
 
 // Creative-division peers who may evaluate each other (excluding direksi)
+// Jennifer tidak ada penggantinya — posisi dicover Fakhril (Direktur Creative)
 const CREATIVE_PEER_EMAILS = [
-  'jennifer@watermark.co.id', 'kres@watermark.co.id', 'saffira@watermark.co.id', 'noval@watermark.co.id',
+  'kresensiabs@gmail.com', 'saffiraazkaf@gmail.com',
+  'nauvalzikri30@gmail.com', 'kukuhbayuperkasa@gmail.com',
 ]
 
 // Explicit KPI-scoring org chart per division (in addition to self-assessment,
@@ -170,34 +172,35 @@ export function canScoreKpi(evaluator, target) {
   }
 
   // Irham: everyone below (non-PM), plus Wulan specifically
-  if (eEmail === 'irham@watermark.co.id') {
+  if (eEmail === 'irhamalifakhri@gmail.com') {
     if (['OWNER', 'DIRECTOR'].includes(target.role)) return false
     if (tEmail === CROSS_TEAM_PM_EMAIL) return true
     return target.role !== 'PROJECT_MANAGER'
   }
 
-  // Putra -> Eca
-  if (eEmail === 'putra@watermark.co.id') return tEmail === 'eca@watermark.co.id'
+  // Julian (Putra) -> Siti Nur (Eca)
+  if (eEmail === 'julianputra02@gmail.com') return tEmail === 'fitriah.salsabilah@gmail.com'
 
-  // Doddi <-> Reghy, both also score Boni
-  if (eEmail === 'doddi@watermark.co.id') return ['reghy@watermark.co.id', 'boni@watermark.co.id'].includes(tEmail)
-  if (eEmail === 'reghy@watermark.co.id') return ['doddi@watermark.co.id', 'boni@watermark.co.id'].includes(tEmail)
+  // Doddi <-> Noval Suherman (Reggy), keduanya juga nilai Angga (Boni)
+  if (eEmail === 'doddichf@gmail.com') return ['novalsuherman05@gmail.com', 'anggajulfikar20@gmail.com'].includes(tEmail)
+  if (eEmail === 'novalsuherman05@gmail.com') return ['doddichf@gmail.com', 'anggajulfikar20@gmail.com'].includes(tEmail)
+  // Angga juga bisa nilai Doddi dan Noval (timbal balik)
+  if (eEmail === 'anggajulfikar20@gmail.com') return ['doddichf@gmail.com', 'novalsuherman05@gmail.com'].includes(tEmail)
 
   // ── PH division ──────────────────────────────────────────────────────
-  // Bastya <-> Jamal
-  if (eEmail === 'bastya@watermark.co.id') return tEmail === 'jamal@watermark.co.id'
-  if (eEmail === 'jamal@watermark.co.id') return tEmail === 'bastya@watermark.co.id'
+  // Bagastya <-> Jamaluddin
+  if (eEmail === 'bagastyaindrawan@gmail.com') return tEmail === 'jamal.ludin.jl7@gmail.com'
+  if (eEmail === 'jamal.ludin.jl7@gmail.com') return tEmail === 'bagastyaindrawan@gmail.com'
 
   // ── Creative division ───────────────────────────────────────────────
-  // Jennifer/Kres/Saffira/Noval can score each other (and other creative
-  // members), but not direksi
+  // Kresensia/Saffira/Nauval/Kukuh saling nilai sesama Creative (Jennifer tidak ada pengganti)
   if (CREATIVE_PEER_EMAILS.includes(eEmail)) {
     return target.divisi === 'CREATIVE' && !['OWNER', 'DIRECTOR'].includes(target.role)
   }
 
   // ── Finance / HR / GA division ──────────────────────────────────────
-  // Antoni -> Bima
-  if (eEmail === 'antoni@watermark.co.id') return tEmail === 'bima@watermark.co.id'
+  // Antoni -> Bimantoro
+  if (eEmail === 'stevenantoni88@gmail.com') return tEmail === 'hbimantoro@gmail.com'
 
   return false
 }
