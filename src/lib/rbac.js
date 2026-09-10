@@ -98,7 +98,7 @@ export function canEditBudget(user, project) {
   if (isFinanceDirector(user)) return true
   if (user.role === 'DIRECTOR' && user.divisi === project.division) return true
   if (project.picId === user.id) return true
-  if (user.role === 'PRODUCTION') return true
+  if (user.role === 'PRODUCER') return true
   return false
 }
 
@@ -117,7 +117,7 @@ export function canEditProjectValue(user, project) {
   if (user.role === 'OWNER' || user.role === 'FINANCE' || user.role === 'FINANCE_STAFF') return true
   if (isFinanceDirector(user)) return true
   if (project.picId === user.id) return true
-  if (user.role === 'PRODUCTION') return true
+  if (user.role === 'PRODUCER') return true
   return false
 }
 

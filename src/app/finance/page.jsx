@@ -12,7 +12,7 @@ import {
 } from '@/lib/constants'
 import { isFinanceDirector } from '@/lib/rbac'
 
-const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF']
+const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF']
 
 const BUDGET_ITEM_STATUS_LABEL = {
   BELUM_DIAJUKAN: 'Belum Diajukan',
@@ -132,13 +132,15 @@ export default function FinancePage() {
   // Modal konfirmasi pembayaran: { id, amount, vendor, project, paidAmount, paidAt, note }
   const [markPaidModal, setMarkPaidModal] = useState(null)
 
-  // Tab utama Finance — default sesuai role
-  const defaultTab = (() => {
-    if (['PROJECT_MANAGER', 'PRODUCER'].includes(session?.user?.role)) return 'pm'
-    if (['FINANCE', 'FINANCE_STAFF'].includes(session?.user?.role))    return 'finance'
-    return 'laporan' // OWNER, DIRECTOR
-  })()
-  const [activeTab, setActiveTab] = useState(defaultTab)
+  // Tab utama Finance — diset setelah session loaded (session null saat init)
+  const [activeTab, setActiveTab] = useState('laporan')
+  useEffect(() => {
+    if (status !== 'authenticated') return
+    const role = session?.user?.role
+    if (['PROJECT_MANAGER', 'PRODUCER'].includes(role)) setActiveTab('pm')
+    else if (['FINANCE', 'FINANCE_STAFF'].includes(role)) setActiveTab('finance')
+    else setActiveTab('laporan')
+  }, [status, session])
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')

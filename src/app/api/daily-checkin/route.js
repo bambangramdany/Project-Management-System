@@ -36,7 +36,9 @@ export async function GET(req) {
   if (period) {
     const [y, m] = period.split('-').map(Number)
     const startDate = `${period}-01`
-    const endDate = `${y}-${String(m + 1 > 12 ? 1 : m + 1).padStart(2, '0')}-01`
+    const nextM = m === 12 ? 1 : m + 1
+    const nextY = m === 12 ? y + 1 : y
+    const endDate = `${nextY}-${String(nextM).padStart(2, '0')}-01`
     const records = await prisma.dailyCheckIn.findMany({
       where: { userId, date: { gte: startDate, lt: endDate } },
     })
