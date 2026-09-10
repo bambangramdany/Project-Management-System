@@ -63,12 +63,20 @@ export async function PATCH(req, { params }) {
     })
     if (action === 'approve') {
       const approvers = await findApprovers('PENDING_FINANCE_DIRECTOR', payment.project)
-      await Promise.all(approvers.map(u => notifyUser({
-        userId: u.id, type: 'PAYMENT_APPROVAL',
-        title: 'Pengajuan Pembayaran Menunggu Approval Anda',
-        message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) telah disetujui Direktur Utama.`,
-        link: '/finance',
-      })))
+      await Promise.all([
+        ...approvers.map(u => notifyUser({
+          userId: u.id, type: 'PAYMENT_APPROVAL',
+          title: 'Pengajuan Pembayaran Menunggu Approval Anda',
+          message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) telah disetujui Direktur Utama.`,
+          link: '/finance',
+        })),
+        notifyUser({
+          userId: payment.requestedById, type: 'PAYMENT_APPROVED',
+          title: 'Pengajuan Pembayaran Disetujui',
+          message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) disetujui Direktur Utama, menunggu approval Finance.`,
+          link: '/finance',
+        }),
+      ])
     } else {
       await notifyUser({
         userId: payment.requestedById, type: 'PAYMENT_REJECTED',
@@ -101,12 +109,20 @@ export async function PATCH(req, { params }) {
     })
     if (action === 'approve') {
       const approvers = await findApprovers('PENDING_FINANCE_DIRECTOR', payment.project)
-      await Promise.all(approvers.map(u => notifyUser({
-        userId: u.id, type: 'PAYMENT_APPROVAL',
-        title: 'Pengajuan Pembayaran Menunggu Approval Anda',
-        message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) telah disetujui Direktur Divisi.`,
-        link: '/finance',
-      })))
+      await Promise.all([
+        ...approvers.map(u => notifyUser({
+          userId: u.id, type: 'PAYMENT_APPROVAL',
+          title: 'Pengajuan Pembayaran Menunggu Approval Anda',
+          message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) telah disetujui Direktur Divisi.`,
+          link: '/finance',
+        })),
+        notifyUser({
+          userId: payment.requestedById, type: 'PAYMENT_APPROVED',
+          title: 'Pengajuan Pembayaran Disetujui',
+          message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) disetujui Direktur Divisi, menunggu approval Finance.`,
+          link: '/finance',
+        }),
+      ])
     } else {
       await notifyUser({
         userId: payment.requestedById, type: 'PAYMENT_REJECTED',
@@ -139,12 +155,20 @@ export async function PATCH(req, { params }) {
     })
     if (action === 'approve') {
       const approvers = await findApprovers('APPROVED_BY_DIRECTOR', payment.project)
-      await Promise.all(approvers.map(u => notifyUser({
-        userId: u.id, type: 'PAYMENT_APPROVAL',
-        title: 'Pengajuan Siap Dibayarkan',
-        message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) telah disetujui Direktur Finance, siap dibayarkan.`,
-        link: '/finance',
-      })))
+      await Promise.all([
+        ...approvers.map(u => notifyUser({
+          userId: u.id, type: 'PAYMENT_APPROVAL',
+          title: 'Pengajuan Siap Dibayarkan',
+          message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) telah disetujui Direktur Finance, siap dibayarkan.`,
+          link: '/finance',
+        })),
+        notifyUser({
+          userId: payment.requestedById, type: 'PAYMENT_APPROVED',
+          title: 'Pengajuan Pembayaran Disetujui — Siap Dibayarkan',
+          message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) disetujui penuh, sedang diproses Finance.`,
+          link: '/finance',
+        }),
+      ])
     } else {
       await notifyUser({
         userId: payment.requestedById, type: 'PAYMENT_REJECTED',
@@ -172,30 +196,34 @@ export async function PATCH(req, { params }) {
     if (!canProcessPayment(session.user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+    // Nominal aktual yang dibayar — boleh berbeda dari yang diajukan (misal setelah PPh/diskon)
+    const paidAmount = body.paidAmount ? parseFloat(body.paidAmount) : payment.amount
+    const paidAt = body.paidAt ? new Date(body.paidAt) : new Date()
     const updated = await prisma.paymentRequest.update({
       where: { id },
       data: {
         status: 'PAID',
         financeById: session.user.id,
         financeNote: body.note || null,
-        paidAt: new Date(),
+        paidAmount,
+        paidAt,
       },
     })
     await notifyUser({
       userId: payment.requestedById, type: 'PAYMENT_PAID',
       title: 'Pembayaran Telah Dibayarkan',
-      message: `${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) telah dibayarkan.`,
+      message: `${payment.project.name}: ${fmtRupiah(paidAmount)} (${payment.vendor || '-'}) telah dibayarkan oleh Finance.`,
       link: '/finance',
     })
     await logAudit({
       userId: session.user.id, action: 'PAYMENT_PAID', entity: 'PaymentRequest', entityId: payment.id,
-      summary: `${session.user.name} menandai pembayaran ${payment.project.name}: ${fmtRupiah(payment.amount)} (${payment.vendor || '-'}) sebagai dibayar`,
+      summary: `${session.user.name} menandai pembayaran ${payment.project.name}: ${fmtRupiah(paidAmount)} (${payment.vendor || '-'}) sebagai dibayar`,
     })
-    // Auto-record this as a cash-out transaction so the cash ledger stays in sync
+    // Auto-record as cash-out using the actual paid amount
     await prisma.cashTransaction.create({
       data: {
         type: 'OUT',
-        amount: payment.amount,
+        amount: paidAmount,
         description: `${payment.project.name}: ${payment.vendor || payment.category} (${EXPENSE_CATEGORY_LABEL[payment.category] || payment.category})`,
         recordedById: session.user.id,
         paymentRequestId: payment.id,

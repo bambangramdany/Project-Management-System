@@ -129,6 +129,8 @@ export default function FinancePage() {
   const [confirmLockBudget, setConfirmLockBudget] = useState(false)
   const [confirmDeleteBudgetIdx, setConfirmDeleteBudgetIdx] = useState(null)
   const [paymentTab, setPaymentTab] = useState('urgent') // 'urgent' | 'all'
+  // Modal konfirmasi pembayaran: { id, amount, vendor, project, paidAmount, paidAt, note }
+  const [markPaidModal, setMarkPaidModal] = useState(null)
 
   // Tab utama Finance — default sesuai role
   const defaultTab = (() => {
@@ -298,6 +300,18 @@ export default function FinancePage() {
       const err = await res.json()
       alert(err.error || 'Gagal')
     }
+  }
+
+  async function submitMarkPaid() {
+    if (!markPaidModal) return
+    const { id, paidAmount, paidAt, note } = markPaidModal
+    const res = await fetch(`/api/payments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'mark_paid', paidAmount, paidAt, note }),
+    })
+    if (res.ok) { setMarkPaidModal(null); fetchPayments() }
+    else { const err = await res.json(); alert(err.error || 'Gagal') }
   }
 
   async function loadBudget(projectId) {
@@ -1108,7 +1122,20 @@ export default function FinancePage() {
                   )}
                   {canActPay && (
                     <div className="flex gap-2 pt-1">
-                      <button onClick={() => doAction(p.id, 'mark_paid')} className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 active:scale-95 font-medium transition-all">💳 Tandai Sudah Dibayar</button>
+                      <button
+                        onClick={() => setMarkPaidModal({
+                          id: p.id,
+                          amount: p.amount,
+                          vendor: p.vendor,
+                          projectName: p.project?.name,
+                          paidAmount: String(Math.round(p.amount)),
+                          paidAt: new Date().toISOString().slice(0, 10),
+                          note: '',
+                        })}
+                        className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 active:scale-95 font-medium transition-all"
+                      >
+                        💳 Tandai Sudah Dibayar
+                      </button>
                     </div>
                   )}
                   <InvoicePanel payment={p} onUpdated={(updated) => setPayments(prev => prev.map(x => x.id === updated.id ? { ...x, ...updated } : x))} canEdit={['OWNER','FINANCE','FINANCE_STAFF','DIRECTOR'].includes(session?.user?.role)} />
@@ -2122,6 +2149,61 @@ export default function FinancePage() {
         )}
 
       </main>
+
+      {/* ── Modal Konfirmasi Pembayaran ── */}
+      {markPaidModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setMarkPaidModal(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-4" onClick={e => e.stopPropagation()}>
+            <div>
+              <h3 className="font-bold text-gray-900 text-base">Konfirmasi Pembayaran</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{markPaidModal.projectName} · {markPaidModal.vendor || '-'}</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-600">
+              Nominal diajukan: <span className="font-semibold text-gray-900">{formatRupiah(markPaidModal.amount)}</span>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="label">Nominal Aktual Dibayar (Rp) *</label>
+                <ThousandsInput
+                  className="input"
+                  value={markPaidModal.paidAmount}
+                  onChange={v => setMarkPaidModal(m => ({ ...m, paidAmount: v }))}
+                  placeholder="0"
+                />
+                <p className="text-xs text-gray-400 mt-1">Isi jika berbeda dari nominal yang diajukan (misal setelah PPh atau diskon)</p>
+              </div>
+              <div>
+                <label className="label">Tanggal Transfer</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={markPaidModal.paidAt}
+                  onChange={e => setMarkPaidModal(m => ({ ...m, paidAt: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="label">Catatan (opsional)</label>
+                <input
+                  className="input"
+                  value={markPaidModal.note}
+                  onChange={e => setMarkPaidModal(m => ({ ...m, note: e.target.value }))}
+                  placeholder="No. referensi transfer, dll."
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={submitMarkPaid}
+                disabled={!markPaidModal.paidAmount}
+                className="btn-primary flex-1 disabled:opacity-50"
+              >
+                💳 Tandai Lunas
+              </button>
+              <button onClick={() => setMarkPaidModal(null)} className="btn-secondary">Batal</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
