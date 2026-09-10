@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panduan — Antoni Steven</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --navy: #1E2B4A;
+    --accent: #059669;
+    --accent-light: #D1FAE5;
+    --accent-text: #064E3B;
+    --ground: #F7F8FC;
+    --surface: #FFFFFF;
+    --border: #E2E8F0;
+    --text: #1A202C;
+    --muted: #64748B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--ground); color: var(--text); font-size: 14px; line-height: 1.6; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { max-width: 720px; margin: 0 auto; background: var(--surface); min-height: 100vh; }
+
+  /* Header */
+  .header { background: var(--navy); color: white; padding: 28px 40px 24px; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .brand { display: flex; align-items: center; gap: 8px; }
+  .brand-mark { width: 32px; height: 32px; background: linear-gradient(135deg, #7C3AED, #A78BFA); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 16px; color: white; }
+  .brand-name { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 14px; color: rgba(255,255,255,0.85); }
+  .level-badge { background: var(--accent); color: white; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; padding: 3px 10px; border-radius: 4px; }
+  .header h1 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 22px; line-height: 1.2; margin-bottom: 3px; }
+  .header .jabatan { font-size: 13px; color: rgba(255,255,255,0.6); }
+
+  /* Content */
+  .content { padding: 28px 40px 40px; }
+
+  /* Login box */
+  .login-box { background: var(--navy); border-radius: 10px; padding: 20px 24px; margin-bottom: 24px; color: white; }
+  .login-box h2 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+  .login-url { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 8px 12px; margin-bottom: 14px; }
+  .login-url .lbl { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(255,255,255,0.45); flex-shrink: 0; }
+  .login-url a { color: #93C5FD; font-weight: 600; font-size: 12px; text-decoration: none; }
+  .login-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .login-item .li-label { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 3px; }
+  .login-item .li-val { font-size: 13px; font-weight: 500; color: white; }
+  .login-item .li-pass { font-family: 'SF Mono', monospace; font-size: 13px; background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 4px; color: #6EE7B7; }
+
+  /* Section */
+  .section { margin-bottom: 22px; }
+  .section-title { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid var(--border); }
+
+  /* Intro */
+  .intro-box { background: var(--accent-light); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; padding: 12px 14px; font-size: 13px; color: var(--accent-text); margin-bottom: 22px; line-height: 1.55; }
+
+  /* Menu cards */
+  .menu-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .menu-card { display: flex; align-items: flex-start; gap: 10px; background: var(--ground); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .menu-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .menu-name { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 12.5px; color: var(--navy); margin-bottom: 2px; }
+  .menu-card p { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+
+  /* Steps */
+  .step-list { list-style: none; counter-reset: steps; }
+  .step-list li { counter-increment: steps; display: flex; gap: 12px; margin-bottom: 10px; }
+  .step-num { flex-shrink: 0; width: 22px; height: 22px; background: var(--accent); color: white; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 11px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .step-title { font-weight: 600; font-size: 12.5px; color: var(--navy); margin-bottom: 1px; }
+  .step-list li p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* Tip */
+  .tip-box { background: var(--accent-light); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; padding: 10px 14px; font-size: 12.5px; color: var(--accent-text); margin-top: 14px; }
+
+  /* Footer */
+  .footer { border-top: 1px solid var(--border); padding: 12px 40px; display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); background: var(--ground); }
+
+  @media print {
+    body { background: white; }
+    .page { max-width: 100%; min-height: auto; }
+    .header, .login-box { -webkit-print-color-adjust: exact; }
+    .footer { display: none; }
+    @page { margin: 0; size: A4; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-mark">W</div>
+        <span class="brand-name">Watermark PM</span>
+      </div>
+      <span class="level-badge">Finance</span>
+    </div>
+    <h1>Antoni Steven</h1>
+    <div class="jabatan">Finance Staff — Pembukuan & Pembayaran · Finance</div>
+  </div>
+
+  <div class="content">
+    <div class="login-box">
+      <h2>Informasi Login</h2>
+      <div class="login-url">
+        <span class="lbl">Alamat</span>
+        <a href="https://project-management-system-six-psi.vercel.app/login">project-management-system-six-psi.vercel.app/login</a>
+      </div>
+      <div class="login-grid">
+        <div class="login-item">
+          <div class="li-label">Email</div>
+          <div class="li-val">stevenantoni88@gmail.com</div>
+        </div>
+        <div class="login-item">
+          <div class="li-label">Password</div>
+          <div class="li-val"><span class="li-pass">Wmark@Fin26</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="intro-box">Kamu bertanggung jawab mencatat dan mengelola seluruh pendapatan dan pengeluaran perusahaan, serta memproses pembayaran ke vendor. Semua transaksi yang sudah disetujui Direktur harus kamu tandai lunas di sistem.</div>
+
+    
+    <div class="section">
+      <div class="section-title">Menu yang Kamu Gunakan</div>
+      <div class="menu-list">
+    <div class="menu-card">
+      <div class="menu-icon">💳</div>
+      <div>
+        <div class="menu-name">Finance — Pembayaran</div>
+        <p>Lihat dan proses Payment Request yang sudah disetujui. Tandai Lunas dengan nominal aktual yang ditransfer.</p>
+      </div>
+    </div>
+    <div class="menu-card">
+      <div class="menu-icon">📊</div>
+      <div>
+        <div class="menu-name">Finance — Laporan</div>
+        <p>Monitor realisasi pengeluaran vs anggaran per project.</p>
+      </div>
+    </div>
+    <div class="menu-card">
+      <div class="menu-icon">📋</div>
+      <div>
+        <div class="menu-name">Tugas Saya</div>
+        <p>Check-in harian dan task yang ditugaskan ke kamu.</p>
+      </div>
+    </div>
+    <div class="menu-card">
+      <div class="menu-icon">📊</div>
+      <div>
+        <div class="menu-name">Penilaian Saya</div>
+        <p>Isi self-assessment KPI bulanan kamu sendiri dan lihat skor serta akumulasi kinerja.</p>
+      </div>
+    </div>
+    <div class="menu-card">
+      <div class="menu-icon">⭐</div>
+      <div>
+        <div class="menu-name">Nilai Tim</div>
+        <p>Beri penilaian KPI bulanan dan penilaian per project untuk anggota tim pasanganmu.</p>
+      </div>
+    </div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Cara Menggunakan Sistem</div>
+      <ol class="step-list">
+    <li>
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Cek PR yang perlu dibayar</div>
+        <p>Finance → tab Pembayaran & Piutang → tab Perlu Ditindaki → lihat PR berstatus "Siap Dibayarkan".</p>
+      </div>
+    </li>
+    <li>
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">Proses transfer</div>
+        <p>Catat detail penerima dan nominal dari PR → transfer via perbankan seperti biasa.</p>
+      </div>
+    </li>
+    <li>
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Tandai Lunas di sistem</div>
+        <p>Kembali ke PR → klik Tandai Lunas → isi nominal aktual yang ditransfer + tanggal transfer → simpan.</p>
+      </div>
+    </li>
+    <li>
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">Catat pengeluaran lain</div>
+        <p>Pengeluaran yang tidak masuk PR (kas kecil, dsb.) dicatat di Finance → Pengeluaran Langsung project terkait.</p>
+      </div>
+    </li>
+    <li>
+      <div class="step-num">5</div>
+      <div>
+        <div class="step-title">Isi self-assessment bulanan</div>
+        <p>Penilaian Tim → tab "Penilaian Saya" → pilih periode bulan ini → isi nilai untuk setiap kriteria KPI → kirim. Lakukan paling lambat tanggal 23 setiap bulannya (data HR diambil tanggal 24).</p>
+      </div>
+    </li>
+    <li>
+      <div class="step-num">6</div>
+      <div>
+        <div class="step-title">Beri penilaian tim</div>
+        <p>Penilaian Tim → tab "Nilai Tim" → KPI Tim → pilih Humam Bimantoro (pasangan penilaianmu) → isi penilaian KPI bulanan → isi skor untuk setiap kriteria → simpan.</p>
+      </div>
+    </li></ol>
+      <div class="tip-box"><strong>Catatan:</strong> Nominal yang kamu isi saat Tandai Lunas adalah yang masuk ke laporan kas — pastikan sesuai dengan yang benar-benar ditransfer, bukan nominal yang diajukan.</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Watermark PM — Panduan Personal · Antoni Steven</span>
+    <span>PT Sinematik Anak Bangsa · 2026</span>
+  </div>
+</div>
+</body>
+</html>
