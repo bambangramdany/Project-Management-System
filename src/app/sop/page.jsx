@@ -1,7 +1,7 @@
 'use client'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import SopContent from '@/components/SopContent'
 
 export default function SopPage() {
@@ -11,7 +11,7 @@ export default function SopPage() {
   const [checked, setChecked] = useState(false)
   const [agreeing, setAgreeing] = useState(false)
   const [agreed, setAgreed] = useState(false)
-  const scrollRef = useRef(null)
+  const endMarkerRef = useRef(null)
   const canAgree = scrolled && checked
 
   useEffect(() => {
@@ -25,21 +25,17 @@ export default function SopPage() {
     })
   }, [session, router])
 
-  const checkScroll = useCallback(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const remaining = el.scrollHeight - el.scrollTop - el.clientHeight
-    if (remaining < 100) setScrolled(true)
-  }, [])
-
+  // IntersectionObserver watches the end-marker — fires when it enters the viewport
   useEffect(() => {
-    const el = scrollRef.current
+    const el = endMarkerRef.current
     if (!el) return
-    el.addEventListener('scroll', checkScroll, { passive: true })
-    // also check immediately in case content is short
-    checkScroll()
-    return () => el.removeEventListener('scroll', checkScroll)
-  }, [checkScroll])
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setScrolled(true) },
+      { threshold: 0.1 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   const handleAgree = async () => {
     setAgreeing(true)
@@ -78,14 +74,14 @@ export default function SopPage() {
       </div>
 
       {/* Scrollable SOP content — takes all remaining height */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto min-h-0 px-4 md:px-8 py-6"
-      >
+      <div className="flex-1 overflow-y-auto min-h-0 px-4 md:px-8 py-6">
         <div className="max-w-4xl mx-auto">
           <SopContent />
-          {/* visible end-marker */}
-          <div className="mt-6 text-center text-xs text-gray-400 py-4 border-t border-dashed border-gray-200">
+          {/* IntersectionObserver target — becomes visible when user reaches bottom */}
+          <div
+            ref={endMarkerRef}
+            className="mt-6 text-center text-xs text-gray-400 py-4 border-t border-dashed border-gray-200"
+          >
             — Akhir Dokumen SOP —
           </div>
         </div>
