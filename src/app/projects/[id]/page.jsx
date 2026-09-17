@@ -1398,7 +1398,7 @@ function QuotationInvoiceInfoSection({ project, isManager, canFinance, fetchProj
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-brand-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-brand-50 flex items-center justify-center z-50">
       <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
     </div>
   )

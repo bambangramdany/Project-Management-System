@@ -317,7 +317,7 @@ export default function DashboardPage() {
       .then(data => { if (data) setTrendsData(data) })
   }, [status, trendsYear, session])
 
-  if (status === 'loading' || loading) return <LoadingScreen />
+  if (status === 'loading' || loading) return <DashboardSkeleton />
 
   const activeProjects = projects.filter(p => ACTIVE_STATUSES.includes(p.status))
   const wonProjects = projects.filter(p => p.pitchResult === 'WIN')
@@ -1142,9 +1142,84 @@ function DebtSummaryCard({ data }) {
   )
 }
 
+function SkeletonBox({ className }) {
+  return <div className={`bg-gray-200 animate-pulse rounded-lg ${className}`} />
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="min-h-screen bg-brand-50">
+      <Navbar />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* Header skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-2">
+            <SkeletonBox className="h-6 w-32" />
+            <SkeletonBox className="h-4 w-48" />
+          </div>
+          <SkeletonBox className="h-9 w-28" />
+        </div>
+
+        {/* Finance overview skeleton */}
+        <div className="card p-5 border-t-4 border-indigo-200">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+            <SkeletonBox className="h-5 w-48" />
+            <SkeletonBox className="h-5 w-36" />
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="p-3 rounded-xl border-t-4 border-gray-200 bg-gray-50 space-y-2">
+                <SkeletonBox className="h-3 w-24" />
+                <SkeletonBox className="h-6 w-20" />
+                <SkeletonBox className="h-3 w-28" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats row skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="card overflow-hidden">
+              <div className="px-4 py-3 bg-gray-100">
+                <SkeletonBox className="h-5 w-40" />
+              </div>
+              <div className="grid grid-cols-2 divide-x divide-y divide-gray-100">
+                {[...Array(4)].map((_, j) => (
+                  <div key={j} className="p-4 space-y-2">
+                    <SkeletonBox className="h-3 w-16" />
+                    <SkeletonBox className="h-7 w-12" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Project list skeleton */}
+        <div className="card divide-y divide-gray-100">
+          <div className="px-5 py-3 flex items-center gap-2">
+            <SkeletonBox className="h-5 w-48" />
+          </div>
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="px-5 py-4 flex items-center gap-3">
+              <SkeletonBox className="h-9 w-9 rounded-full shrink-0" />
+              <div className="flex-1 space-y-2 min-w-0">
+                <SkeletonBox className="h-4 w-3/4" />
+                <SkeletonBox className="h-3 w-1/2" />
+              </div>
+              <SkeletonBox className="h-5 w-16 rounded-full shrink-0" />
+            </div>
+          ))}
+        </div>
+      </main>
+    </div>
+  )
+}
+
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-brand-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-brand-50 flex items-center justify-center z-50">
       <div className="text-center">
         <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-sm text-gray-500 mt-3">Memuat...</p>
