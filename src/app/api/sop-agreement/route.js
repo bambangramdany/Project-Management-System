@@ -21,18 +21,27 @@ export async function GET() {
   })
 }
 
-export async function POST() {
+export async function POST(request) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const agreedAt = new Date()
 
   const user = await prisma.user.update({
     where: { id: session.user.id },
     data: {
       sopAgreedVersion: SOP_CURRENT_VERSION,
-      sopAgreedAt: new Date(),
+      sopAgreedAt: agreedAt,
     },
-    select: { sopAgreedVersion: true, sopAgreedAt: true },
+    select: { name: true, email: true, sopAgreedVersion: true, sopAgreedAt: true },
   })
 
-  return NextResponse.json({ agreed: true, agreedAt: user.sopAgreedAt })
+  return NextResponse.json({
+    agreed: true,
+    name: user.name,
+    email: user.email,
+    version: user.sopAgreedVersion,
+    agreedAt: user.sopAgreedAt,
+    message: `Persetujuan SOP v${SOP_CURRENT_VERSION} tercatat atas nama ${user.name} (${user.email}) pada ${agreedAt.toISOString()}`,
+  })
 }

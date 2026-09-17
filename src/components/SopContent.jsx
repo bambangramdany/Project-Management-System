@@ -96,9 +96,43 @@ export default function SopContent() {
       </Section>
 
       {/* ══════════════════════════════════════════════════════════════════
+          SOP EVENT  (urutan: D → B → C → E → F → G)
+      ══════════════════════════════════════════════════════════════════ */}
+      <Section title="B. SOP TIM EVENT (WM-EV-SOP-01)" color="green">
+
+        <H2>I. SOP Account Executive/Project Manager (AE/PM)</H2>
+        <Table headers={['Aktivitas', 'Target Waktu']} rows={[
+          ['Pertemuan awal klien baru sejak lead masuk', '≤ 2×24 jam kerja'],
+          ['Konfirmasi rangkuman kebutuhan klien', '≤ 1×24 jam kerja setelah pertemuan'],
+          ['Pembaruan rutin progres ke klien', 'Min. 1 kali per minggu'],
+          ['Respons awal keluhan klien', '≤ 4 jam kerja'],
+          ['Solusi/rencana tindak lanjut keluhan', '≤ 1×24 jam kerja sejak keluhan diterima'],
+          ['Kick-off meeting internal sejak kontrak diteken', '≤ 1×24 jam kerja'],
+          ['Dokumentasi instruksi klien ke Watermark PM', '≤ 4 jam kerja sejak instruksi diterima'],
+        ]} />
+
+        <H2>II. SOP Production & Logistics Officer</H2>
+        <ul>
+          <li>Seleksi vendor: ≤ 3 hari kerja sejak kebutuhan ditetapkan.</li>
+          <li>Kontrak vendor selesai: <strong>H-5 sebelum event</strong>.</li>
+          <li>Pemasangan peralatan selesai: <strong>H-1 pukul 18.00 WIB</strong>.</li>
+          <li>Technical check akhir: minimal <strong>2 jam sebelum acara dimulai</strong>; 100% peralatan harus berfungsi.</li>
+        </ul>
+
+        <H2>III. SOP Event Officer</H2>
+        <ul>
+          <li>Kontak talent/artis/MC: ≤ 2 hari kerja sejak kebutuhan ditetapkan.</li>
+          <li>Finalisasi kontrak & raider talent: <strong>H-7 sebelum event</strong>.</li>
+          <li>Dealing venue: <strong>H-14 sebelum event</strong>.</li>
+          <li>Koordinasi meals/logistik tim: <strong>H-2 sebelum event</strong>.</li>
+          <li>Seluruh kontrak, approval, dan raider wajib terdokumentasi di Watermark PM sebelum event: <strong>kepatuhan 100%</strong>.</li>
+        </ul>
+      </Section>
+
+      {/* ══════════════════════════════════════════════════════════════════
           SOP CREATIVE
       ══════════════════════════════════════════════════════════════════ */}
-      <Section title="B. SOP TIM CREATIVE (WM-CR-SOP-01)" color="blue">
+      <Section title="C. SOP TIM CREATIVE (WM-CR-SOP-01)" color="blue">
 
         <H2>I. Ruang Lingkup</H2>
         <p>Berlaku untuk: <strong>Creative Lead, 2D Designer, 3D Designer, Motion Graphics/Multimedia Designer</strong>. Dalam aktivitas: pitching, pengembangan konsep, produksi, revisi, dan evaluasi proyek.</p>
@@ -134,7 +168,7 @@ export default function SopContent() {
       {/* ══════════════════════════════════════════════════════════════════
           SOP PH
       ══════════════════════════════════════════════════════════════════ */}
-      <Section title="C. SOP TIM PRODUCTION HOUSE (WM-PH-SOP-01)" color="indigo">
+      <Section title="D. SOP TIM PRODUCTION HOUSE (WM-PH-SOP-01)" color="indigo">
 
         <H2>I. SOP Produser</H2>
         <ul>
@@ -152,40 +186,6 @@ export default function SopContent() {
           ['Final cut', '≤ 2 hari kerja sejak rough cut disetujui'],
         ]} />
         <p>Pengecekan & update software/hardware: minimal <strong>1 kali per bulan</strong>. Insiden kegagalan akibat hardware/software wajib dilaporkan di Watermark PM maksimal 1 hari kerja.</p>
-      </Section>
-
-      {/* ══════════════════════════════════════════════════════════════════
-          SOP EVENT
-      ══════════════════════════════════════════════════════════════════ */}
-      <Section title="D. SOP TIM EVENT (WM-EV-SOP-01)" color="green">
-
-        <H2>I. SOP Account Executive/Project Manager (AE/PM)</H2>
-        <Table headers={['Aktivitas', 'Target Waktu']} rows={[
-          ['Pertemuan awal klien baru sejak lead masuk', '≤ 2×24 jam kerja'],
-          ['Konfirmasi rangkuman kebutuhan klien', '≤ 1×24 jam kerja setelah pertemuan'],
-          ['Pembaruan rutin progres ke klien', 'Min. 1 kali per minggu'],
-          ['Respons awal keluhan klien', '≤ 4 jam kerja'],
-          ['Solusi/rencana tindak lanjut keluhan', '≤ 1×24 jam kerja sejak keluhan diterima'],
-          ['Kick-off meeting internal sejak kontrak diteken', '≤ 1×24 jam kerja'],
-          ['Dokumentasi instruksi klien ke Watermark PM', '≤ 4 jam kerja sejak instruksi diterima'],
-        ]} />
-
-        <H2>II. SOP Production & Logistics Officer</H2>
-        <ul>
-          <li>Seleksi vendor: ≤ 3 hari kerja sejak kebutuhan ditetapkan.</li>
-          <li>Kontrak vendor selesai: <strong>H-5 sebelum event</strong>.</li>
-          <li>Pemasangan peralatan selesai: <strong>H-1 pukul 18.00 WIB</strong>.</li>
-          <li>Technical check akhir: minimal <strong>2 jam sebelum acara dimulai</strong>; 100% peralatan harus berfungsi.</li>
-        </ul>
-
-        <H2>III. SOP Event Officer</H2>
-        <ul>
-          <li>Kontak talent/artis/MC: ≤ 2 hari kerja sejak kebutuhan ditetapkan.</li>
-          <li>Finalisasi kontrak & raider talent: <strong>H-7 sebelum event</strong>.</li>
-          <li>Dealing venue: <strong>H-14 sebelum event</strong>.</li>
-          <li>Koordinasi meals/logistik tim: <strong>H-2 sebelum event</strong>.</li>
-          <li>Seluruh kontrak, approval, dan raider wajib terdokumentasi di Watermark PM sebelum event: <strong>kepatuhan 100%</strong>.</li>
-        </ul>
       </Section>
 
       {/* ══════════════════════════════════════════════════════════════════
@@ -219,7 +219,7 @@ export default function SopContent() {
       {/* ══════════════════════════════════════════════════════════════════
           SOP GA
       ══════════════════════════════════════════════════════════════════ */}
-      <Section title="F. SOP TIM GENERAL AFFAIRS (WM-GA-SOP-01)" color="orange">
+      <Section title="F. SOP TIM GENERAL AFFAIRS / GA (WM-GA-SOP-01)" color="orange">
 
         <H2>I. Ruang Lingkup</H2>
         <p>Berlaku untuk seluruh anggota Tim GA: pengelolaan fasilitas kantor, inventarisasi aset, pengadaan kebutuhan operasional, keamanan, dan layanan pendukung umum (termasuk konsumsi/makan siang tim).</p>

@@ -1,7 +1,7 @@
 'use client'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import SopContent from '@/components/SopContent'
 
 export default function SopPage() {
@@ -10,13 +10,12 @@ export default function SopPage() {
   const [scrolled, setScrolled] = useState(false)
   const [agreeing, setAgreeing] = useState(false)
   const [agreed, setAgreed] = useState(false)
-  const bottomRef = useRef(null)
+  const scrollRef = useRef(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
 
-  // Check if already agreed
   useEffect(() => {
     if (!session) return
     fetch('/api/sop-agreement').then(r => r.json()).then(d => {
@@ -24,18 +23,32 @@ export default function SopPage() {
     })
   }, [session, router])
 
-  const handleScroll = (e) => {
-    const el = e.currentTarget
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200
-    if (nearBottom) setScrolled(true)
-  }
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const remaining = el.scrollHeight - el.scrollTop - el.clientHeight
+    if (remaining < 100) setScrolled(true)
+  }, [])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    el.addEventListener('scroll', checkScroll, { passive: true })
+    // also check immediately in case content is short
+    checkScroll()
+    return () => el.removeEventListener('scroll', checkScroll)
+  }, [checkScroll])
 
   const handleAgree = async () => {
     setAgreeing(true)
     try {
-      await fetch('/api/sop-agreement', { method: 'POST' })
-      setAgreed(true)
-      setTimeout(() => router.replace('/dashboard'), 1500)
+      const res = await fetch('/api/sop-agreement', { method: 'POST' })
+      if (res.ok) {
+        setAgreed(true)
+        setTimeout(() => router.replace('/dashboard'), 1500)
+      } else {
+        setAgreeing(false)
+      }
     } catch {
       setAgreeing(false)
     }
@@ -44,9 +57,9 @@ export default function SopPage() {
   if (status === 'loading') return null
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-brand-900 text-white px-6 py-4 flex items-center gap-3 sticky top-0 z-10 shadow">
+      <div className="bg-brand-900 text-white px-6 py-4 flex items-center gap-3 shrink-0 shadow z-10">
         <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center font-bold text-sm">W</div>
         <div>
           <div className="font-bold text-sm">Watermark PM</div>
@@ -56,35 +69,43 @@ export default function SopPage() {
       </div>
 
       {/* Instruction banner */}
-      <div className="bg-amber-50 border-b border-amber-200 px-6 py-3">
+      <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 shrink-0">
         <p className="text-sm text-amber-800 text-center">
-          Baca seluruh dokumen SOP hingga bagian akhir sebelum tombol persetujuan aktif.
+          Baca seluruh dokumen SOP hingga bagian akhir — tombol persetujuan aktif setelah kamu mencapai bawah halaman.
         </p>
       </div>
 
-      {/* Scrollable SOP content */}
+      {/* Scrollable SOP content — takes all remaining height */}
       <div
-        className="flex-1 overflow-y-auto px-4 md:px-8 py-6 max-w-4xl mx-auto w-full"
-        onScroll={handleScroll}
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto min-h-0 px-4 md:px-8 py-6"
       >
-        <SopContent />
-        <div ref={bottomRef} className="h-4" />
+        <div className="max-w-4xl mx-auto">
+          <SopContent />
+          {/* visible end-marker */}
+          <div className="mt-6 text-center text-xs text-gray-400 py-4 border-t border-dashed border-gray-200">
+            — Akhir Dokumen SOP —
+          </div>
+        </div>
       </div>
 
       {/* Agreement footer */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 shadow-lg">
+      <div className="shrink-0 bg-white border-t border-gray-200 px-6 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center gap-4">
           <p className="text-sm text-gray-600 flex-1 text-center sm:text-left">
-            Dengan menekan tombol di bawah, saya menyatakan telah <strong>membaca, memahami, dan menyetujui</strong> seluruh ketentuan SOP dan Pedoman Kerja Watermark Indonesia yang berlaku per tanggal ini.
+            Dengan menekan tombol ini, saya menyatakan telah{' '}
+            <strong>membaca, memahami, dan menyetujui</strong> seluruh ketentuan
+            SOP dan Pedoman Kerja Watermark Indonesia yang berlaku per tanggal ini.
+            Persetujuan ini akan tercatat secara digital sebagai kontrak kerja.
           </p>
           <button
             onClick={handleAgree}
             disabled={!scrolled || agreeing || agreed}
-            className={`min-w-[180px] px-6 py-3 rounded-lg font-semibold text-sm transition-all ${
+            className={`shrink-0 min-w-[200px] px-6 py-3 rounded-lg font-semibold text-sm transition-all ${
               agreed
-                ? 'bg-green-500 text-white'
+                ? 'bg-green-500 text-white cursor-default'
                 : scrolled
-                ? 'bg-brand-600 hover:bg-brand-700 text-white cursor-pointer'
+                ? 'bg-purple-700 hover:bg-purple-800 text-white cursor-pointer shadow-md'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
