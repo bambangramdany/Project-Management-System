@@ -84,15 +84,19 @@ export default function ScoresPage() {
 
   // Tab default: PM/Producer/Admin langsung ke "Nilai Tim"; staff lihat skor diri sendiri dulu
   // Gunakan lazy init agar konsisten saat session belum tersedia di render pertama
-  const [activeTab, setActiveTab] = useState(() => {
-    const role = session?.user?.role
-    if (!role) return 'penilaian-saya'
-    return RATER_ROLES.includes(role) || KPI_SUMMARY_ROLES.includes(role) ? 'nilai-tim' : 'penilaian-saya'
-  })
+  const [activeTab, setActiveTab] = useState('penilaian-saya')
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
+
+  // Set default tab once session is known
+  useEffect(() => {
+    if (!session?.user?.role) return
+    const role = session.user.role
+    const defaultTab = RATER_ROLES.includes(role) || KPI_SUMMARY_ROLES.includes(role) ? 'nilai-tim' : 'penilaian-saya'
+    setActiveTab(defaultTab)
+  }, [session?.user?.role])
 
   useEffect(() => {
     if (status !== 'authenticated' || !session) return
