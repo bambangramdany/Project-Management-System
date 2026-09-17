@@ -52,28 +52,30 @@ export default function SopContent() {
         </ul>
         <p>Respons minimal adalah acknowledgment ("Noted, sedang ditangani"). Pesan di luar jam kerja wajib direspons paling lambat pukul 09.30 WIB hari kerja berikutnya.</p>
 
-        <H2>V. Kerangka Metrik Kinerja</H2>
-        <p>Formula Skor Kinerja Individu (bulanan):</p>
-        <div className="bg-gray-50 rounded-lg p-4 font-mono text-sm">
-          Skor Kinerja = (40% × Ketepatan Waktu) + (35% × Kualitas Output) + (25% × Completion Rate)
-        </div>
-        <Table headers={['Rentang Skor', 'Predikat', 'Konsekuensi']} rows={[
-          ['90–100', 'Istimewa', 'Prioritas bonus tier tertinggi & promosi'],
-          ['80–89,9', 'Baik', 'Memenuhi standar, layak bonus penuh'],
-          ['70–79,9', 'Cukup', 'Bonus proporsional, dibahas di review bulanan'],
-          ['60–69,9', 'Perlu Perbaikan', 'Wajib rencana perbaikan tertulis, direview 30 hari'],
-          ['< 60', 'Kritis', 'Masuk Performance Improvement Plan (PIP), direview 60 hari'],
+        <H2>V. Kerangka Penilaian Kinerja</H2>
+        <p>Penilaian kinerja bulanan menggunakan sistem <strong>KPI Assessment</strong> di Watermark PM dengan tiga komponen utama:</p>
+        <ul>
+          <li><strong>KPI Assessment</strong> — penilaian oleh atasan/rekan per indikator kompetensi, skala 1–5 (1=Kurang, 2=Cukup, 3=Baik, 4=Sangat Baik, 5=Istimewa).</li>
+          <li><strong>Project Score</strong> — penilaian kontribusi per proyek yang selesai, mencakup kualitas eksekusi, kerjasama tim, dan indikator spesifik role.</li>
+          <li><strong>Disiplin Harian (Otomatis)</strong> — dihitung otomatis dari data check-in & EOD report di sistem.</li>
+        </ul>
+        <p>Setiap role memiliki indikator kompetensi inti (5 indikator, berlaku semua role) ditambah indikator spesifik jabatan yang berbeda-beda. Hasil penilaian bulanan dikalibrasi bersama oleh HRD setiap kuartal.</p>
+        <Table headers={['Skor KPI', 'Predikat', 'Konsekuensi']} rows={[
+          ['5 — Istimewa', 'Melampaui ekspektasi', 'Prioritas bonus tier tertinggi & pertimbangan promosi'],
+          ['4 — Sangat Baik', 'Di atas standar', 'Memenuhi standar, layak bonus penuh'],
+          ['3 — Baik', 'Sesuai standar', 'Bonus proporsional, dibahas di review bulanan'],
+          ['2 — Cukup', 'Di bawah standar', 'Wajib rencana perbaikan tertulis, direview 30 hari'],
+          ['1 — Kurang', 'Tidak memenuhi standar', 'Masuk Performance Improvement Plan (PIP), direview 60 hari'],
         ]} />
 
-        <H2>VI. Standar Pelaporan Harian</H2>
+        <H2>VI. Standar Pelaporan & Check-In Harian</H2>
+        <p>Seluruh aktivitas harian wajib dicatat di Watermark PM — sistem otomatis menghitung skor disiplin dari data ini:</p>
         <ul>
-          <li><strong>To Do List Harian</strong> — diisi di Watermark PM paling lambat pukul <strong>09.00 WIB</strong>.</li>
-          <li><strong>EOD Report</strong> — diisi di Watermark PM paling lambat pukul <strong>18.00 WIB</strong>, memuat: tugas selesai, tugas berjalan, kendala, dan bantuan yang dibutuhkan.</li>
-          <li>Keterlambatan input lebih dari 3 kali dalam satu bulan dicatat otomatis oleh sistem dan menjadi bahan review kinerja.</li>
+          <li><strong>Check-in Pagi</strong> — wajib paling lambat pukul <strong>09.30 WIB</strong>. Check-in tepat waktu mendapat nilai penuh; terlambat mendapat 50% nilai; tidak check-in mendapat 0.</li>
+          <li><strong>EOD Report / Check-out</strong> — wajib antara pukul <strong>17.00–20.00 WIB</strong>, disertai laporan progres singkat (tugas selesai, berjalan, kendala). Laporan di luar rentang waktu tersebut mendapat 50% nilai.</li>
+          <li>Skor disiplin dihitung otomatis: <em>(jumlah tepat waktu × 100 + jumlah terlambat × 50) ÷ total hari kerja</em>. Skor ≥90% = Istimewa, ≥75% = Sangat Baik, ≥55% = Baik.</li>
+          <li>Tidak perlu laporan terpisah — cukup gunakan fitur Check-in & EOD di Watermark PM.</li>
         </ul>
-
-        <H2>VII. Check-In Harian</H2>
-        <p>Setiap hari kerja, seluruh karyawan wajib melakukan check-in pagi di Watermark PM paling lambat pukul <strong>09.30 WIB</strong> sebagai konfirmasi kehadiran dan kesiapan kerja. EOD check-out dilakukan pukul <strong>17.00–20.00 WIB</strong> disertai laporan progres singkat.</p>
 
         <H2>VIII. Pemeliharaan & Pengembalian Aset Perusahaan</H2>
         <p>Seluruh aset perusahaan (elektronik, kamera, peralatan produksi, furnitur, kendaraan operasional, dll.) adalah milik PT Sinematik Anak Bangsa dan wajib dijaga dengan standar berikut:</p>
@@ -139,10 +141,10 @@ export default function SopContent() {
 
         <H2>II. Tanggung Jawab per Peran</H2>
         <ul>
-          <li><strong>Creative Lead</strong> — arah konsep, big idea, main moodboard, quality control, approval internal sebelum pitch, evaluasi tim. Diukur melalui Pitch Win Rate (target ≥ 40%).</li>
-          <li><strong>2D Designer</strong> — key visual, layout deck, visual asset/collateral. Checklist wajib: hierarki visual jelas, tidak ada typo, warna sesuai brand guideline.</li>
-          <li><strong>3D Designer</strong> — visualisasi ruang/panggung, presisi ukuran (toleransi deviasi ≤2%), render realistis, file teknis build-ready.</li>
-          <li><strong>Motion Graphics/Multimedia Designer</strong> — animasi grafis, konten video promosi/bumper, material multimedia untuk presentasi dan media sosial, file siap tayang sesuai spesifikasi platform.</li>
+          <li><strong>Creative Lead</strong> — arah konsep, big idea, main moodboard, quality control, approval internal sebelum pitch, evaluasi tim. KPI utama: konsep kreatif disetujui klien di percobaan pertama & konsistensi kualitas/branding tim.</li>
+          <li><strong>2D Designer / Graphic Designer</strong> — key visual, layout deck, visual asset/collateral. KPI utama: ketepatan waktu desain, revisi minimal (≤2× per deliverable), kesesuaian brand guideline.</li>
+          <li><strong>3D Designer / Stage Designer</strong> — visualisasi ruang/panggung, presisi ukuran, render realistis, file teknis build-ready. KPI utama: desain sesuai brief & budget, ketepatan waktu delivery file produksi.</li>
+          <li><strong>Motion Graphics/Multimedia Designer</strong> — animasi grafis, konten video promosi/bumper, material multimedia untuk presentasi dan media sosial, file siap tayang sesuai spesifikasi platform. KPI mengacu pada indikator Graphic Designer (ketepatan waktu, revisi minimal, konsistensi brand).</li>
         </ul>
 
         <H2>III. Proses Pitching</H2>
@@ -163,6 +165,7 @@ export default function SopContent() {
 
         <H2>V. Standar Kualitas (Non-Negotiable)</H2>
         <p>Pekerjaan dianggap tidak memenuhi standar jika: visual generik/tidak orisinal, ada typo, layout berantakan, hasil 3D tidak realistis/tidak feasible, atau deadline molor tanpa eskalasi sebelumnya. "Deadline mepet" bukan alasan yang sah untuk menurunkan standar kualitas.</p>
+        <p>Setiap output dicatat dalam Watermark PM sebagai project task. Jumlah revisi dan ketepatan waktu delivery tercatat otomatis dan masuk ke KPI Assessment bulanan.</p>
       </Section>
 
       {/* ══════════════════════════════════════════════════════════════════
