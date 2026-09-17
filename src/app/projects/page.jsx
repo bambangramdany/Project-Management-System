@@ -9,6 +9,7 @@ import { STATUS_PIPELINE, STATUS_DISPLAY_GROUPS, STATUS_LABEL, STATUS_GROUP_COLO
 import { canViewAllProjects, canQuickEditProjects, canDeleteProject } from '@/lib/rbac'
 import { HEALTH_LABEL, HEALTH_DOT } from '@/lib/health'
 import Link from 'next/link'
+import BackButton from '@/components/BackButton'
 
 export default function ProjectsPage() {
   return (
@@ -310,6 +311,7 @@ function ProjectsContent() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <BackButton />
           <h1 className="text-xl font-bold text-gray-900">Projects</h1>
           {isManager && (
             <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">

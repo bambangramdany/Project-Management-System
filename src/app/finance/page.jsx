@@ -11,6 +11,7 @@ import {
   DIVISION_LABEL, CATEGORY_LABEL,
 } from '@/lib/constants'
 import { isFinanceDirector } from '@/lib/rbac'
+import BackButton from '@/components/BackButton'
 
 const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF']
 
@@ -818,6 +819,7 @@ export default function FinancePage() {
         {/* ── Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
+          <BackButton />
             <h1 className="text-xl font-bold text-gray-900">Finance</h1>
             {isAnalyticsRole && (
               <Link href="/finance/pnl" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">

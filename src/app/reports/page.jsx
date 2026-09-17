@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
+import BackButton from '@/components/BackButton'
 
 const VIEWER_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE', 'PROJECT_MANAGER']
 
@@ -241,6 +242,7 @@ export default function ReportsPage() {
               <span className="text-gray-300">/</span>
               <span className="text-sm text-gray-700 font-medium">Laporan Kinerja</span>
             </div>
+          <BackButton />
             <h1 className="text-xl font-bold text-gray-900">Laporan Kinerja Tim</h1>
             <p className="text-sm text-gray-500 mt-0.5">{monthLabel} · {filtered.length} anggota</p>
           </div>

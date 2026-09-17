@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar'
 import Link from 'next/link'
 import { isFinanceDirector } from '@/lib/rbac'
 import { ASSET_CATEGORY_LABEL, ASSET_CONDITION_LABEL } from '@/lib/constants'
+import BackButton from '@/components/BackButton'
 
 const formatRupiah = (n) => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID')
 
@@ -98,6 +99,7 @@ export default function AssetsPage() {
           <div className="flex items-center gap-3">
             <Link href="/dashboard" className="text-gray-400 hover:text-gray-600">←</Link>
             <div>
+          <BackButton />
               <h1 className="text-xl font-bold text-gray-900">Aset</h1>
               <p className="text-sm text-gray-500">Kelola inventaris aset perusahaan</p>
             </div>

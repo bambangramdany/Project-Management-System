@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
 import { isFinanceDirector } from '@/lib/rbac'
+import BackButton from '@/components/BackButton'
 
 const formatRupiah = (n) => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID')
 
@@ -85,6 +86,7 @@ export default function CashflowPage() {
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="text-gray-400 hover:text-gray-600">←</Link>
           <div>
+          <BackButton />
             <h1 className="text-xl font-bold text-gray-900">Kas Operasional</h1>
             <p className="text-sm text-gray-500">Catat uang masuk & keluar untuk memantau saldo kas perusahaan</p>
           </div>

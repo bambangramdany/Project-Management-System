@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { MySharingSessionCard, AllSharingSessionsTable } from '@/components/SharingSessionCard'
 import EventDayBanner from '@/components/EventDayBanner'
 import PersonalStatsWidget from '@/components/PersonalStatsWidget'
+import BackButton from '@/components/BackButton'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -511,6 +512,7 @@ export default function MyTasksPage() {
         <main className="max-w-3xl mx-auto px-4 py-6 space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div>
+          <BackButton />
               <h1 className="text-xl font-bold text-gray-900">Monitoring Tim</h1>
               <p className="text-sm text-gray-500 mt-0.5">Progress update seluruh tim hari ini</p>
             </div>

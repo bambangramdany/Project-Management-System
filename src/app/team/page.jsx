@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import BackButton from '@/components/BackButton'
 
 const ROLE_LABEL = {
   OWNER: 'Direktur Utama', PROJECT_MANAGER: 'Project Manager', PRODUCTION: 'Production',
@@ -70,6 +71,7 @@ export default function TeamPage() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
 
         <div className="flex items-center justify-between">
+          <BackButton />
           <h1 className="text-xl font-bold text-gray-900">Tim Watermark</h1>
           <span className="text-sm text-gray-500">{team.length} anggota aktif</span>
         </div>

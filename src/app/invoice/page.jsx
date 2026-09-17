@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import BackButton from '@/components/BackButton'
 
 const fmt = (n) => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID')
 
@@ -46,6 +47,7 @@ export default function InvoiceListPage() {
           <div className="flex items-center gap-3">
             <Link href="/dashboard" className="text-gray-400 hover:text-gray-600">←</Link>
             <div>
+          <BackButton />
               <h1 className="text-xl font-bold text-gray-900">Invoice</h1>
               <p className="text-sm text-gray-500">Invoice yang diterbitkan ke klien</p>
             </div>

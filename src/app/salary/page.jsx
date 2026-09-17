@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import BackButton from '@/components/BackButton'
 
 const fmt = (n) => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID')
 const fmtK = (n) => {
@@ -295,6 +296,7 @@ export default function SalaryPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
+          <BackButton />
             <h1 className="text-xl font-bold text-gray-900">Penggajian &amp; Bonus Tim</h1>
             <p className="text-sm text-gray-500 mt-0.5">Slip gaji bulanan · tunjangan · bonus project · analisis kontribusi tim</p>
           </div>
