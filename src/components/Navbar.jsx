@@ -35,6 +35,9 @@ const NAV_ITEMS = [
   { href: '/assets',   label: 'Aset',       financeStaffOk: true },
   { href: '/salary',   label: 'Gaji',       roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
 
+  // ── Referensi ──
+  { href: '/peraturan', label: 'SOP & Peraturan' },
+
   // ── Admin ──
   { href: '/hrd/evaluations', label: 'Input HRD', hrdOnly: true },
   { href: '/settings', label: 'Pengaturan', settingsOnly: true },
