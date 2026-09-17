@@ -8,9 +8,11 @@ export default function SopPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [scrolled, setScrolled] = useState(false)
+  const [checked, setChecked] = useState(false)
   const [agreeing, setAgreeing] = useState(false)
   const [agreed, setAgreed] = useState(false)
   const scrollRef = useRef(null)
+  const canAgree = scrolled && checked
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -90,33 +92,71 @@ export default function SopPage() {
       </div>
 
       {/* Agreement footer */}
-      <div className="shrink-0 bg-white border-t border-gray-200 px-6 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center gap-4">
-          <p className="text-sm text-gray-600 flex-1 text-center sm:text-left">
-            Dengan menekan tombol ini, saya menyatakan telah{' '}
-            <strong>membaca, memahami, dan menyetujui</strong> seluruh ketentuan
-            SOP dan Pedoman Kerja Watermark Indonesia yang berlaku per tanggal ini.
-            Persetujuan ini akan tercatat secara digital sebagai kontrak kerja.
-          </p>
-          <button
-            onClick={handleAgree}
-            disabled={!scrolled || agreeing || agreed}
-            className={`shrink-0 min-w-[200px] px-6 py-3 rounded-lg font-semibold text-sm transition-all ${
-              agreed
-                ? 'bg-green-500 text-white cursor-default'
-                : scrolled
-                ? 'bg-purple-700 hover:bg-purple-800 text-white cursor-pointer shadow-md'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            {agreed
-              ? '✓ Tersimpan — Mengalihkan...'
-              : agreeing
-              ? 'Menyimpan...'
-              : scrolled
-              ? 'Saya Setuju & Memahami'
-              : 'Scroll hingga akhir dulu'}
-          </button>
+      <div className="shrink-0 bg-white border-t border-gray-200 px-4 md:px-8 py-5 shadow-[0_-4px_16px_rgba(0,0,0,0.10)]">
+        <div className="max-w-4xl mx-auto flex flex-col gap-4">
+
+          {/* Checkbox pernyataan */}
+          <label className={`flex items-start gap-3 cursor-pointer group ${!scrolled ? 'opacity-40 pointer-events-none' : ''}`}>
+            <div className="relative mt-0.5 shrink-0">
+              <input
+                type="checkbox"
+                className="sr-only"
+                checked={checked}
+                onChange={e => setChecked(e.target.checked)}
+                disabled={!scrolled || agreed}
+              />
+              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                checked
+                  ? 'bg-purple-700 border-purple-700'
+                  : 'border-gray-400 bg-white group-hover:border-purple-500'
+              }`}>
+                {checked && (
+                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12">
+                    <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+            </div>
+            <span className="text-sm text-gray-700 leading-snug">
+              Saya menyatakan telah <strong>membaca dan memahami</strong> seluruh isi
+              dokumen SOP dan Pedoman Kerja Watermark Indonesia di atas, dan bersedia
+              mematuhi semua ketentuan yang berlaku. Persetujuan ini bersifat mengikat
+              secara digital sebagai bagian dari kontrak kerja saya.
+            </span>
+          </label>
+
+          {/* Hint jika belum scroll */}
+          {!scrolled && (
+            <p className="text-xs text-amber-600 text-center">
+              ↑ Scroll hingga akhir dokumen terlebih dahulu untuk mengaktifkan persetujuan.
+            </p>
+          )}
+
+          {/* Tombol setuju */}
+          <div className="flex justify-end">
+            <button
+              onClick={handleAgree}
+              disabled={!canAgree || agreeing || agreed}
+              className={`min-w-[220px] px-8 py-3 rounded-lg font-semibold text-sm transition-all ${
+                agreed
+                  ? 'bg-green-500 text-white cursor-default'
+                  : canAgree
+                  ? 'bg-purple-700 hover:bg-purple-800 text-white cursor-pointer shadow-md'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              {agreed
+                ? '✓ Tersimpan — Mengalihkan...'
+                : agreeing
+                ? 'Menyimpan...'
+                : canAgree
+                ? 'Saya Setuju & Memahami'
+                : !scrolled
+                ? 'Scroll hingga akhir dulu'
+                : 'Centang pernyataan di atas'}
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
