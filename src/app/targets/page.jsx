@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { DIVISION_LABEL } from '@/lib/constants'
+import BackButton from '@/components/BackButton'
 
 const DIVISIONS = ['EVENT', 'CREATIVE', 'PH', 'FINANCE_HRGA']
 const VIEW_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE']
@@ -64,6 +65,7 @@ export default function TargetsPage() {
     <div className="min-h-screen bg-brand-50">
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+        <BackButton />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Target Tahunan</h1>

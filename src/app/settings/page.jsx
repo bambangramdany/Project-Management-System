@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar'
 import AdminUsersPanel from '@/components/AdminUsersPanel'
 import AuditLogPanel from '@/components/AuditLogPanel'
 import { isFinanceDirector } from '@/lib/rbac'
+import BackButton from '@/components/BackButton'
 
 export default function SettingsPage() {
   const { data: session, status } = useSession()
@@ -39,6 +40,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-brand-50">
       <Navbar />
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+        <BackButton />
         <div>
           <h1 className="text-xl font-bold text-gray-900">Pengaturan</h1>
           <p className="text-sm text-gray-500">Kelola akun tim dan riwayat aktivitas sistem</p>

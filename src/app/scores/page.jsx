@@ -10,6 +10,7 @@ import KpiPanel, { canScoreKpiClient } from '@/components/KpiPanel'
 import KpiMyResultPanel from '@/components/KpiMyResultPanel'
 import KpiGapSummary from '@/components/KpiGapSummary'
 import clsx from 'clsx'
+import BackButton from '@/components/BackButton'
 
 const KPI_SUMMARY_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE']
 const RATER_ROLES = ['PROJECT_MANAGER', 'PRODUCER']
@@ -196,6 +197,7 @@ export default function ScoresPage() {
 
         {/* Header + Tab Nav */}
         <div className="space-y-3">
+          <BackButton />
           <div>
             <h1 className="text-xl font-bold text-gray-900">Penilaian Tim</h1>
             <p className="text-sm text-gray-500">

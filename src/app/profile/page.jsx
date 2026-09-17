@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import BackButton from '@/components/BackButton'
 
 export default function ProfilePage() {
   const { data: session, status } = useSession()
@@ -59,6 +60,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-brand-50">
       <Navbar />
       <main className="max-w-md mx-auto px-4 sm:px-6 py-6 space-y-5">
+        <BackButton />
         <div>
           <h1 className="text-xl font-bold text-gray-900">Profil Saya</h1>
           <p className="text-sm text-gray-500 mt-1">{session.user.name} · {session.user.email}</p>

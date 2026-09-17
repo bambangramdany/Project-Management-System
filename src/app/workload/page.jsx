@@ -11,6 +11,7 @@ import { CROSS_TEAM_PM_EMAIL } from '@/lib/rbac'
 import KpiCriteriaEditor from '@/components/KpiCriteriaEditor'
 import KpiPanel from '@/components/KpiPanel'
 import * as XLSX from 'xlsx'
+import BackButton from '@/components/BackButton'
 
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
 
@@ -160,6 +161,7 @@ export default function WorkloadPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
         <div className="flex flex-col gap-3">
+          <BackButton />
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h1 className="text-xl font-bold text-gray-900">Workload Tim</h1>

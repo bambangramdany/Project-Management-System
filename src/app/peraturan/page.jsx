@@ -3,6 +3,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import SopContent from '@/components/SopContent'
+import BackButton from '@/components/BackButton'
 
 export default function PeraturanPage() {
   const { data: session, status } = useSession()
@@ -16,6 +17,8 @@ export default function PeraturanPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-8 py-8">
+      <BackButton />
+
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
