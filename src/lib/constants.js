@@ -330,6 +330,12 @@ const ROLE_SPECIFIC_KPI = {
     { key: 'design_brief_budget',label: 'Desain panggung/3D sesuai brief & budget', group: 'role' },
     { key: 'on_time_file',       label: 'Ketepatan waktu delivery file produksi', group: 'role' },
   ],
+  MOTION_GRAPHICS: [
+    { key: 'animation_quality',  label: 'Kualitas animasi & motion graphic (sesuai brief & brand)', group: 'role' },
+    { key: 'on_time_delivery',   label: 'Ketepatan waktu delivery file video/animasi', group: 'role' },
+    { key: 'revision_minimal',   label: 'Revisi minimal (≤2× per deliverable)', group: 'role' },
+    { key: 'format_ready',       label: 'Kesiapan format file sesuai platform (sosmed, tayang, presentasi)', group: 'role' },
+  ],
   CONTENT_CREATOR: [
     { key: 'content_calendar',label: 'Output konten sesuai kalender konten', group: 'role' },
     { key: 'on_time_publish', label: 'Ketepatan waktu editing & publish', group: 'role' },

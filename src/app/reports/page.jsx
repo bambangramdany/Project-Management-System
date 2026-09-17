@@ -22,6 +22,7 @@ const ROLE_LABEL = {
   CREATIVE_LEAD:   'Creative Lead',
   GRAPHIC_DESIGNER:'Graphic Designer',
   STAGE_DESIGNER:  'Stage Designer',
+  MOTION_GRAPHICS: 'Motion Graphics/Multimedia Designer',
   CONTENT_CREATOR: 'Content Creator',
   INTERNSHIP:      'Magang',
   MEMBER:          'Staff',

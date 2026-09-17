@@ -6,6 +6,7 @@ const ROLE_LABEL = {
   OWNER: 'Direktur Utama', PROJECT_MANAGER: 'Project Manager', PRODUCTION: 'Production',
   PROJECT_OFFICER: 'Project Officer', CREATIVE_LEAD: 'Creative Lead',
   GRAPHIC_DESIGNER: 'Graphic Designer', STAGE_DESIGNER: 'Stage Designer',
+  MOTION_GRAPHICS: 'Motion Graphics/Multimedia Designer',
   CONTENT_CREATOR: 'Content Creator', INTERNSHIP: 'Internship', MEMBER: 'Member',
   DIRECTOR: 'Director', FINANCE: 'Finance', PRODUCER: 'Producer', EDITOR: 'Editor',
 }

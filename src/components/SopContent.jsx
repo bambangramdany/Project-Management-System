@@ -144,7 +144,7 @@ export default function SopContent() {
           <li><strong>Creative Lead</strong> — arah konsep, big idea, main moodboard, quality control, approval internal sebelum pitch, evaluasi tim. KPI utama: konsep kreatif disetujui klien di percobaan pertama & konsistensi kualitas/branding tim.</li>
           <li><strong>2D Designer / Graphic Designer</strong> — key visual, layout deck, visual asset/collateral. KPI utama: ketepatan waktu desain, revisi minimal (≤2× per deliverable), kesesuaian brand guideline.</li>
           <li><strong>3D Designer / Stage Designer</strong> — visualisasi ruang/panggung, presisi ukuran, render realistis, file teknis build-ready. KPI utama: desain sesuai brief & budget, ketepatan waktu delivery file produksi.</li>
-          <li><strong>Motion Graphics/Multimedia Designer</strong> — animasi grafis, konten video promosi/bumper, material multimedia untuk presentasi dan media sosial, file siap tayang sesuai spesifikasi platform. KPI mengacu pada indikator Graphic Designer (ketepatan waktu, revisi minimal, konsistensi brand).</li>
+          <li><strong>Motion Graphics/Multimedia Designer</strong> — animasi grafis, konten video promosi/bumper, material multimedia untuk presentasi dan media sosial, file siap tayang sesuai spesifikasi platform. KPI khusus: kualitas animasi sesuai brief &amp; brand, ketepatan waktu delivery file video/animasi, revisi minimal (≤2× per deliverable), kesiapan format file sesuai platform (sosmed, tayang, presentasi).</li>
         </ul>
 
         <H2>III. Proses Pitching</H2>
