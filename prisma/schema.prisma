@@ -88,6 +88,8 @@ model User {
   announcements          Announcement[]        @relation("AnnouncementAuthor")
   eventRundowns          EventRundown[]
   eventIssues            EventIssue[]
+  sopAgreedVersion       String?               // versi SOP terakhir yang disetujui user
+  sopAgreedAt            DateTime?             // waktu persetujuan SOP terakhir
 }
 
 // Global audit trail of important changes across the system, for Direksi/Owner
