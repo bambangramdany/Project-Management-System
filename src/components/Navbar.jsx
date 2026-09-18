@@ -55,7 +55,7 @@ export default function Navbar() {
     if (item.settingsOnly) return session?.user.role === 'OWNER' || canSeeAudit
     if (item.cashOnly) return canSeeCash
     if (item.financeStaffOk) return canSeeFinanceStaff
-    if (item.hrdOnly) return session?.user?.canHrdEvaluate || session?.user?.role === 'OWNER'
+    if (item.hrdOnly) return session?.user?.canHrdEvaluate || session?.user?.role === 'OWNER' || isFinanceDirector(session?.user)
     return !item.roles || item.roles.includes(session?.user.role)
   })
 

@@ -1,11 +1,12 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isFinanceDirector } from '@/lib/rbac'
 
 export const dynamic = 'force-dynamic'
 
 function canEdit(user) {
-  return user?.canHrdEvaluate || user?.role === 'OWNER'
+  return user?.canHrdEvaluate || user?.role === 'OWNER' || isFinanceDirector(user)
 }
 
 export async function GET() {

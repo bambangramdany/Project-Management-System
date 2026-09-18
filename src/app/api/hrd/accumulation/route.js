@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isFinanceDirector } from '@/lib/rbac'
 
 export const dynamic = 'force-dynamic'
 
@@ -83,7 +84,7 @@ export async function GET(req) {
   const type = searchParams.get('type') || 'monthly' // monthly | quarterly | yearly
 
   // Only self or HRD/Owner can view others
-  if (targetUserId !== session.user.id && !session.user.canHrdEvaluate && session.user.role !== 'OWNER') {
+  if (targetUserId !== session.user.id && !session.user.canHrdEvaluate && session.user.role !== 'OWNER' && !isFinanceDirector(session.user)) {
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 

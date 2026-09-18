@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import { isFinanceDirector } from '@/lib/rbac'
 
 const ASPECTS = [
   { key: 'scoreMateri', label: 'Materi' },
@@ -1260,7 +1261,7 @@ export default function HrdEvaluationsPage() {
     if (status === 'unauthenticated') { router.push('/login'); return }
     if (status === 'authenticated') {
       const u = session.user
-      if (!u?.canHrdEvaluate && u?.role !== 'OWNER') router.push('/')
+      if (!u?.canHrdEvaluate && u?.role !== 'OWNER' && !isFinanceDirector(u)) router.push('/')
     }
   }, [status, session, router])
 
