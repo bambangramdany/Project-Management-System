@@ -883,7 +883,7 @@ export default function ProjectDetailPage() {
         )}
 
         {activeTab === 'timeline' && (
-          <ProjectTimelineTab project={project} session={session} team={team} />
+          <ProjectTimelineTab project={project} session={session} team={team} onProjectUpdated={fetchProject} />
         )}
 
         {activeTab === 'vendors' && (

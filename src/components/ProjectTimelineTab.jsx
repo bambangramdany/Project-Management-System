@@ -28,7 +28,7 @@ function projectKeyDates(project) {
 const EMPTY_MOM = { date: '', type: 'CLIENT', title: '', attendees: [], notes: '', actionItems: [] }
 const EMPTY_ACTION = { description: '', assigneeId: '', dueDate: '' }
 
-export default function ProjectTimelineTab({ project, session, team }) {
+export default function ProjectTimelineTab({ project, session, team, onProjectUpdated }) {
   const [milestones, setMilestones] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
@@ -82,7 +82,7 @@ export default function ProjectTimelineTab({ project, session, team }) {
 
   async function convertToTask(noteId, itemId) {
     const res = await fetch(`/api/projects/${project.id}/meeting-notes/${noteId}/action-items/${itemId}/convert-task`, { method: 'POST' })
-    if (res.ok) loadMom()
+    if (res.ok) { loadMom(); onProjectUpdated?.() }
     else { const d = await res.json(); alert(d.error || 'Gagal membuat task') }
   }
 
