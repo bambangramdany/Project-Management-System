@@ -6,6 +6,13 @@ import { prisma } from '@/lib/prisma'
 const FINANCE_ROLES  = ['FINANCE', 'FINANCE_STAFF']
 const PM_ROLES       = ['PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'OWNER']
 
+// Roles yang relevan per divisi untuk picker attendee
+const ATTENDEE_ROLES = {
+  FINANCE_HRGA: ['FINANCE', 'FINANCE_STAFF', 'DIRECTOR', 'OWNER'],
+  EVENT: ['PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'OWNER'],
+  PH:    ['PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'OWNER'],
+}
+
 // Divisi yang relevan per tipe meeting
 const MEETING_DIVISI = {
   FINANCE_EVENT: ['FINANCE_HRGA', 'EVENT'],
@@ -58,10 +65,14 @@ export async function GET(req) {
     },
   })
 
-  // Fetch potential attendees per meeting type
+  // Fetch potential attendees per meeting type (only relevant roles per divisi)
   const allDivisi = [...new Set(types.flatMap(t => MEETING_DIVISI[t]))]
   const allUsers = await prisma.user.findMany({
-    where: { employeeStatus: 'ACTIVE', divisi: { in: allDivisi } },
+    where: {
+      employeeStatus: 'ACTIVE',
+      divisi: { in: allDivisi },
+      OR: allDivisi.map(div => ({ divisi: div, role: { in: ATTENDEE_ROLES[div] || PM_ROLES } })),
+    },
     select: ATTENDEE_SELECT,
     orderBy: [{ divisi: 'asc' }, { name: 'asc' }],
   })
@@ -69,7 +80,11 @@ export async function GET(req) {
   // Build potentialAttendees per meeting type
   const potentialAttendees = {}
   types.forEach(type => {
-    potentialAttendees[type] = allUsers.filter(u => MEETING_DIVISI[type].includes(u.divisi))
+    const divisiList = MEETING_DIVISI[type]
+    potentialAttendees[type] = allUsers.filter(u =>
+      divisiList.includes(u.divisi) &&
+      (ATTENDEE_ROLES[u.divisi] || PM_ROLES).includes(u.role)
+    )
   })
 
   const logMap = {}
