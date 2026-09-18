@@ -51,7 +51,7 @@ export async function GET(req) {
   const birthdayToday = await prisma.user.findMany({
     where: {
       birthDate: { not: null },
-      active: true,
+      employeeStatus: 'ACTIVE',
     },
     select: { id: true, name: true, birthDate: true },
   }).then(users => users.filter(u => {

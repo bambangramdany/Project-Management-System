@@ -66,14 +66,10 @@ function AdminView({ session }) {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [ann, dis, usr] = await Promise.all([
-      fetch('/api/announcements?all=1').then(r => r.json()),
-      fetch('/api/disciplinary').then(r => r.json()),
-      fetch('/api/admin/users').then(r => r.json()),
-    ])
-    setAnnouncements(Array.isArray(ann) ? ann : [])
-    setDisciplinary(Array.isArray(dis) ? dis : [])
-    setUsers(Array.isArray(usr) ? usr : [])
+    const data = await fetch('/api/hr/summary?all=1').then(r => r.ok ? r.json() : {})
+    setAnnouncements(Array.isArray(data.announcements) ? data.announcements : [])
+    setDisciplinary(Array.isArray(data.disciplinary) ? data.disciplinary : [])
+    setUsers(Array.isArray(data.users) ? data.users : [])
     setLoading(false)
   }, [])
 
@@ -389,12 +385,9 @@ function EmployeeView({ session }) {
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
-    const [ann, dis] = await Promise.all([
-      fetch('/api/announcements').then(r => r.json()),
-      fetch('/api/disciplinary').then(r => r.json()),
-    ])
-    setAnnouncements(Array.isArray(ann) ? ann : [])
-    setDisciplinary(Array.isArray(dis) ? dis : [])
+    const data = await fetch('/api/hr/summary').then(r => r.ok ? r.json() : {})
+    setAnnouncements(Array.isArray(data.announcements) ? data.announcements : [])
+    setDisciplinary(Array.isArray(data.disciplinary) ? data.disciplinary : [])
     setLoading(false)
   }, [])
 
