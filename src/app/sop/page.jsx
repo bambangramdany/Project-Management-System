@@ -28,7 +28,10 @@ export default function SopPage() {
       const res = await fetch('/api/sop-agreement', { method: 'POST' })
       if (res.ok) {
         setAgreed(true)
-        setTimeout(() => router.replace('/dashboard'), 1500)
+        router.replace('/dashboard')
+      } else if (res.status === 401) {
+        // Session expired — reload to re-authenticate
+        window.location.href = '/login'
       } else {
         setAgreeing(false)
       }
