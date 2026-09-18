@@ -46,6 +46,11 @@ async function main() {
       create: { name: 'Boni', email: 'boni@watermark.co.id', hashedPassword: passwordHash, role: 'INTERNSHIP', jobTitle: 'Internship Event', divisi: 'EVENT', employeeStatus: 'ACTIVE', phone: '+62 812-1308-5657' },
     }),
     prisma.user.upsert({
+      where: { email: 'eca@watermark.co.id' },
+      update: {},
+      create: { name: 'Eca', email: 'eca@watermark.co.id', hashedPassword: passwordHash, role: 'PROJECT_OFFICER', jobTitle: 'Project Officer', divisi: 'EVENT', employeeStatus: 'ACTIVE', npk: '047' },
+    }),
+    prisma.user.upsert({
       where: { email: 'kres@watermark.co.id' },
       update: {},
       create: { name: 'Kres', email: 'kres@watermark.co.id', hashedPassword: passwordHash, role: 'STAGE_DESIGNER', jobTitle: 'Stage Designer', divisi: 'CREATIVE', employeeStatus: 'ACTIVE', phone: '+62 822-1982-3924' },
