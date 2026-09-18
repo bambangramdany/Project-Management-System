@@ -9,8 +9,8 @@ const PM_ROLES       = ['PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'OWNER']
 // Roles yang relevan per divisi untuk picker attendee
 const ATTENDEE_ROLES = {
   FINANCE_HRGA: ['FINANCE', 'FINANCE_STAFF', 'DIRECTOR', 'OWNER'],
-  EVENT: ['PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'OWNER'],
-  PH:    ['PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'OWNER'],
+  EVENT: ['PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR'],
+  PH:    ['PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'PRODUCTION'],
 }
 
 // Divisi yang relevan per tipe meeting
