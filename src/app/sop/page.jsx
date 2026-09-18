@@ -1,5 +1,5 @@
 'use client'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import SopContent from '@/components/SopContent'
@@ -51,7 +51,10 @@ export default function SopPage() {
           <div className="font-bold text-sm">Watermark PM</div>
           <div className="text-xs text-white/60">Persetujuan SOP & Kontrak Kerja</div>
         </div>
-        <div className="ml-auto text-xs text-white/50">v1.0 · 2026</div>
+        <div className="ml-auto flex items-center gap-3">
+          <span className="text-xs text-white/50">v1.0 · 2026</span>
+          <button onClick={() => signOut({ callbackUrl: '/login' })} className="text-xs text-white/60 hover:text-white underline transition-colors">Keluar</button>
+        </div>
       </div>
 
       {/* Instruction banner */}
