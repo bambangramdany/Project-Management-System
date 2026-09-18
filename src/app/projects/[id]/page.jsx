@@ -575,7 +575,7 @@ export default function ProjectDetailPage() {
                 activeTab === tab ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
               }`}
             >
-              {tab === 'team' ? `Tim (${(project.members?.length || 0) + (project.pic ? 1 : 0)})` : tab === 'tasks' ? `Tasks (${totalTasks})` : tab === 'timeline' ? 'Timeline' : tab === 'vendors' ? 'Vendor AVL' : tab === 'ringkasan' ? 'Ringkasan' : tab === 'finance' ? 'Finance' : tab === 'bonus' ? 'Penilaian Tim' : tab}
+              {tab === 'team' ? `Tim (${(project.members?.length || 0) + (project.pic ? 1 : 0)})` : tab === 'tasks' ? `Tasks (${totalTasks})` : tab === 'timeline' ? 'MoM & Timeline' : tab === 'vendors' ? 'Vendor AVL' : tab === 'ringkasan' ? 'Ringkasan' : tab === 'finance' ? 'Finance' : tab === 'bonus' ? 'Penilaian Tim' : tab}
             </button>
           ))}
         </div>
