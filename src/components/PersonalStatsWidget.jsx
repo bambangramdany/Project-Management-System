@@ -101,6 +101,21 @@ export default function PersonalStatsWidget() {
                   </div>
                 )}
 
+                {/* Finance Meeting KPI */}
+                {stats.needsFinance && stats.financeMeetingRate !== null && (
+                  <div className="flex items-center justify-between px-3 py-2.5 bg-emerald-50 rounded-xl border border-emerald-100">
+                    <div>
+                      <p className="text-xs font-semibold text-emerald-800">Finance Meeting</p>
+                      <p className="text-[10px] text-emerald-600">{stats.financeMeetingAttended}/{stats.financeMeetingTotal} meeting dihadiri</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-black text-emerald-900">{stats.financeMeetingRate}<span className="text-xs text-emerald-400">%</span></p>
+                      <StatBar value={stats.financeMeetingRate}
+                        color={stats.financeMeetingRate >= 80 ? 'bg-emerald-500' : stats.financeMeetingRate >= 50 ? 'bg-amber-500' : 'bg-red-400'} />
+                    </div>
+                  </div>
+                )}
+
                 {/* On-time */}
                 <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-xl">
                   <div>

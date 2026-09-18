@@ -5,6 +5,19 @@ import { NextResponse } from 'next/server'
 
 const WFO_DIVISIONS = ['EVENT', 'PH', 'CREATIVE']
 
+// Finance meeting relevance: same logic as finance-meeting API
+const FINANCE_PM_ROLES = ['PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'OWNER']
+function getFinanceMeetingTypes(user) {
+  const isFinance = (['FINANCE', 'FINANCE_STAFF', 'OWNER', 'DIRECTOR'].includes(user.role)) && user.divisi === 'FINANCE_HRGA'
+  const isEvent   = FINANCE_PM_ROLES.includes(user.role) && user.divisi === 'EVENT'
+  const isPH      = FINANCE_PM_ROLES.includes(user.role) && user.divisi === 'PH'
+  const types = []
+  if (isFinance) { types.push('FINANCE_EVENT'); types.push('FINANCE_PH') }
+  if (isEvent)   types.push('FINANCE_EVENT')
+  if (isPH)      types.push('FINANCE_PH')
+  return [...new Set(types)]
+}
+
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -24,9 +37,11 @@ export async function GET() {
   const monthEndStr   = monthEnd.toISOString().slice(0, 10)
 
   const needsWfo = WFO_DIVISIONS.includes(divisi)
+  const financeTypes = getFinanceMeetingTypes(session.user)
+  const needsFinance = financeTypes.length > 0
 
   // Parallel queries
-  const [updates, checkIns, activeTasks, personalTasks, briefingLogs, wfoLogs] = await Promise.all([
+  const [updates, checkIns, activeTasks, personalTasks, briefingLogs, wfoLogs, financeAttendances] = await Promise.all([
     prisma.progressUpdate.findMany({
       where: { userId, date: { gte: monthStart, lte: monthEnd } },
       orderBy: { date: 'desc' },
@@ -42,6 +57,10 @@ export async function GET() {
     }),
     needsWfo ? prisma.wfoLog.findMany({
       where: { userId, weekDate: { gte: monthStartStr, lte: monthEndStr } },
+    }) : Promise.resolve([]),
+    needsFinance ? prisma.financeMeetingAttendee.findMany({
+      where: { userId, meetingLog: { weekDate: { gte: monthStartStr, lte: monthEndStr }, meetingType: { in: financeTypes } } },
+      include: { meetingLog: { select: { weekDate: true, meetingType: true } } },
     }) : Promise.resolve([]),
   ])
 
@@ -122,6 +141,29 @@ export async function GET() {
   }
   const wfoRate = needsWfo && wfoTotal > 0 ? Math.round((wfoPoints / (wfoTotal * 100)) * 100) : null
 
+  // Finance meeting scoring: count Fridays in month, per meeting type
+  let financeMeetingRate = null
+  let financeMeetingAttended = 0
+  let financeMeetingTotal = 0
+  if (needsFinance) {
+    // Each Friday = 1 opportunity per type
+    const attendedSet = new Set(financeAttendances.map(a => `${a.meetingLog.weekDate}__${a.meetingLog.meetingType}`))
+    const iterF = new Date(monthStart)
+    while (iterF <= now) {
+      if (iterF.getDay() === 5) { // Friday
+        const key = iterF.toISOString().slice(0, 10)
+        financeTypes.forEach(type => {
+          financeMeetingTotal++
+          if (attendedSet.has(`${key}__${type}`)) financeMeetingAttended++
+        })
+      }
+      iterF.setDate(iterF.getDate() + 1)
+    }
+    if (financeMeetingTotal > 0) {
+      financeMeetingRate = Math.round((financeMeetingAttended / financeMeetingTotal) * 100)
+    }
+  }
+
   const checkInRate = workDays > 0 ? Math.round((checkIns.filter(c => c.morningAckAt).length / workDays) * 100) : 0
   const updateRate  = workDays > 0 ? Math.round((updateDays.size / workDays) * 100) : 0
 
@@ -143,5 +185,10 @@ export async function GET() {
     wfoRate,
     wfoTotal,
     needsWfo,
+    // Finance meeting stats
+    financeMeetingRate,
+    financeMeetingAttended,
+    financeMeetingTotal,
+    needsFinance,
   })
 }

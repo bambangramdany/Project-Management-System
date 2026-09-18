@@ -434,24 +434,56 @@ const MEETING_LABEL = {
   FINANCE_PH:    { title: 'Finance × PH',    color: 'border-amber-200 bg-amber-50',     header: 'text-amber-800',   sub: 'text-amber-600',   btn: 'bg-amber-600 hover:bg-amber-700' },
 }
 
-function FinanceMeetingCard({ meetingType, weekDate, log: initialLog, onSaved }) {
+const DIV_LABEL = { FINANCE_HRGA: 'Finance', EVENT: 'Event', PH: 'PH' }
+
+function AttendeePicker({ potentialAttendees, selected, onChange }) {
+  // Group by divisi
+  const groups = {}
+  potentialAttendees.forEach(u => {
+    if (!groups[u.divisi]) groups[u.divisi] = []
+    groups[u.divisi].push(u)
+  })
+
+  return (
+    <div className="space-y-2">
+      {Object.entries(groups).map(([divisi, users]) => (
+        <div key={divisi}>
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">{DIV_LABEL[divisi] || divisi}</p>
+          <div className="flex flex-wrap gap-2">
+            {users.map(u => {
+              const checked = selected.includes(u.id)
+              return (
+                <button key={u.id} type="button"
+                  onClick={() => onChange(checked ? selected.filter(id => id !== u.id) : [...selected, u.id])}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all ${
+                    checked ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                  }`}>
+                  {checked ? '✓ ' : ''}{u.name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function FinanceMeetingCard({ meetingType, weekDate, log: initialLog, potentialAttendees = [], canWrite, onSaved }) {
   const cfg = MEETING_LABEL[meetingType]
   const [log, setLog] = useState(initialLog || null)
-  const [editing, setEditing] = useState(!initialLog)
+  const [editing, setEditing] = useState(!initialLog && canWrite)
   const [form, setForm] = useState({
-    arSummary: initialLog?.arSummary || '',
-    apPlan:    initialLog?.apPlan    || '',
-    notes:     initialLog?.notes     || '',
-    attendees: initialLog?.attendees || '',
+    arSummary:   initialLog?.arSummary || '',
+    apPlan:      initialLog?.apPlan    || '',
+    notes:       initialLog?.notes     || '',
+    attendeeIds: initialLog?.attendeeRecords?.map(a => a.userId) || [],
   })
   const [saving, setSaving] = useState(false)
 
-  const getFridayStr = () => {
-    if (weekDate) return new Date(weekDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-    const n = new Date(); const diff = 5 - n.getDay(); const f = new Date(n)
-    f.setDate(n.getDate() + diff)
-    return f.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-  }
+  const fridayStr = weekDate
+    ? new Date(weekDate + 'T12:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+    : (() => { const n = new Date(); const f = new Date(n); f.setDate(n.getDate() + (5 - n.getDay())); return f.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) })()
 
   async function save() {
     if (!form.arSummary.trim() && !form.notes.trim()) return
@@ -469,18 +501,41 @@ function FinanceMeetingCard({ meetingType, weekDate, log: initialLog, onSaved })
     setSaving(false)
   }
 
+  const attendees = log?.attendeeRecords?.map(a => a.user) || []
+  const attendeesByDiv = {}
+  attendees.forEach(u => {
+    if (!attendeesByDiv[u.divisi]) attendeesByDiv[u.divisi] = []
+    attendeesByDiv[u.divisi].push(u.name)
+  })
+
   return (
     <div className={`rounded-2xl border-2 p-4 space-y-3 ${cfg.color}`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className={`text-sm font-bold ${cfg.header}`}>💼 Meeting {cfg.title} — Jumat, {getFridayStr()}</p>
+          <p className={`text-sm font-bold ${cfg.header}`}>💼 Meeting {cfg.title} — Jumat, {fridayStr}</p>
           <p className={`text-xs mt-0.5 ${cfg.sub}`}>Rekap mingguan A/R · A/P · Catatan</p>
         </div>
-        {log && !editing && <button onClick={() => setEditing(true)} className={`text-xs underline ${cfg.sub}`}>Edit</button>}
+        {log && !editing && canWrite && (
+          <button onClick={() => { setEditing(true); setForm({ arSummary: log.arSummary || '', apPlan: log.apPlan || '', notes: log.notes || '', attendeeIds: log.attendeeRecords?.map(a => a.userId) || [] }) }}
+            className={`text-xs underline ${cfg.sub}`}>Edit</button>
+        )}
       </div>
 
       {log && !editing ? (
         <div className="space-y-2">
+          {/* Attendees chip list */}
+          {attendees.length > 0 && (
+            <div className="bg-white/70 rounded-xl px-3 py-2">
+              <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1.5 ${cfg.sub}`}>Yang Hadir ({attendees.length})</p>
+              <div className="space-y-1">
+                {Object.entries(attendeesByDiv).map(([div, names]) => (
+                  <p key={div} className="text-xs text-gray-700">
+                    <span className="font-semibold text-gray-500">{DIV_LABEL[div] || div}:</span> {names.join(', ')}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
           {log.arSummary && (
             <div className="bg-white/70 rounded-xl px-3 py-2">
               <p className={`text-[10px] font-semibold uppercase tracking-wide ${cfg.sub}`}>A/R Minggu Ini</p>
@@ -495,19 +550,24 @@ function FinanceMeetingCard({ meetingType, weekDate, log: initialLog, onSaved })
           )}
           {log.notes && (
             <div className="bg-white/70 rounded-xl px-3 py-2">
-              <p className={`text-[10px] font-semibold uppercase tracking-wide ${cfg.sub}`}>Catatan</p>
+              <p className={`text-[10px] font-semibold uppercase tracking-wide ${cfg.sub}`}>Catatan & Tindak Lanjut</p>
               <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-line">{log.notes}</p>
             </div>
-          )}
-          {log.attendees && (
-            <p className={`text-[11px] ${cfg.sub}`}>Hadir: {log.attendees}</p>
           )}
           <p className={`text-[10px] ${cfg.sub}`}>
             Dicatat oleh {log.author?.name} · {new Date(log.submittedAt).toLocaleDateString('id-ID')}
           </p>
         </div>
-      ) : (
-        <div className="space-y-2">
+      ) : canWrite ? (
+        <div className="space-y-2.5">
+          <div>
+            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1.5 ${cfg.sub}`}>Yang Hadir</p>
+            <AttendeePicker
+              potentialAttendees={potentialAttendees}
+              selected={form.attendeeIds}
+              onChange={ids => setForm({...form, attendeeIds: ids})}
+            />
+          </div>
           <div>
             <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1 ${cfg.sub}`}>A/R Minggu Ini</p>
             <textarea value={form.arSummary} onChange={e => setForm({...form, arSummary: e.target.value})}
@@ -521,16 +581,10 @@ function FinanceMeetingCard({ meetingType, weekDate, log: initialLog, onSaved })
               className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 resize-none" />
           </div>
           <div>
-            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1 ${cfg.sub}`}>Catatan Lainnya</p>
+            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1 ${cfg.sub}`}>Catatan & Tindak Lanjut</p>
             <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})}
-              rows={2} placeholder="Keputusan, tindak lanjut, dll..."
+              rows={2} placeholder="Keputusan, tindak lanjut, hal yang perlu difollow-up..."
               className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 resize-none" />
-          </div>
-          <div>
-            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1 ${cfg.sub}`}>Yang Hadir</p>
-            <input value={form.attendees} onChange={e => setForm({...form, attendees: e.target.value})}
-              placeholder="Nama-nama yang hadir, pisahkan dengan koma..."
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300" />
           </div>
           <div className="flex gap-2 pt-1">
             <button onClick={save} disabled={saving || (!form.arSummary.trim() && !form.notes.trim())}
@@ -540,6 +594,10 @@ function FinanceMeetingCard({ meetingType, weekDate, log: initialLog, onSaved })
             {log && <button onClick={() => setEditing(false)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Batal</button>}
           </div>
         </div>
+      ) : (
+        <div className="py-3 text-center">
+          <p className={`text-sm ${cfg.sub}`}>Catatan meeting belum diisi oleh tim Finance.</p>
+        </div>
       )}
     </div>
   )
@@ -547,7 +605,7 @@ function FinanceMeetingCard({ meetingType, weekDate, log: initialLog, onSaved })
 
 function FinanceMeetingSection({ meetingData, onSaved }) {
   if (!meetingData || !meetingData.types?.length) return null
-  const { types, logs, weekDate } = meetingData
+  const { types, logs, weekDate, potentialAttendees, canWrite } = meetingData
 
   return (
     <div className="space-y-3">
@@ -562,6 +620,8 @@ function FinanceMeetingSection({ meetingData, onSaved }) {
           meetingType={type}
           weekDate={weekDate}
           log={logs?.[type] || null}
+          potentialAttendees={potentialAttendees?.[type] || []}
+          canWrite={canWrite}
           onSaved={onSaved}
         />
       ))}
