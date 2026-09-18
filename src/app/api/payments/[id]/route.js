@@ -203,7 +203,7 @@ export async function PATCH(req, { params }) {
       where: { id },
       data: {
         status: 'PAID',
-        financeById: session.user.id,
+        financeBy: { connect: { id: session.user.id } },
         financeNote: body.note || null,
         paidAmount,
         paidAt,
