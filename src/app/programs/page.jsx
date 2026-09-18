@@ -7,7 +7,6 @@ import BackButton from '@/components/BackButton'
 
 const WFO_DIVISI = ['EVENT', 'PH', 'CREATIVE']
 const DIVISI_LABEL = { EVENT:'Event', PH:'Production House', CREATIVE:'Creative', FINANCE_HRGA:'Finance & HRGA' }
-const DAY_ID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu']
 
 function getTuesdayOfWeek(offset = 0) {
   const now = new Date()
@@ -35,13 +34,37 @@ function fmtDateTime(d) {
   return new Date(d).toLocaleString('id-ID', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
 }
 
+function Spinner() {
+  return <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" /></div>
+}
+
 export default function ProgramsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
+  const [wfoOffset, setWfoOffset] = useState(0)
+  const [finOffset, setFinOffset] = useState(0)
+  const [wfoDate, setWfoDate] = useState(() => getTuesdayOfWeek(0))
+  const [finDate, setFinDate] = useState(() => getFridayOfWeek(0))
+
+  const [summary, setSummary] = useState(null)
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
+
+  const loadSummary = useCallback(async () => {
+    setLoading(true)
+    const res = await fetch(`/api/programs/summary?wfoDate=${wfoDate}&finDate=${finDate}`)
+    const data = await res.json()
+    setSummary(data)
+    setLoading(false)
+  }, [wfoDate, finDate])
+
+  useEffect(() => {
+    if (status === 'authenticated') loadSummary()
+  }, [status, loadSummary])
 
   if (status !== 'authenticated') return null
 
@@ -49,10 +72,19 @@ export default function ProgramsPage() {
     (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA')
   const isDirector = session.user.role === 'DIRECTOR' || session.user.role === 'OWNER'
   const needsWfo = WFO_DIVISI.includes(session.user.divisi)
-  const needsFinMeeting = ['FINANCE','FINANCE_STAFF'].includes(session.user.role) ||
-    (['PROJECT_MANAGER'].includes(session.user.role) && ['EVENT','PH'].includes(session.user.divisi)) ||
-    session.user.role === 'OWNER' ||
-    (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA')
+  const needsFinMeeting = summary?.finMeeting?.isRequired || isAdmin
+
+  const changeWfoWeek = (dir) => {
+    const next = wfoOffset + dir
+    setWfoOffset(next)
+    setWfoDate(getTuesdayOfWeek(next))
+  }
+
+  const changeFinWeek = (dir) => {
+    const next = finOffset + dir
+    setFinOffset(next)
+    setFinDate(getFridayOfWeek(next))
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -64,40 +96,66 @@ export default function ProgramsPage() {
           <p className="text-sm text-gray-500 mt-1">Dokumentasi dan kehadiran program rutin Watermark Indonesia</p>
         </div>
 
-        {/* MORNING BRIEFING */}
-        <BriefingSection session={session} isAdmin={isAdmin} />
+        {loading ? (
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
+            <Spinner />
+          </div>
+        ) : (
+          <>
+            <BriefingSection
+              session={session}
+              isAdmin={isAdmin}
+              initialLog={summary?.briefing?.log}
+              initialAllLogs={summary?.briefing?.allLogs}
+              totalUsers={summary?.briefing?.totalUsers}
+              today={summary?.today}
+            />
 
-        {/* WFO SELASA */}
-        {(needsWfo || isDirector) && <WfoSection session={session} isDirector={isDirector} isAdmin={isAdmin} />}
+            {(needsWfo || isDirector) && (
+              <WfoSection
+                session={session}
+                isDirector={isDirector}
+                wfoOffset={wfoOffset}
+                wfoDate={wfoDate}
+                onChangeWeek={changeWfoWeek}
+                initialLog={summary?.wfo?.log}
+                initialTeam={summary?.wfo?.team}
+                needsWfo={needsWfo}
+              />
+            )}
 
-        {/* JUMAT FINANCE MEETING */}
-        {(needsFinMeeting || isAdmin) && <FinanceMeetingSection session={session} isAdmin={isAdmin} />}
+            {(needsFinMeeting || isAdmin) && (
+              <FinanceMeetingSection
+                session={session}
+                finOffset={finOffset}
+                finDate={finDate}
+                onChangeWeek={changeFinWeek}
+                initialLog={summary?.finMeeting?.log}
+              />
+            )}
+          </>
+        )}
       </main>
     </div>
   )
 }
 
 // ── BRIEFING SECTION ─────────────────────────────────────────────────────────
-function BriefingSection({ session, isAdmin }) {
-  const [log, setLog] = useState(null)
-  const [allLogs, setAllLogs] = useState(null)
-  const [today] = useState(() => new Date().toISOString().slice(0, 10))
-  const [loading, setLoading] = useState(true)
+function BriefingSection({ session, isAdmin, initialLog, initialAllLogs, totalUsers, today }) {
+  const [log, setLog] = useState(initialLog ?? null)
+  const [allLogs, setAllLogs] = useState(initialAllLogs ?? null)
   const [saving, setSaving] = useState(false)
   const [note, setNote] = useState('')
   const [showAll, setShowAll] = useState(false)
 
-  const load = useCallback(async () => {
+  const reload = useCallback(async () => {
     const [personal, all] = await Promise.all([
       fetch(`/api/programs/briefing?date=${today}`).then(r => r.json()),
       isAdmin ? fetch(`/api/programs/briefing?date=${today}&all=1`).then(r => r.json()) : Promise.resolve(null),
     ])
     setLog(personal.log || null)
     setAllLogs(all)
-    setLoading(false)
   }, [today, isAdmin])
-
-  useEffect(() => { load() }, [load])
 
   const submit = async (status) => {
     setSaving(true)
@@ -109,12 +167,11 @@ function BriefingSection({ session, isAdmin }) {
     const data = await res.json()
     setLog(data)
     setSaving(false)
-    load()
+    if (isAdmin) reload()
   }
 
   const hadir = log?.status === 'HADIR'
   const izin = log?.status === 'IZIN_PROJECT'
-  const tidakHadir = log?.status === 'TIDAK_HADIR'
   const todayDayId = new Date().getDay()
   const isWeekend = todayDayId === 0 || todayDayId === 6
 
@@ -127,7 +184,7 @@ function BriefingSection({ session, isAdmin }) {
         </div>
         {isAdmin && allLogs && (
           <button onClick={() => setShowAll(!showAll)} className="text-xs text-brand-600 font-medium hover:underline">
-            {showAll ? 'Sembunyikan' : `Lihat rekap (${allLogs.logs?.length || 0}/${allLogs.totalUsers})`}
+            {showAll ? 'Sembunyikan' : `Lihat rekap (${allLogs.logs?.length || 0}/${totalUsers})`}
           </button>
         )}
       </div>
@@ -135,44 +192,40 @@ function BriefingSection({ session, isAdmin }) {
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
         {isWeekend ? (
           <p className="text-sm text-gray-400 text-center py-2">Tidak ada briefing di hari ini (akhir pekan)</p>
-        ) : loading ? <Spinner /> : (
-          <>
-            {log ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${
-                    hadir ? 'bg-green-100 text-green-700' : izin ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {hadir ? '✅ Hadir' : izin ? '🔄 Izin Project' : '❌ Tidak Hadir'}
-                  </div>
-                  {log.note && <p className="text-xs text-gray-500 mt-1">{log.note}</p>}
-                  <p className="text-xs text-gray-400 mt-1">Dicatat {fmtDateTime(log.loggedAt)}</p>
-                </div>
-                <button onClick={() => { setLog(null) }} className="text-xs text-gray-400 hover:text-gray-600 underline">Ubah</button>
+        ) : log ? (
+          <div className="flex items-center justify-between">
+            <div>
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${
+                hadir ? 'bg-green-100 text-green-700' : izin ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+              }`}>
+                {hadir ? '✅ Hadir' : izin ? '🔄 Izin Project' : '❌ Tidak Hadir'}
               </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-gray-700">Kehadiran Morning Briefing hari ini:</p>
-                <div className="flex gap-2 flex-wrap">
-                  <button onClick={() => submit('HADIR')} disabled={saving}
-                    className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors">
-                    ✅ Hadir
-                  </button>
-                  <button onClick={() => submit('IZIN_PROJECT')} disabled={saving}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
-                    🔄 Izin — Ada Project Bersamaan
-                  </button>
-                  <button onClick={() => submit('TIDAK_HADIR')} disabled={saving}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-colors">
-                    ❌ Tidak Hadir
-                  </button>
-                </div>
-                <input value={note} onChange={e => setNote(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
-                  placeholder="Catatan (opsional)" />
-              </div>
-            )}
-          </>
+              {log.note && <p className="text-xs text-gray-500 mt-1">{log.note}</p>}
+              <p className="text-xs text-gray-400 mt-1">Dicatat {fmtDateTime(log.loggedAt)}</p>
+            </div>
+            <button onClick={() => setLog(null)} className="text-xs text-gray-400 hover:text-gray-600 underline">Ubah</button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-gray-700">Kehadiran Morning Briefing hari ini:</p>
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={() => submit('HADIR')} disabled={saving}
+                className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors">
+                ✅ Hadir
+              </button>
+              <button onClick={() => submit('IZIN_PROJECT')} disabled={saving}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                🔄 Izin — Ada Project Bersamaan
+              </button>
+              <button onClick={() => submit('TIDAK_HADIR')} disabled={saving}
+                className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-colors">
+                ❌ Tidak Hadir
+              </button>
+            </div>
+            <input value={note} onChange={e => setNote(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+              placeholder="Catatan (opsional)" />
+          </div>
         )}
       </div>
 
@@ -203,36 +256,27 @@ function BriefingSection({ session, isAdmin }) {
 }
 
 // ── WFO SELASA SECTION ────────────────────────────────────────────────────────
-function WfoSection({ session, isDirector, isAdmin }) {
-  const [weekOffset, setWeekOffset] = useState(0)
-  const [weekDate, setWeekDate] = useState(() => getTuesdayOfWeek(0))
-  const [log, setLog] = useState(null)
-  const [teamData, setTeamData] = useState(null)
-  const [loading, setLoading] = useState(true)
+function WfoSection({ session, isDirector, wfoOffset, wfoDate, onChangeWeek, initialLog, initialTeam, needsWfo }) {
+  const [log, setLog] = useState(initialLog ?? null)
+  const [teamData, setTeamData] = useState(initialTeam ?? null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ status: '', reason: '', altTime: '' })
   const [showTeam, setShowTeam] = useState(false)
+  const [fetching, setFetching] = useState(false)
 
-  const needsWfo = WFO_DIVISI.includes(session.user.divisi)
-
-  const load = useCallback(async () => {
-    setLoading(true)
-    const [personal, team] = await Promise.all([
-      needsWfo ? fetch(`/api/programs/wfo?weekDate=${weekDate}`).then(r => r.json()) : Promise.resolve({}),
-      isDirector ? fetch(`/api/programs/wfo?weekDate=${weekDate}&all=1`).then(r => r.json()) : Promise.resolve(null),
-    ])
-    setLog(personal.log || null)
-    setTeamData(team)
-    setLoading(false)
-  }, [weekDate, needsWfo, isDirector])
-
-  useEffect(() => { load() }, [load])
-
-  const changeWeek = (dir) => {
-    const newOffset = weekOffset + dir
-    setWeekOffset(newOffset)
-    setWeekDate(getTuesdayOfWeek(newOffset))
-  }
+  // Reload when week changes
+  useEffect(() => {
+    setFetching(true)
+    Promise.all([
+      needsWfo ? fetch(`/api/programs/wfo?weekDate=${wfoDate}`).then(r => r.json()) : Promise.resolve({}),
+      isDirector ? fetch(`/api/programs/wfo?weekDate=${wfoDate}&all=1`).then(r => r.json()) : Promise.resolve(null),
+    ]).then(([personal, team]) => {
+      setLog(personal.log || null)
+      setTeamData(team)
+      setForm({ status: '', reason: '', altTime: '' })
+      setFetching(false)
+    })
+  }, [wfoDate, needsWfo, isDirector])
 
   const submit = async () => {
     if (!form.status) return
@@ -244,19 +288,17 @@ function WfoSection({ session, isDirector, isAdmin }) {
     const res = await fetch('/api/programs/wfo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weekDate, ...form }),
+      body: JSON.stringify({ weekDate: wfoDate, ...form }),
     })
     const data = await res.json()
     setLog(data)
     setSaving(false)
-    load()
   }
 
-  const isTuesdayThisWeek = weekOffset === 0
+  const isTuesdayThisWeek = wfoOffset === 0
   const today = new Date().getDay()
-  const isPastOrToday = today >= 2 || weekOffset < 0
+  const isPastOrToday = today >= 2 || wfoOffset < 0
 
-  // Group team by divisi
   const byDivisi = {}
   if (teamData?.users) {
     teamData.users.forEach(u => {
@@ -278,79 +320,73 @@ function WfoSection({ session, isDirector, isAdmin }) {
           <p className="text-xs text-gray-500">Wajib hadir kantor setiap Selasa · Divisi EVENT, PH, CREATIVE · Penanggung jawab: Director masing-masing divisi</p>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => changeWeek(-1)} className="p-1 rounded hover:bg-gray-100 text-gray-500 text-sm">‹</button>
+          <button onClick={() => onChangeWeek(-1)} className="p-1 rounded hover:bg-gray-100 text-gray-500 text-sm">‹</button>
           <span className="text-xs font-medium text-gray-600 w-24 text-center">
-            {isTuesdayThisWeek ? 'Minggu ini' : weekOffset < 0 ? `${Math.abs(weekOffset)} minggu lalu` : `${weekOffset} minggu depan`}
+            {isTuesdayThisWeek ? 'Minggu ini' : wfoOffset < 0 ? `${Math.abs(wfoOffset)} minggu lalu` : `${wfoOffset} minggu depan`}
           </span>
-          <button onClick={() => changeWeek(1)} className="p-1 rounded hover:bg-gray-100 text-gray-500 text-sm">›</button>
+          <button onClick={() => onChangeWeek(1)} className="p-1 rounded hover:bg-gray-100 text-gray-500 text-sm">›</button>
         </div>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-4">
-        <p className="text-xs text-gray-400">Selasa, {fmtDate(weekDate)}</p>
+        <p className="text-xs text-gray-400">Selasa, {fmtDate(wfoDate)}</p>
 
-        {loading ? <Spinner /> : (
-          <>
-            {needsWfo && (
+        {fetching ? <Spinner /> : needsWfo && (
+          log ? (
+            <div className="flex items-center justify-between">
               <div>
-                {log ? (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${
-                        log.status === 'HADIR' ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'
-                      }`}>
-                        {log.status === 'HADIR' ? '🏢 Hadir WFO' : '🏠 Tidak Hadir'}
-                      </div>
-                      {log.reason && <p className="text-xs text-gray-500 mt-1">Alasan: {log.reason}</p>}
-                      {log.altTime && <p className="text-xs text-gray-500">Waktu alternatif: {log.altTime}</p>}
-                      <p className="text-xs text-gray-400 mt-1">Dicatat {fmtDateTime(log.submittedAt)}</p>
-                    </div>
-                    {isTuesdayThisWeek && (
-                      <button onClick={() => setLog(null)} className="text-xs text-gray-400 hover:text-gray-600 underline">Ubah</button>
-                    )}
-                  </div>
-                ) : isPastOrToday ? (
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium text-gray-700">Kehadiran WFO Selasa ini:</p>
-                    <div className="flex gap-2">
-                      <button onClick={() => setForm({...form, status:'HADIR'})}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${form.status === 'HADIR' ? 'bg-green-600 text-white border-green-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                        🏢 Hadir WFO
-                      </button>
-                      <button onClick={() => setForm({...form, status:'TIDAK_HADIR'})}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${form.status === 'TIDAK_HADIR' ? 'bg-red-500 text-white border-red-500' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                        🏠 Tidak Bisa Hadir
-                      </button>
-                    </div>
-                    {form.status === 'TIDAK_HADIR' && (
-                      <div className="space-y-2 pt-1">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Alasan <span className="text-red-500">*</span></label>
-                          <textarea value={form.reason} onChange={e => setForm({...form, reason: e.target.value})}
-                            rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
-                            placeholder="Jelaskan alasan tidak bisa hadir WFO..." />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Waktu konsolidasi pengganti (opsional)</label>
-                          <input value={form.altTime} onChange={e => setForm({...form, altTime: e.target.value})}
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
-                            placeholder="Mis: Rabu pagi 09:00, atau Kamis setelah meeting klien..." />
-                        </div>
-                      </div>
-                    )}
-                    {form.status && (
-                      <button onClick={submit} disabled={saving}
-                        className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors">
-                        {saving ? 'Menyimpan...' : 'Simpan'}
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400">Pengisian dibuka pada hari Selasa</p>
-                )}
+                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${
+                  log.status === 'HADIR' ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'
+                }`}>
+                  {log.status === 'HADIR' ? '🏢 Hadir WFO' : '🏠 Tidak Hadir'}
+                </div>
+                {log.reason && <p className="text-xs text-gray-500 mt-1">Alasan: {log.reason}</p>}
+                {log.altTime && <p className="text-xs text-gray-500">Waktu alternatif: {log.altTime}</p>}
+                <p className="text-xs text-gray-400 mt-1">Dicatat {fmtDateTime(log.submittedAt)}</p>
               </div>
-            )}
-          </>
+              {isTuesdayThisWeek && (
+                <button onClick={() => setLog(null)} className="text-xs text-gray-400 hover:text-gray-600 underline">Ubah</button>
+              )}
+            </div>
+          ) : isPastOrToday ? (
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-gray-700">Kehadiran WFO Selasa ini:</p>
+              <div className="flex gap-2">
+                <button onClick={() => setForm({...form, status:'HADIR'})}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${form.status === 'HADIR' ? 'bg-green-600 text-white border-green-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                  🏢 Hadir WFO
+                </button>
+                <button onClick={() => setForm({...form, status:'TIDAK_HADIR'})}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${form.status === 'TIDAK_HADIR' ? 'bg-red-500 text-white border-red-500' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                  🏠 Tidak Bisa Hadir
+                </button>
+              </div>
+              {form.status === 'TIDAK_HADIR' && (
+                <div className="space-y-2 pt-1">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Alasan <span className="text-red-500">*</span></label>
+                    <textarea value={form.reason} onChange={e => setForm({...form, reason: e.target.value})}
+                      rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
+                      placeholder="Jelaskan alasan tidak bisa hadir WFO..." />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Waktu konsolidasi pengganti (opsional)</label>
+                    <input value={form.altTime} onChange={e => setForm({...form, altTime: e.target.value})}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                      placeholder="Mis: Rabu pagi 09:00, atau Kamis setelah meeting klien..." />
+                  </div>
+                </div>
+              )}
+              {form.status && (
+                <button onClick={submit} disabled={saving}
+                  className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors">
+                  {saving ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400">Pengisian dibuka pada hari Selasa</p>
+          )
         )}
       </div>
 
@@ -358,7 +394,7 @@ function WfoSection({ session, isDirector, isAdmin }) {
         <div className="mt-3">
           <button onClick={() => setShowTeam(!showTeam)}
             className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-            <span>Rekap Tim — {fmtDate(weekDate)}</span>
+            <span>Rekap Tim — {fmtDate(wfoDate)}</span>
             <div className="flex items-center gap-3 text-xs">
               <span className="text-green-600 font-semibold">✅ {totalHadir} Hadir</span>
               <span className="text-red-500 font-semibold">❌ {totalIzin} Tidak Hadir</span>
@@ -402,54 +438,58 @@ function WfoSection({ session, isDirector, isAdmin }) {
 }
 
 // ── JUMAT FINANCE MEETING ─────────────────────────────────────────────────────
-function FinanceMeetingSection({ session, isAdmin }) {
-  const [weekOffset, setWeekOffset] = useState(0)
-  const [weekDate, setWeekDate] = useState(() => getFridayOfWeek(0))
-  const [log, setLog] = useState(null)
+function FinanceMeetingSection({ session, finOffset, finDate, onChangeWeek, initialLog }) {
+  const [log, setLog] = useState(initialLog ?? null)
   const [history, setHistory] = useState([])
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({ arSummary: '', apPlan: '', notes: '', attendees: '' })
+  const [form, setForm] = useState(() => ({
+    arSummary: initialLog?.arSummary || '',
+    apPlan: initialLog?.apPlan || '',
+    notes: initialLog?.notes || '',
+    attendees: initialLog?.attendees || '',
+  }))
   const [showHistory, setShowHistory] = useState(false)
+  const [fetching, setFetching] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    const [current, hist] = await Promise.all([
-      fetch(`/api/programs/finance-meeting?weekDate=${weekDate}`).then(r => r.json()),
-      showHistory ? fetch('/api/programs/finance-meeting?history=1').then(r => r.json()) : Promise.resolve([]),
-    ])
-    setLog(current.log || null)
-    if (current.log) {
-      setForm({
-        arSummary: current.log.arSummary || '',
-        apPlan: current.log.apPlan || '',
-        notes: current.log.notes || '',
-        attendees: current.log.attendees || '',
+  // Reload when week changes
+  useEffect(() => {
+    setFetching(true)
+    fetch(`/api/programs/finance-meeting?weekDate=${finDate}`)
+      .then(r => r.json())
+      .then(data => {
+        setLog(data.log || null)
+        setForm({
+          arSummary: data.log?.arSummary || '',
+          apPlan: data.log?.apPlan || '',
+          notes: data.log?.notes || '',
+          attendees: data.log?.attendees || '',
+        })
+        setEditing(false)
+        setFetching(false)
       })
-    }
+  }, [finDate])
+
+  const loadHistory = useCallback(async () => {
+    const hist = await fetch('/api/programs/finance-meeting?history=1').then(r => r.json())
     setHistory(Array.isArray(hist) ? hist : [])
-    setLoading(false)
-  }, [weekDate, showHistory])
+  }, [])
 
-  useEffect(() => { load() }, [load])
-
-  const changeWeek = (dir) => {
-    const newOffset = weekOffset + dir
-    setWeekOffset(newOffset)
-    setWeekDate(getFridayOfWeek(newOffset))
-  }
+  useEffect(() => {
+    if (showHistory) loadHistory()
+  }, [showHistory, loadHistory])
 
   const save = async () => {
     setSaving(true)
-    await fetch('/api/programs/finance-meeting', {
+    const res = await fetch('/api/programs/finance-meeting', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weekDate, ...form }),
+      body: JSON.stringify({ weekDate: finDate, ...form }),
     })
+    const data = await res.json()
+    setLog(data)
     setSaving(false)
     setEditing(false)
-    load()
   }
 
   return (
@@ -460,18 +500,18 @@ function FinanceMeetingSection({ session, isAdmin }) {
           <p className="text-xs text-gray-500">Finance · PM Event · PM/Produser PH · Membahas AR minggu lalu & AP minggu depan</p>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => changeWeek(-1)} className="p-1 rounded hover:bg-gray-100 text-gray-500 text-sm">‹</button>
+          <button onClick={() => onChangeWeek(-1)} className="p-1 rounded hover:bg-gray-100 text-gray-500 text-sm">‹</button>
           <span className="text-xs font-medium text-gray-600 w-24 text-center">
-            {weekOffset === 0 ? 'Minggu ini' : weekOffset < 0 ? `${Math.abs(weekOffset)} minggu lalu` : `${weekOffset} minggu depan`}
+            {finOffset === 0 ? 'Minggu ini' : finOffset < 0 ? `${Math.abs(finOffset)} minggu lalu` : `${finOffset} minggu depan`}
           </span>
-          <button onClick={() => changeWeek(1)} className="p-1 rounded hover:bg-gray-100 text-gray-500 text-sm">›</button>
+          <button onClick={() => onChangeWeek(1)} className="p-1 rounded hover:bg-gray-100 text-gray-500 text-sm">›</button>
         </div>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-        <p className="text-xs text-gray-400 mb-3">Jumat, {fmtDate(weekDate)}</p>
+        <p className="text-xs text-gray-400 mb-3">Jumat, {fmtDate(finDate)}</p>
 
-        {loading ? <Spinner /> : editing || !log ? (
+        {fetching ? <Spinner /> : editing || !log ? (
           <div className="space-y-3">
             <p className="text-sm font-semibold text-gray-700">{log ? 'Edit Catatan Meeting' : 'Isi Catatan Meeting Jumat'}</p>
             <div>
@@ -546,7 +586,7 @@ function FinanceMeetingSection({ session, isAdmin }) {
         <div className="mt-2 space-y-3">
           {history.length === 0
             ? <p className="text-sm text-gray-400 text-center py-4">Belum ada riwayat</p>
-            : history.filter(h => h.weekDate !== weekDate).map(h => (
+            : history.filter(h => h.weekDate !== finDate).map(h => (
               <div key={h.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-semibold text-gray-600">{fmtDate(h.weekDate)}</p>
@@ -561,8 +601,4 @@ function FinanceMeetingSection({ session, isAdmin }) {
       )}
     </section>
   )
-}
-
-function Spinner() {
-  return <div className="flex justify-center py-6"><div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" /></div>
 }
