@@ -1,50 +1,43 @@
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export const dynamic = 'force-dynamic'
-
-function canPost(user) {
-  return user?.canHrdEvaluate || user?.role === 'OWNER'
-}
-
 export async function PATCH(req, { params }) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-    if (!canPost(session.user)) return Response.json({ error: 'Forbidden' }, { status: 403 })
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const body = await req.json()
-    const { title, content, type, expiresAt, pinned } = body
+  const isAdmin = ['OWNER'].includes(session.user.role) ||
+    (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA')
+  if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-    const rec = await prisma.announcement.update({
-      where: { id: params.id },
-      data: {
-        ...(title !== undefined && { title: title.trim() }),
-        ...(content !== undefined && { content: content?.trim() || null }),
-        ...(type !== undefined && { type }),
-        ...(expiresAt !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),
-        ...(pinned !== undefined && { pinned }),
-      },
-      include: { author: { select: { id: true, name: true } } },
-    })
-    return Response.json(rec)
-  } catch (e) {
-    console.error('announcement PATCH error:', e)
-    return Response.json({ error: e.message }, { status: 500 })
-  }
+  const body = await req.json()
+  const { title, content, type, targetUserId, expiresAt, pinned } = body
+
+  const updated = await prisma.announcement.update({
+    where: { id: params.id },
+    data: {
+      ...(title !== undefined && { title: title.trim() }),
+      ...(content !== undefined && { content: content?.trim() || null }),
+      ...(type !== undefined && { type }),
+      ...(targetUserId !== undefined && { targetUserId: targetUserId || null }),
+      ...(expiresAt !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),
+      ...(pinned !== undefined && { pinned }),
+    },
+    include: { author: { select: { id: true, name: true } }, targetUser: { select: { id: true, name: true } } },
+  })
+
+  return NextResponse.json(updated)
 }
 
 export async function DELETE(req, { params }) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-    if (!canPost(session.user)) return Response.json({ error: 'Forbidden' }, { status: 403 })
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    await prisma.announcement.delete({ where: { id: params.id } })
-    return Response.json({ ok: true })
-  } catch (e) {
-    console.error('announcement DELETE error:', e)
-    return Response.json({ error: e.message }, { status: 500 })
-  }
+  const isAdmin = ['OWNER'].includes(session.user.role) ||
+    (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA')
+  if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  await prisma.announcement.delete({ where: { id: params.id } })
+  return NextResponse.json({ ok: true })
 }

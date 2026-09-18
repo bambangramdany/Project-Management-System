@@ -277,6 +277,64 @@ export default function SopContent() {
       </Section>
 
       {/* ══════════════════════════════════════════════════════════════════
+          PEMBINAAN & PHK
+      ══════════════════════════════════════════════════════════════════ */}
+      <Section title="H. KETENTUAN PEMBINAAN & PEMUTUSAN HUBUNGAN KERJA (WM-HR-SOP-02)" color="red">
+
+        <H2>I. Dasar Hukum</H2>
+        <p>Seluruh ketentuan dalam bagian ini mengacu pada <strong>UU No. 6 Tahun 2023 tentang Cipta Kerja</strong> dan <strong>PP No. 35 Tahun 2021 tentang Perjanjian Kerja Waktu Tertentu, Alih Daya, Waktu Kerja dan Waktu Istirahat, dan Pemutusan Hubungan Kerja</strong>. PHK adalah langkah terakhir yang ditempuh setelah proses pembinaan bertahap tidak menghasilkan perbaikan yang dibutuhkan.</p>
+
+        <H2>II. Tahapan Pembinaan (Sebelum PHK)</H2>
+        <p>Perusahaan berkomitmen menjalankan proses pembinaan yang adil dan terdokumentasi sebelum keputusan PHK diambil. Seluruh dokumen pembinaan dicatat di sistem Watermark PM.</p>
+        <Table headers={['Tahap', 'Kondisi', 'Durasi Pantau', 'Tindakan Perusahaan']} rows={[
+          ['Performance Improvement Plan (PIP)', 'Skor KPI bulanan < 60 atau rata-rata akumulasi < 2 (Cukup)', '60 hari kalender', 'Rencana perbaikan tertulis bersama atasan langsung & HRD; target spesifik per indikator KPI yang lemah'],
+          ['Surat Peringatan 1 (SP-1)', 'Tidak ada perbaikan signifikan setelah PIP, atau pelanggaran ringan berulang (≥3×)', '30 hari kalender', 'SP-1 tertulis, ditandatangani karyawan, atasan, dan HRD; target perbaikan spesifik ditetapkan'],
+          ['Surat Peringatan 2 (SP-2)', 'Tidak ada perbaikan setelah SP-1, atau pelanggaran sedang', '30 hari kalender', 'SP-2 tertulis; evaluasi ulang posisi; HRD & Direktur terlibat langsung'],
+          ['Surat Peringatan 3 (SP-3)', 'Tidak ada perbaikan setelah SP-2, atau pelanggaran berat', '30 hari kalender', 'SP-3 tertulis; perusahaan mempersiapkan proses PHK sesuai ketentuan hukum yang berlaku'],
+          ['PHK', 'Tidak ada perbaikan setelah SP-3, atau kondisi khusus di bawah', '—', 'PHK dengan hak-hak karyawan sesuai ketentuan UU Cipta Kerja (pesangon, UPMK, UPH)'],
+        ]} />
+
+        <H2>III. Kondisi yang Dapat Menyebabkan PHK</H2>
+        <p className="font-semibold text-gray-700 mb-1">A. Dari Sisi Perusahaan</p>
+        <ul>
+          <li><strong>Efisiensi</strong> — perusahaan melakukan efisiensi untuk mencegah atau mengatasi kerugian; karyawan menerima pesangon sesuai ketentuan.</li>
+          <li><strong>Perusahaan tutup</strong> — akibat kerugian berturut-turut ≥2 tahun, keadaan memaksa (<em>force majeure</em>), PKPU, atau pailit.</li>
+          <li><strong>Aksi korporasi</strong> — penggabungan, peleburan, pengambilalihan, atau pemisahan perusahaan yang mengubah struktur hubungan kerja.</li>
+        </ul>
+        <p className="font-semibold text-gray-700 mb-1 mt-3">B. Dari Sisi Karyawan (Terkait Kinerja & Disiplin)</p>
+        <ul>
+          <li><strong>Performa tidak memenuhi standar secara berkelanjutan</strong> — skor KPI akumulasi di bawah standar minimum (rata-rata &lt;2 atau nilai akumulasi &lt;50%) setelah melalui PIP, SP-1, SP-2, dan SP-3 tanpa perbaikan nyata.</li>
+          <li><strong>Disiplin harian yang diabaikan secara konsisten</strong> — check-in &amp; EOD report tidak diisi selama ≥10 hari kerja dalam 1 bulan tanpa alasan yang sah, setelah mendapat peringatan lisan dan SP-1.</li>
+          <li><strong>Pelanggaran SOP berulang</strong> — melanggar perjanjian kerja, peraturan perusahaan, atau ketentuan dalam dokumen SOP ini, dan telah mendapat SP-1, SP-2, dan SP-3 secara berturut-turut.</li>
+          <li><strong>Mangkir</strong> — tidak hadir kerja selama <strong>5 hari kerja berturut-turut</strong> tanpa keterangan tertulis yang sah dan telah dipanggil 2 kali secara patut dan tertulis; dikategorikan sebagai mengundurkan diri sesuai UU.</li>
+          <li><strong>Ditahan karena tindak pidana</strong> — tidak dapat bekerja selama ≥6 bulan akibat penahanan pihak berwajib terkait dugaan tindak pidana.</li>
+          <li><strong>Pelanggaran berat</strong> (tanpa melalui SP) — penipuan, penggelapan aset perusahaan, tindak kekerasan di lingkungan kerja, atau tindakan yang secara langsung merugikan perusahaan secara material.</li>
+          <li><strong>Mengundurkan diri atas kemauan sendiri (resign)</strong> — diproses sesuai prosedur offboarding (bagian G.II).</li>
+        </ul>
+
+        <H2>IV. Pelanggaran Ringan & Sedang (Tidak Langsung PHK)</H2>
+        <p>Pelanggaran berikut diproses melalui tahapan SP, bukan langsung PHK:</p>
+        <Table headers={['Kategori', 'Contoh', 'Tahap Awal']} rows={[
+          ['Disiplin Harian', 'Tidak check-in ≥3× dalam 1 bulan, tidak submit EOD report ≥5× dalam 1 bulan', 'Peringatan lisan → SP-1 jika berulang'],
+          ['Kinerja', 'Skor KPI < 60 dalam 1 bulan, sering miss deadline tanpa eskalasi', 'PIP → SP-1 jika tidak ada perbaikan'],
+          ['Komunikasi', 'Tidak merespons dalam SLA yang ditetapkan ≥3× tanpa alasan sah', 'Peringatan lisan → SP-1 jika berulang'],
+          ['Penggunaan Aset', 'Membawa aset perusahaan pulang tanpa izin, lalai menjaga aset', 'SP-1 (dengan tuntutan penggantian jika ada kerusakan)'],
+          ['Profesionalisme', 'Perilaku tidak profesional di hadapan klien, konten media sosial yang mencemarkan nama perusahaan', 'SP-1 hingga SP-3 tergantung dampak'],
+        ]} />
+
+        <H2>V. Catatan Penting</H2>
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+          <p className="font-bold mb-2">⚠️ Tidak semua kondisi di atas berarti perusahaan bisa langsung mem-PHK karyawan.</p>
+          <ul className="list-disc list-inside space-y-1">
+            <li>Setiap kasus PHK wajib melalui proses yang sesuai hukum ketenagakerjaan yang berlaku.</li>
+            <li>Hak-hak karyawan (pesangon, uang penghargaan masa kerja, uang penggantian hak) dihitung sesuai UU No. 6 Tahun 2023 dan PP No. 35 Tahun 2021.</li>
+            <li>Alasan PHK yang berbeda menghasilkan hak karyawan yang berbeda pula — HRD wajib berkonsultasi dengan penasihat hukum sebelum proses PHK dijalankan.</li>
+            <li>Seluruh dokumen pembinaan (PIP, SP-1, SP-2, SP-3) wajib terdokumentasi di sistem Watermark PM dan ditandatangani semua pihak.</li>
+          </ul>
+        </div>
+      </Section>
+
+      {/* ══════════════════════════════════════════════════════════════════
           PENUTUP
       ══════════════════════════════════════════════════════════════════ */}
       <div className="mt-10 p-6 bg-gray-900 text-white rounded-xl text-sm">
@@ -302,6 +360,7 @@ function Section({ title, color, children }) {
     yellow: 'bg-yellow-50 border-yellow-300',
     orange: 'bg-orange-50 border-orange-300',
     pink:   'bg-pink-50 border-pink-300',
+    red:    'bg-red-50 border-red-300',
   }
   const titleColors = {
     purple: 'text-purple-800',
@@ -311,6 +370,7 @@ function Section({ title, color, children }) {
     yellow: 'text-yellow-800',
     orange: 'text-orange-800',
     pink:   'text-pink-800',
+    red:    'text-red-800',
   }
   return (
     <div className={`mb-8 rounded-xl border-l-4 ${colors[color]} p-5`}>

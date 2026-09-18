@@ -110,7 +110,7 @@ function AnnouncementBanner() {
   const [dismissed, setDismissed] = useState(new Set())
 
   useEffect(() => {
-    fetch('/api/announcements').then(r => r.json()).then(d => setData(d)).catch(() => {})
+    fetch('/api/announcements?format=dashboard').then(r => r.json()).then(d => setData(d)).catch(() => {})
   }, [])
 
   if (!data) return null
@@ -240,6 +240,45 @@ function AnnouncementBanner() {
   )
 }
 
+function DisciplinaryBanner() {
+  const [records, setRecords] = useState([])
+
+  useEffect(() => {
+    fetch('/api/disciplinary')
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d)) setRecords(d.filter(r => !r.acknowledgedAt))
+      })
+      .catch(() => {})
+  }, [])
+
+  if (records.length === 0) return null
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(120deg, #7f1d1d 0%, #991b1b 50%, #b91c1c 100%)', boxShadow: '0 4px 20px -4px rgba(0,0,0,.3)' }}>
+      <div className="flex items-stretch">
+        <div className="w-1.5 flex-shrink-0" style={{ background: '#fca5a5' }} />
+        <div className="flex-shrink-0 flex items-center justify-center px-3 py-3.5">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl" style={{ background: 'rgba(252,165,165,.25)', border: '2px solid rgba(252,165,165,.4)' }}>
+            📋
+          </div>
+        </div>
+        <div className="flex-1 min-w-0 py-3 pr-3">
+          <div className="text-[9px] font-extrabold tracking-widest uppercase rounded px-1.5 py-0.5 inline-block mb-1" style={{ background: 'rgba(252,165,165,.2)', color: '#fca5a5' }}>
+            Dokumen Pembinaan
+          </div>
+          <p className="text-sm font-extrabold text-red-100">
+            Kamu memiliki {records.length} dokumen pembinaan yang perlu dikonfirmasi
+          </p>
+          <a href="/hr/announcements" className="inline-block mt-2 text-xs font-semibold text-red-200 underline hover:text-white transition-colors">
+            Buka & Konfirmasi →
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -352,6 +391,7 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
         <AnnouncementBanner />
+        <DisciplinaryBanner />
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

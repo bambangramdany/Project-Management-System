@@ -86,6 +86,10 @@ model User {
   npk                    String?
   siblingCount           Int?
   announcements          Announcement[]        @relation("AnnouncementAuthor")
+  announcementTargets    Announcement[]        @relation("AnnouncementTarget")
+  announcementReads      AnnouncementRead[]
+  disciplinaryRecords    DisciplinaryRecord[]  @relation("DisciplinaryTarget")
+  disciplinaryAuthored   DisciplinaryRecord[]  @relation("DisciplinaryAuthor")
   eventRundowns          EventRundown[]
   eventIssues            EventIssue[]
   sopAgreedVersion       String?               // versi SOP terakhir yang disetujui user
@@ -1420,17 +1424,54 @@ model Announcement {
   id          String    @id @default(cuid())
   title       String
   content     String?
-  type        String    @default("INFO") // INFO | BIRTHDAY | WARNING | EVENT
+  type        String    @default("INFO") // INFO | REMINDER | WARNING | EVENT | HOLIDAY
+  targetUserId String?  // null = semua orang, isi = personal
   authorId    String
   author      User      @relation("AnnouncementAuthor", fields: [authorId], references: [id])
+  targetUser  User?     @relation("AnnouncementTarget", fields: [targetUserId], references: [id])
   publishedAt DateTime  @default(now())
   expiresAt   DateTime?
   pinned      Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  reads       AnnouncementRead[]
+
   @@index([publishedAt])
   @@index([expiresAt])
+  @@index([targetUserId])
+}
+
+model AnnouncementRead {
+  id             String       @id @default(cuid())
+  announcementId String
+  userId         String
+  readAt         DateTime     @default(now())
+
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([userId])
+}
+
+model DisciplinaryRecord {
+  id           String    @id @default(cuid())
+  userId       String
+  authorId     String
+  type         String    // PIP | SP1 | SP2 | SP3 | VERBAL_WARNING
+  title        String
+  description  String
+  targetDate   DateTime? // tanggal evaluasi ulang
+  acknowledgedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user         User      @relation("DisciplinaryTarget", fields: [userId], references: [id])
+  author       User      @relation("DisciplinaryAuthor", fields: [authorId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model EventRundown {
