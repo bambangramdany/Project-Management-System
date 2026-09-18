@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import BackButton from '@/components/BackButton'
 
-const GENDER_LABEL = { MALE: 'Laki-laki', FEMALE: 'Perempuan' }
+const GENDER_LABEL = { MALE: 'Laki-laki', FEMALE: 'Perempuan', L: 'Laki-laki', P: 'Perempuan' }
 const MARITAL_LABEL = { SINGLE: 'Belum Menikah', MARRIED: 'Menikah', DIVORCED: 'Cerai' }
 const EDU_LABEL = { SD: 'SD', SMP: 'SMP', SMA: 'SMA/SMK', D1: 'D1', D2: 'D2', D3: 'D3', D4: 'D4', S1: 'S1', S2: 'S2', S3: 'S3' }
 const DIVISI_LABEL = { FINANCE_HRGA: 'Finance & HRGA', EVENT: 'Event', PH: 'Post House', CREATIVE: 'Creative', MANAGEMENT: 'Management' }
