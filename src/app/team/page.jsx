@@ -118,8 +118,12 @@ export default function TeamPage() {
   )
 }
 
+// Email @watermark.co.id yang tetap ditampilkan (bukan personal email)
+const WORK_EMAIL_USERS = ['david@watermark.co.id', 'irham@watermark.co.id', 'wulan@watermark.co.id']
+
 function PersonCard({ u, canDelete, onDelete }) {
   const label = u.role === 'OWNER' ? 'Management' : (u.jobTitle || ROLE_LABEL[u.role])
+  const displayEmail = WORK_EMAIL_USERS.includes(u.email) ? u.email : (u.personalEmail || u.email)
   const [confirming, setConfirming] = useState(false)
 
   async function handleDelete() {
@@ -138,7 +142,7 @@ function PersonCard({ u, canDelete, onDelete }) {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-gray-900">{u.name}</p>
         <p className="text-xs text-gray-500">{label}</p>
-        {u.email && <p className="text-xs text-gray-400 truncate">{u.email}</p>}
+        {displayEmail && <p className="text-xs text-gray-400 truncate">{displayEmail}</p>}
       </div>
       {canDelete && u.role !== 'OWNER' && (
         <button

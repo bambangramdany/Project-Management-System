@@ -13,7 +13,7 @@ export async function GET() {
   const members = await prisma.user.findMany({
     where: { employeeStatus: 'ACTIVE', email: { notIn: HIDDEN_EMAILS } },
     select: {
-      id: true, name: true, email: true, role: true,
+      id: true, name: true, email: true, personalEmail: true, role: true,
       jobTitle: true, divisi: true, phone: true, teamOrder: true,
     },
     orderBy: [{ divisi: 'asc' }, { teamOrder: 'asc' }, { name: 'asc' }],

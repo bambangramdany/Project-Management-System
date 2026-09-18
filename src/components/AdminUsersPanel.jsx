@@ -12,6 +12,8 @@ const ROLE_LABEL = {
 }
 
 const EMPTY_FORM = { name: '', email: '', password: '', role: 'MEMBER', divisi: '', jobTitle: '', phone: '' }
+const WORK_EMAIL_USERS = ['david@watermark.co.id', 'irham@watermark.co.id', 'wulan@watermark.co.id']
+const getDisplayEmail = (u) => WORK_EMAIL_USERS.includes(u.email) ? u.email : (u.personalEmail || u.email)
 
 export default function AdminUsersPanel() {
   const [users, setUsers] = useState([])
@@ -218,7 +220,7 @@ export default function AdminUsersPanel() {
                     <td className="px-4 py-3">
                       <input className="input text-xs" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
                     </td>
-                    <td className="px-4 py-3 text-gray-500">{u.email}</td>
+                    <td className="px-4 py-3 text-gray-500">{getDisplayEmail(u)}</td>
                     <td className="px-4 py-3">
                       <select className="select text-xs" value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}>
                         {Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -251,7 +253,7 @@ export default function AdminUsersPanel() {
                 ) : (
                   <>
                     <td className="px-4 py-3 font-medium text-gray-800">{u.name}</td>
-                    <td className="px-4 py-3 text-gray-500">{u.email}</td>
+                    <td className="px-4 py-3 text-gray-500">{getDisplayEmail(u)}</td>
                     <td className="px-4 py-3 text-gray-700">{ROLE_LABEL[u.role] || u.role}</td>
                     <td className="px-4 py-3 text-gray-700">{u.divisi ? DIVISION_LABEL[u.divisi] : '-'}</td>
                     <td className="px-4 py-3 text-gray-500">{u.jobTitle || '-'}</td>
