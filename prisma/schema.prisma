@@ -116,10 +116,11 @@ model WfoLog {
   @@index([weekDate])
 }
 
-// Jumat Finance Meeting — catatan per minggu
+// Jumat Finance Meeting — catatan per minggu, per tipe meeting
 model FinanceMeetingLog {
   id            String    @id @default(cuid())
   weekDate      String    // YYYY-MM-DD tanggal Jumat minggu itu
+  meetingType   String    @default("FINANCE_EVENT") // FINANCE_EVENT | FINANCE_PH
   authorId      String
   arSummary     String?   // ringkasan Account Receivable yang dibahas
   apPlan        String?   // Account Payable minggu depan
@@ -130,7 +131,7 @@ model FinanceMeetingLog {
 
   author        User      @relation(fields: [authorId], references: [id])
 
-  @@unique([weekDate])
+  @@unique([weekDate, meetingType])
   @@index([weekDate])
 }
 

@@ -3,19 +3,28 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// Roles that must join the Friday finance meeting
-const FINANCE_MEETING_ROLES = ['FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER']
-const FINANCE_MEETING_DIVISI = ['FINANCE_HRGA', 'EVENT', 'PH'] // Creative PM tidak wajib
+// Finance-Event: Finance (FINANCE_HRGA) + Event PM/Producer/Director
+// Finance-PH:    Finance (FINANCE_HRGA) + PH PM/Producer/Director
 
-function isMeetingMember(user) {
-  if (['OWNER', 'DIRECTOR'].includes(user.role) && user.divisi === 'FINANCE_HRGA') return true
-  return FINANCE_MEETING_ROLES.includes(user.role) && FINANCE_MEETING_DIVISI.includes(user.divisi)
+const FINANCE_ROLES = ['FINANCE', 'FINANCE_STAFF']
+const PM_ROLES = ['PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'OWNER']
+
+function getMeetingTypes(user) {
+  const types = []
+  const isFinance = (FINANCE_ROLES.includes(user.role) || ['OWNER', 'DIRECTOR'].includes(user.role))
+    && user.divisi === 'FINANCE_HRGA'
+  const isEvent = PM_ROLES.includes(user.role) && user.divisi === 'EVENT'
+  const isPH    = PM_ROLES.includes(user.role) && user.divisi === 'PH'
+
+  if (isFinance) { types.push('FINANCE_EVENT'); types.push('FINANCE_PH') }
+  if (isEvent)   types.push('FINANCE_EVENT')
+  if (isPH)      types.push('FINANCE_PH')
+  return [...new Set(types)]
 }
 
 function getFridayDate(dateStr) {
   const d = dateStr ? new Date(dateStr) : new Date()
-  const day = d.getDay()
-  const diff = 5 - day // Friday = 5
+  const diff = 5 - d.getDay()
   const fri = new Date(d)
   fri.setDate(d.getDate() + diff)
   return fri.toISOString().slice(0, 10)
@@ -28,23 +37,33 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url)
   const weekDate = searchParams.get('weekDate') || getFridayDate()
   const history = searchParams.get('history') === '1'
+  const types = getMeetingTypes(session.user)
 
   if (history) {
     const logs = await prisma.financeMeetingLog.findMany({
+      where: types.length ? { meetingType: { in: types } } : undefined,
       include: { author: { select: { id: true, name: true } } },
-      orderBy: { weekDate: 'desc' },
-      take: 12,
+      orderBy: [{ weekDate: 'desc' }, { meetingType: 'asc' }],
+      take: 24,
     })
     return NextResponse.json(logs)
   }
 
-  const log = await prisma.financeMeetingLog.findUnique({ where: { weekDate },
+  // Return logs for this week for all types this user cares about
+  const logs = await prisma.financeMeetingLog.findMany({
+    where: { weekDate, meetingType: { in: types.length ? types : ['FINANCE_EVENT', 'FINANCE_PH'] } },
     include: { author: { select: { id: true, name: true } } },
   })
+
+  // Return as a map { FINANCE_EVENT: log|null, FINANCE_PH: log|null }
+  const logMap = {}
+  logs.forEach(l => { logMap[l.meetingType] = l })
+
   return NextResponse.json({
-    log,
     weekDate,
-    isRequired: isMeetingMember(session.user),
+    types,
+    logs: logMap,
+    isRequired: types.length > 0,
   })
 }
 
@@ -52,19 +71,20 @@ export async function POST(req) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (!isMeetingMember(session.user) && session.user.role !== 'OWNER') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const types = getMeetingTypes(session.user)
+  if (!types.length) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  const { weekDate, arSummary, apPlan, notes, attendees } = body
+  const { weekDate, meetingType, arSummary, apPlan, notes, attendees } = body
 
-  if (!weekDate) return NextResponse.json({ error: 'weekDate required' }, { status: 400 })
+  if (!weekDate || !meetingType) return NextResponse.json({ error: 'weekDate and meetingType required' }, { status: 400 })
+  if (!types.includes(meetingType)) return NextResponse.json({ error: 'Forbidden for this meeting type' }, { status: 403 })
 
   const log = await prisma.financeMeetingLog.upsert({
-    where: { weekDate },
+    where: { weekDate_meetingType: { weekDate, meetingType } },
     create: {
       weekDate,
+      meetingType,
       authorId: session.user.id,
       arSummary: arSummary?.trim() || null,
       apPlan: apPlan?.trim() || null,

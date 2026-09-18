@@ -427,6 +427,148 @@ function WfoCard({ wfoLog, onSubmit }) {
   )
 }
 
+// ── Finance Meeting Card ──────────────────────────────────────────────────────
+
+const MEETING_LABEL = {
+  FINANCE_EVENT: { title: 'Finance × Event', color: 'border-emerald-200 bg-emerald-50', header: 'text-emerald-800', sub: 'text-emerald-600', btn: 'bg-emerald-600 hover:bg-emerald-700' },
+  FINANCE_PH:    { title: 'Finance × PH',    color: 'border-amber-200 bg-amber-50',     header: 'text-amber-800',   sub: 'text-amber-600',   btn: 'bg-amber-600 hover:bg-amber-700' },
+}
+
+function FinanceMeetingCard({ meetingType, weekDate, log: initialLog, onSaved }) {
+  const cfg = MEETING_LABEL[meetingType]
+  const [log, setLog] = useState(initialLog || null)
+  const [editing, setEditing] = useState(!initialLog)
+  const [form, setForm] = useState({
+    arSummary: initialLog?.arSummary || '',
+    apPlan:    initialLog?.apPlan    || '',
+    notes:     initialLog?.notes     || '',
+    attendees: initialLog?.attendees || '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  const getFridayStr = () => {
+    if (weekDate) return new Date(weekDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+    const n = new Date(); const diff = 5 - n.getDay(); const f = new Date(n)
+    f.setDate(n.getDate() + diff)
+    return f.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+  }
+
+  async function save() {
+    if (!form.arSummary.trim() && !form.notes.trim()) return
+    setSaving(true)
+    const fri = weekDate || (() => { const n = new Date(); const f = new Date(n); f.setDate(n.getDate() + (5 - n.getDay())); return f.toISOString().slice(0, 10) })()
+    const res = await fetch('/api/programs/finance-meeting', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weekDate: fri, meetingType, ...form }),
+    })
+    if (res.ok) {
+      const saved = await res.json()
+      setLog(saved); setEditing(false)
+      onSaved?.()
+    }
+    setSaving(false)
+  }
+
+  return (
+    <div className={`rounded-2xl border-2 p-4 space-y-3 ${cfg.color}`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className={`text-sm font-bold ${cfg.header}`}>💼 Meeting {cfg.title} — Jumat, {getFridayStr()}</p>
+          <p className={`text-xs mt-0.5 ${cfg.sub}`}>Rekap mingguan A/R · A/P · Catatan</p>
+        </div>
+        {log && !editing && <button onClick={() => setEditing(true)} className={`text-xs underline ${cfg.sub}`}>Edit</button>}
+      </div>
+
+      {log && !editing ? (
+        <div className="space-y-2">
+          {log.arSummary && (
+            <div className="bg-white/70 rounded-xl px-3 py-2">
+              <p className={`text-[10px] font-semibold uppercase tracking-wide ${cfg.sub}`}>A/R Minggu Ini</p>
+              <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-line">{log.arSummary}</p>
+            </div>
+          )}
+          {log.apPlan && (
+            <div className="bg-white/70 rounded-xl px-3 py-2">
+              <p className={`text-[10px] font-semibold uppercase tracking-wide ${cfg.sub}`}>A/P Minggu Depan</p>
+              <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-line">{log.apPlan}</p>
+            </div>
+          )}
+          {log.notes && (
+            <div className="bg-white/70 rounded-xl px-3 py-2">
+              <p className={`text-[10px] font-semibold uppercase tracking-wide ${cfg.sub}`}>Catatan</p>
+              <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-line">{log.notes}</p>
+            </div>
+          )}
+          {log.attendees && (
+            <p className={`text-[11px] ${cfg.sub}`}>Hadir: {log.attendees}</p>
+          )}
+          <p className={`text-[10px] ${cfg.sub}`}>
+            Dicatat oleh {log.author?.name} · {new Date(log.submittedAt).toLocaleDateString('id-ID')}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div>
+            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1 ${cfg.sub}`}>A/R Minggu Ini</p>
+            <textarea value={form.arSummary} onChange={e => setForm({...form, arSummary: e.target.value})}
+              rows={2} placeholder="Ringkasan piutang yang dibahas, tagihan masuk, dll..."
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 resize-none" />
+          </div>
+          <div>
+            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1 ${cfg.sub}`}>A/P Minggu Depan</p>
+            <textarea value={form.apPlan} onChange={e => setForm({...form, apPlan: e.target.value})}
+              rows={2} placeholder="Rencana pembayaran minggu depan..."
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 resize-none" />
+          </div>
+          <div>
+            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1 ${cfg.sub}`}>Catatan Lainnya</p>
+            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})}
+              rows={2} placeholder="Keputusan, tindak lanjut, dll..."
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 resize-none" />
+          </div>
+          <div>
+            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1 ${cfg.sub}`}>Yang Hadir</p>
+            <input value={form.attendees} onChange={e => setForm({...form, attendees: e.target.value})}
+              placeholder="Nama-nama yang hadir, pisahkan dengan koma..."
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300" />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={save} disabled={saving || (!form.arSummary.trim() && !form.notes.trim())}
+              className={`px-4 py-2 text-white text-sm font-bold rounded-xl disabled:opacity-50 transition-colors active:scale-95 ${cfg.btn}`}>
+              {saving ? 'Menyimpan...' : 'Simpan Catatan'}
+            </button>
+            {log && <button onClick={() => setEditing(false)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Batal</button>}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FinanceMeetingSection({ meetingData, onSaved }) {
+  if (!meetingData || !meetingData.types?.length) return null
+  const { types, logs, weekDate } = meetingData
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="w-1 h-4 rounded-full bg-emerald-500 shrink-0" />
+        <span className="text-sm font-bold text-gray-800">Finance Meeting Mingguan</span>
+        <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 font-semibold">{types.length} meeting</span>
+      </div>
+      {types.map(type => (
+        <FinanceMeetingCard
+          key={type}
+          meetingType={type}
+          weekDate={weekDate}
+          log={logs?.[type] || null}
+          onSaved={onSaved}
+        />
+      ))}
+    </div>
+  )
+}
+
 // ── AddTaskForm ───────────────────────────────────────────────────────────────
 
 function AddTaskForm({ projectOptions, onAdd }) {
@@ -561,6 +703,7 @@ export default function MyTasksPage() {
   const [checkIn, setCheckIn] = useState(null)
   const [briefingLog, setBriefingLog] = useState(null)
   const [wfoLog, setWfoLog] = useState(null)
+  const [finMeeting, setFinMeeting] = useState(null)
   const [sharingSessions, setSharingSessions] = useState([])
   const [todayEvents, setTodayEvents] = useState([])
 
@@ -588,6 +731,7 @@ export default function MyTasksPage() {
       const tue = (() => { const n = new Date(); const d2 = 2-n.getDay(); const t = new Date(n); t.setDate(n.getDate()+d2); return t.toISOString().slice(0,10) })()
       fetch(`/api/programs/wfo?weekDate=${tue}`).then(r => r.ok ? r.json() : null).then(d => { if (d) setWfoLog(d.log || null) })
     }
+    fetch('/api/programs/finance-meeting').then(r => r.ok ? r.json() : null).then(d => { if (d?.types?.length) setFinMeeting(d) })
     fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setSharingSessions(d) })
     fetch('/api/event-day').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setTodayEvents(d) })
     load()
@@ -754,6 +898,9 @@ export default function MyTasksPage() {
             <WfoCard wfoLog={wfoLog} onSubmit={handleWfoSubmit} />
           )}
 
+          <FinanceMeetingSection meetingData={finMeeting}
+            onSaved={() => fetch('/api/programs/finance-meeting').then(r => r.ok ? r.json() : null).then(d => { if (d) setFinMeeting(d) })} />
+
           {mySharing.length > 0 && <MySharingSessionCard sessions={mySharing} onUpdate={() => fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setSharingSessions(d))} />}
 
           {todayEvents.length > 0 && (
@@ -871,6 +1018,10 @@ export default function MyTasksPage() {
         {new Date().getDay() === 2 && WFO_DIVISI_LIST.includes(session?.user?.divisi) && (
           <WfoCard wfoLog={wfoLog} onSubmit={handleWfoSubmit} />
         )}
+
+        {/* ── Finance Meeting Mingguan ── */}
+        <FinanceMeetingSection meetingData={finMeeting}
+          onSaved={() => fetch('/api/programs/finance-meeting').then(r => r.ok ? r.json() : null).then(d => { if (d) setFinMeeting(d) })} />
 
         {/* ── Event Day Mode ── */}
         {todayEvents.length > 0 && (
