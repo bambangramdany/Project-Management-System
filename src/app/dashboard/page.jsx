@@ -240,6 +240,97 @@ function AnnouncementBanner() {
   )
 }
 
+function ProgramReminderBanner({ session }) {
+  const [todayDay] = useState(() => new Date().getDay()) // 0=Sun,2=Tue,5=Fri
+  const [wfoLog, setWfoLog] = useState(undefined)
+  const [briefingLog, setBriefingLog] = useState(undefined)
+  const [finLog, setFinLog] = useState(undefined)
+
+  const WFO_DIVISI = ['EVENT', 'PH', 'CREATIVE']
+  const needsWfo = WFO_DIVISI.includes(session?.user?.divisi) && todayDay === 2
+  const needsFin = (
+    ['FINANCE','FINANCE_STAFF'].includes(session?.user?.role) ||
+    (session?.user?.role === 'PROJECT_MANAGER' && ['EVENT','PH'].includes(session?.user?.divisi)) ||
+    session?.user?.role === 'OWNER' ||
+    (session?.user?.role === 'DIRECTOR' && session?.user?.divisi === 'FINANCE_HRGA')
+  ) && todayDay === 5
+  const isWeekend = todayDay === 0 || todayDay === 6
+
+  const today = new Date().toISOString().slice(0, 10)
+  function getTuesdayDate() {
+    const d = new Date(); const diff = 2 - d.getDay(); const t = new Date(d); t.setDate(d.getDate() + diff); return t.toISOString().slice(0,10)
+  }
+  function getFridayDate() {
+    const d = new Date(); const diff = 5 - d.getDay(); const t = new Date(d); t.setDate(d.getDate() + diff); return t.toISOString().slice(0,10)
+  }
+
+  useEffect(() => {
+    if (isWeekend) return
+    fetch(`/api/programs/briefing?date=${today}`).then(r => r.json()).then(d => setBriefingLog(d.log)).catch(() => setBriefingLog(null))
+    if (needsWfo) fetch(`/api/programs/wfo?weekDate=${getTuesdayDate()}`).then(r => r.json()).then(d => setWfoLog(d.log)).catch(() => setWfoLog(null))
+    if (needsFin) fetch(`/api/programs/finance-meeting?weekDate=${getFridayDate()}`).then(r => r.json()).then(d => setFinLog(d.log)).catch(() => setFinLog(null))
+  }, [today, needsWfo, needsFin, isWeekend])
+
+  const banners = []
+
+  if (!isWeekend && briefingLog === null) {
+    banners.push({
+      gradient: 'linear-gradient(120deg, #0c4a6e 0%, #075985 50%, #0369a1 100%)',
+      rail: '#38bdf8', icon: '☀️',
+      tag: 'Morning Briefing 08:00 WIB',
+      title: 'Catat kehadiran Morning Briefing hari ini',
+      link: '/programs',
+    })
+  }
+
+  if (needsWfo && wfoLog === null) {
+    banners.push({
+      gradient: 'linear-gradient(120deg, #3b0764 0%, #4c1d95 50%, #5b21b6 100%)',
+      rail: '#c4b5fd', icon: '🏢',
+      tag: 'WFO Selasa — Konsolidasi Divisi',
+      title: 'Hari ini Selasa — Isi konfirmasi kehadiran WFO',
+      link: '/programs',
+    })
+  }
+
+  if (needsFin && finLog === null) {
+    banners.push({
+      gradient: 'linear-gradient(120deg, #064e3b 0%, #065f46 50%, #047857 100%)',
+      rail: '#6ee7b7', icon: '💼',
+      tag: 'Meeting Keuangan Jumat',
+      title: 'Isi catatan AR/AP meeting keuangan minggu ini',
+      link: '/programs',
+    })
+  }
+
+  if (banners.length === 0) return null
+
+  return (
+    <>
+      {banners.map((b, i) => (
+        <a key={i} href={b.link} className="block rounded-2xl overflow-hidden no-underline"
+          style={{ background: b.gradient, boxShadow: '0 4px 20px -4px rgba(0,0,0,.25)' }}>
+          <div className="flex items-stretch">
+            <div className="w-1.5 flex-shrink-0" style={{ background: b.rail }} />
+            <div className="flex-shrink-0 flex items-center justify-center px-3 py-3.5">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
+                style={{ background: 'rgba(255,255,255,.18)', border: '2px solid rgba(255,255,255,.3)' }}>
+                {b.icon}
+              </div>
+            </div>
+            <div className="flex-1 min-w-0 py-3 pr-3">
+              <div className="text-[9px] font-extrabold tracking-widest uppercase rounded px-1.5 py-0.5 inline-block mb-1"
+                style={{ background: 'rgba(255,255,255,.18)', color: 'rgba(255,255,255,.85)' }}>{b.tag}</div>
+              <p className="text-sm font-extrabold text-white">{b.title}</p>
+              <p className="text-xs text-white/70 mt-0.5">Klik untuk buka Program Mingguan →</p>
+            </div>
+          </div>
+        </a>
+      ))}
+    </>
+  )
+}
+
 function DisciplinaryBanner() {
   const [records, setRecords] = useState([])
 
@@ -392,6 +483,7 @@ export default function DashboardPage() {
 
         <AnnouncementBanner />
         <DisciplinaryBanner />
+        <ProgramReminderBanner session={session} />
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
