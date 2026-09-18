@@ -119,7 +119,7 @@ export default function TeamPage() {
 }
 
 // Email @watermark.co.id yang tetap ditampilkan (bukan personal email)
-const WORK_EMAIL_USERS = ['david@watermark.co.id', 'irham@watermark.co.id', 'wulan@watermark.co.id']
+const WORK_EMAIL_USERS = ['bambang@watermark.co.id', 'david@watermark.co.id', 'irham@watermark.co.id', 'wulan@watermark.co.id']
 
 function PersonCard({ u, canDelete, onDelete }) {
   const label = u.role === 'OWNER' ? 'Management' : (u.jobTitle || ROLE_LABEL[u.role])

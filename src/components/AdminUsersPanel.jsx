@@ -12,7 +12,7 @@ const ROLE_LABEL = {
 }
 
 const EMPTY_FORM = { name: '', email: '', password: '', role: 'MEMBER', divisi: '', jobTitle: '', phone: '' }
-const WORK_EMAIL_USERS = ['david@watermark.co.id', 'irham@watermark.co.id', 'wulan@watermark.co.id']
+const WORK_EMAIL_USERS = ['bambang@watermark.co.id', 'david@watermark.co.id', 'irham@watermark.co.id', 'wulan@watermark.co.id']
 const getDisplayEmail = (u) => WORK_EMAIL_USERS.includes(u.email) ? u.email : (u.personalEmail || u.email)
 
 export default function AdminUsersPanel() {
