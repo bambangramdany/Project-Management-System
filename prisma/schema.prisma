@@ -96,6 +96,8 @@ model User {
   briefingLogs           BriefingLog[]
   eventRundowns          EventRundown[]
   eventIssues            EventIssue[]
+  meetingNoteAuthored    MeetingNote[]         @relation("MeetingNoteAuthor")
+  meetingActionItems     MeetingActionItem[]   @relation("ActionItemAssignee")
   sopAgreedVersion       String?               // versi SOP terakhir yang disetujui user
   sopAgreedAt            DateTime?             // waktu persetujuan SOP terakhir
 }
@@ -716,6 +718,7 @@ model Project {
   milestones ProjectMilestone[]
   rundown   EventRundown[]
   issues    EventIssue[]
+  meetingNotes MeetingNote[]
 
   @@index([status])
   @@index([division])
@@ -853,6 +856,7 @@ model Task {
 
   progressUpdates ProgressUpdate[]
   comments        TaskComment[]
+  meetingActionItem MeetingActionItem?
 
   @@index([projectId])
 }
@@ -1556,6 +1560,42 @@ model EventRundown {
   createdBy User     @relation(fields: [createdById], references: [id])
 
   @@index([projectId])
+}
+
+model MeetingNote {
+  id          String   @id @default(cuid())
+  projectId   String
+  date        DateTime
+  type        String   // CLIENT | INTERNAL
+  title       String
+  attendees   String?  // JSON array of user IDs
+  notes       String?
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation("MeetingNoteAuthor", fields: [createdById], references: [id])
+  actionItems MeetingActionItem[]
+
+  @@index([projectId])
+  @@index([createdAt])
+}
+
+model MeetingActionItem {
+  id            String   @id @default(cuid())
+  meetingNoteId String
+  description   String
+  assigneeId    String?
+  dueDate       DateTime?
+  taskId        String?  @unique
+  createdAt     DateTime @default(now())
+
+  meetingNote   MeetingNote @relation(fields: [meetingNoteId], references: [id], onDelete: Cascade)
+  assignee      User?    @relation("ActionItemAssignee", fields: [assigneeId], references: [id])
+  task          Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([meetingNoteId])
 }
 
 model EventIssue {

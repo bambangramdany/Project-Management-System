@@ -23,9 +23,9 @@ export default function ProjectDetailPage() {
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search)
-      return p.get('tab') || 'tasks'
+      return p.get('tab') || 'team'
     }
-    return 'tasks'
+    return 'team'
   })
   const [isNewProject] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -313,7 +313,7 @@ export default function ProjectDetailPage() {
                 📄 Buat Quotation Baru untuk Project Ini
               </Link>
               <button
-                onClick={() => { setActiveTab('quotation'); setNextStepsDismissed(true) }}
+                onClick={() => { setActiveTab('finance'); setNextStepsDismissed(true) }}
                 className="text-sm px-4 py-2 rounded-lg border border-green-300 text-green-700 hover:bg-green-100">
                 🔗 Tautkan Quotation yang Sudah Ada
               </button>
@@ -559,12 +559,12 @@ export default function ProjectDetailPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-gray-200 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
-          {['tasks', 'timeline', 'vendors', 'quotation', ...(isManager ? ['profitability'] : []), 'team', 'activity', 'info', ...(canScoreProject(session?.user, project) ? ['bonus'] : [])].map(tab => (
+          {['team', 'tasks', 'timeline', 'vendors', 'ringkasan', 'finance', ...(canScoreProject(session?.user, project) ? ['bonus'] : [])].map(tab => (
             <button
               key={tab}
               onClick={() => {
                 setActiveTab(tab)
-                if (tab === 'activity' && !activityLoaded) {
+                if ((tab === 'ringkasan') && !activityLoaded) {
                   fetch(`/api/projects/${id}/activity`).then(r => r.ok ? r.json() : []).then(data => {
                     setActivity(Array.isArray(data) ? data : [])
                     setActivityLoaded(true)
@@ -575,7 +575,7 @@ export default function ProjectDetailPage() {
                 activeTab === tab ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
               }`}
             >
-              {tab === 'tasks' ? `Tasks (${totalTasks})` : tab === 'timeline' ? 'Timeline' : tab === 'vendors' ? 'Vendor AVL' : tab === 'quotation' ? 'Quotation' : tab === 'profitability' ? 'Profitabilitas' : tab === 'team' ? `Tim (${(project.members?.length || 0) + (project.pic ? 1 : 0)})` : tab === 'bonus' ? 'Penilaian Tim' : tab === 'activity' ? 'Aktivitas' : 'Info'}
+              {tab === 'team' ? `Tim (${(project.members?.length || 0) + (project.pic ? 1 : 0)})` : tab === 'tasks' ? `Tasks (${totalTasks})` : tab === 'timeline' ? 'Timeline' : tab === 'vendors' ? 'Vendor AVL' : tab === 'ringkasan' ? 'Ringkasan' : tab === 'finance' ? 'Finance' : tab === 'bonus' ? 'Penilaian Tim' : tab}
             </button>
           ))}
         </div>
@@ -742,13 +742,18 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
-        {/* TAB: Quotation */}
-        {activeTab === 'quotation' && (
-          <QuotationProjectTab
-            project={project}
-            session={session}
-            onProjectUpdated={fetchProject}
-          />
+        {/* TAB: Finance (Quotation + Profitabilitas) */}
+        {activeTab === 'finance' && (
+          <div className="space-y-4">
+            <QuotationProjectTab
+              project={project}
+              session={session}
+              onProjectUpdated={fetchProject}
+            />
+            {isManager && (
+              <ProjectProfitabilityTab project={project} />
+            )}
+          </div>
         )}
 
         {/* TAB: Team */}
@@ -810,21 +815,65 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
-        {/* TAB: Activity feed */}
-        {activeTab === 'activity' && (
-          <div className="card divide-y divide-gray-50 border-t-4 border-brand-400">
-            {!activityLoaded && <p className="text-sm text-gray-400 text-center py-8">Memuat...</p>}
-            {activityLoaded && activity.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-8">Belum ada aktivitas tercatat</p>
-            )}
-            {activity.map(log => (
-              <div key={log.id} className="px-4 py-3">
-                <p className="text-sm text-gray-800">{log.summary}</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {new Date(log.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
-                </p>
+        {/* TAB: Ringkasan (Info + Aktivitas) */}
+        {activeTab === 'ringkasan' && (
+          <div className="space-y-4">
+            <div className="card p-5 space-y-4 border-t-4 border-emerald-400">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <InfoRow label="Client" value={project.client?.name} />
+                <InfoRow label="Industri" value={project.client?.industry} />
+                <InfoRow label="PIC" value={project.pic?.name} />
+                <InfoRow label="Kategori" value={CATEGORY_LABEL[project.category]} />
+                <InfoRow label="Budget Tier" value={project.budgetTier} />
+                <InfoRow label="Kompleksitas" value={project.eventComplexity} />
+                <InfoRow label="Tanggal Brief" value={project.briefDate ? new Date(project.briefDate).toLocaleDateString('id-ID') : null} />
+                <InfoRow label="Tanggal Submit" value={project.submitDate ? new Date(project.submitDate).toLocaleDateString('id-ID') : null} />
+                <InfoRow label="Durasi Pitch" value={project.pitchDuration ? `${project.pitchDuration} hari` : null} />
+                <InfoRow label="Tanggal Event" value={project.startDate ? new Date(project.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : null} />
+                <InfoRow label="Tanggal Selesai" value={project.endDate ? new Date(project.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : null} />
+                <InfoRow label="Durasi" value={project.projectDuration ? `${project.projectDuration} hari` : null} />
+                <InfoRow label="Hari Loading / GR" value={project.loadInDays ? `${project.loadInDays} hari` : null} />
+                <InfoRow label="Divisi" value={DIVISION_LABEL[project.division] || project.division} />
+                <InfoRow label="Pitch Status" value={project.pitchStatus?.replace('_', ' ')} />
+                <InfoRow label="Hasil Pitch" value={project.pitchResult?.replace('_', ' ')} />
+                <InfoRow label="Alasan Menang/Kalah" value={project.wonLossReason} />
+                {project.vendorWinner && <InfoRow label="Vendor Pemenang" value={project.vendorWinner} />}
               </div>
-            ))}
+              {project.notes && (
+                <div className="pt-4 border-t border-gray-100">
+                  <p className="text-xs text-gray-500 mb-1">Catatan</p>
+                  <p className="text-sm text-gray-700">{project.notes}</p>
+                </div>
+              )}
+              <EvaluationNote project={project} setProject={setProject} isManager={isManager} />
+            </div>
+
+            <QuotationInvoiceInfoSection
+              project={project}
+              isManager={isManager}
+              canFinance={['OWNER','FINANCE','FINANCE_STAFF','DIRECTOR'].includes(session?.user?.role)}
+              fetchProject={fetchProject}
+            />
+
+            <ClientBriefSection project={project} setProject={setProject} isManager={isManager} fetchProject={fetchProject} />
+
+            <div className="card divide-y divide-gray-50 border-t-4 border-brand-400">
+              <div className="px-4 py-3">
+                <p className="text-sm font-semibold text-gray-700">Aktivitas Project</p>
+              </div>
+              {!activityLoaded && <p className="text-sm text-gray-400 text-center py-8">Memuat...</p>}
+              {activityLoaded && activity.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-8">Belum ada aktivitas tercatat</p>
+              )}
+              {activity.map(log => (
+                <div key={log.id} className="px-4 py-3">
+                  <p className="text-sm text-gray-800">{log.summary}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {new Date(log.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -834,64 +883,13 @@ export default function ProjectDetailPage() {
         )}
 
         {activeTab === 'timeline' && (
-          <ProjectTimelineTab project={project} />
+          <ProjectTimelineTab project={project} session={session} team={team} />
         )}
 
         {activeTab === 'vendors' && (
           <VendorShortlistTab project={project} />
         )}
 
-        {activeTab === 'profitability' && (
-          <ProjectProfitabilityTab project={project} />
-        )}
-
-        {/* TAB: Info */}
-        {activeTab === 'info' && (
-          <div className="card p-5 space-y-4 border-t-4 border-emerald-400">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <InfoRow label="Client" value={project.client?.name} />
-              <InfoRow label="Industri" value={project.client?.industry} />
-              <InfoRow label="PIC" value={project.pic?.name} />
-              <InfoRow label="Kategori" value={CATEGORY_LABEL[project.category]} />
-              <InfoRow label="Budget Tier" value={project.budgetTier} />
-              <InfoRow label="Kompleksitas" value={project.eventComplexity} />
-              <InfoRow label="Tanggal Brief" value={project.briefDate ? new Date(project.briefDate).toLocaleDateString('id-ID') : null} />
-              <InfoRow label="Tanggal Submit" value={project.submitDate ? new Date(project.submitDate).toLocaleDateString('id-ID') : null} />
-              <InfoRow label="Durasi Pitch" value={project.pitchDuration ? `${project.pitchDuration} hari` : null} />
-              <InfoRow label="Tanggal Event" value={project.startDate ? new Date(project.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : null} />
-              <InfoRow label="Tanggal Selesai" value={project.endDate ? new Date(project.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : null} />
-              <InfoRow label="Durasi" value={project.projectDuration ? `${project.projectDuration} hari` : null} />
-              <InfoRow label="Hari Loading / GR" value={project.loadInDays ? `${project.loadInDays} hari` : null} />
-              <InfoRow label="Divisi" value={DIVISION_LABEL[project.division] || project.division} />
-              <InfoRow label="Pitch Status" value={project.pitchStatus?.replace('_', ' ')} />
-              <InfoRow label="Hasil Pitch" value={project.pitchResult?.replace('_', ' ')} />
-              <InfoRow label="Alasan Menang/Kalah" value={project.wonLossReason} />
-              {project.vendorWinner && <InfoRow label="Vendor Pemenang" value={project.vendorWinner} />}
-            </div>
-            {project.notes && (
-              <div className="pt-4 border-t border-gray-100">
-                <p className="text-xs text-gray-500 mb-1">Catatan</p>
-                <p className="text-sm text-gray-700">{project.notes}</p>
-              </div>
-            )}
-            <EvaluationNote project={project} setProject={setProject} isManager={isManager} />
-          </div>
-        )}
-
-        {/* TAB: Info — Quotation & Invoice tracking (pre-launch data) */}
-        {activeTab === 'info' && (
-          <QuotationInvoiceInfoSection
-            project={project}
-            isManager={isManager}
-            canFinance={['OWNER','FINANCE','FINANCE_STAFF','DIRECTOR'].includes(session?.user?.role)}
-            fetchProject={fetchProject}
-          />
-        )}
-
-        {/* TAB: Info — client brief */}
-        {activeTab === 'info' && (
-          <ClientBriefSection project={project} setProject={setProject} isManager={isManager} fetchProject={fetchProject} />
-        )}
 
       </main>
     </div>

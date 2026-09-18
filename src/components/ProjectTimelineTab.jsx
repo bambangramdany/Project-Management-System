@@ -25,13 +25,66 @@ function projectKeyDates(project) {
   return entries
 }
 
-export default function ProjectTimelineTab({ project }) {
+const EMPTY_MOM = { date: '', type: 'CLIENT', title: '', attendees: [], notes: '', actionItems: [] }
+const EMPTY_ACTION = { description: '', assigneeId: '', dueDate: '' }
+
+export default function ProjectTimelineTab({ project, session, team }) {
   const [milestones, setMilestones] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [editItem, setEditItem] = useState(null)
   const [form, setForm] = useState({ title: '', date: '', color: 'violet', note: '' })
   const [saving, setSaving] = useState(false)
+
+  // MoM state
+  const [meetingNotes, setMeetingNotes] = useState([])
+  const [momLoaded, setMomLoaded] = useState(false)
+  const [showMomForm, setShowMomForm] = useState(false)
+  const [momForm, setMomForm] = useState(EMPTY_MOM)
+  const [savingMom, setSavingMom] = useState(false)
+  const [expandedNote, setExpandedNote] = useState(null)
+
+  const canWriteMom = session && ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'PROJECT_OFFICER'].includes(session.user?.role)
+
+  async function loadMom() {
+    const res = await fetch(`/api/projects/${project.id}/meeting-notes`)
+    if (res.ok) {
+      setMeetingNotes(await res.json())
+      setMomLoaded(true)
+    }
+  }
+
+  useEffect(() => { loadMom() }, [project.id])
+
+  async function saveMom() {
+    if (!momForm.date || !momForm.title.trim()) { alert('Tanggal dan judul wajib diisi'); return }
+    const validItems = momForm.actionItems.filter(a => a.description.trim())
+    setSavingMom(true)
+    try {
+      const res = await fetch(`/api/projects/${project.id}/meeting-notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...momForm, actionItems: validItems }),
+      })
+      if (res.ok) {
+        setShowMomForm(false)
+        setMomForm(EMPTY_MOM)
+        loadMom()
+      }
+    } finally { setSavingMom(false) }
+  }
+
+  async function deleteMom(noteId) {
+    if (!confirm('Hapus catatan meeting ini?')) return
+    await fetch(`/api/projects/${project.id}/meeting-notes/${noteId}`, { method: 'DELETE' })
+    loadMom()
+  }
+
+  async function convertToTask(noteId, itemId) {
+    const res = await fetch(`/api/projects/${project.id}/meeting-notes/${noteId}/action-items/${itemId}/convert-task`, { method: 'POST' })
+    if (res.ok) loadMom()
+    else { const d = await res.json(); alert(d.error || 'Gagal membuat task') }
+  }
 
   async function load() {
     setLoading(true)
@@ -238,6 +291,144 @@ export default function ProjectTimelineTab({ project }) {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Minutes of Meeting ── */}
+      <div className="card border-t-4 border-sky-400">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Minutes of Meeting (MoM)</p>
+            <p className="text-xs text-gray-400">Catatan rapat klien maupun internal</p>
+          </div>
+          {canWriteMom && !showMomForm && (
+            <button onClick={() => setShowMomForm(true)} className="btn-primary text-xs px-3 py-1.5">+ Tambah MoM</button>
+          )}
+        </div>
+
+        {/* MoM Form */}
+        {showMomForm && (
+          <div className="border-t border-gray-100 p-4 space-y-3 bg-gray-50">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="label">Tanggal Meeting</label>
+                <input type="date" className="input" value={momForm.date} onChange={e => setMomForm(f => ({ ...f, date: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Tipe</label>
+                <select className="select" value={momForm.type} onChange={e => setMomForm(f => ({ ...f, type: e.target.value }))}>
+                  <option value="CLIENT">Meeting Klien</option>
+                  <option value="INTERNAL">Brainstorming Internal</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Judul / Agenda Utama</label>
+                <input className="input" placeholder="cth: Kick-off Meeting" value={momForm.title} onChange={e => setMomForm(f => ({ ...f, title: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <label className="label">Catatan / Hasil Diskusi</label>
+              <textarea className="input min-h-[80px] resize-none" placeholder="Tulis poin-poin pembahasan..." value={momForm.notes} onChange={e => setMomForm(f => ({ ...f, notes: e.target.value }))} />
+            </div>
+
+            {/* Action Items */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="label mb-0">Action Items</label>
+                <button onClick={() => setMomForm(f => ({ ...f, actionItems: [...f.actionItems, { ...EMPTY_ACTION }] }))} className="text-xs text-brand-600 hover:underline">+ Tambah</button>
+              </div>
+              {momForm.actionItems.map((item, idx) => (
+                <div key={idx} className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-2 items-start">
+                  <div className="sm:col-span-2">
+                    <input className="input text-sm" placeholder="Deskripsi action item..." value={item.description}
+                      onChange={e => setMomForm(f => ({ ...f, actionItems: f.actionItems.map((a, i) => i === idx ? { ...a, description: e.target.value } : a) }))} />
+                  </div>
+                  <div>
+                    <select className="select text-sm" value={item.assigneeId}
+                      onChange={e => setMomForm(f => ({ ...f, actionItems: f.actionItems.map((a, i) => i === idx ? { ...a, assigneeId: e.target.value } : a) }))}>
+                      <option value="">Pilih PIC...</option>
+                      {(team || []).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex gap-1">
+                    <input type="date" className="input text-sm flex-1" value={item.dueDate}
+                      onChange={e => setMomForm(f => ({ ...f, actionItems: f.actionItems.map((a, i) => i === idx ? { ...a, dueDate: e.target.value } : a) }))} />
+                    <button onClick={() => setMomForm(f => ({ ...f, actionItems: f.actionItems.filter((_, i) => i !== idx) }))} className="text-gray-300 hover:text-red-400 text-sm px-1">✕</button>
+                  </div>
+                </div>
+              ))}
+              {momForm.actionItems.length === 0 && <p className="text-xs text-gray-400">Belum ada action item.</p>}
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={saveMom} disabled={savingMom} className="btn-primary text-sm">{savingMom ? 'Menyimpan...' : 'Simpan MoM'}</button>
+              <button onClick={() => { setShowMomForm(false); setMomForm(EMPTY_MOM) }} className="text-sm text-gray-400 hover:underline">Batal</button>
+            </div>
+          </div>
+        )}
+
+        {/* MoM List */}
+        {!momLoaded && <p className="text-sm text-gray-400 text-center py-6">Memuat...</p>}
+        {momLoaded && meetingNotes.length === 0 && !showMomForm && (
+          <p className="text-sm text-gray-400 text-center py-6">Belum ada catatan meeting</p>
+        )}
+        {meetingNotes.map(note => (
+          <div key={note.id} className="border-t border-gray-100">
+            <button
+              className="w-full px-4 py-3 text-left flex items-start gap-3 hover:bg-gray-50 transition-colors"
+              onClick={() => setExpandedNote(expandedNote === note.id ? null : note.id)}
+            >
+              <div className={`mt-0.5 w-2.5 h-2.5 rounded-full shrink-0 ${note.type === 'CLIENT' ? 'bg-sky-400' : 'bg-purple-400'}`} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium text-gray-800">{note.title}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${note.type === 'CLIENT' ? 'bg-sky-50 text-sky-600' : 'bg-purple-50 text-purple-600'}`}>
+                    {note.type === 'CLIENT' ? 'Klien' : 'Internal'}
+                  </span>
+                  {note.actionItems?.length > 0 && (
+                    <span className="text-[10px] text-gray-400">{note.actionItems.length} action item</span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {fmtDate(note.date)} · oleh {note.createdBy?.name}
+                </p>
+              </div>
+              <span className="text-gray-300 text-xs">{expandedNote === note.id ? '▲' : '▼'}</span>
+            </button>
+
+            {expandedNote === note.id && (
+              <div className="px-4 pb-4 space-y-3">
+                {note.notes && (
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 mb-1 font-medium">Catatan Diskusi</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.notes}</p>
+                  </div>
+                )}
+                {note.actionItems?.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium mb-2">Action Items</p>
+                    <div className="space-y-1.5">
+                      {note.actionItems.map(item => (
+                        <div key={item.id} className="flex items-center gap-2 text-sm">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${item.task ? 'bg-green-400' : 'bg-gray-200'}`} />
+                          <span className={`flex-1 ${item.task?.status === 'DONE' ? 'line-through text-gray-400' : 'text-gray-700'}`}>{item.description}</span>
+                          {item.assignee && <span className="text-xs text-gray-400 shrink-0">{item.assignee.name}</span>}
+                          {item.dueDate && <span className="text-xs text-gray-400 shrink-0">{fmtDate(item.dueDate)}</span>}
+                          {!item.taskId && canWriteMom && (
+                            <button onClick={() => convertToTask(note.id, item.id)} className="text-[10px] text-brand-600 hover:underline shrink-0 whitespace-nowrap">→ Buat Task</button>
+                          )}
+                          {item.taskId && <span className="text-[10px] text-green-600 shrink-0">✓ Task dibuat</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {canWriteMom && (
+                  <button onClick={() => deleteMom(note.id)} className="text-xs text-red-400 hover:underline">Hapus catatan ini</button>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   )
