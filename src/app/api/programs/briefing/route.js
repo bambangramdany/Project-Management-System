@@ -23,7 +23,7 @@ export async function GET(req) {
       orderBy: { loggedAt: 'asc' },
     })
     // Get total active users for attendance rate
-    const totalUsers = await prisma.user.count({ where: { active: true } })
+    const totalUsers = await prisma.user.count({ where: { employeeStatus: 'ACTIVE' } })
     return NextResponse.json({ logs, date, totalUsers })
   }
 

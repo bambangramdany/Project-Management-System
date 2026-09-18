@@ -15,7 +15,7 @@ export async function GET() {
     where: {
       startDate: { lte: todayEnd },
       endDate:   { gte: todayStart },
-      status:    { in: ['ON_GOING', 'PRODUCTION', 'HOLD'] },
+      status:    { in: ['PREPARATION', 'EVENT_DAY', 'REPORTING', 'HOLD'] },
       OR: [
         { picId: session.user.id },
         { members: { some: { userId: session.user.id } } },

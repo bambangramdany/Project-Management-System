@@ -35,7 +35,7 @@ export async function GET(req) {
       : { divisi: session.user.divisi }
 
     const users = await prisma.user.findMany({
-      where: { ...whereDiv, active: true },
+      where: { ...whereDiv, employeeStatus: 'ACTIVE' },
       select: { id: true, name: true, role: true, divisi: true,
         wfoLogs: { where: { weekDate }, select: { status: true, reason: true, altTime: true, submittedAt: true } }
       },
