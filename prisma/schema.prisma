@@ -92,6 +92,7 @@ model User {
   disciplinaryAuthored   DisciplinaryRecord[]  @relation("DisciplinaryAuthor")
   wfoLogs                WfoLog[]
   financeMeetingLogs     FinanceMeetingLog[]
+  financeMeetingAttendances FinanceMeetingAttendee[]
   briefingLogs           BriefingLog[]
   eventRundowns          EventRundown[]
   eventIssues            EventIssue[]
@@ -129,10 +130,23 @@ model FinanceMeetingLog {
   submittedAt   DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  author        User      @relation(fields: [authorId], references: [id])
+  author          User                     @relation(fields: [authorId], references: [id])
+  attendeeRecords FinanceMeetingAttendee[]
 
   @@unique([weekDate, meetingType])
   @@index([weekDate])
+}
+
+model FinanceMeetingAttendee {
+  id           String            @id @default(cuid())
+  meetingLogId String
+  userId       String
+
+  meetingLog   FinanceMeetingLog @relation(fields: [meetingLogId], references: [id], onDelete: Cascade)
+  user         User              @relation(fields: [userId], references: [id])
+
+  @@unique([meetingLogId, userId])
+  @@index([userId])
 }
 
 // Morning Briefing — log kehadiran harian
