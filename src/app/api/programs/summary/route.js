@@ -69,7 +69,7 @@ export async function GET(req) {
       where: { date: today },
       include: { user: { select: { id: true, name: true, role: true, divisi: true } } },
       orderBy: { loggedAt: 'asc' },
-    }) : null,
+    }) : Promise.resolve(null),
 
     // Personal WFO log
     needsWfo ? prisma.wfoLog.findUnique({
@@ -78,7 +78,7 @@ export async function GET(req) {
 
     // Team WFO data for directors
     isDirector ? prisma.user.findMany({
-      where: { active: true, divisi: { in: WFO_DIVISIONS } },
+      where: { employeeStatus: 'ACTIVE', divisi: { in: WFO_DIVISIONS } },
       select: {
         id: true, name: true, role: true, divisi: true,
         wfoLogs: { where: { weekDate: wfoDate }, take: 1 },
@@ -93,7 +93,7 @@ export async function GET(req) {
     }) : null,
 
     // Total active users for briefing rate
-    isAdmin ? prisma.user.count({ where: { active: true } }) : null,
+    isAdmin ? prisma.user.count({ where: { employeeStatus: 'ACTIVE' } }) : Promise.resolve(null),
   ])
 
   return NextResponse.json({
