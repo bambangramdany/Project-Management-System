@@ -38,7 +38,6 @@ const NAV_ITEMS = [
   // ── Referensi ──
   { href: '/peraturan', label: 'SOP & Peraturan' },
   { href: '/hr/announcements', label: 'Pengumuman & HR' },
-  { href: '/programs', label: 'Program Mingguan' },
 
   // ── Admin ──
   { href: '/hrd/evaluations', label: 'Input HRD', hrdOnly: true },

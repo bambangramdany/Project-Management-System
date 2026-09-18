@@ -220,9 +220,16 @@ function TaskCard({ item, onSave, readOnly = false, onDelete }) {
   )
 }
 
-// ── CheckInCard ───────────────────────────────────────────────────────────────
+// ── CheckInCard (Morning Briefing terintegrasi) ───────────────────────────────
 
-function CheckInCard({ checkIn, onMorningAck, onEveningSubmit }) {
+const WFO_DIVISI_LIST = ['EVENT', 'PH', 'CREATIVE']
+
+function hourWIBNow() {
+  const wib = new Date(Date.now() + 7 * 3600 * 1000)
+  return wib.getUTCHours() + wib.getUTCMinutes() / 60
+}
+
+function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, session }) {
   const [eveningNote, setEveningNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(!!checkIn?.eveningAt)
@@ -231,6 +238,28 @@ function CheckInCard({ checkIn, onMorningAck, onEveningSubmit }) {
   const hasEvening = !!checkIn?.eveningAt || submitted
   const showEvening = checkIn?.showEveningForm
   const isOverdue   = checkIn?.eveningOverdue
+
+  const now = hourWIBNow()
+  const isOnTime  = now <= 8 + 5/60   // ≤ 08:05
+  const isLate    = now > 8 + 5/60 && now < 9.5  // 08:05–09:30
+  const isWeekend = [0, 6].includes(new Date().getDay())
+
+  // Briefing status label
+  let briefingStatus = null
+  if (briefingLog) {
+    if (briefingLog.status === 'HADIR') {
+      const ackTime = checkIn?.morningAckAt
+        ? new Date(checkIn.morningAckAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })
+        : null
+      const onTime = checkIn?.morningAckAt
+        ? (new Date(checkIn.morningAckAt).getTime() + 7 * 3600 * 1000)
+          && (() => { const w = new Date(new Date(checkIn.morningAckAt).getTime() + 7*3600000); return w.getUTCHours() + w.getUTCMinutes()/60 <= 8 + 5/60 })()
+        : false
+      briefingStatus = { ok: true, late: !onTime, time: ackTime }
+    } else if (briefingLog.status === 'IZIN_PROJECT') {
+      briefingStatus = { izin: true }
+    }
+  }
 
   async function submitEvening(e) {
     e.preventDefault()
@@ -244,25 +273,53 @@ function CheckInCard({ checkIn, onMorningAck, onEveningSubmit }) {
 
   return (
     <div className="space-y-2">
-      {!hasMorning ? (
-        <div className="rounded-2xl bg-gradient-to-r from-red-500 to-rose-500 p-4 flex items-center justify-between gap-4 shadow-lg shadow-red-100">
-          <div>
-            <p className="font-bold text-white text-sm">Belum check-in pagi!</p>
-            <p className="text-xs text-red-100 mt-0.5">Konfirmasi kamu sudah lihat tugas hari ini (batas 09:30)</p>
+      {/* Morning Briefing Check-in */}
+      {!isWeekend && (
+        !hasMorning ? (
+          <div className={`rounded-2xl p-4 flex items-center justify-between gap-4 shadow-lg ${
+            isOnTime ? 'bg-gradient-to-r from-violet-600 to-indigo-600 shadow-violet-100'
+            : isLate  ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-amber-100'
+            : 'bg-gradient-to-r from-red-500 to-rose-500 shadow-red-100'
+          }`}>
+            <div>
+              <p className="font-bold text-white text-sm">
+                {isOnTime ? '☀️ Morning Briefing 08:00 WIB' : isLate ? '⚠️ Masih bisa hadir (telat)' : '❌ Briefing sudah lewat'}
+              </p>
+              <p className="text-xs text-white/75 mt-0.5">
+                {isOnTime ? 'Klik untuk konfirmasi kehadiran briefing & cek tugas hari ini'
+                : isLate  ? 'Klik untuk mencatat kehadiran (akan ditandai telat)'
+                : 'Lewat 09:30 — kehadiran dicatat tidak hadir'}
+              </p>
+            </div>
+            {(isOnTime || isLate) && (
+              <button onClick={onMorningAck}
+                className="shrink-0 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-bold transition-colors active:scale-95 border border-white/30">
+                {isOnTime ? '✓ Hadir' : '✓ Hadir (Telat)'}
+              </button>
+            )}
           </div>
-          <button onClick={onMorningAck}
-            className="shrink-0 px-4 py-2 rounded-xl bg-white text-red-600 text-sm font-bold hover:bg-red-50 transition-colors active:scale-95">
-            ✓ Sudah Cek
-          </button>
-        </div>
-      ) : !showEvening ? (
-        <div className="rounded-2xl bg-green-50 border border-green-200 px-4 py-2.5 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-          <p className="text-sm text-green-700 font-semibold">
-            Check-in pagi tercatat — {new Date(checkIn.morningAckAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB
-          </p>
-        </div>
-      ) : null}
+        ) : briefingStatus ? (
+          <div className={`rounded-2xl px-4 py-2.5 flex items-center gap-2 ${
+            briefingStatus.izin ? 'bg-blue-50 border border-blue-200'
+            : briefingStatus.late ? 'bg-amber-50 border border-amber-200'
+            : 'bg-green-50 border border-green-200'
+          }`}>
+            <div className={`w-2 h-2 rounded-full shrink-0 ${briefingStatus.izin ? 'bg-blue-500' : briefingStatus.late ? 'bg-amber-500' : 'bg-green-500'}`} />
+            <p className={`text-sm font-semibold ${briefingStatus.izin ? 'text-blue-700' : briefingStatus.late ? 'text-amber-700' : 'text-green-700'}`}>
+              {briefingStatus.izin ? '🔄 Izin project — tercatat'
+              : briefingStatus.late ? `⚠️ Hadir briefing (telat)${briefingStatus.time ? ` — ${briefingStatus.time} WIB` : ''}`
+              : `☀️ Hadir briefing tepat waktu${briefingStatus.time ? ` — ${briefingStatus.time} WIB` : ''}`}
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-green-50 border border-green-200 px-4 py-2.5 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+            <p className="text-sm text-green-700 font-semibold">
+              ☀️ Check-in pagi tercatat — {new Date(checkIn.morningAckAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB
+            </p>
+          </div>
+        )
+      )}
 
       {showEvening && (
         hasEvening ? (
@@ -287,6 +344,84 @@ function CheckInCard({ checkIn, onMorningAck, onEveningSubmit }) {
             </button>
           </form>
         )
+      )}
+    </div>
+  )
+}
+
+// ── WFO Selasa Card ───────────────────────────────────────────────────────────
+
+function WfoCard({ wfoLog, onSubmit }) {
+  const [form, setForm] = useState({ status: wfoLog?.status || '', reason: wfoLog?.reason || '', altTime: wfoLog?.altTime || '' })
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(!!wfoLog)
+  const [editing, setEditing] = useState(false)
+
+  const current = saved && !editing ? wfoLog || form : null
+
+  async function submit() {
+    if (!form.status) return
+    if (form.status === 'TIDAK_HADIR' && !form.reason.trim()) { alert('Alasan wajib diisi'); return }
+    setSaving(true)
+    await onSubmit(form)
+    setSaved(true); setEditing(false); setSaving(false)
+  }
+
+  const getTuesdayDate = () => {
+    const now = new Date(); const day = now.getDay()
+    const diff = 2 - day; const tue = new Date(now)
+    tue.setDate(now.getDate() + diff)
+    return tue.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+  }
+
+  return (
+    <div className="rounded-2xl border-2 border-purple-200 bg-purple-50 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-bold text-purple-800">🏢 WFO Konsolidasi — Selasa, {getTuesdayDate()}</p>
+          <p className="text-xs text-purple-600 mt-0.5">Kewajiban hadir kantor untuk konsolidasi divisi</p>
+        </div>
+        {saved && !editing && <button onClick={() => setEditing(true)} className="text-xs text-purple-600 underline">Ubah</button>}
+      </div>
+
+      {saved && !editing && current ? (
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-xl ${current.status === 'HADIR' ? 'bg-green-100' : 'bg-red-50'}`}>
+          <span className={`text-sm font-semibold ${current.status === 'HADIR' ? 'text-green-700' : 'text-red-600'}`}>
+            {current.status === 'HADIR' ? '🏢 Hadir WFO' : '🏠 Tidak Hadir'}
+          </span>
+          {current.reason && <span className="text-xs text-gray-500 ml-1">— {current.reason}</span>}
+          {current.altTime && <span className="text-xs text-blue-600 ml-1">Alt: {current.altTime}</span>}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <button onClick={() => setForm({...form, status:'HADIR'})}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-colors ${form.status === 'HADIR' ? 'bg-green-600 text-white border-green-600' : 'border-purple-200 text-purple-700 bg-white hover:bg-purple-50'}`}>
+              🏢 Hadir WFO
+            </button>
+            <button onClick={() => setForm({...form, status:'TIDAK_HADIR'})}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-colors ${form.status === 'TIDAK_HADIR' ? 'bg-red-500 text-white border-red-500' : 'border-purple-200 text-purple-700 bg-white hover:bg-purple-50'}`}>
+              🏠 Tidak Bisa Hadir
+            </button>
+          </div>
+          {form.status === 'TIDAK_HADIR' && (
+            <div className="space-y-2">
+              <textarea value={form.reason} onChange={e => setForm({...form, reason: e.target.value})}
+                rows={2} placeholder="Alasan tidak bisa hadir WFO..." className="w-full rounded-xl border border-purple-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none" />
+              <input value={form.altTime} onChange={e => setForm({...form, altTime: e.target.value})}
+                placeholder="Waktu konsolidasi pengganti (opsional)..." className="w-full rounded-xl border border-purple-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300" />
+            </div>
+          )}
+          {form.status && (
+            <div className="flex gap-2">
+              <button onClick={submit} disabled={saving}
+                className="px-4 py-2 bg-purple-600 text-white text-sm font-bold rounded-xl hover:bg-purple-700 disabled:opacity-50 transition-colors active:scale-95">
+                {saving ? 'Menyimpan...' : 'Simpan'}
+              </button>
+              {editing && <button onClick={() => setEditing(false)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Batal</button>}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
@@ -424,6 +559,8 @@ export default function MyTasksPage() {
   const [data, setData]   = useState(null)
   const [loading, setLoading] = useState(true)
   const [checkIn, setCheckIn] = useState(null)
+  const [briefingLog, setBriefingLog] = useState(null)
+  const [wfoLog, setWfoLog] = useState(null)
   const [sharingSessions, setSharingSessions] = useState([])
   const [todayEvents, setTodayEvents] = useState([])
 
@@ -441,15 +578,47 @@ export default function MyTasksPage() {
 
   useEffect(() => {
     if (status !== 'authenticated') return
+    const todayStr = new Date(Date.now() + 7*3600000).toISOString().slice(0,10)
+    const dow = new Date().getDay()
+    const isTuesday = dow === 2
+    const needsWfo = WFO_DIVISI_LIST.includes(session?.user?.divisi)
     fetch('/api/daily-checkin').then(r => r.ok ? r.json() : null).then(d => { if (d) setCheckIn(d) })
+    fetch(`/api/programs/briefing?date=${todayStr}`).then(r => r.ok ? r.json() : null).then(d => { if (d) setBriefingLog(d.log || null) })
+    if (isTuesday && needsWfo) {
+      const tue = (() => { const n = new Date(); const d2 = 2-n.getDay(); const t = new Date(n); t.setDate(n.getDate()+d2); return t.toISOString().slice(0,10) })()
+      fetch(`/api/programs/wfo?weekDate=${tue}`).then(r => r.ok ? r.json() : null).then(d => { if (d) setWfoLog(d.log || null) })
+    }
     fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setSharingSessions(d) })
     fetch('/api/event-day').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setTodayEvents(d) })
     load()
   }, [status, load])
 
   async function handleMorningAck() {
+    const now = hourWIBNow()
+    const isLate = now > 8 + 5/60
+    const todayStr = new Date(Date.now() + 7*3600000).toISOString().slice(0,10)
+    // Check-in pagi (existing)
     await fetch('/api/daily-checkin', { method: 'POST' })
-    fetch('/api/daily-checkin').then(r => r.ok ? r.json() : null).then(d => { if (d) setCheckIn(d) })
+    // Sekaligus catat kehadiran briefing
+    await fetch('/api/programs/briefing', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: todayStr, status: 'HADIR', note: isLate ? 'Telat' : null }),
+    })
+    const [ci, br] = await Promise.all([
+      fetch('/api/daily-checkin').then(r => r.ok ? r.json() : null),
+      fetch(`/api/programs/briefing?date=${todayStr}`).then(r => r.ok ? r.json() : null),
+    ])
+    if (ci) setCheckIn(ci)
+    if (br) setBriefingLog(br.log || null)
+  }
+
+  async function handleWfoSubmit(form) {
+    const tue = (() => { const n = new Date(); const d = 2-n.getDay(); const t = new Date(n); t.setDate(n.getDate()+d); return t.toISOString().slice(0,10) })()
+    const res = await fetch('/api/programs/wfo', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weekDate: tue, ...form }),
+    })
+    if (res.ok) { const d = await res.json(); setWfoLog(d) }
   }
 
   async function handleEveningSubmit(note) {
@@ -579,7 +748,11 @@ export default function MyTasksPage() {
             )}
           </div>
 
-          <CheckInCard checkIn={checkIn} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} />
+          <CheckInCard checkIn={checkIn} briefingLog={briefingLog} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} session={session} />
+
+          {new Date().getDay() === 2 && WFO_DIVISI_LIST.includes(session?.user?.divisi) && (
+            <WfoCard wfoLog={wfoLog} onSubmit={handleWfoSubmit} />
+          )}
 
           {mySharing.length > 0 && <MySharingSessionCard sessions={mySharing} onUpdate={() => fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setSharingSessions(d))} />}
 
@@ -691,8 +864,13 @@ export default function MyTasksPage() {
           )}
         </div>
 
-        {/* ── Check-in ── */}
-        <CheckInCard checkIn={checkIn} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} />
+        {/* ── Check-in + Briefing ── */}
+        <CheckInCard checkIn={checkIn} briefingLog={briefingLog} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} session={session} />
+
+        {/* ── WFO Selasa (hanya Selasa, hanya EVENT/PH/CREATIVE) ── */}
+        {new Date().getDay() === 2 && WFO_DIVISI_LIST.includes(session?.user?.divisi) && (
+          <WfoCard wfoLog={wfoLog} onSubmit={handleWfoSubmit} />
+        )}
 
         {/* ── Event Day Mode ── */}
         {todayEvents.length > 0 && (

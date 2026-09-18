@@ -61,11 +61,21 @@ export default function PersonalStatsWidget() {
                 {/* Rate cards */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-gray-50 rounded-xl px-3 py-2.5">
-                    <p className="text-[10px] text-gray-400 font-medium">Check-in Pagi</p>
-                    <p className="text-xl font-black text-gray-900">{stats.checkInRate}<span className="text-xs text-gray-400">%</span></p>
-                    <StatBar value={stats.checkInRate}
-                      color={stats.checkInRate >= 80 ? 'bg-green-500' : stats.checkInRate >= 50 ? 'bg-amber-500' : 'bg-red-400'} />
-                    <p className="text-[10px] text-gray-400 mt-1">{stats.workDaysThisMonth} hari kerja</p>
+                    <p className="text-[10px] text-gray-400 font-medium">Morning Briefing</p>
+                    <p className="text-xl font-black text-gray-900">
+                      {stats.briefingRate !== null ? stats.briefingRate : stats.checkInRate}
+                      <span className="text-xs text-gray-400">%</span>
+                    </p>
+                    <StatBar
+                      value={stats.briefingRate !== null ? stats.briefingRate : stats.checkInRate}
+                      color={(stats.briefingRate ?? stats.checkInRate) >= 80 ? 'bg-green-500' : (stats.briefingRate ?? stats.checkInRate) >= 50 ? 'bg-amber-500' : 'bg-red-400'} />
+                    {stats.briefingRate !== null ? (
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        {stats.briefingOnTime} tepat · {stats.briefingLate} telat / {stats.briefingTotal} hari
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-gray-400 mt-1">{stats.workDaysThisMonth} hari kerja</p>
+                    )}
                   </div>
                   <div className="bg-gray-50 rounded-xl px-3 py-2.5">
                     <p className="text-[10px] text-gray-400 font-medium">Update Tugas</p>
@@ -75,6 +85,21 @@ export default function PersonalStatsWidget() {
                     <p className="text-[10px] text-gray-400 mt-1">{stats.totalUpdatesThisMonth} hari aktif</p>
                   </div>
                 </div>
+
+                {/* WFO rate (only for EVENT/PH/CREATIVE) */}
+                {stats.needsWfo && stats.wfoRate !== null && (
+                  <div className="flex items-center justify-between px-3 py-2.5 bg-purple-50 rounded-xl border border-purple-100">
+                    <div>
+                      <p className="text-xs font-semibold text-purple-800">WFO Selasa</p>
+                      <p className="text-[10px] text-purple-500">{stats.wfoTotal} Selasa dalam bulan ini</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-black text-purple-900">{stats.wfoRate}<span className="text-xs text-purple-400">%</span></p>
+                      <StatBar value={stats.wfoRate}
+                        color={stats.wfoRate >= 80 ? 'bg-purple-500' : stats.wfoRate >= 50 ? 'bg-amber-500' : 'bg-red-400'} />
+                    </div>
+                  </div>
+                )}
 
                 {/* On-time */}
                 <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-xl">
