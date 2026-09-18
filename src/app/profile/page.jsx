@@ -12,7 +12,9 @@ const DIVISI_LABEL = { FINANCE_HRGA: 'Finance & HRGA', EVENT: 'Event', PH: 'Post
 const ROLE_LABEL = {
   OWNER: 'Owner', DIRECTOR: 'Director', PROJECT_MANAGER: 'Project Manager', PRODUCER: 'Producer',
   FINANCE: 'Finance', FINANCE_STAFF: 'Finance Staff', PRODUCTION: 'Production',
-  STAGE_DESIGNER: 'Stage Designer', HRD: 'HRD',
+  STAGE_DESIGNER: 'Stage Designer', HRD: 'HRD', CONTENT_CREATOR: 'Content Creator',
+  EDITOR: 'Editor', CREATIVE_LEAD: 'Creative Lead', DESIGNER: 'Designer',
+  MOTION_DESIGNER: 'Motion Designer', MARKETING: 'Marketing', GA: 'General Affairs',
 }
 
 function InfoRow({ label, value }) {
