@@ -34,6 +34,10 @@ export async function GET(req) {
   const today      = new Date()
   const rangeEnd   = monthEnd < today ? monthEnd : today
 
+  // DailyCheckIn.date is a String (YYYY-MM-DD), so filter with string comparison
+  const monthStartStr = `${year}-${String(mon).padStart(2, '0')}-01`
+  const monthEndStr   = `${year}-${String(mon).padStart(2, '0')}-${String(new Date(year, mon, 0).getDate()).padStart(2, '0')}`
+
   const workDays = workDaysInRange(monthStart, rangeEnd)
 
   // DIRECTOR: only their own divisi (unless OWNER/FINANCE/PM)
@@ -56,7 +60,7 @@ export async function GET(req) {
 
   const [checkIns, updates, kpiScores, hrdEvals, weights, sharingSessions] = await Promise.all([
     prisma.dailyCheckIn.findMany({
-      where: { userId: { in: userIds }, date: { gte: monthStart, lte: monthEnd } },
+      where: { userId: { in: userIds }, date: { gte: monthStartStr, lte: monthEndStr } },
       select: { userId: true, morningAckAt: true, eveningAt: true, date: true },
     }),
     prisma.progressUpdate.findMany({

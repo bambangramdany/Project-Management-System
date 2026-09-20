@@ -13,7 +13,8 @@ export async function getCashPosition() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
 
-  const [pendingOwner, pendingFinanceDirector, readyToPay, paidThisMonthAgg, cashAgg] = await Promise.all([
+  const horizon = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
+  const [pendingOwner, pendingFinanceDirector, readyToPay, paidThisMonthAgg, cashAgg, upcomingItems] = await Promise.all([
     prisma.paymentRequest.aggregate({ where: { status: 'PENDING_OWNER' }, _sum: { amount: true }, _count: true }),
     prisma.paymentRequest.aggregate({ where: { status: 'PENDING_FINANCE_DIRECTOR' }, _sum: { amount: true }, _count: true }),
     prisma.paymentRequest.aggregate({ where: { status: 'APPROVED_BY_DIRECTOR' }, _sum: { amount: true }, _count: true }),
@@ -22,24 +23,19 @@ export async function getCashPosition() {
       _sum: { amount: true }, _count: true,
     }),
     prisma.cashTransaction.groupBy({ by: ['type'], _sum: { amount: true } }),
+    prisma.projectBudgetItem.findMany({
+      where: { neededDate: { gte: now, lte: horizon } },
+      include: {
+        project: { select: { id: true, code: true, name: true, division: true } },
+        payments: { select: { status: true } },
+      },
+      orderBy: { neededDate: 'asc' },
+    }),
   ])
 
   const totalIn = cashAgg.find(a => a.type === 'IN')?._sum.amount || 0
   const totalOut = cashAgg.find(a => a.type === 'OUT')?._sum.amount || 0
   const cashBalance = totalIn - totalOut
-
-  // Upcoming budget items due within 14 days that haven't been paid yet
-  const horizon = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
-  const upcomingItems = await prisma.projectBudgetItem.findMany({
-    where: {
-      neededDate: { gte: now, lte: horizon },
-    },
-    include: {
-      project: { select: { id: true, code: true, name: true, division: true } },
-      payments: { select: { status: true } },
-    },
-    orderBy: { neededDate: 'asc' },
-  })
 
   const upcoming = upcomingItems
     .filter(it => !it.payments.some(p => p.status === 'PAID'))
@@ -95,26 +91,26 @@ export async function getDebtSummary() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
 
-  const activeDebts = await prisma.debt.findMany({
-    where: { status: 'ACTIVE' },
-    include: { payments: { where: { status: 'PENDING' } } },
-  })
+  const [activeDebts, dueThisMonth, overdue] = await Promise.all([
+    prisma.debt.findMany({
+      where: { status: 'ACTIVE' },
+      include: { payments: { where: { status: 'PENDING' } } },
+    }),
+    prisma.debtPayment.findMany({
+      where: { status: 'PENDING', dueDate: { gte: startOfMonth, lt: endOfMonth } },
+      include: { debt: { select: { lenderName: true } } },
+      orderBy: { dueDate: 'asc' },
+    }),
+    prisma.debtPayment.findMany({
+      where: { status: 'PENDING', dueDate: { lt: startOfMonth } },
+      include: { debt: { select: { lenderName: true } } },
+      orderBy: { dueDate: 'asc' },
+    }),
+  ])
 
   const outstandingPrincipal = activeDebts.reduce(
     (sum, d) => sum + d.payments.reduce((s, p) => s + p.principalAmount, 0), 0
   )
-
-  const dueThisMonth = await prisma.debtPayment.findMany({
-    where: { status: 'PENDING', dueDate: { gte: startOfMonth, lt: endOfMonth } },
-    include: { debt: { select: { lenderName: true } } },
-    orderBy: { dueDate: 'asc' },
-  })
-
-  const overdue = await prisma.debtPayment.findMany({
-    where: { status: 'PENDING', dueDate: { lt: startOfMonth } },
-    include: { debt: { select: { lenderName: true } } },
-    orderBy: { dueDate: 'asc' },
-  })
 
   const monthlyObligation = dueThisMonth.reduce((s, p) => s + p.principalAmount + p.interestAmount, 0)
     + overdue.reduce((s, p) => s + p.principalAmount + p.interestAmount, 0)
@@ -149,15 +145,32 @@ export async function getFinanceOverview(fromParam, toParam) {
   const rangeStart = new Date(fromY, (fromM || 1) - 1, 1)
   const rangeEnd = new Date(toY, (toM || 12), 1) // exclusive
 
-  const allProjects = await prisma.project.findMany({
-    where: { projectValue: { not: null } },
-    select: {
-      id: true, projectValue: true, status: true, pitchResult: true,
-      startDate: true, briefDate: true,
-      budgetItems: { select: { quotedAmount: true, actualAmount: true } },
-      directExpenses: { select: { amount: true } },
-    },
-  })
+  const periods = []
+  const cursor = new Date(rangeStart)
+  while (cursor < rangeEnd) {
+    periods.push(monthKey(cursor))
+    cursor.setMonth(cursor.getMonth() + 1)
+  }
+
+  // All 5 queries are independent — run in parallel
+  const [allProjects, opexEntries, unpaidReceivables, assets, activeDebts] = await Promise.all([
+    prisma.project.findMany({
+      where: { projectValue: { not: null } },
+      select: {
+        id: true, projectValue: true, status: true, pitchResult: true,
+        startDate: true, briefDate: true,
+        budgetItems: { select: { quotedAmount: true, actualAmount: true } },
+        directExpenses: { select: { amount: true } },
+      },
+    }),
+    prisma.opexEntry.findMany({ where: { period: { in: periods } }, select: { amount: true } }),
+    prisma.receivable.findMany({ where: { status: 'UNPAID' }, select: { amount: true } }),
+    prisma.asset.findMany({ select: { currentValue: true } }),
+    prisma.debt.findMany({
+      where: { status: 'ACTIVE' },
+      include: { payments: { where: { status: 'PENDING' } } },
+    }),
+  ])
 
   const inRange = (p) => {
     const d = p.startDate || p.briefDate
@@ -183,18 +196,9 @@ export async function getFinanceOverview(fromParam, toParam) {
     return sum + budgetActual + directTotal
   }, 0)
 
-  const periods = []
-  const cursor = new Date(rangeStart)
-  while (cursor < rangeEnd) {
-    periods.push(monthKey(cursor))
-    cursor.setMonth(cursor.getMonth() + 1)
-  }
-  const opexEntries = await prisma.opexEntry.findMany({ where: { period: { in: periods } }, select: { amount: true } })
   const totalOpex = opexEntries.reduce((sum, e) => sum + e.amount, 0)
-
   const aktualNettProfit = (totalOmset - aktualCostTotal) - totalOpex
 
-  const unpaidReceivables = await prisma.receivable.findMany({ where: { status: 'UNPAID' }, select: { amount: true } })
   const piutang = unpaidReceivables.reduce((sum, r) => sum + r.amount, 0)
 
   const pitchGagalValue = loseProjects.reduce((sum, p) => sum + (p.projectValue || 0), 0)
@@ -203,13 +207,7 @@ export async function getFinanceOverview(fromParam, toParam) {
     return sum + (p.projectValue || 0) - forecastCost
   }, 0)
 
-  const assets = await prisma.asset.findMany({ select: { currentValue: true } })
   const totalNilaiAset = assets.reduce((sum, a) => sum + a.currentValue, 0)
-
-  const activeDebts = await prisma.debt.findMany({
-    where: { status: 'ACTIVE' },
-    include: { payments: { where: { status: 'PENDING' } } },
-  })
   const totalHutangAktif = activeDebts.reduce(
     (sum, d) => sum + d.payments.reduce((s, p) => s + p.principalAmount, 0), 0
   )
