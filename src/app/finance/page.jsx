@@ -2027,17 +2027,6 @@ export default function FinancePage() {
                 </div>
               )}
 
-              {(() => {
-                const murni = budgetItems.filter(b => !b.isTitipan)
-                const titipanItems = budgetItems.filter(b => b.isTitipan)
-                const titipanTotal = titipanItems.reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0)
-                const forecastMurni = murni.reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0)
-                const aktualMurni = murni.reduce((sum, b) => sum + (parseFloat(b.actualAmount) || 0), 0)
-                const pv = parseFloat(projectValue) || 0
-                const revenueRiil = pv - titipanTotal
-                return (
-                )
-              })()}
               </div>{/* min-w */}
               </div>{/* overflow-x-auto */}
 
