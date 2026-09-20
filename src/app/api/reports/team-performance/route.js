@@ -23,6 +23,7 @@ export async function GET(req) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  try {
   const { searchParams } = new URL(req.url)
   const month  = searchParams.get('month') || new Date().toISOString().slice(0, 7) // YYYY-MM
   const divisi = searchParams.get('divisi') || null
@@ -74,10 +75,10 @@ export async function GET(req) {
     prisma.sharingSession.findMany({
       where: {
         status: 'DONE',
-        scheduledAt: { gte: monthStart, lte: monthEnd },
-        presenterId: { in: userIds },
+        scheduledDate: { gte: monthStart, lte: monthEnd },
+        userId: { in: userIds },
       },
-      select: { presenterId: true },
+      select: { userId: true },
     }),
   ])
 
@@ -106,7 +107,7 @@ export async function GET(req) {
   hrdEvals.forEach(h => { hrdMap[h.userId] = h })
 
   const sharingMap = {}
-  sharingSessions.forEach(s => { sharingMap[s.presenterId] = (sharingMap[s.presenterId] || 0) + 1 })
+  sharingSessions.forEach(s => { sharingMap[s.userId] = (sharingMap[s.userId] || 0) + 1 })
 
   const result = users.map(user => {
     const uid = user.id
@@ -185,4 +186,8 @@ export async function GET(req) {
   })
 
   return NextResponse.json({ month, workDays, weights: w, users: result })
+  } catch (e) {
+    console.error('GET /api/reports/team-performance error:', e)
+    return NextResponse.json({ error: 'Gagal memuat laporan kinerja tim' }, { status: 500 })
+  }
 }
