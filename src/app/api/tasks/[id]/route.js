@@ -8,6 +8,7 @@ export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  try {
   const body = await req.json()
   const { status } = body
 
@@ -90,12 +91,21 @@ export async function PATCH(req, { params }) {
   }
 
   return NextResponse.json(task)
+  } catch (e) {
+    console.error('PATCH /api/tasks/[id] error:', e)
+    return NextResponse.json({ error: 'Gagal memperbarui task' }, { status: 500 })
+  }
 }
 
 export async function DELETE(req, { params }) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  await prisma.task.delete({ where: { id: params.id } })
-  return NextResponse.json({ ok: true })
+  try {
+    await prisma.task.delete({ where: { id: params.id } })
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    console.error('DELETE /api/tasks/[id] error:', e)
+    return NextResponse.json({ error: 'Gagal menghapus task' }, { status: 500 })
+  }
 }

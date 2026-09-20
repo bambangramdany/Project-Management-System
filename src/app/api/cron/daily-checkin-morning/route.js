@@ -8,11 +8,9 @@ import { NextResponse } from 'next/server'
 // Notifikasi superior jika anggota tim belum morning check-in
 export async function GET(req) {
   const secret = process.env.CRON_SECRET
-  if (secret) {
-    const auth = req.headers.get('authorization')
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  const auth = req.headers.get('authorization')
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   // Tanggal hari ini dalam WIB (UTC+7)

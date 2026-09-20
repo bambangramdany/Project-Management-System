@@ -17,11 +17,16 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!canViewDebt(session.user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const debts = await prisma.debt.findMany({
-    include: { payments: { orderBy: { installmentNo: 'asc' } } },
-    orderBy: { createdAt: 'desc' },
-  })
-  return NextResponse.json(debts)
+  try {
+    const debts = await prisma.debt.findMany({
+      include: { payments: { orderBy: { installmentNo: 'asc' } } },
+      orderBy: { createdAt: 'desc' },
+    })
+    return NextResponse.json(debts)
+  } catch (e) {
+    console.error('GET /api/debts error:', e)
+    return NextResponse.json({ error: 'Gagal memuat hutang' }, { status: 500 })
+  }
 }
 
 export async function POST(req) {
@@ -79,6 +84,7 @@ export async function POST(req) {
     interestAmount:  0,
   })
 
+  try {
   const debt = await prisma.debt.create({
     data: {
       lenderName:     body.lenderName.trim(),
@@ -100,4 +106,8 @@ export async function POST(req) {
   })
 
   return NextResponse.json(debt, { status: 201 })
+  } catch (e) {
+    console.error('POST /api/debts error:', e)
+    return NextResponse.json({ error: 'Gagal menyimpan hutang' }, { status: 500 })
+  }
 }

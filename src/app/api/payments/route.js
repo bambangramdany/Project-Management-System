@@ -10,6 +10,7 @@ export async function GET(req) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  try {
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status')
   const projectId = searchParams.get('projectId')
@@ -49,6 +50,10 @@ export async function GET(req) {
   })
 
   return NextResponse.json(payments)
+  } catch (e) {
+    console.error('GET /api/payments error:', e)
+    return NextResponse.json({ error: 'Gagal memuat data pembayaran' }, { status: 500 })
+  }
 }
 
 export async function POST(req) {
@@ -115,6 +120,7 @@ export async function POST(req) {
       ? 'PENDING_FINANCE_DIRECTOR' // Owner submit → langsung Finance Director
       : 'PENDING_DIRECTOR'         // PM/Producer/staff → Direktur Divisi dulu
 
+  try {
   const payment = await prisma.paymentRequest.create({
     data: {
       projectId: body.projectId,
@@ -152,4 +158,8 @@ export async function POST(req) {
   }).catch(() => {})))
 
   return NextResponse.json(payment, { status: 201 })
+  } catch (e) {
+    console.error('POST /api/payments error:', e)
+    return NextResponse.json({ error: 'Gagal membuat pengajuan pembayaran' }, { status: 500 })
+  }
 }

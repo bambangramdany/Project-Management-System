@@ -21,6 +21,7 @@ export async function GET(req) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!canViewReceivables(session.user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
+  try {
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status') // UNPAID | PAID | all
 
@@ -81,6 +82,10 @@ export async function GET(req) {
   const totalPaid   = existing.filter(r => r.status === 'PAID').reduce((s, r) => s + (r.paidAmount ?? r.amount), 0)
 
   return NextResponse.json({ receivables: all, totalUnpaid, totalPaid })
+  } catch (e) {
+    console.error('GET /api/receivables error:', e)
+    return NextResponse.json({ error: 'Gagal memuat piutang' }, { status: 500 })
+  }
 }
 
 export async function POST(req) {
@@ -98,6 +103,7 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Nominal invoice tidak valid' }, { status: 400 })
   }
 
+  try {
   const receivable = await prisma.receivable.create({
     data: {
       projectId:         body.projectId || null,
@@ -121,4 +127,8 @@ export async function POST(req) {
   })
 
   return NextResponse.json(receivable, { status: 201 })
+  } catch (e) {
+    console.error('POST /api/receivables error:', e)
+    return NextResponse.json({ error: 'Gagal menyimpan piutang' }, { status: 500 })
+  }
 }

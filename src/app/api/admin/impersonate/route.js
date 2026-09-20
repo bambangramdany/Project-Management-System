@@ -21,29 +21,34 @@ export async function POST(req) {
   const target = await prisma.user.findUnique({ where: { id: userId } })
   if (!target) return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 })
 
-  const token = {
-    id: target.id,
-    sub: target.id,
-    name: target.name,
-    email: target.email,
-    role: target.role,
-    divisi: target.divisi,
-    canHrdEvaluate: target.canHrdEvaluate ?? false,
-    impersonating: true,
-    actualUserId: session.user.id,
+  try {
+    const token = {
+      id: target.id,
+      sub: target.id,
+      name: target.name,
+      email: target.email,
+      role: target.role,
+      divisi: target.divisi,
+      canHrdEvaluate: target.canHrdEvaluate ?? false,
+      impersonating: true,
+      actualUserId: session.user.id,
+    }
+
+    const maxAge = 30 * 24 * 60 * 60
+    const jwt = await encode({ token, secret: process.env.NEXTAUTH_SECRET, maxAge })
+
+    const cookieStore = cookies()
+    cookieStore.set(COOKIE_NAME, jwt, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: SECURE,
+      path: '/',
+      maxAge,
+    })
+
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    console.error('POST /api/admin/impersonate error:', e)
+    return NextResponse.json({ error: 'Gagal masuk ke mode pengawasan' }, { status: 500 })
   }
-
-  const maxAge = 30 * 24 * 60 * 60 // 30 days, matching NextAuth default
-  const jwt = await encode({ token, secret: process.env.NEXTAUTH_SECRET, maxAge })
-
-  const cookieStore = cookies()
-  cookieStore.set(COOKIE_NAME, jwt, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: SECURE,
-    path: '/',
-    maxAge,
-  })
-
-  return NextResponse.json({ ok: true })
 }
