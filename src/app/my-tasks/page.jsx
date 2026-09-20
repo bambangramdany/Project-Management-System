@@ -879,6 +879,11 @@ export default function MyTasksPage() {
     const allItems   = data.groups.flatMap(g => g.items)
     const totalDone  = allItems.filter(i => i.hasTodayUpdate).length
     const totalItems = allItems.length
+
+    function handleExport() {
+      window.open('/api/my-tasks/export', '_blank')
+    }
+
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -890,6 +895,13 @@ export default function MyTasksPage() {
               <p className="text-sm text-gray-500 mt-0.5">Progress update seluruh tim hari ini</p>
             </div>
             <div className="flex items-center gap-3">
+              <button onClick={handleExport}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow transition-colors shrink-0">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                </svg>
+                Export Excel
+              </button>
               <ProgressRing done={totalDone} total={totalItems} />
               <div>
                 <p className="text-sm font-bold text-gray-800">{totalDone} selesai</p>
