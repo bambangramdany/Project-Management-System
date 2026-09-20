@@ -27,6 +27,7 @@ body{font-family:'Inter',sans-serif;font-size:10pt;color:#1a1a2e;background:#fff
 .ltbl td:last-child{font-family:'Courier New',monospace;color:#1e293b}
 .ltbl tr:last-child td{border-bottom:none}
 .warn{background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:10px 14px;font-size:8.5pt;color:#92400e;margin-bottom:16px}
+.warn-red{background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:10px 14px;font-size:8.5pt;color:#991b1b;margin-top:10px}
 .steps{list-style:none;counter-reset:sc}
 .steps li{counter-increment:sc;display:flex;gap:12px;align-items:flex-start;margin-bottom:8px}
 .steps li::before{content:counter(sc);display:flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:50%;background:#0F766E;color:#fff;font-size:8pt;font-weight:700;flex-shrink:0;margin-top:1px}
@@ -63,9 +64,6 @@ body{font-family:'Inter',sans-serif;font-size:10pt;color:#1a1a2e;background:#fff
 .kc ul li{font-size:8.5pt;color:#334155;padding:2px 0 2px 14px;position:relative}
 .kc ul li::before{content:'★';position:absolute;left:0;color:#0F766E;font-size:8pt}
 .badge-new{display:inline-block;background:#dc2626;color:#fff;font-size:6.5pt;font-weight:700;padding:1px 5px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em;vertical-align:middle;margin-left:4px}
-.ftr{background:#f1f5f9;padding:14px 32px;border-top:1px solid #e2e8f0;margin-top:24px}
-.ftr p{font-size:8pt;color:#64748b;text-align:center;line-height:1.7}
-.ftr strong{color:#334155}
 hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
 @media print{body,*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style>
@@ -111,9 +109,9 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
     <div class="sec-title">📅 RUTINITAS HARIAN WAJIB</div>
     <div class="routine-grid">
       <div class="rc">
-        <div class="rc-time">Sebelum 08:00</div>
+        <div class="rc-time">Sebelum 08:05</div>
         <div class="rc-title">☀️ Check-In Pagi</div>
-        <ul><li>Buka Dashboard</li><li>Klik "Check-In Pagi"</li><li>Cek PR masuk dari tim Event</li><li>Review status project Event aktif</li></ul>
+        <ul><li>Buka Dashboard</li><li>Klik "Check-In Pagi" (sebelum 08:05 WIB)</li><li>Cek PR masuk dari tim Event</li><li>Review status project Event aktif</li></ul>
       </div>
       <div class="rc">
         <div class="rc-time">17:00 – 20:00</div>
@@ -121,7 +119,8 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
         <ul><li>Buka Dashboard → Laporan Sore</li><li>Isi ringkasan kegiatan Event hari ini</li><li>Catat PR dan agenda esok</li><li>Submit laporan</li></ul>
       </div>
     </div>
-    <div class="warn" style="margin-top:10px">⚠️ <strong>Penting:</strong> Check-in pagi dan laporan sore dicatat otomatis ke sistem KPI sebagai komponen <strong>Disiplin Harian</strong>. Jika melewati batas waktu, skor absensimu akan terpengaruh. Sistem mengirim notifikasi ke atasanmu jika kamu belum check-in pukul 08:00 WIB.</div>
+    <div class="warn" style="margin-top:10px">⚠️ <strong>Check-in pagi paling lambat pukul 08:05 WIB.</strong> Lewat dari jam 08:05 WIB sistem otomatis mencatat sebagai <strong>tidak hadir</strong> hari itu dan mempengaruhi skor KPI Absensi kamu. Laporan sore wajib diisi antara 17:00–20:00 WIB setiap hari kerja.</div>
+    <div class="warn-red">🚨 <strong>Penting:</strong> Sistem mengirim notifikasi ke atasanmu secara otomatis jika kamu belum check-in pada pukul 08:05 WIB. Pastikan check-in dilakukan <strong>setiap hari kerja (Senin–Jumat)</strong> tanpa terkecuali.</div>
   </div>
 
   <hr class="div">
@@ -137,7 +136,7 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
           <span class="mc-url">/dashboard</span>
         </div>
         <div class="mc-desc">Ringkasan semua project Event aktif.</div>
-        <ul class="mc-steps"><li>Pantau project Event aktif dan notifikasi PR</li><li>Check-in pagi sebelum 08:00 WIB dan laporan sore 17:00–20:00 WIB</li></ul>
+        <ul class="mc-steps"><li>Pantau project Event aktif dan notifikasi PR</li><li>Alert task overdue dan checklist project</li><li>Check-in pagi sebelum 08:05 WIB dan laporan sore 17:00–20:00 WIB</li></ul>
       </div>
       <div class="mc">
         <div class="mc-head">
@@ -146,7 +145,7 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
           <span class="mc-url">/projects</span>
         </div>
         <div class="mc-desc">Review dan pantau project Event.</div>
-        <ul class="mc-steps"><li>Review quotation yang sudah dicek Wulan</li><li>Pantau timeline, task, dan vendor AVL project Event</li><li>Tab Profitabilitas: pantau margin project divisi Event</li></ul>
+        <ul class="mc-steps"><li>Review quotation yang sudah dicek Wulan — berikan final approval</li><li>Tab <strong>MoM & Timeline</strong>: pantau Minutes of Meeting, milestone, dan rundown setiap project Event</li><li>Tab <strong>Ringkasan</strong>: lihat client brief dan info dasar project</li><li>Tab <strong>Profitabilitas</strong>: pantau margin dan realisasi budget project divisi Event</li><li>Tab <strong>Vendor AVL</strong>: validasi pilihan vendor tim sebelum project berjalan</li><li>Tab <strong>Penilaian Tim</strong>: beri nilai bonus kinerja per project</li></ul>
       </div>
       <div class="mc">
         <div class="mc-head">
@@ -164,7 +163,16 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
           <span class="mc-url">/finance</span>
         </div>
         <div class="mc-desc">Approval PR tahap 1 untuk project Event.</div>
-        <ul class="mc-steps"><li>Tab <strong>Perlu Ditindaki</strong>: review PR dari tim Event (Wulan, Irham, Doddi, Reghy, Putra, Eca)</li><li><strong>Setujui</strong> atau <strong>Tolak</strong> PR dengan keterangan → yang disetujui naik ke Anung</li><li>Pantau status pembayaran project Event</li></ul>
+        <ul class="mc-steps"><li>Tab <strong>Perlu Ditindaki</strong>: review PR dari tim Event</li><li><strong>Setujui</strong> atau <strong>Tolak</strong> dengan keterangan → yang disetujui naik ke Anung</li><li>Pantau status pembayaran project Event</li></ul>
+      </div>
+      <div class="mc">
+        <div class="mc-head">
+          <span class="mc-icon">📈</span>
+          <span class="mc-name">Workload Tim</span>
+          <span class="mc-url">/workload</span>
+        </div>
+        <div class="mc-desc">Pantau distribusi beban kerja tim Event.</div>
+        <ul class="mc-steps"><li>Cek distribusi task seluruh anggota tim Event</li><li>Pastikan tidak ada yang overload menjelang event</li></ul>
       </div>
       <div class="mc">
         <div class="mc-head">
@@ -172,8 +180,8 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
           <span class="mc-name">Scores / Penilaian</span>
           <span class="mc-url">/scores</span>
         </div>
-        <div class="mc-desc">Nilai tim Event dan self-assessment.</div>
-        <ul class="mc-steps"><li>Tab Nilai Tim: nilai semua anggota divisi Event setiap bulan (deadline tanggal 23)</li><li>Koordinasikan dengan Wulan yang juga memiliki kewenangan menilai tim Event + Creative</li><li>Tab Penilaian Diri: isi self-assessment kamu sendiri</li></ul>
+        <div class="mc-desc">Nilai tim Event.</div>
+        <ul class="mc-steps"><li>Tab <strong>Nilai Tim</strong>: nilai semua anggota divisi Event (Wulan, Irham, Doddi, Reghy, Putra, Eca, Sultan, Boni) — deadline tanggal 23</li><li>Tab <strong>Akumulasi</strong>: pantau nilai tertimbang akhir tim Event</li><li>Koordinasikan dengan Wulan yang juga memiliki kewenangan menilai tim Event + Creative</li></ul>
       </div>
     </div>
   </div>
@@ -186,37 +194,44 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
     <div class="wf">
       <div class="wf-title">☀️ ALUR MORNING BRIEFING (Check-In Pagi)</div>
       <ol class="wf-steps">
-        <li><div class="wf-num">1</div><div class="wf-text">Buka aplikasi sebelum <strong>08:00 WIB</strong> — pastikan sudah ada koneksi internet</div></li><li><div class="wf-num">2</div><div class="wf-text">Di halaman Dashboard, muncul banner/tombol <strong>"Check-In Pagi"</strong> — klik tombol tersebut</div></li><li><div class="wf-num">3</div><div class="wf-text">Sistem mencatat timestamp check-in kamu secara otomatis (tidak perlu isi apapun)</div></li><li><div class="wf-num">4</div><div class="wf-text">Setelah check-in, lanjut review Dashboard: lihat project aktif, cek notifikasi dan task hari ini</div></li><li><div class="wf-num">5</div><div class="wf-text">Sistem otomatis mengirim notifikasi ke atasanmu jika kamu belum check-in pukul 08:00 WIB</div></li>
+        <li><div class="wf-num">1</div><div class="wf-text">Buka aplikasi sebelum <strong>08:05 WIB</strong> — pastikan sudah ada koneksi internet</div></li><li><div class="wf-num">2</div><div class="wf-text">Di halaman Dashboard, muncul banner/tombol <strong>"Check-In Pagi"</strong> — klik tombol tersebut</div></li><li><div class="wf-num">3</div><div class="wf-text">Sistem mencatat timestamp check-in secara otomatis (tidak perlu isi apapun)</div></li><li><div class="wf-num">4</div><div class="wf-text">Setelah check-in, lanjut review Dashboard: lihat project aktif, cek notifikasi dan task hari ini</div></li><li><div class="wf-num">5</div><div class="wf-text">Sistem otomatis mengirim notifikasi ke atasanmu jika kamu belum check-in pukul 08:05 WIB</div></li>
       </ol>
-      <div class="wf-tip">💡 Check-in pagi dihitung sebagai komponen Absensi dalam akumulasi KPI bulanan. Pastikan check-in SETIAP hari kerja (Senin–Jumat).</div>
+      <div class="wf-tip">💡 Batas check-in: 08:05 WIB. Lewat dari itu = tidak hadir. Pastikan check-in SETIAP hari kerja (Senin–Jumat). Absensi masuk komponen KPI Absensi (bobot 20%).</div>
     </div>
     <div class="wf">
       <div class="wf-title">🌙 ALUR LAPORAN PROGRESS SORE / TO-DO LIST</div>
       <ol class="wf-steps">
-        <li><div class="wf-num">1</div><div class="wf-text">Antara pukul <strong>17:00–20:00 WIB</strong>, buka Dashboard</div></li><li><div class="wf-num">2</div><div class="wf-text">Klik tombol <strong>"Laporan Sore"</strong> atau <strong>"Progress Hari Ini"</strong> yang muncul di dashboard</div></li><li><div class="wf-num">3</div><div class="wf-text">Isi ringkasan kegiatan hari ini: apa saja yang sudah dikerjakan dan diselesaikan</div></li><li><div class="wf-num">4</div><div class="wf-text">Catat <strong>to-do list untuk besok</strong>: task yang pending atau perlu dilanjutkan</div></li><li><div class="wf-num">5</div><div class="wf-text">Tambahkan catatan khusus jika ada kondisi yang perlu perhatian atasanmu</div></li><li><div class="wf-num">6</div><div class="wf-text">Klik <strong>Submit Laporan</strong> — data tersimpan dan dicatat ke komponen KPI Disiplin Harian</div></li><li><div class="wf-num">7</div><div class="wf-text">Laporan sore juga dapat dilihat oleh Owner/atasan sebagai bentuk transparansi harian</div></li>
+        <li><div class="wf-num">1</div><div class="wf-text">Antara pukul <strong>17:00–20:00 WIB</strong>, buka Dashboard</div></li><li><div class="wf-num">2</div><div class="wf-text">Klik tombol <strong>"Laporan Sore"</strong> atau <strong>"Progress Hari Ini"</strong> yang muncul di dashboard</div></li><li><div class="wf-num">3</div><div class="wf-text">Isi ringkasan kegiatan hari ini: apa saja yang sudah dikerjakan dan diselesaikan</div></li><li><div class="wf-num">4</div><div class="wf-text">Catat <strong>to-do list untuk besok</strong>: task yang pending atau perlu dilanjutkan</div></li><li><div class="wf-num">5</div><div class="wf-text">Tambahkan catatan khusus jika ada kondisi yang perlu perhatian atasan</div></li><li><div class="wf-num">6</div><div class="wf-text">Klik <strong>Submit Laporan</strong> — data tersimpan dan dicatat ke komponen KPI Disiplin Harian</div></li>
       </ol>
-      <div class="wf-tip">💡 Laporan sore adalah bentuk akuntabilitas harian. Isi dengan jujur dan detail — ini bukan formalitas, tapi tool komunikasi dengan atasan.</div>
+      <div class="wf-tip">💡 Laporan sore adalah bentuk akuntabilitas harian. Isi dengan jujur dan detail. Dapat dilihat oleh atasan sebagai bentuk transparansi.</div>
+    </div>
+    <div class="wf">
+      <div class="wf-title">📝 ALUR MINUTES OF MEETING (MoM)</div>
+      <ol class="wf-steps">
+        <li><div class="wf-num">1</div><div class="wf-text">Buka project → tab <strong>MoM &amp; Timeline</strong></div></li><li><div class="wf-num">2</div><div class="wf-text">Klik <strong>+ Tambah MoM</strong> → isi tanggal meeting dan judul (contoh: "Kick-off Meeting", "Review Progress")</div></li><li><div class="wf-num">3</div><div class="wf-text">Pilih tipe meeting: <strong>Internal</strong> (rapat tim) atau <strong>Meeting Klien</strong></div></li><li><div class="wf-num">4</div><div class="wf-text">Isi poin-poin hasil meeting di kolom catatan</div></li><li><div class="wf-num">5</div><div class="wf-text">Tambah <strong>Action Items</strong>: tugas yang disepakati, assign ke anggota tim, set deadline</div></li><li><div class="wf-num">6</div><div class="wf-text">Simpan MoM — otomatis tersimpan di project dan bisa diakses semua anggota tim</div></li><li><div class="wf-num">7</div><div class="wf-text">Action item bisa langsung dikonversi menjadi <strong>Task resmi</strong>: klik "Convert to Task" pada action item</div></li><li><div class="wf-num">8</div><div class="wf-text">Pantau status action item di MoM — tanda checklist jika sudah selesai</div></li>
+      </ol>
+      <div class="wf-tip">💡 MoM adalah dokumentasi resmi hasil rapat. Isi segera setelah meeting selesai agar tidak ada yang terlewat. Action item yang sudah dikonversi ke Task akan muncul di tab Tasks project.</div>
+    </div>
+    <div class="wf">
+      <div class="wf-title">🎯 ALUR MILESTONE & TIMELINE PROJECT</div>
+      <ol class="wf-steps">
+        <li><div class="wf-num">1</div><div class="wf-text">Buka project → tab <strong>MoM &amp; Timeline</strong></div></li><li><div class="wf-num">2</div><div class="wf-text">Lihat timeline visual project — tanggal brief, survei, H-1, event, dan pascaproduksi sudah otomatis masuk</div></li><li><div class="wf-num">3</div><div class="wf-text">Tambah milestone custom: klik <strong>+ Tambah Milestone</strong> → isi nama tahapan, tanggal target</div></li><li><div class="wf-num">4</div><div class="wf-text">Centang milestone sebagai <strong>Done</strong> jika sudah selesai — progress bar project otomatis update</div></li><li><div class="wf-num">5</div><div class="wf-text">Pantau progress bar di bagian atas timeline: persentase tahapan yang sudah selesai</div></li><li><div class="wf-num">6</div><div class="wf-text">Gunakan timeline sebagai patokan briefing harian kepada tim</div></li>
+      </ol>
+      <div class="wf-tip">💡 Milestone yang konsisten di-update membantu Direktur dan Owner memantau progres project secara real-time tanpa harus tanya satu-satu ke tim.</div>
     </div>
     <div class="wf">
       <div class="wf-title">✅ ALUR APPROVAL PAYMENT REQUEST (Persetujuan Tahap 1 — Direktur Divisi)</div>
       <ol class="wf-steps">
-        <li><div class="wf-num">1</div><div class="wf-text"><strong>Notifikasi masuk</strong>: kamu menerima notif di Dashboard — "Ada Payment Request menunggu persetujuanmu"</div></li><li><div class="wf-num">2</div><div class="wf-text">Buka menu <strong>Finance → tab Perlu Ditindaki</strong> — lihat daftar PR berstatus "Menunggu Direktur"</div></li><li><div class="wf-num">3</div><div class="wf-text">Klik PR → review detail: nama vendor, deskripsi kebutuhan, nominal, dan lampiran</div></li><li><div class="wf-num">4</div><div class="wf-text">Jika setuju: klik <strong>Setujui</strong> → PR berubah status dan naik ke Direktur Finance (Anung) untuk approval tahap 2</div></li><li><div class="wf-num">5</div><div class="wf-text">Jika tidak setuju: klik <strong>Tolak</strong> → isi alasan penolakan → notifikasi otomatis dikirim ke pengaju</div></li><li><div class="wf-num">6</div><div class="wf-text">Pantau PR yang sudah kamu approve di tab <strong>Sudah Ditindaki</strong></div></li>
+        <li><div class="wf-num">1</div><div class="wf-text"><strong>Notifikasi masuk</strong>: kamu menerima notif di Dashboard — "Ada Payment Request menunggu persetujuanmu"</div></li><li><div class="wf-num">2</div><div class="wf-text">Buka menu <strong>Finance → tab Perlu Ditindaki</strong> — lihat daftar PR berstatus "Menunggu Direktur"</div></li><li><div class="wf-num">3</div><div class="wf-text">Klik PR → review detail: nama vendor, deskripsi kebutuhan, nominal, dan lampiran</div></li><li><div class="wf-num">4</div><div class="wf-text">Jika setuju: klik <strong>Setujui</strong> → PR naik ke Direktur Finance (Anung) untuk approval tahap 2</div></li><li><div class="wf-num">5</div><div class="wf-text">Jika tidak setuju: klik <strong>Tolak</strong> → isi alasan → notifikasi dikirim ke pengaju</div></li><li><div class="wf-num">6</div><div class="wf-text">Pantau PR yang sudah kamu tindaki di tab <strong>Sudah Ditindaki</strong></div></li>
       </ol>
-      <div class="wf-tip">💡 Target SLA: tindak lanjuti PR dalam 1×24 jam setelah masuk. PR yang sudah disetujui tahap 1 akan diteruskan otomatis ke Direktur Finance.</div>
+      <div class="wf-tip">💡 Target SLA: tindak lanjuti PR dalam 1×24 jam setelah masuk.</div>
     </div>
     <div class="wf">
       <div class="wf-title">📊 ALUR PENILAIAN KPI TIM</div>
       <ol class="wf-steps">
-        <li><div class="wf-num">1</div><div class="wf-text">Buka menu <strong>Scores (Penilaian)</strong> → tab <strong>Nilai Tim</strong></div></li><li><div class="wf-num">2</div><div class="wf-text">Pilih bulan penilaian — deadline tanggal 23 setiap bulan</div></li><li><div class="wf-num">3</div><div class="wf-text">Pilih karyawan yang akan dinilai: Wulan, Irham, Doddi, Reghy, Putra, Eca, Sultan, Boni — koordinasikan dengan Wulan yang juga menilai tim Event+Creative</div></li><li><div class="wf-num">4</div><div class="wf-text">Isi setiap indikator KPI (skala 1–5): Kecepatan Respons, Ketepatan Waktu, Kualitas Kerja, Tanggung Jawab, Kolaborasi</div></li><li><div class="wf-num">5</div><div class="wf-text">Tambahkan catatan pendukung untuk setiap karyawan — feedback yang spesifik lebih berguna</div></li><li><div class="wf-num">6</div><div class="wf-text">Klik <strong>Simpan Nilai</strong> untuk setiap karyawan yang dinilai</div></li><li><div class="wf-num">7</div><div class="wf-text">Setelah selesai menilai tim, isi juga self-assessment kamu sendiri di tab <strong>Penilaian Diri</strong></div></li>
+        <li><div class="wf-num">1</div><div class="wf-text">Buka menu <strong>Scores (Penilaian)</strong> → tab <strong>Nilai Tim</strong></div></li><li><div class="wf-num">2</div><div class="wf-text">Pilih bulan penilaian — deadline tanggal 23 setiap bulan</div></li><li><div class="wf-num">3</div><div class="wf-text">Pilih karyawan yang akan dinilai: Wulan, Irham, Doddi, Reghy, Putra, Eca, Sultan, Boni — koordinasikan dengan Wulan yang juga menilai tim Event+Creative</div></li><li><div class="wf-num">4</div><div class="wf-text">Isi setiap indikator KPI (skala 1–5): Kecepatan Respons, Ketepatan Waktu, Kualitas Kerja, Tanggung Jawab, Kolaborasi</div></li><li><div class="wf-num">5</div><div class="wf-text">Tambahkan catatan pendukung — feedback spesifik lebih berguna untuk pengembangan karyawan</div></li><li><div class="wf-num">6</div><div class="wf-text">Klik <strong>Simpan Nilai</strong> untuk setiap karyawan yang dinilai</div></li>
       </ol>
-      <div class="wf-tip">💡 Nilai yang kamu berikan akan diakumulasikan dengan evaluasi HRD (dari Anung) dan disiplin harian (otomatis). Deadline: tanggal 23.</div>
-    </div>
-    <div class="wf">
-      <div class="wf-title">⭐ ALUR SELF-ASSESSMENT & PENILAIAN KPI</div>
-      <ol class="wf-steps">
-        <li><div class="wf-num">1</div><div class="wf-text">Buka menu <strong>Scores (Penilaian)</strong> → tab <strong>Penilaian Diri</strong></div></li><li><div class="wf-num">2</div><div class="wf-text">Pilih bulan penilaian — biasanya minggu terakhir bulan (deadline tanggal 23)</div></li><li><div class="wf-num">3</div><div class="wf-text">Nilai dirimu sendiri secara objektif untuk setiap indikator KPI (skala 1–5)</div></li><li><div class="wf-num">4</div><div class="wf-text">Tambahkan catatan pencapaian bulan ini dan rencana pengembangan diri bulan depan</div></li><li><div class="wf-num">5</div><div class="wf-text">Klik <strong>Submit Self-Assessment</strong> — data tersimpan</div></li><li><div class="wf-num">6</div><div class="wf-text">Self-assessment kamu akan dibandingkan dengan penilaian dari atasanmu untuk menghasilkan nilai KPI final</div></li>
-      </ol>
-      <div class="wf-tip">💡 Skor 1=Sangat Kurang, 2=Kurang, 3=Cukup, 4=Baik, 5=Sangat Baik. Deadline: tanggal 23 setiap bulan. Penilaian kamu dari atasan tidak bisa dilihat sebelum kamu submit self-assessment.</div>
+      <div class="wf-tip">💡 Deadline penilaian tim: tanggal 23 setiap bulan. Nilai yang kamu berikan diakumulasikan dengan evaluasi HRD dan disiplin harian otomatis.</div>
     </div>
   </div>
 
@@ -240,14 +255,11 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
       </div>
       <div class="kc">
         <div class="kc-cat">Disiplin Harian (Otomatis)</div>
-        <ul><li>Check-in pagi sebelum 08:00 WIB</li><li>Laporan progress sore 17:00–20:00 WIB</li></ul>
+        <ul><li>Check-in pagi paling lambat 08:05 WIB</li><li>Laporan progress sore 17:00–20:00 WIB</li></ul>
       </div>
     </div>
+    <div class="warn" style="margin-top:10px">ℹ️ Untuk tahap awal, <strong>self-assessment Direktur/Owner belum diaktifkan</strong> — fokus pada penilaian dan pembinaan anggota tim terlebih dahulu. Self-assessment akan diaktifkan pada periode berikutnya.</div>
   </div>
 </div>
-<div class="ftr">
-  <p>Dokumen ini dibuat khusus untuk <strong>David Setyawan</strong> dan bersifat rahasia. Jangan bagikan ke pihak lain.<br>
-  Butuh bantuan atau ada masalah teknis? Hubungi <strong>Bambang Ramdany (Owner/Admin)</strong>.<br>
-  Watermark Indonesia · September 2026 · Update v3</p>
-</div>
-</body></html>
+</body>
+</html>

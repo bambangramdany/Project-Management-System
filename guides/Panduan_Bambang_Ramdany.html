@@ -27,6 +27,7 @@ body{font-family:'Inter',sans-serif;font-size:10pt;color:#1a1a2e;background:#fff
 .ltbl td:last-child{font-family:'Courier New',monospace;color:#1e293b}
 .ltbl tr:last-child td{border-bottom:none}
 .warn{background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:10px 14px;font-size:8.5pt;color:#92400e;margin-bottom:16px}
+.warn-red{background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:10px 14px;font-size:8.5pt;color:#991b1b;margin-top:10px}
 .steps{list-style:none;counter-reset:sc}
 .steps li{counter-increment:sc;display:flex;gap:12px;align-items:flex-start;margin-bottom:8px}
 .steps li::before{content:counter(sc);display:flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:50%;background:#1E40AF;color:#fff;font-size:8pt;font-weight:700;flex-shrink:0;margin-top:1px}
@@ -63,9 +64,6 @@ body{font-family:'Inter',sans-serif;font-size:10pt;color:#1a1a2e;background:#fff
 .kc ul li{font-size:8.5pt;color:#334155;padding:2px 0 2px 14px;position:relative}
 .kc ul li::before{content:'★';position:absolute;left:0;color:#1E40AF;font-size:8pt}
 .badge-new{display:inline-block;background:#dc2626;color:#fff;font-size:6.5pt;font-weight:700;padding:1px 5px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em;vertical-align:middle;margin-left:4px}
-.ftr{background:#f1f5f9;padding:14px 32px;border-top:1px solid #e2e8f0;margin-top:24px}
-.ftr p{font-size:8pt;color:#64748b;text-align:center;line-height:1.7}
-.ftr strong{color:#334155}
 hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
 @media print{body,*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style>
@@ -80,7 +78,7 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
   <div class="hdr-lvl">Owner</div>
 </div>
 <div class="body">
-  <div class="intro">Sebagai Owner, kamu memiliki akses penuh ke seluruh sistem — semua project, semua divisi, semua laporan keuangan, dan semua data karyawan. Kamu adalah approver akhir untuk kebijakan sistem, dan kamu memiliki akses <strong>impersonasi</strong> untuk login sebagai user lain guna testing atau troubleshooting. Kamu juga menilai KPI semua Direktur dan karyawan yang tidak dinilai Direktur Divisi.</div>
+  <div class="intro">Sebagai Owner, kamu memiliki akses penuh ke seluruh sistem — semua project, semua divisi, semua laporan keuangan, dan semua data karyawan. Kamu memiliki akses <strong>impersonasi</strong> untuk login sebagai user lain untuk testing atau troubleshooting. Kamu menilai KPI semua Direktur dan karyawan yang tidak punya atasan langsung di sistem.</div>
 
   <div class="sec">
     <div class="sec-title">🔐 DATA LOGIN</div>
@@ -111,9 +109,9 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
     <div class="sec-title">📅 RUTINITAS HARIAN WAJIB</div>
     <div class="routine-grid">
       <div class="rc">
-        <div class="rc-time">Sebelum 08:00</div>
+        <div class="rc-time">Sebelum 08:05</div>
         <div class="rc-title">☀️ Check-In Pagi</div>
-        <ul><li>Buka Dashboard</li><li>Cek status seluruh divisi dan project aktif</li><li>Review notifikasi penting yang masuk</li><li>Pantau check-in pagi tim</li></ul>
+        <ul><li>Buka Dashboard</li><li>Klik tombol "Check-In Pagi" (sebelum 08:05 WIB)</li><li>Cek status seluruh divisi dan project aktif</li><li>Review notifikasi penting yang masuk</li></ul>
       </div>
       <div class="rc">
         <div class="rc-time">17:00 – 20:00</div>
@@ -121,7 +119,8 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
         <ul><li>Buka Dashboard → Laporan Sore</li><li>Isi ringkasan keputusan dan kegiatan hari ini</li><li>Catat agenda prioritas untuk esok hari</li><li>Submit laporan</li></ul>
       </div>
     </div>
-    <div class="warn" style="margin-top:10px">⚠️ <strong>Penting:</strong> Check-in pagi dan laporan sore dicatat otomatis ke sistem KPI sebagai komponen <strong>Disiplin Harian</strong>. Jika melewati batas waktu, skor absensimu akan terpengaruh. Sistem mengirim notifikasi ke atasanmu jika kamu belum check-in pukul 08:00 WIB.</div>
+    <div class="warn" style="margin-top:10px">⚠️ <strong>Check-in pagi paling lambat pukul 08:05 WIB.</strong> Lewat dari jam 08:05 WIB sistem otomatis mencatat sebagai <strong>tidak hadir</strong> hari itu dan mempengaruhi skor KPI Absensi kamu. Laporan sore wajib diisi antara 17:00–20:00 WIB setiap hari kerja.</div>
+    <div class="warn-red">🚨 <strong>Penting:</strong> Sistem mengirim notifikasi ke atasanmu secara otomatis jika kamu belum check-in pada pukul 08:05 WIB. Pastikan check-in dilakukan <strong>setiap hari kerja (Senin–Jumat)</strong> tanpa terkecuali.</div>
   </div>
 
   <hr class="div">
@@ -137,7 +136,7 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
           <span class="mc-url">/dashboard</span>
         </div>
         <div class="mc-desc">Pantau status seluruh perusahaan — project, finance, tim, dan notifikasi.</div>
-        <ul class="mc-steps"><li>Lihat ringkasan semua project aktif dari semua divisi</li><li>Alert PR yang menunggu, task overdue, dan anomali keuangan</li><li>Check-in pagi dan laporan sore harian</li></ul>
+        <ul class="mc-steps"><li>Ringkasan semua project aktif dari semua divisi</li><li>Alert PR menunggu, task overdue, dan anomali keuangan</li><li>Tombol Check-In Pagi dan Laporan Sore harian</li></ul>
       </div>
       <div class="mc">
         <div class="mc-head">
@@ -146,7 +145,7 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
           <span class="mc-url">/projects</span>
         </div>
         <div class="mc-desc">Akses dan kelola semua project dari semua divisi.</div>
-        <ul class="mc-steps"><li>Buat, edit, dan pantau project di seluruh divisi</li><li>Review profitabilitas, timeline, vendor, dan task</li><li>Akses tab Penilaian Tim untuk setiap project</li></ul>
+        <ul class="mc-steps"><li>Buat, edit, dan pantau project di seluruh divisi</li><li>Review profitabilitas, timeline (MoM & Milestone), vendor, task</li><li>Tab Ringkasan: brief klien, rundown, dan info dasar project</li><li>Tab MoM & Timeline: Minutes of Meeting, milestone, dan rundown event</li></ul>
       </div>
       <div class="mc">
         <div class="mc-head">
@@ -182,7 +181,16 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
           <span class="mc-url">/finance</span>
         </div>
         <div class="mc-desc">Monitoring penuh seluruh keuangan perusahaan.</div>
-        <ul class="mc-steps"><li>Pantau semua PR dari semua divisi</li><li>Akses laporan P&L, cashflow, opex, piutang, hutang</li><li>Monitoring payment yang sudah diproses</li></ul>
+        <ul class="mc-steps"><li>Pantau semua PR dari semua divisi</li><li>Akses laporan P&L, cashflow, opex, piutang, hutang</li><li>Tab Targets: pantau target revenue vs realisasi per divisi</li></ul>
+      </div>
+      <div class="mc">
+        <div class="mc-head">
+          <span class="mc-icon">📈</span>
+          <span class="mc-name">Targets</span>
+          <span class="mc-url">/targets</span>
+        </div>
+        <div class="mc-desc">Pantau target revenue perusahaan per divisi.</div>
+        <ul class="mc-steps"><li>Lihat dan set target revenue tahunan per divisi</li><li>Bandingkan target vs realisasi dari quotation WON</li></ul>
       </div>
       <div class="mc">
         <div class="mc-head">
@@ -191,7 +199,7 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
           <span class="mc-url">/scores</span>
         </div>
         <div class="mc-desc">Nilai KPI semua karyawan dan pantau akumulasi.</div>
-        <ul class="mc-steps"><li>Nilai semua Direktur dan karyawan yang tidak punya atasan langsung di sistem</li><li>Tab Akumulasi: pantau nilai tertimbang akhir semua karyawan</li><li>Isi self-assessment kamu sendiri</li></ul>
+        <ul class="mc-steps"><li>Tab Nilai Tim: nilai semua Direktur dan karyawan yang tidak punya atasan langsung</li><li>Tab Akumulasi: pantau nilai tertimbang akhir semua karyawan</li><li>Analisis Gap: lihat selisih self-assessment vs penilaian atasan per karyawan</li></ul>
       </div>
       <div class="mc">
         <div class="mc-head">
@@ -218,16 +226,16 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
           <span class="mc-url">/hrd/evaluations</span>
         </div>
         <div class="mc-desc">Input evaluasi HRD bulanan semua karyawan.</div>
-        <ul class="mc-steps"><li>Evaluasi Attitude Score dan Skill Score per karyawan</li><li>Tambah catatan evaluasi dan skill activities</li></ul>
+        <ul class="mc-steps"><li>Evaluasi Attitude Score dan Skill Score per karyawan</li><li>Tambah catatan dan skill activities</li></ul>
       </div>
       <div class="mc">
         <div class="mc-head">
           <span class="mc-icon">⚙️</span>
-          <span class="mc-name">Pengaturan</span>
+          <span class="mc-name">Pengaturan / Admin</span>
           <span class="mc-url">/settings</span>
         </div>
-        <div class="mc-desc">Pengaturan sistem dan audit log.</div>
-        <ul class="mc-steps"><li>Lihat Audit Log: semua aktivitas sistem</li><li>Kelola user, impersonasi untuk testing</li></ul>
+        <div class="mc-desc">Pengaturan sistem, audit log, dan impersonasi.</div>
+        <ul class="mc-steps"><li>Lihat Audit Log: semua aktivitas sistem — siapa mengubah apa dan kapan</li><li>Impersonasi: login sebagai user lain untuk testing atau troubleshooting</li><li>Kelola data user dan permission</li></ul>
       </div>
     </div>
   </div>
@@ -240,37 +248,30 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
     <div class="wf">
       <div class="wf-title">☀️ ALUR MORNING BRIEFING (Check-In Pagi)</div>
       <ol class="wf-steps">
-        <li><div class="wf-num">1</div><div class="wf-text">Buka aplikasi sebelum <strong>08:00 WIB</strong> — pastikan sudah ada koneksi internet</div></li><li><div class="wf-num">2</div><div class="wf-text">Di halaman Dashboard, muncul banner/tombol <strong>"Check-In Pagi"</strong> — klik tombol tersebut</div></li><li><div class="wf-num">3</div><div class="wf-text">Sistem mencatat timestamp check-in kamu secara otomatis (tidak perlu isi apapun)</div></li><li><div class="wf-num">4</div><div class="wf-text">Setelah check-in, lanjut review Dashboard: lihat project aktif, cek notifikasi dan task hari ini</div></li><li><div class="wf-num">5</div><div class="wf-text">Sistem otomatis mengirim notifikasi ke atasanmu jika kamu belum check-in pukul 08:00 WIB</div></li>
+        <li><div class="wf-num">1</div><div class="wf-text">Buka aplikasi sebelum <strong>08:05 WIB</strong> — pastikan sudah ada koneksi internet</div></li><li><div class="wf-num">2</div><div class="wf-text">Di halaman Dashboard, muncul banner/tombol <strong>"Check-In Pagi"</strong> — klik tombol tersebut</div></li><li><div class="wf-num">3</div><div class="wf-text">Sistem mencatat timestamp check-in secara otomatis (tidak perlu isi apapun)</div></li><li><div class="wf-num">4</div><div class="wf-text">Setelah check-in, lanjut review Dashboard: lihat project aktif, cek notifikasi dan task hari ini</div></li><li><div class="wf-num">5</div><div class="wf-text">Sistem otomatis mengirim notifikasi ke atasanmu jika kamu belum check-in pukul 08:05 WIB</div></li>
       </ol>
-      <div class="wf-tip">💡 Check-in pagi dihitung sebagai komponen Absensi dalam akumulasi KPI bulanan. Pastikan check-in SETIAP hari kerja (Senin–Jumat).</div>
+      <div class="wf-tip">💡 Batas check-in: 08:05 WIB. Lewat dari itu = tidak hadir. Pastikan check-in SETIAP hari kerja (Senin–Jumat). Absensi masuk komponen KPI Absensi (bobot 20%).</div>
     </div>
     <div class="wf">
       <div class="wf-title">🌙 ALUR LAPORAN PROGRESS SORE / TO-DO LIST</div>
       <ol class="wf-steps">
-        <li><div class="wf-num">1</div><div class="wf-text">Antara pukul <strong>17:00–20:00 WIB</strong>, buka Dashboard</div></li><li><div class="wf-num">2</div><div class="wf-text">Klik tombol <strong>"Laporan Sore"</strong> atau <strong>"Progress Hari Ini"</strong> yang muncul di dashboard</div></li><li><div class="wf-num">3</div><div class="wf-text">Isi ringkasan kegiatan hari ini: apa saja yang sudah dikerjakan dan diselesaikan</div></li><li><div class="wf-num">4</div><div class="wf-text">Catat <strong>to-do list untuk besok</strong>: task yang pending atau perlu dilanjutkan</div></li><li><div class="wf-num">5</div><div class="wf-text">Tambahkan catatan khusus jika ada kondisi yang perlu perhatian atasanmu</div></li><li><div class="wf-num">6</div><div class="wf-text">Klik <strong>Submit Laporan</strong> — data tersimpan dan dicatat ke komponen KPI Disiplin Harian</div></li><li><div class="wf-num">7</div><div class="wf-text">Laporan sore juga dapat dilihat oleh Owner/atasan sebagai bentuk transparansi harian</div></li>
+        <li><div class="wf-num">1</div><div class="wf-text">Antara pukul <strong>17:00–20:00 WIB</strong>, buka Dashboard</div></li><li><div class="wf-num">2</div><div class="wf-text">Klik tombol <strong>"Laporan Sore"</strong> atau <strong>"Progress Hari Ini"</strong> yang muncul di dashboard</div></li><li><div class="wf-num">3</div><div class="wf-text">Isi ringkasan kegiatan hari ini: apa saja yang sudah dikerjakan dan diselesaikan</div></li><li><div class="wf-num">4</div><div class="wf-text">Catat <strong>to-do list untuk besok</strong>: task yang pending atau perlu dilanjutkan</div></li><li><div class="wf-num">5</div><div class="wf-text">Tambahkan catatan khusus jika ada kondisi yang perlu perhatian atasan</div></li><li><div class="wf-num">6</div><div class="wf-text">Klik <strong>Submit Laporan</strong> — data tersimpan dan dicatat ke komponen KPI Disiplin Harian</div></li>
       </ol>
-      <div class="wf-tip">💡 Laporan sore adalah bentuk akuntabilitas harian. Isi dengan jujur dan detail — ini bukan formalitas, tapi tool komunikasi dengan atasan.</div>
-    </div>
-    <div class="wf">
-      <div class="wf-title">⭐ ALUR SELF-ASSESSMENT & PENILAIAN KPI</div>
-      <ol class="wf-steps">
-        <li><div class="wf-num">1</div><div class="wf-text">Buka menu <strong>Scores (Penilaian)</strong> → tab <strong>Penilaian Diri</strong></div></li><li><div class="wf-num">2</div><div class="wf-text">Pilih bulan penilaian — biasanya minggu terakhir bulan (deadline tanggal 23)</div></li><li><div class="wf-num">3</div><div class="wf-text">Nilai dirimu sendiri secara objektif untuk setiap indikator KPI (skala 1–5)</div></li><li><div class="wf-num">4</div><div class="wf-text">Tambahkan catatan pencapaian bulan ini dan rencana pengembangan diri bulan depan</div></li><li><div class="wf-num">5</div><div class="wf-text">Klik <strong>Submit Self-Assessment</strong> — data tersimpan</div></li><li><div class="wf-num">6</div><div class="wf-text">Self-assessment kamu akan dibandingkan dengan penilaian dari atasanmu untuk menghasilkan nilai KPI final</div></li>
-      </ol>
-      <div class="wf-tip">💡 Skor 1=Sangat Kurang, 2=Kurang, 3=Cukup, 4=Baik, 5=Sangat Baik. Deadline: tanggal 23 setiap bulan. Penilaian kamu dari atasan tidak bisa dilihat sebelum kamu submit self-assessment.</div>
+      <div class="wf-tip">💡 Laporan sore adalah bentuk akuntabilitas harian. Isi dengan jujur dan detail. Dapat dilihat oleh atasan sebagai bentuk transparansi.</div>
     </div>
     <div class="wf">
       <div class="wf-title">📊 ALUR PENILAIAN KPI TIM</div>
       <ol class="wf-steps">
-        <li><div class="wf-num">1</div><div class="wf-text">Buka menu <strong>Scores (Penilaian)</strong> → tab <strong>Nilai Tim</strong></div></li><li><div class="wf-num">2</div><div class="wf-text">Pilih bulan penilaian — deadline tanggal 23 setiap bulan</div></li><li><div class="wf-num">3</div><div class="wf-text">Pilih karyawan yang akan dinilai: semua karyawan — terutama Direktur dan karyawan yang tidak punya atasan langsung di sistem</div></li><li><div class="wf-num">4</div><div class="wf-text">Isi setiap indikator KPI (skala 1–5): Kecepatan Respons, Ketepatan Waktu, Kualitas Kerja, Tanggung Jawab, Kolaborasi</div></li><li><div class="wf-num">5</div><div class="wf-text">Tambahkan catatan pendukung untuk setiap karyawan — feedback yang spesifik lebih berguna</div></li><li><div class="wf-num">6</div><div class="wf-text">Klik <strong>Simpan Nilai</strong> untuk setiap karyawan yang dinilai</div></li><li><div class="wf-num">7</div><div class="wf-text">Setelah selesai menilai tim, isi juga self-assessment kamu sendiri di tab <strong>Penilaian Diri</strong></div></li>
+        <li><div class="wf-num">1</div><div class="wf-text">Buka menu <strong>Scores (Penilaian)</strong> → tab <strong>Nilai Tim</strong></div></li><li><div class="wf-num">2</div><div class="wf-text">Pilih bulan penilaian — deadline tanggal 23 setiap bulan</div></li><li><div class="wf-num">3</div><div class="wf-text">Pilih karyawan yang akan dinilai: semua karyawan — terutama Direktur dan karyawan tanpa atasan langsung</div></li><li><div class="wf-num">4</div><div class="wf-text">Isi setiap indikator KPI (skala 1–5): Kecepatan Respons, Ketepatan Waktu, Kualitas Kerja, Tanggung Jawab, Kolaborasi</div></li><li><div class="wf-num">5</div><div class="wf-text">Tambahkan catatan pendukung — feedback spesifik lebih berguna untuk pengembangan karyawan</div></li><li><div class="wf-num">6</div><div class="wf-text">Klik <strong>Simpan Nilai</strong> untuk setiap karyawan yang dinilai</div></li>
       </ol>
-      <div class="wf-tip">💡 Nilai yang kamu berikan akan diakumulasikan dengan evaluasi HRD (dari Anung) dan disiplin harian (otomatis). Deadline: tanggal 23.</div>
+      <div class="wf-tip">💡 Deadline penilaian tim: tanggal 23 setiap bulan. Nilai yang kamu berikan diakumulasikan dengan evaluasi HRD dan disiplin harian otomatis.</div>
     </div>
     <div class="wf">
       <div class="wf-title">🔍 ALUR IMPERSONASI (Login sebagai User Lain)</div>
       <ol class="wf-steps">
-        <li><div class="wf-num">1</div><div class="wf-text">Buka menu <strong>Pengaturan / Settings</strong></div></li><li><div class="wf-num">2</div><div class="wf-text">Cari fitur <strong>Impersonasi</strong> atau "Login sebagai..."</div></li><li><div class="wf-num">3</div><div class="wf-text">Pilih user yang ingin kamu akses</div></li><li><div class="wf-num">4</div><div class="wf-text">Kamu akan masuk ke sistem dengan tampilan persis seperti user tersebut melihatnya</div></li><li><div class="wf-num">5</div><div class="wf-text">Gunakan untuk testing, troubleshooting, atau membantu user yang kesulitan</div></li><li><div class="wf-num">6</div><div class="wf-text">Klik <strong>Keluar Impersonasi</strong> atau tombol serupa untuk kembali ke akunmu sendiri</div></li>
+        <li><div class="wf-num">1</div><div class="wf-text">Buka <strong>Pengaturan / Settings → Admin</strong></div></li><li><div class="wf-num">2</div><div class="wf-text">Cari fitur <strong>Impersonasi</strong> atau "Login sebagai..."</div></li><li><div class="wf-num">3</div><div class="wf-text">Pilih user yang ingin kamu akses dari daftar karyawan</div></li><li><div class="wf-num">4</div><div class="wf-text">Kamu masuk ke sistem dengan tampilan persis seperti user tersebut</div></li><li><div class="wf-num">5</div><div class="wf-text">Gunakan untuk testing fitur, troubleshooting, atau membantu user yang kesulitan</div></li><li><div class="wf-num">6</div><div class="wf-text">Klik <strong>Keluar Impersonasi</strong> untuk kembali ke akunmu</div></li>
       </ol>
-      <div class="wf-tip">💡 Impersonasi adalah fitur admin. Gunakan hanya untuk keperluan teknis, testing fitur, atau membantu user. Semua aktivitas dalam mode impersonasi tercatat di Audit Log.</div>
+      <div class="wf-tip">💡 Semua aktivitas dalam mode impersonasi tercatat di Audit Log. Gunakan hanya untuk keperluan teknis atau membantu karyawan.</div>
     </div>
   </div>
 
@@ -286,14 +287,11 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
       </div>
       <div class="kc">
         <div class="kc-cat">Disiplin Harian (Otomatis)</div>
-        <ul><li>Check-in pagi sebelum 08:00 WIB</li><li>Laporan progress sore 17:00–20:00 WIB</li></ul>
+        <ul><li>Check-in pagi paling lambat 08:05 WIB</li><li>Laporan progress sore 17:00–20:00 WIB</li></ul>
       </div>
     </div>
+    <div class="warn" style="margin-top:10px">ℹ️ Untuk tahap awal, <strong>self-assessment Direktur/Owner belum diaktifkan</strong> — fokus pada penilaian dan pembinaan anggota tim terlebih dahulu. Self-assessment akan diaktifkan pada periode berikutnya.</div>
   </div>
 </div>
-<div class="ftr">
-  <p>Dokumen ini dibuat khusus untuk <strong>Bambang Ramdany</strong> dan bersifat rahasia. Jangan bagikan ke pihak lain.<br>
-  Butuh bantuan atau ada masalah teknis? Hubungi <strong>Bambang Ramdany (Owner/Admin)</strong>.<br>
-  Watermark Indonesia · September 2026 · Update v3</p>
-</div>
-</body></html>
+</body>
+</html>
