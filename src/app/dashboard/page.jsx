@@ -399,7 +399,7 @@ export default function DashboardPage() {
     fetch('/api/projects').then(r => r.json()).then(data => {
       setProjects(Array.isArray(data) ? data : [])
       setLoading(false)
-    })
+    }).catch(() => setLoading(false))
   }
 
   // One combined request: projects + role-gated finance widgets, fetched
@@ -420,7 +420,7 @@ export default function DashboardPage() {
       if (data.piutangAlerts)  setPiutangAlerts(data.piutangAlerts)
       if (data.pendingPRCount) setPendingPRCount(data.pendingPRCount)
       setLoading(false)
-    })
+    }).catch(() => setLoading(false))
   }, [status])
 
   const skipNextOverviewFetch = useRef(false)
@@ -428,13 +428,13 @@ export default function DashboardPage() {
     if (!overviewRange) return
     if (skipNextOverviewFetch.current) { skipNextOverviewFetch.current = false; return }
     const params = new URLSearchParams(overviewRange)
-    fetch(`/api/finance/overview?${params}`).then(r => r.ok ? r.json() : null).then(data => { if (data) setOverview(data) })
+    fetch(`/api/finance/overview?${params}`).then(r => r.ok ? r.json() : null).then(data => { if (data) setOverview(data) }).catch(() => {})
   }, [overviewRange])
 
   // Fetch company-wide team stats (all roles, no user filter)
   useEffect(() => {
     if (status !== 'authenticated') return
-    fetch('/api/dashboard/team-stats').then(r => r.ok ? r.json() : null).then(d => { if (d) setTeamStats(d) })
+    fetch('/api/dashboard/team-stats').then(r => r.ok ? r.json() : null).then(d => { if (d) setTeamStats(d) }).catch(() => {})
   }, [status])
 
   // Fetch trend charts (Owner/Finance/Director only)
@@ -445,6 +445,7 @@ export default function DashboardPage() {
     fetch(`/api/dashboard/trends?year=${trendsYear}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setTrendsData(data) })
+      .catch(() => {})
   }, [status, trendsYear, session])
 
   if (status === 'loading' || loading) return <DashboardSkeleton />
@@ -773,7 +774,7 @@ function DivisionSection({ title, projects, onProjectUpdate }) {
   const { data: session } = useSession()
   const [allUsers, setAllUsers] = useState([])
   useEffect(() => {
-    fetch('/api/team').then(r => r.ok ? r.json() : []).then(d => setAllUsers(Array.isArray(d) ? d : []))
+    fetch('/api/team').then(r => r.ok ? r.json() : []).then(d => setAllUsers(Array.isArray(d) ? d : [])).catch(() => {})
   }, [])
   const active = projects.filter(p => ACTIVE_STATUSES.includes(p.status))
   const countByStatus = {}

@@ -60,6 +60,7 @@ export default function AuditPage() {
     fetch('/api/admin/audit')
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false) })
+      .catch(() => setLoading(false))
   }
 
   useEffect(() => { if (status === 'authenticated') load() }, [status])
@@ -67,13 +68,18 @@ export default function AuditPage() {
   async function fixValue(projectId, newValue, projectName) {
     if (!confirm(`Update nilai project "${projectName}" menjadi ${fmt(newValue)}?`)) return
     setFixing(projectId)
-    await fetch('/api/admin/audit/fix-value', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectId, newValue }),
-    })
-    setFixing(null)
-    load()
+    try {
+      await fetch('/api/admin/audit/fix-value', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId, newValue }),
+      })
+    } catch {
+      // network error — ignore, reload will show current state
+    } finally {
+      setFixing(null)
+      load()
+    }
   }
 
   if (loading || status !== 'authenticated') {
