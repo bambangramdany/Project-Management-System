@@ -2036,6 +2036,17 @@ export default function FinancePage() {
                 const pv = parseFloat(projectValue) || 0
                 const revenueRiil = pv - titipanTotal
                 return (
+                )
+              })()}
+              </div>{/* min-w */}
+              </div>{/* overflow-x-auto */}
+
+              {(() => {
+                const murni = budgetItems.filter(b => !b.isTitipan)
+                const titipanTotal = budgetItems.filter(b => b.isTitipan).reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0)
+                const forecastMurni = murni.reduce((sum, b) => sum + (parseFloat(b.quotedAmount) || 0), 0)
+                const aktualMurni = murni.reduce((sum, b) => sum + (parseFloat(b.actualAmount) || 0), 0)
+                return (
                   <div className="pt-2 border-t border-gray-100 grid grid-cols-2 gap-y-1 text-sm">
                     <span className="font-semibold text-gray-900">Total Forecast (Quotation)</span>
                     <span className="font-bold text-gray-900 text-right">
@@ -2064,8 +2075,6 @@ export default function FinancePage() {
                   </div>
                 )
               })()}
-              </div>{/* min-w */}
-              </div>{/* overflow-x-auto */}
 
               {budgetMeta.canViewMargin && (() => {
                 const murni = budgetItems.filter(b => !b.isTitipan)
