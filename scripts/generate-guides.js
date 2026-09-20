@@ -21,6 +21,7 @@ function buildGuide(p) {
 <title>Panduan ${name} — Watermark PM</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@page{margin:0;size:A4}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',sans-serif;font-size:10pt;color:#1a1a2e;background:#fff;line-height:1.5}
 .hdr{background:linear-gradient(135deg,${accent} 0%,${accentText} 100%);color:#fff;padding:28px 32px 24px}
@@ -327,54 +328,7 @@ const WF_BRIEF_RUNDOWN = {
 // ── PEOPLE DATA ──────────────────────────────────────────────────────────────
 const PEOPLE = [
 
-  // ── 1. BAMBANG — Owner ─────────────────────────────────────────────────
-  {
-    slug:'bambang', isDirectorOrOwner:true,
-    name:'Bambang Ramdany',
-    email:'bambang@watermark.co.id',
-    jabatan:'Owner / Direktur Utama',
-    divisi:'Semua Divisi',
-    levelLabel:'Owner',
-    accent:'#1E40AF', accentLight:'#DBEAFE', accentText:'#1E3A8A',
-    intro:'Sebagai Owner, kamu memiliki akses penuh ke seluruh sistem — semua project, semua divisi, semua laporan keuangan, dan semua data karyawan. Kamu memiliki akses <strong>impersonasi</strong> untuk login sebagai user lain untuk testing atau troubleshooting. Kamu menilai KPI semua Direktur dan karyawan yang tidak punya atasan langsung di sistem.',
-    dailyRoutine:{
-      morning:['Buka Dashboard','Klik tombol "Check-In Pagi" (sebelum 08:05 WIB)','Cek status seluruh divisi dan project aktif','Review notifikasi penting yang masuk'],
-      evening:['Buka Dashboard → Laporan Sore','Isi ringkasan keputusan dan kegiatan hari ini','Catat agenda prioritas untuk esok hari','Submit laporan']
-    },
-    menus:[
-      {icon:'🏠',name:'Dashboard',url:'/dashboard',desc:'Pantau status seluruh perusahaan — project, finance, tim, dan notifikasi.',steps:['Ringkasan semua project aktif dari semua divisi','Alert PR menunggu, task overdue, dan anomali keuangan','Tombol Check-In Pagi dan Laporan Sore harian']},
-      {icon:'📁',name:'Projects',url:'/projects',desc:'Akses dan kelola semua project dari semua divisi.',steps:['Buat, edit, dan pantau project di seluruh divisi','Review profitabilitas, timeline (MoM & Milestone), vendor, task','Tab Ringkasan: brief klien, rundown, dan info dasar project','Tab MoM & Timeline: Minutes of Meeting, milestone, dan rundown event']},
-      {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan aktivitas harianmu sendiri.',steps:['Lihat task yang di-assign kepadamu','Pantau progress dan update status task']},
-      {icon:'👥',name:'Klien',url:'/clients',desc:'Database klien perusahaan.',steps:['Lihat dan kelola semua data klien','Riwayat project per klien']},
-      {icon:'🤝',name:'Vendor',url:'/vendors',desc:'Database vendor perusahaan.',steps:['Lihat semua vendor, tier, dan rating','Pantau kinerja vendor lintas project']},
-      {icon:'💰',name:'Finance',url:'/finance',desc:'Monitoring penuh seluruh keuangan perusahaan.',steps:['Pantau semua PR dari semua divisi','Akses laporan P&L, cashflow, opex, piutang, hutang','Tab Targets: pantau target revenue vs realisasi per divisi']},
-      {icon:'📈',name:'Targets',url:'/targets',desc:'Pantau target revenue perusahaan per divisi.',steps:['Lihat dan set target revenue tahunan per divisi','Bandingkan target vs realisasi dari quotation WON']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Nilai KPI semua karyawan dan pantau akumulasi.',steps:['Tab Nilai Tim: nilai semua Direktur dan karyawan yang tidak punya atasan langsung','Tab Akumulasi: pantau nilai tertimbang akhir semua karyawan','Analisis Gap: lihat selisih self-assessment vs penilaian atasan per karyawan']},
-      {icon:'📜',name:'SOP & Peraturan',url:'/peraturan',desc:'Kelola dan baca seluruh SOP perusahaan.',steps:['Akses seluruh SOP dari semua divisi','Section H: ketentuan PIP, SP, dan PHK']},
-      {icon:'📢',name:'Pengumuman & HR',url:'/hr/announcements',desc:'Buat pengumuman dan surat pembinaan.',steps:['Buat pengumuman untuk semua karyawan atau personal','Buat surat pembinaan: Teguran Lisan, PIP, SP-1 hingga SP-3']},
-      {icon:'👥',name:'Input HRD',url:'/hrd/evaluations',desc:'Input evaluasi HRD bulanan semua karyawan.',steps:['Evaluasi Attitude Score dan Skill Score per karyawan','Tambah catatan dan skill activities']},
-      {icon:'⚙️',name:'Pengaturan / Admin',url:'/settings',desc:'Pengaturan sistem, audit log, dan impersonasi.',steps:['Lihat Audit Log: semua aktivitas sistem — siapa mengubah apa dan kapan','Impersonasi: login sebagai user lain untuk testing atau troubleshooting','Kelola data user dan permission']},
-    ],
-    workflows:[
-      WF_MORNING,
-      WF_EVENING,
-      WF_SCORE_TEAM('semua karyawan — terutama Direktur dan karyawan tanpa atasan langsung'),
-      {icon:'🔍',title:'ALUR IMPERSONASI (Login sebagai User Lain)',steps:[
-        'Buka <strong>Pengaturan / Settings → Admin</strong>',
-        'Cari fitur <strong>Impersonasi</strong> atau "Login sebagai..."',
-        'Pilih user yang ingin kamu akses dari daftar karyawan',
-        'Kamu masuk ke sistem dengan tampilan persis seperti user tersebut',
-        'Gunakan untuk testing fitur, troubleshooting, atau membantu user yang kesulitan',
-        'Klik <strong>Keluar Impersonasi</strong> untuk kembali ke akunmu',
-      ],tip:'Semua aktivitas dalam mode impersonasi tercatat di Audit Log. Gunakan hanya untuk keperluan teknis atau membantu karyawan.'},
-    ],
-    kpiIndicators:[
-      {category:'Kepemimpinan',items:['Ketepatan Keputusan Strategis','Arahan & Visi Perusahaan','Pengembangan Kompetensi Tim']},
-      {category:'Disiplin Harian (Otomatis)',items:['Check-in pagi paling lambat 08:05 WIB','Laporan progress sore 17:00–20:00 WIB']},
-    ],
-  },
-
-  // ── 2. ANUNG — Direktur Finance & HRGA ────────────────────────────────
+  // ── 1. ANUNG — Direktur Finance & HRGA ────────────────────────────────
   {
     slug:'anung', isDirectorOrOwner:true,
     name:'Anung Anindita Atmaja',
@@ -1157,7 +1111,7 @@ const PEOPLE = [
 
 // ── Generate all HTML files ───────────────────────────────────────────────────
 const FILENAME_MAP = {
-  'bambang':'Bambang_Ramdany','anung':'Anung_Anindita_Atmaja',
+  'anung':'Anung_Anindita_Atmaja',
   'gunadarma':'Gunadarma','david-setyawan':'David_Setyawan',
   'fakhril-islamy':'M_Fakhril_Islamy','wulan':'Wulan','irham':'Irham',
   'bastya':'Bastya','antoni':'Antoni','bima':'Bima','henri':'Henri',
