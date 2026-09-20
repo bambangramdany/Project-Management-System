@@ -39,6 +39,7 @@ export async function GET(req) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  try {
   const { searchParams } = new URL(req.url)
   const wfoDate = searchParams.get('wfoDate') || getTuesdayOfWeek()
   const finDate = searchParams.get('finDate') || getFridayOfWeek()
@@ -86,11 +87,11 @@ export async function GET(req) {
       orderBy: [{ divisi: 'asc' }, { name: 'asc' }],
     }) : null,
 
-    // Finance meeting log
-    (needsFin || isAdmin) ? prisma.financeMeetingLog.findUnique({
+    // Finance meeting log (compound unique [weekDate, meetingType], so use findMany)
+    (needsFin || isAdmin) ? prisma.financeMeetingLog.findMany({
       where: { weekDate: finDate },
       include: { author: { select: { id: true, name: true } } },
-    }) : null,
+    }) : Promise.resolve([]),
 
     // Total active users for briefing rate
     isAdmin ? prisma.user.count({ where: { employeeStatus: 'ACTIVE' } }) : Promise.resolve(null),
@@ -112,8 +113,13 @@ export async function GET(req) {
     },
     finMeeting: {
       weekDate: finDate,
-      log: finLog,
+      logs: finLog,
+      log: Array.isArray(finLog) ? (finLog[0] || null) : finLog,
       isRequired: needsFin,
     },
   })
+  } catch (e) {
+    console.error('GET /api/programs/summary error:', e)
+    return NextResponse.json({ error: 'Gagal memuat data program' }, { status: 500 })
+  }
 }
