@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panduan Boni — Watermark PM</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;font-size:10pt;color:#1a1a2e;background:#fff;line-height:1.5}
+.hdr{background:linear-gradient(135deg,#0F766E 0%,#134E4A 100%);color:#fff;padding:28px 32px 24px}
+.hdr-meta{font-size:8pt;opacity:.75;margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase}
+.hdr-brand{font-size:22pt;font-weight:700;letter-spacing:-.02em;margin-bottom:4px}
+.hdr-sub{font-size:9pt;opacity:.85}
+.hdr-name{font-size:18pt;font-weight:700;margin:16px 0 4px}
+.hdr-role{font-size:10pt;opacity:.9;margin-bottom:2px}
+.hdr-lvl{display:inline-block;background:rgba(255,255,255,.2);border-radius:20px;padding:3px 12px;font-size:8.5pt;font-weight:600;margin-top:4px}
+.body{padding:0 32px 32px}
+.intro{background:#CCFBF1;border-left:4px solid #0F766E;border-radius:8px;padding:14px 16px;margin:20px 0 24px;color:#134E4A;font-size:9.5pt;line-height:1.6}
+.sec{margin-bottom:24px}
+.sec-title{font-size:12pt;font-weight:700;color:#0F766E;margin-bottom:12px;display:flex;align-items:center;gap:8px;border-bottom:2px solid #CCFBF1;padding-bottom:6px}
+.login-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:16px}
+.login-hdr{background:#0F766E;color:#fff;padding:8px 16px;font-size:8.5pt;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.ltbl{width:100%;border-collapse:collapse}
+.ltbl td{padding:8px 16px;border-bottom:1px solid #e2e8f0;font-size:9pt}
+.ltbl td:first-child{font-weight:600;color:#64748b;width:100px}
+.ltbl td:last-child{font-family:'Courier New',monospace;color:#1e293b}
+.ltbl tr:last-child td{border-bottom:none}
+.warn{background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:10px 14px;font-size:8.5pt;color:#92400e;margin-bottom:16px}
+.steps{list-style:none;counter-reset:sc}
+.steps li{counter-increment:sc;display:flex;gap:12px;align-items:flex-start;margin-bottom:8px}
+.steps li::before{content:counter(sc);display:flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:50%;background:#0F766E;color:#fff;font-size:8pt;font-weight:700;flex-shrink:0;margin-top:1px}
+.steps li span{font-size:9pt;color:#334155;padding-top:2px}
+.routine-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rc{background:#CCFBF1;border-radius:8px;padding:12px 14px}
+.rc-time{font-size:13pt;font-weight:700;color:#0F766E;margin-bottom:2px}
+.rc-title{font-size:9pt;font-weight:600;color:#134E4A;margin-bottom:8px}
+.rc ul{list-style:none;padding:0}
+.rc ul li{font-size:8pt;color:#334155;padding:2px 0 2px 12px;position:relative}
+.rc ul li::before{content:'•';position:absolute;left:0;color:#0F766E}
+.menus{display:flex;flex-direction:column;gap:8px}
+.mc{border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;background:#fafafa}
+.mc-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.mc-icon{font-size:14pt}
+.mc-name{font-weight:700;font-size:9.5pt;color:#134E4A}
+.mc-url{font-size:7.5pt;color:#94a3b8;font-family:monospace;margin-left:auto}
+.mc-desc{font-size:8.5pt;color:#475569;margin-bottom:4px}
+.mc-steps{list-style:none;padding:0;margin:6px 0 0}
+.mc-steps li{font-size:8.5pt;color:#334155;padding:3px 0 3px 14px;position:relative;border-top:1px solid #f1f5f9}
+.mc-steps li::before{content:'→';position:absolute;left:0;color:#0F766E;font-weight:700}
+.wf{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.wf-title{font-weight:700;font-size:9.5pt;color:#134E4A;margin-bottom:10px}
+.wf-steps{list-style:none}
+.wf-steps li{display:flex;gap:10px;align-items:flex-start;margin-bottom:7px}
+.wf-num{display:flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:4px;background:#0F766E;color:#fff;font-size:7.5pt;font-weight:700;flex-shrink:0}
+.wf-text{font-size:8.5pt;color:#334155;padding-top:1px}
+.wf-text strong{color:#134E4A}
+.wf-tip{background:#CCFBF1;border-radius:6px;padding:8px 12px;font-size:8pt;color:#134E4A;margin-top:10px}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kc{border:1px solid #CCFBF1;border-radius:8px;padding:10px 12px;background:#fafafa}
+.kc-cat{font-size:7.5pt;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-bottom:4px;font-weight:600}
+.kc ul{list-style:none;padding:0}
+.kc ul li{font-size:8.5pt;color:#334155;padding:2px 0 2px 14px;position:relative}
+.kc ul li::before{content:'★';position:absolute;left:0;color:#0F766E;font-size:8pt}
+.badge-new{display:inline-block;background:#dc2626;color:#fff;font-size:6.5pt;font-weight:700;padding:1px 5px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em;vertical-align:middle;margin-left:4px}
+.ftr{background:#f1f5f9;padding:14px 32px;border-top:1px solid #e2e8f0;margin-top:24px}
+.ftr p{font-size:8pt;color:#64748b;text-align:center;line-height:1.7}
+.ftr strong{color:#334155}
+hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
+@media print{body,*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-meta">September 2026 · Dokumen Personal &amp; Rahasia · Update v3</div>
+  <div class="hdr-brand">W Watermark PM</div>
+  <div class="hdr-sub">Sistem Manajemen Project — panduan penggunaan lengkap</div>
+  <div class="hdr-name">Boni</div>
+  <div class="hdr-role">Internship Event · Divisi EVENT</div>
+  <div class="hdr-lvl">Internship</div>
+</div>
+<div class="body">
+  <div class="intro">Sebagai Internship Event, kamu mendukung kegiatan divisi Event selama masa magang. Kamu wajib check-in pagi sebelum 08:00 WIB, isi laporan sore, dan mengikuti alur kerja yang sama dengan anggota tim lainnya.</div>
+
+  <div class="sec">
+    <div class="sec-title">🔐 DATA LOGIN</div>
+    <div class="login-box">
+      <div class="login-hdr">INFORMASI LOGIN SISTEM</div>
+      <table class="ltbl">
+        <tr><td>URL</td><td>project-management-system-six-psi.vercel.app</td></tr>
+        <tr><td>Email</td><td>boni@watermark.co.id</td></tr>
+        <tr><td>Password</td><td>watermark2026</td></tr>
+      </table>
+    </div>
+    <div class="warn">⚠️ Segera ganti password setelah login: pojok kanan atas → Profil → isi form ganti password. Jangan bagikan dokumen ini.</div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">🚀 CARA LOGIN</div>
+    <ol class="steps">
+      <li><span>Buka <strong>project-management-system-six-psi.vercel.app</strong> di browser</span></li>
+      <li><span>Masukkan email dan password di atas, klik <strong>Masuk</strong></span></li>
+      <li><span>Kamu akan diarahkan ke <strong>Dashboard</strong> — mulai check-in pagi dari sini</span></li>
+      <li><span>Segera ganti password: pojok kanan atas → Profil → isi form ganti password</span></li>
+    </ol>
+  </div>
+
+  <hr class="div">
+
+  <div class="sec">
+    <div class="sec-title">📅 RUTINITAS HARIAN WAJIB</div>
+    <div class="routine-grid">
+      <div class="rc">
+        <div class="rc-time">Sebelum 08:00</div>
+        <div class="rc-title">☀️ Check-In Pagi</div>
+        <ul><li>Buka Dashboard</li><li>Klik "Check-In Pagi"</li><li>Cek task dan agenda magang hari ini</li></ul>
+      </div>
+      <div class="rc">
+        <div class="rc-time">17:00 – 20:00</div>
+        <div class="rc-title">🌙 Laporan Progress Sore</div>
+        <ul><li>Buka Dashboard → Laporan Sore</li><li>Isi update kegiatan magang hari ini</li><li>Submit laporan</li></ul>
+      </div>
+    </div>
+    <div class="warn" style="margin-top:10px">⚠️ <strong>Penting:</strong> Check-in pagi dan laporan sore dicatat otomatis ke sistem KPI sebagai komponen <strong>Disiplin Harian</strong>. Jika melewati batas waktu, skor absensimu akan terpengaruh. Sistem mengirim notifikasi ke atasanmu jika kamu belum check-in pukul 08:00 WIB.</div>
+  </div>
+
+  <hr class="div">
+
+  <div class="sec">
+    <div class="sec-title">📋 PANDUAN PENGGUNAAN SISTEM</div>
+    <div class="menus">
+      
+      <div class="mc">
+        <div class="mc-head">
+          <span class="mc-icon">🏠</span>
+          <span class="mc-name">Dashboard</span>
+          <span class="mc-url">/dashboard</span>
+        </div>
+        <div class="mc-desc">Ringkasan task dan kegiatan harian.</div>
+        <ul class="mc-steps"><li>Cek task yang diberikan</li><li>Check-in pagi sebelum 08:00 WIB dan laporan sore 17:00–20:00 WIB</li></ul>
+      </div>
+      <div class="mc">
+        <div class="mc-head">
+          <span class="mc-icon">📋</span>
+          <span class="mc-name">Tugas Saya</span>
+          <span class="mc-url">/my-tasks</span>
+        </div>
+        <div class="mc-desc">Task dan check-in harian.</div>
+        <ul class="mc-steps"><li>Lihat task yang di-assign kepadamu</li><li>Update status task dan progress</li></ul>
+      </div>
+      <div class="mc">
+        <div class="mc-head">
+          <span class="mc-icon">⭐</span>
+          <span class="mc-name">Scores / Penilaian</span>
+          <span class="mc-url">/scores</span>
+        </div>
+        <div class="mc-desc">Self-assessment bulanan.</div>
+        <ul class="mc-steps"><li>Tab Penilaian Diri: isi self-assessment bulanan (deadline tanggal 23)</li><li>Kamu dinilai oleh David (Direktur Event) dan Wulan (PM Event)</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <hr class="div">
+
+  <div class="sec">
+    <div class="sec-title">⚡ SIMULASI ALUR KERJA</div>
+    
+    <div class="wf">
+      <div class="wf-title">☀️ ALUR MORNING BRIEFING (Check-In Pagi)</div>
+      <ol class="wf-steps">
+        <li><div class="wf-num">1</div><div class="wf-text">Buka aplikasi sebelum <strong>08:00 WIB</strong> — pastikan sudah ada koneksi internet</div></li><li><div class="wf-num">2</div><div class="wf-text">Di halaman Dashboard, muncul banner/tombol <strong>"Check-In Pagi"</strong> — klik tombol tersebut</div></li><li><div class="wf-num">3</div><div class="wf-text">Sistem mencatat timestamp check-in kamu secara otomatis (tidak perlu isi apapun)</div></li><li><div class="wf-num">4</div><div class="wf-text">Setelah check-in, lanjut review Dashboard: lihat project aktif, cek notifikasi dan task hari ini</div></li><li><div class="wf-num">5</div><div class="wf-text">Sistem otomatis mengirim notifikasi ke atasanmu jika kamu belum check-in pukul 08:00 WIB</div></li>
+      </ol>
+      <div class="wf-tip">💡 Check-in pagi dihitung sebagai komponen Absensi dalam akumulasi KPI bulanan. Pastikan check-in SETIAP hari kerja (Senin–Jumat).</div>
+    </div>
+    <div class="wf">
+      <div class="wf-title">🌙 ALUR LAPORAN PROGRESS SORE / TO-DO LIST</div>
+      <ol class="wf-steps">
+        <li><div class="wf-num">1</div><div class="wf-text">Antara pukul <strong>17:00–20:00 WIB</strong>, buka Dashboard</div></li><li><div class="wf-num">2</div><div class="wf-text">Klik tombol <strong>"Laporan Sore"</strong> atau <strong>"Progress Hari Ini"</strong> yang muncul di dashboard</div></li><li><div class="wf-num">3</div><div class="wf-text">Isi ringkasan kegiatan hari ini: apa saja yang sudah dikerjakan dan diselesaikan</div></li><li><div class="wf-num">4</div><div class="wf-text">Catat <strong>to-do list untuk besok</strong>: task yang pending atau perlu dilanjutkan</div></li><li><div class="wf-num">5</div><div class="wf-text">Tambahkan catatan khusus jika ada kondisi yang perlu perhatian atasanmu</div></li><li><div class="wf-num">6</div><div class="wf-text">Klik <strong>Submit Laporan</strong> — data tersimpan dan dicatat ke komponen KPI Disiplin Harian</div></li><li><div class="wf-num">7</div><div class="wf-text">Laporan sore juga dapat dilihat oleh Owner/atasan sebagai bentuk transparansi harian</div></li>
+      </ol>
+      <div class="wf-tip">💡 Laporan sore adalah bentuk akuntabilitas harian. Isi dengan jujur dan detail — ini bukan formalitas, tapi tool komunikasi dengan atasan.</div>
+    </div>
+    <div class="wf">
+      <div class="wf-title">⭐ ALUR SELF-ASSESSMENT & PENILAIAN KPI</div>
+      <ol class="wf-steps">
+        <li><div class="wf-num">1</div><div class="wf-text">Buka menu <strong>Scores (Penilaian)</strong> → tab <strong>Penilaian Diri</strong></div></li><li><div class="wf-num">2</div><div class="wf-text">Pilih bulan penilaian — biasanya minggu terakhir bulan (deadline tanggal 23)</div></li><li><div class="wf-num">3</div><div class="wf-text">Nilai dirimu sendiri secara objektif untuk setiap indikator KPI (skala 1–5)</div></li><li><div class="wf-num">4</div><div class="wf-text">Tambahkan catatan pencapaian bulan ini dan rencana pengembangan diri bulan depan</div></li><li><div class="wf-num">5</div><div class="wf-text">Klik <strong>Submit Self-Assessment</strong> — data tersimpan</div></li><li><div class="wf-num">6</div><div class="wf-text">Self-assessment kamu akan dibandingkan dengan penilaian dari atasanmu untuk menghasilkan nilai KPI final</div></li>
+      </ol>
+      <div class="wf-tip">💡 Skor 1=Sangat Kurang, 2=Kurang, 3=Cukup, 4=Baik, 5=Sangat Baik. Deadline: tanggal 23 setiap bulan. Penilaian kamu dari atasan tidak bisa dilihat sebelum kamu submit self-assessment.</div>
+    </div>
+  </div>
+
+  <hr class="div">
+
+  <div class="sec">
+    <div class="sec-title">⭐ INDIKATOR KPI YANG DINILAI</div>
+    <div class="kpi-grid">
+      
+      <div class="kc">
+        <div class="kc-cat">Kompetensi Individu</div>
+        <ul><li>Ketepatan Waktu</li><li>Kualitas Kerja</li><li>Semangat Belajar</li><li>Tanggung Jawab</li></ul>
+      </div>
+      <div class="kc">
+        <div class="kc-cat">Kerja Tim</div>
+        <ul><li>Kolaborasi dengan Tim Event</li><li>Responsivitas terhadap Tugas</li></ul>
+      </div>
+      <div class="kc">
+        <div class="kc-cat">Disiplin Harian (Otomatis)</div>
+        <ul><li>Check-in pagi sebelum 08:00 WIB</li><li>Laporan progress sore 17:00–20:00 WIB</li></ul>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="ftr">
+  <p>Dokumen ini dibuat khusus untuk <strong>Boni</strong> dan bersifat rahasia. Jangan bagikan ke pihak lain.<br>
+  Butuh bantuan atau ada masalah teknis? Hubungi <strong>Bambang Ramdany (Owner/Admin)</strong>.<br>
+  Watermark Indonesia · September 2026 · Update v3</p>
+</div>
+</body></html>
