@@ -185,8 +185,8 @@ export default function ScoresPage() {
     ...(team.length > 0 || KPI_SUMMARY_ROLES.includes(session.user.role)
       ? [{ key: 'nilai-tim', label: '⭐ Nilai Tim', desc: 'Beri & lihat penilaian anggota tim' }]
       : []),
-    // Semua (kecuali Owner yang tidak memiliki penilaian diri) → lihat skor diri
-    ...(session.user.role !== 'OWNER'
+    // Semua (kecuali Owner & Director yang fokus ke penilaian tim) → lihat skor diri
+    ...(!['OWNER', 'DIRECTOR'].includes(session.user.role)
       ? [{ key: 'penilaian-saya', label: '👤 Penilaian Saya', desc: 'Skor, KPI & disiplin saya sendiri' }]
       : []),
     // Semua bisa lihat akumulasi penilaian
