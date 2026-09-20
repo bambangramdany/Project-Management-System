@@ -182,7 +182,7 @@ hr.div{border:none;border-top:1px dashed #e2e8f0;margin:20px 0}
         <ul>${k.items.map(i=>`<li>${i}</li>`).join('')}</ul>
       </div>`).join('')}
     </div>
-    ${isDirectorOrOwner ? `<div class="warn" style="margin-top:10px">ℹ️ Untuk tahap awal, <strong>self-assessment Direktur/Owner belum diaktifkan</strong> — fokus pada penilaian dan pembinaan anggota tim terlebih dahulu. Self-assessment akan diaktifkan pada periode berikutnya.</div>` : ''}
+    ${isDirectorOrOwner ? `<div class="warn" style="margin-top:10px">ℹ️ Untuk tahap awal, <strong>self-assessment Direktur belum diaktifkan</strong> — fokus pada penilaian dan pembinaan anggota tim terlebih dahulu. Self-assessment akan diaktifkan pada periode berikutnya.</div>` : ''}
   </div>
 </div>
 </body>
@@ -240,7 +240,7 @@ const WF_PR_SUBMIT = {
     'Pantau status PR di tab <strong>Riwayat Pengajuan</strong> — kamu dapat notifikasi jika disetujui/ditolak',
     'Jika ditolak: baca catatan penolakan → perbaiki → ajukan ulang',
   ],
-  tip:'Alur payment: kamu ajukan → Direktur Divisi approve (tahap 1) → Direktur Finance (Anung) approve (tahap 2) → Finance Staff tandai lunas. Sertakan lampiran lengkap agar tidak ditolak.',
+  tip:'Alur payment: kamu ajukan → Direktur Divisi approve (tahap 1) → Direktur Finance approve (tahap 2) → Finance Staff tandai lunas. Sertakan lampiran lengkap agar tidak ditolak.',
 }
 
 const WF_PR_DIR1 = {
@@ -249,7 +249,7 @@ const WF_PR_DIR1 = {
     '<strong>Notifikasi masuk</strong>: kamu menerima notif di Dashboard — "Ada Payment Request menunggu persetujuanmu"',
     'Buka menu <strong>Finance → tab Perlu Ditindaki</strong> — lihat daftar PR berstatus "Menunggu Direktur"',
     'Klik PR → review detail: nama vendor, deskripsi kebutuhan, nominal, dan lampiran',
-    'Jika setuju: klik <strong>Setujui</strong> → PR naik ke Direktur Finance (Anung) untuk approval tahap 2',
+    'Jika setuju: klik <strong>Setujui</strong> → PR naik ke Direktur Finance untuk approval tahap 2',
     'Jika tidak setuju: klik <strong>Tolak</strong> → isi alasan → notifikasi dikirim ke pengaju',
     'Pantau PR yang sudah kamu tindaki di tab <strong>Sudah Ditindaki</strong>',
   ],
@@ -307,7 +307,7 @@ const WF_MILESTONE = {
     'Pantau progress bar di bagian atas timeline: persentase tahapan yang sudah selesai',
     'Gunakan timeline sebagai patokan briefing harian kepada tim',
   ],
-  tip:'Milestone yang konsisten di-update membantu Direktur dan Owner memantau progres project secara real-time tanpa harus tanya satu-satu ke tim.',
+  tip:'Milestone yang konsisten di-update membantu Direktur memantau progres project secara real-time tanpa harus tanya satu-satu ke tim.',
 }
 
 const WF_BRIEF_RUNDOWN = {
@@ -449,7 +449,7 @@ const PEOPLE = [
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harianmu sebagai Producer.',steps:['Lihat task yang di-assign kepadamu','Update status task dan progress harian']},
       {icon:'👥',name:'Klien',url:'/clients',desc:'Kelola data klien PH.',steps:['+ Tambah Klien: isi nama perusahaan, PIC, kontak, alamat','Lihat riwayat project per klien']},
       {icon:'🤝',name:'Vendor',url:'/vendors',desc:'Database vendor dan penilaian.',steps:['Lihat database vendor, tier, dan riwayat transaksi','Beri rating vendor setelah project selesai: kualitas, ketepatan waktu, nilai for money']},
-      {icon:'💰',name:'Finance',url:'/finance',desc:'Approval PR tahap 1 untuk project PH.',steps:['Tab <strong>Perlu Ditindaki</strong>: review PR dari Bastya dan Jamal','<strong>Setujui</strong> atau <strong>Tolak</strong> dengan keterangan — yang disetujui naik ke Anung','Pantau status pembayaran project PH']},
+      {icon:'💰',name:'Finance',url:'/finance',desc:'Approval PR tahap 1 untuk project PH.',steps:['Tab <strong>Perlu Ditindaki</strong>: review PR dari Bastya dan Jamal','<strong>Setujui</strong> atau <strong>Tolak</strong> dengan keterangan — yang disetujui naik ke Direktur Finance','Pantau status pembayaran project PH']},
       {icon:'📈',name:'Workload Tim',url:'/workload',desc:'Pantau distribusi beban kerja tim PH.',steps:['Cek distribusi task Bastya dan Jamal','Pastikan tidak ada anggota yang overload']},
       {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Nilai Bastya dan Jamal.',steps:['Tab <strong>Nilai Tim</strong>: nilai Bastya dan Jamal setiap bulan (deadline tanggal 23)','Tab <strong>Akumulasi</strong>: pantau nilai tertimbang akhir tim PH']},
     ],
@@ -488,7 +488,7 @@ const PEOPLE = [
     divisi:'EVENT',
     levelLabel:'Direktur Event',
     accent:'#0F766E', accentLight:'#CCFBF1', accentText:'#134E4A',
-    intro:'Kamu adalah penanggung jawab utama divisi Event — final review quotation (setelah dicek Wulan), pengawasan kinerja tim, dan <strong>approval Payment Request tahap pertama</strong> untuk semua project Event sebelum naik ke Direktur Finance (Anung).',
+    intro:'Kamu adalah penanggung jawab utama divisi Event — final review quotation (setelah dicek Project Manager Event), pengawasan kinerja tim, dan <strong>approval Payment Request tahap pertama</strong> untuk semua project Event sebelum naik ke Direktur Finance.',
     dailyRoutine:{
       morning:['Buka Dashboard','Klik "Check-In Pagi" (sebelum 08:05 WIB)','Cek PR masuk dari tim Event','Review status project Event aktif'],
       evening:['Buka Dashboard → Laporan Sore','Isi ringkasan kegiatan Event hari ini','Catat PR dan agenda esok','Submit laporan']
@@ -496,7 +496,7 @@ const PEOPLE = [
     menus:[
       {icon:'🏠',name:'Dashboard',url:'/dashboard',desc:'Ringkasan semua project Event aktif.',steps:['Pantau project Event aktif dan notifikasi PR','Alert task overdue dan checklist project','Check-in pagi sebelum 08:05 WIB dan laporan sore 17:00–20:00 WIB']},
       {icon:'📁',name:'Projects',url:'/projects',desc:'Review dan pantau project Event.',steps:[
-        'Review quotation yang sudah dicek Wulan — berikan final approval',
+        'Review quotation yang sudah dicek Project Manager Event — berikan final approval',
         'Tab <strong>MoM & Timeline</strong>: pantau Minutes of Meeting, milestone, dan rundown setiap project Event',
         'Tab <strong>Ringkasan</strong>: lihat client brief dan info dasar project',
         'Tab <strong>Profitabilitas</strong>: pantau margin dan realisasi budget project divisi Event',
@@ -504,9 +504,9 @@ const PEOPLE = [
         'Tab <strong>Penilaian Tim</strong>: beri nilai bonus kinerja per project',
       ]},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task dan progress']},
-      {icon:'💰',name:'Finance',url:'/finance',desc:'Approval PR tahap 1 untuk project Event.',steps:['Tab <strong>Perlu Ditindaki</strong>: review PR dari tim Event','<strong>Setujui</strong> atau <strong>Tolak</strong> dengan keterangan → yang disetujui naik ke Anung','Pantau status pembayaran project Event']},
+      {icon:'💰',name:'Finance',url:'/finance',desc:'Approval PR tahap 1 untuk project Event.',steps:['Tab <strong>Perlu Ditindaki</strong>: review PR dari tim Event','<strong>Setujui</strong> atau <strong>Tolak</strong> dengan keterangan → yang disetujui naik ke Direktur Finance','Pantau status pembayaran project Event']},
       {icon:'📈',name:'Workload Tim',url:'/workload',desc:'Pantau distribusi beban kerja tim Event.',steps:['Cek distribusi task seluruh anggota tim Event','Pastikan tidak ada yang overload menjelang event']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Nilai tim Event.',steps:['Tab <strong>Nilai Tim</strong>: nilai semua anggota divisi Event (Wulan, Irham, Doddi, Reghy, Putra, Eca, Sultan, Boni) — deadline tanggal 23','Tab <strong>Akumulasi</strong>: pantau nilai tertimbang akhir tim Event','Koordinasikan dengan Wulan yang juga memiliki kewenangan menilai tim Event + Creative']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Nilai tim Event.',steps:['Tab <strong>Nilai Tim</strong>: nilai semua anggota divisi Event (PM Event Senior, Irham, Doddi, Reghy, Putra, Eca, Sultan, Boni) — deadline tanggal 23','Tab <strong>Akumulasi</strong>: pantau nilai tertimbang akhir tim Event','Koordinasikan dengan PM Event Senior yang juga memiliki kewenangan menilai tim Event + Creative']},
     ],
     workflows:[
       WF_MORNING,
@@ -514,7 +514,7 @@ const PEOPLE = [
       WF_MOM,
       WF_MILESTONE,
       WF_PR_DIR1,
-      WF_SCORE_TEAM('Wulan, Irham, Doddi, Reghy, Putra, Eca, Sultan, Boni — koordinasikan dengan Wulan yang juga menilai tim Event+Creative'),
+      WF_SCORE_TEAM('semua anggota divisi Event (Irham, Doddi, Reghy, Putra, Eca, Sultan, Boni) dan PM Event Senior — koordinasikan karena PM Event juga menilai tim Event+Creative'),
     ],
     kpiIndicators:[
       {category:'Kompetensi Individu',items:['Kecepatan Respons & Komunikasi','Ketepatan Waktu','Kualitas Kerja','Tanggung Jawab & Inisiatif']},
@@ -533,7 +533,7 @@ const PEOPLE = [
     divisi:'CREATIVE',
     levelLabel:'Direktur Creative',
     accent:'#D97706', accentLight:'#FEF3C7', accentText:'#92400E',
-    intro:'Kamu adalah penanggung jawab divisi Creative — mendukung project Event dan PH dengan output kreatif, mengawasi kinerja tim, dan menjadi <strong>approver Payment Request tahap pertama</strong> untuk kebutuhan Creative sebelum naik ke Direktur Finance (Anung).',
+    intro:'Kamu adalah penanggung jawab divisi Creative — mendukung project Event dan PH dengan output kreatif, mengawasi kinerja tim, dan menjadi <strong>approver Payment Request tahap pertama</strong> untuk kebutuhan Creative sebelum naik ke Direktur Finance.',
     dailyRoutine:{
       morning:['Buka Dashboard','Klik "Check-In Pagi" (sebelum 08:05 WIB)','Cek PR dari tim Creative','Review brief creative yang masuk'],
       evening:['Buka Dashboard → Laporan Sore','Isi ringkasan output kreatif hari ini','Catat brief dan deadline yang pending','Submit laporan']
@@ -547,16 +547,16 @@ const PEOPLE = [
         'Buat atau assign task kreatif: Projects → pilih project → + Task → pilih anggota Creative',
       ]},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task']},
-      {icon:'💰',name:'Finance',url:'/finance',desc:'Approval PR tahap 1 untuk kebutuhan Creative.',steps:['Tab <strong>Perlu Ditindaki</strong>: review PR dari tim Creative','<strong>Setujui</strong> atau <strong>Tolak</strong> → yang disetujui naik ke Anung (Direktur Finance)']},
+      {icon:'💰',name:'Finance',url:'/finance',desc:'Approval PR tahap 1 untuk kebutuhan Creative.',steps:['Tab <strong>Perlu Ditindaki</strong>: review PR dari tim Creative','<strong>Setujui</strong> atau <strong>Tolak</strong> → yang disetujui naik ke Direktur Finance (Direktur Finance)']},
       {icon:'📈',name:'Workload Tim',url:'/workload',desc:'Pantau distribusi beban kerja tim Creative.',steps:['Cek distribusi task Kres, Saffira, Kukuh, Noval','Pastikan beban kreatif tersebar merata dan tidak ada yang overload']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Nilai tim Creative.',steps:['Tab <strong>Nilai Tim</strong>: nilai Kres, Saffira, Kukuh, Noval (deadline tanggal 23)','Catatan: Wulan (PM Event) juga memiliki kewenangan menilai tim Creative','Tab <strong>Akumulasi</strong>: pantau nilai tertimbang akhir tim Creative']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Nilai tim Creative.',steps:['Tab <strong>Nilai Tim</strong>: nilai Kres, Saffira, Kukuh, Noval (deadline tanggal 23)','Catatan: PM Event Senior juga memiliki kewenangan menilai tim Creative','Tab <strong>Akumulasi</strong>: pantau nilai tertimbang akhir tim Creative']},
     ],
     workflows:[
       WF_MORNING,
       WF_EVENING,
       WF_MOM,
       WF_PR_DIR1,
-      WF_SCORE_TEAM('Kres, Saffira, Kukuh, Noval — catatan: Wulan juga memiliki kewenangan menilai tim Creative'),
+      WF_SCORE_TEAM('Kres, Saffira, Kukuh, Noval — catatan: PM Event Senior juga memiliki kewenangan menilai tim Creative'),
     ],
     kpiIndicators:[
       {category:'Kompetensi Individu',items:['Kecepatan Respons & Komunikasi','Ketepatan Waktu','Kualitas Output Kreatif','Tanggung Jawab & Inisiatif']},
@@ -584,7 +584,7 @@ const PEOPLE = [
       {icon:'🏠',name:'Dashboard',url:'/dashboard',desc:'Ringkasan project yang kamu kelola.',steps:['Pantau project Event yang kamu pegang','Notifikasi status PR yang kamu ajukan','Check-in pagi sebelum 08:05 WIB dan laporan sore 17:00–20:00 WIB']},
       {icon:'📁',name:'Projects',url:'/projects',desc:'Kelola project Event secara menyeluruh.',steps:[
         'Lihat semua project Event yang kamu pegang',
-        'Tab <strong>Quotation</strong>: buat quotation → isi RAB → submit ke David untuk final approval → mark WON setelah deal',
+        'Tab <strong>Quotation</strong>: buat quotation → isi RAB → submit ke Direktur Event untuk final approval → mark WON setelah deal',
         'Tab <strong>Tim</strong>: tambah anggota tim ke project, assign peran',
         'Tab <strong>Task</strong>: buat dan assign task ke anggota tim dengan deadline',
         'Tab <strong>MoM & Timeline</strong>: buat Minutes of Meeting setelah setiap rapat, tambah milestone project',
@@ -594,7 +594,7 @@ const PEOPLE = [
         'Tab <strong>Profitabilitas</strong>: pantau margin dan realisasi anggaran',
       ]},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task dan progress harian']},
-      {icon:'💰',name:'Finance',url:'/finance',desc:'Ajukan Payment Request untuk project Event.',steps:['+ Ajukan PR: pilih project, vendor, isi nominal dan deskripsi, upload lampiran (invoice/kwitansi)','Pantau status PR — disetujui David (tahap 1) lalu Anung (tahap 2)','Lihat riwayat PR yang pernah kamu ajukan']},
+      {icon:'💰',name:'Finance',url:'/finance',desc:'Ajukan Payment Request untuk project Event.',steps:['+ Ajukan PR: pilih project, vendor, isi nominal dan deskripsi, upload lampiran (invoice/kwitansi)','Pantau status PR — disetujui Direktur Event (tahap 1) lalu Direktur Finance (tahap 2)','Lihat riwayat PR yang pernah kamu ajukan']},
       {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Nilai tim Event + Creative, dan self-assessment.',steps:['Tab <strong>Nilai Tim</strong>: nilai tim EVENT (Irham, Doddi, Reghy, Putra, Eca, Sultan, Boni) DAN tim CREATIVE (Kres, Saffira, Kukuh, Noval) — deadline tanggal 23','Tab <strong>Penilaian Saya</strong>: isi self-assessment bulananmu']},
     ],
     workflows:[
@@ -605,11 +605,11 @@ const PEOPLE = [
         'Isi nama quotation dan detail klien',
         'Tambah item RAB: nama item, unit, harga satuan, jumlah',
         'Review subtotal dan total — pastikan margin sesuai target',
-        'Submit quotation → David (Direktur Event) akan review dan berikan final approval',
-        'Setelah David approve dan klien deal: ubah status menjadi <strong>WON</strong>',
+        'Submit quotation → Direktur Event akan review dan berikan final approval',
+        'Setelah Direktur Event approve dan klien deal: ubah status menjadi <strong>WON</strong>',
         'Quotation WON menjadi dasar anggaran resmi — terhubung ke tab Profitabilitas',
         'Bisa duplicate quotation untuk project serupa: tab Quotation → menu ⋮ → Duplicate',
-      ],tip:'Buat RAB dengan detail yang cukup agar mudah di-review David. Jika ada perubahan scope dengan klien, update quotation dan minta approval ulang.'},
+      ],tip:'Buat RAB dengan detail yang cukup agar mudah di-review Direktur Event. Jika ada perubahan scope dengan klien, update quotation dan minta approval ulang.'},
       WF_MOM,
       WF_MILESTONE,
       WF_BRIEF_RUNDOWN,
@@ -650,8 +650,8 @@ const PEOPLE = [
         'Tab <strong>Penilaian Tim</strong>: beri nilai bonus kontribusi per project',
       ]},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task dan progress']},
-      {icon:'💰',name:'Finance',url:'/finance',desc:'Ajukan Payment Request.',steps:['+ Ajukan PR: pilih project, vendor, isi nominal dan deskripsi, upload lampiran','Pantau status PR — disetujui David (tahap 1) lalu Anung (tahap 2)']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment bulanan (deadline tanggal 23)','Kamu dinilai oleh David (Direktur Event) dan Wulan (PM Event)']},
+      {icon:'💰',name:'Finance',url:'/finance',desc:'Ajukan Payment Request.',steps:['+ Ajukan PR: pilih project, vendor, isi nominal dan deskripsi, upload lampiran','Pantau status PR — disetujui Direktur Event (tahap 1) lalu Direktur Finance (tahap 2)']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment bulanan (deadline tanggal 23)','Kamu dinilai oleh Direktur Event dan PM Event Senior']},
     ],
     workflows:[
       WF_MORNING,
@@ -664,7 +664,7 @@ const PEOPLE = [
     ],
     kpiIndicators:[
       {category:'Kompetensi Individu',items:['Kecepatan Respons & Komunikasi','Ketepatan Waktu','Kualitas Output PM','Tanggung Jawab & Inisiatif']},
-      {category:'Kerja Tim',items:['Kolaborasi Tim','Koordinasi dengan Wulan dan tim Event']},
+      {category:'Kerja Tim',items:['Kolaborasi Tim','Koordinasi dengan PM Event dan tim Event']},
       {category:'Spesifik PM',items:['Kelengkapan MoM dan dokumentasi project','Ketepatan anggaran vs realisasi']},
       {category:'Disiplin Harian (Otomatis)',items:['Check-in pagi paling lambat 08:05 WIB','Laporan progress sore 17:00–20:00 WIB']},
     ],
@@ -696,8 +696,8 @@ const PEOPLE = [
         'Tab <strong>Profitabilitas</strong>: pantau margin dan realisasi anggaran PH',
       ]},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task dan progress']},
-      {icon:'💰',name:'Finance',url:'/finance',desc:'Ajukan Payment Request.',steps:['+ Ajukan PR: pilih project, vendor, isi nominal dan deskripsi, upload lampiran','Pantau status PR — disetujui Gunadarma (tahap 1) lalu Anung (tahap 2)']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment bulanan (deadline tanggal 23)','Kamu dinilai oleh Gunadarma (Direktur PH)']},
+      {icon:'💰',name:'Finance',url:'/finance',desc:'Ajukan Payment Request.',steps:['+ Ajukan PR: pilih project, vendor, isi nominal dan deskripsi, upload lampiran','Pantau status PR — disetujui Direktur PH (tahap 1) lalu Direktur Finance (tahap 2)']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment bulanan (deadline tanggal 23)','Kamu dinilai oleh Direktur PH']},
     ],
     workflows:[
       WF_MORNING,
@@ -710,7 +710,7 @@ const PEOPLE = [
     ],
     kpiIndicators:[
       {category:'Kompetensi Individu',items:['Kecepatan Respons & Komunikasi','Ketepatan Waktu','Kualitas Output PH','Tanggung Jawab & Inisiatif']},
-      {category:'Kerja Tim',items:['Kolaborasi Tim PH','Koordinasi dengan Gunadarma']},
+      {category:'Kerja Tim',items:['Kolaborasi Tim PH','Koordinasi dengan Direktur PH']},
       {category:'Spesifik PM',items:['Kelengkapan MoM dan dokumentasi project','Ketepatan anggaran vs realisasi']},
       {category:'Disiplin Harian (Otomatis)',items:['Check-in pagi paling lambat 08:05 WIB','Laporan progress sore 17:00–20:00 WIB']},
     ],
@@ -733,7 +733,7 @@ const PEOPLE = [
     menus:[
       {icon:'🏠',name:'Dashboard',url:'/dashboard',desc:'Ringkasan kegiatan finance harian.',steps:['Cek notifikasi PR yang sudah disetujui dan perlu dieksekusi','Check-in pagi sebelum 08:05 WIB dan laporan sore 17:00–20:00 WIB']},
       {icon:'💰',name:'Finance',url:'/finance',desc:'Proses pembayaran dan tandai lunas.',steps:[
-        'Tab <strong>Antrian Pembayaran</strong>: lihat PR yang sudah disetujui Direktur Finance (Anung)',
+        'Tab <strong>Antrian Pembayaran</strong>: lihat PR yang sudah disetujui Direktur Finance',
         'Klik PR → periksa detail: nama vendor, nominal, nomor rekening tujuan',
         'Lakukan transfer via internet banking sesuai nominal PR',
         'Kembali ke sistem → klik <strong>Tandai Lunas</strong>',
@@ -746,10 +746,10 @@ const PEOPLE = [
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task']},
       {icon:'👥',name:'Input HRD',url:'/hrd/evaluations',desc:'Akses evaluasi HRD (hak akses Finance HRGA).',steps:[
         'Kamu memiliki akses ke halaman Input HRD karena berada di divisi FINANCE_HRGA',
-        'Lihat data evaluasi HRD yang sudah diinput Anung',
-        'Bantu Anung jika diperlukan untuk input evaluasi bulanan karyawan',
+        'Lihat data evaluasi HRD yang sudah diinput Direktur Finance',
+        'Bantu Direktur Finance jika diperlukan untuk input evaluasi bulanan karyawan',
       ]},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Anung (Direktur Finance & HRGA)']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Direktur Finance']},
     ],
     workflows:[
       WF_MORNING,
@@ -782,7 +782,7 @@ const PEOPLE = [
     divisi:'FINANCE_HRGA',
     levelLabel:'Finance & HRD',
     accent:'#7C3AED', accentLight:'#EDE9FE', accentText:'#4C1D95',
-    intro:'Sebagai Finance & HRD Staff, kamu membantu operasional keuangan dan administrasi SDM — memproses pembayaran yang sudah disetujui dan mendukung kegiatan HRD di bawah koordinasi Anung. Kamu juga memiliki akses ke halaman Input HRD untuk membantu proses evaluasi karyawan.',
+    intro:'Sebagai Finance & HRD Staff, kamu membantu operasional keuangan dan administrasi SDM — memproses pembayaran yang sudah disetujui dan mendukung kegiatan HRD di bawah koordinasi Direktur Finance. Kamu juga memiliki akses ke halaman Input HRD untuk membantu proses evaluasi karyawan.',
     dailyRoutine:{
       morning:['Buka Dashboard','Klik "Check-In Pagi" (sebelum 08:05 WIB)','Cek PR yang perlu diproses','Cek agenda HRD hari ini'],
       evening:['Buka Dashboard → Laporan Sore','Isi update kegiatan finance dan HRD hari ini','Catat yang pending','Submit laporan']
@@ -803,10 +803,10 @@ const PEOPLE = [
         'Tambah catatan evaluasi: apa yang baik, area yang perlu dikembangkan',
         'Isi <strong>Skill Activities</strong>: training atau upskilling yang dilakukan karyawan',
         'Klik <strong>Simpan</strong> → data masuk ke akumulasi KPI karyawan',
-        'Deadline input: tanggal 23 setiap bulan — koordinasikan dengan Anung',
+        'Deadline input: tanggal 23 setiap bulan — koordinasikan dengan Direktur Finance',
       ]},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Anung (Direktur Finance & HRGA)']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Direktur Finance']},
     ],
     workflows:[
       WF_MORNING,
@@ -818,7 +818,7 @@ const PEOPLE = [
         'Di sistem: klik <strong>Tandai Lunas</strong> → upload bukti transfer → isi tanggal realisasi → Konfirmasi',
         'Status PR berubah PAID — semua pihak terkait mendapat notifikasi otomatis',
       ],tip:'Upload bukti transfer segera setelah pembayaran dilakukan untuk kelengkapan dokumentasi.'},
-      {icon:'📊',title:'ALUR INPUT EVALUASI HRD (membantu Anung)',steps:[
+      {icon:'📊',title:'ALUR INPUT EVALUASI HRD (membantu Direktur Finance)',steps:[
         'Klik menu <strong>Input HRD</strong> di navbar',
         'Pilih <strong>bulan evaluasi</strong> dari dropdown',
         'Pilih <strong>karyawan</strong> yang akan dievaluasi',
@@ -826,7 +826,7 @@ const PEOPLE = [
         'Isi catatan evaluasi yang spesifik dan konstruktif',
         'Isi <strong>Skill Activities</strong>: training, workshop yang dilakukan karyawan',
         'Klik <strong>Simpan</strong> → data langsung masuk ke akumulasi karyawan',
-      ],tip:'Koordinasikan dengan Anung agar tidak ada duplikasi atau konflik evaluasi. Catatan yang spesifik lebih berguna untuk pengembangan karyawan.'},
+      ],tip:'Koordinasikan dengan Direktur Finance agar tidak ada duplikasi atau konflik evaluasi. Catatan yang spesifik lebih berguna untuk pengembangan karyawan.'},
       WF_SELF_ASSESS,
     ],
     kpiIndicators:[
@@ -853,7 +853,7 @@ const PEOPLE = [
     menus:[
       {icon:'🏠',name:'Dashboard',url:'/dashboard',desc:'Ringkasan kegiatan harianmu.',steps:['Cek notifikasi dan task hari ini','Check-in pagi sebelum 08:05 WIB dan laporan sore 17:00–20:00 WIB']},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task setelah selesai']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Anung (Direktur Finance & HRGA)']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Direktur Finance']},
     ],
     workflows:[WF_MORNING, WF_EVENING, WF_SELF_ASSESS],
     kpiIndicators:[
@@ -880,7 +880,7 @@ const PEOPLE = [
     menus:[
       {icon:'🏠',name:'Dashboard',url:'/dashboard',desc:'Ringkasan kegiatan harian.',steps:['Cek notifikasi dan task','Check-in pagi sebelum 08:05 WIB dan laporan sore 17:00–20:00 WIB']},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task setelah selesai']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Anung (Direktur Finance & HRGA)']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Direktur Finance']},
     ],
     workflows:[WF_MORNING, WF_EVENING, WF_SELF_ASSESS],
     kpiIndicators:[
@@ -892,10 +892,10 @@ const PEOPLE = [
 
   // ── 13–16. CREATIVE TEAM ──────────────────────────────────────────────
   ...[
-    {slug:'kres',name:'Kres',email:'kres@watermark.co.id',jabatan:'Stage Designer',peran:'Stage Designer — merancang dan mengeksekusi desain panggung untuk project Event dan PH.',penilai:'Fakhril (Direktur Creative) dan Wulan (PM Event)'},
-    {slug:'saffira',name:'Saffira',email:'saffira@watermark.co.id',jabatan:'Stage Designer',peran:'Stage Designer — merancang dan mengeksekusi desain panggung untuk project Event dan PH.',penilai:'Fakhril (Direktur Creative) dan Wulan (PM Event)'},
-    {slug:'kukuh',name:'Kukuh',email:'kukuh@watermark.co.id',jabatan:'Stage Designer',peran:'Stage Designer — merancang dan mengeksekusi desain panggung untuk project Event dan PH.',penilai:'Fakhril (Direktur Creative) dan Wulan (PM Event)'},
-    {slug:'noval',name:'Noval',email:'noval@watermark.co.id',jabatan:'Motion Graphic / Content Creator',peran:'Motion Graphic & Content Creator — membuat konten visual dan motion graphic untuk kebutuhan project dan perusahaan.',penilai:'Fakhril (Direktur Creative) dan Wulan (PM Event)'},
+    {slug:'kres',name:'Kres',email:'kres@watermark.co.id',jabatan:'Stage Designer',peran:'Stage Designer — merancang dan mengeksekusi desain panggung untuk project Event dan PH.',penilai:'Direktur Creative dan PM Event Senior'},
+    {slug:'saffira',name:'Saffira',email:'saffira@watermark.co.id',jabatan:'Stage Designer',peran:'Stage Designer — merancang dan mengeksekusi desain panggung untuk project Event dan PH.',penilai:'Direktur Creative dan PM Event Senior'},
+    {slug:'kukuh',name:'Kukuh',email:'kukuh@watermark.co.id',jabatan:'Stage Designer',peran:'Stage Designer — merancang dan mengeksekusi desain panggung untuk project Event dan PH.',penilai:'Direktur Creative dan PM Event Senior'},
+    {slug:'noval',name:'Noval',email:'noval@watermark.co.id',jabatan:'Motion Graphic / Content Creator',peran:'Motion Graphic & Content Creator — membuat konten visual dan motion graphic untuk kebutuhan project dan perusahaan.',penilai:'Direktur Creative dan PM Event Senior'},
   ].map(c => ({
     slug: c.slug, isDirectorOrOwner:false,
     name: c.name, email: c.email, jabatan: c.jabatan,
@@ -936,7 +936,7 @@ const PEOPLE = [
     menus:[
       {icon:'🏠',name:'Dashboard',url:'/dashboard',desc:'Ringkasan task harian.',steps:['Cek task dan notifikasi','Check-in pagi sebelum 08:05 WIB dan laporan sore 17:00–20:00 WIB']},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task dan progress']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh David (Direktur Event) dan Wulan (PM Event)']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Direktur Event dan PM Event Senior']},
     ],
     workflows:[WF_MORNING, WF_EVENING, WF_SELF_ASSESS],
     kpiIndicators:[
@@ -963,7 +963,7 @@ const PEOPLE = [
     menus:[
       {icon:'🏠',name:'Dashboard',url:'/dashboard',desc:'Ringkasan task harian.',steps:['Cek task dan notifikasi','Check-in pagi sebelum 08:05 WIB dan laporan sore 17:00–20:00 WIB']},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh David (Direktur Event) dan Wulan (PM Event)']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Direktur Event dan PM Event Senior']},
     ],
     workflows:[WF_MORNING, WF_EVENING, WF_SELF_ASSESS],
     kpiIndicators:[
@@ -990,7 +990,7 @@ const PEOPLE = [
     menus:[
       {icon:'🏠',name:'Dashboard',url:'/dashboard',desc:'Ringkasan task harian.',steps:['Cek task dan notifikasi','Check-in pagi sebelum 08:05 WIB dan laporan sore 17:00–20:00 WIB']},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task dan progress']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Gunadarma (Direktur PH)']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Direktur PH']},
     ],
     workflows:[WF_MORNING, WF_EVENING, WF_SELF_ASSESS],
     kpiIndicators:[
@@ -1017,7 +1017,7 @@ const PEOPLE = [
     menus:[
       {icon:'🏠',name:'Dashboard',url:'/dashboard',desc:'Ringkasan task harian.',steps:['Cek task dan notifikasi','Check-in pagi sebelum 08:05 WIB dan laporan sore 17:00–20:00 WIB']},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task dan progress']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh David (Direktur Event) dan Wulan (PM Event)']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Direktur Event dan PM Event Senior']},
     ],
     workflows:[WF_MORNING, WF_EVENING, WF_SELF_ASSESS],
     kpiIndicators:[
@@ -1044,7 +1044,7 @@ const PEOPLE = [
     menus:[
       {icon:'🏠',name:'Dashboard',url:'/dashboard',desc:'Ringkasan task harian.',steps:['Cek task dan notifikasi','Check-in pagi sebelum 08:05 WIB dan laporan sore 17:00–20:00 WIB']},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh David (Direktur Event) dan Wulan (PM Event)']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Direktur Event dan PM Event Senior']},
     ],
     workflows:[WF_MORNING, WF_EVENING, WF_SELF_ASSESS],
     kpiIndicators:[
@@ -1071,7 +1071,7 @@ const PEOPLE = [
     menus:[
       {icon:'🏠',name:'Dashboard',url:'/dashboard',desc:'Ringkasan task harian.',steps:['Cek task dan brief konten','Check-in pagi sebelum 08:05 WIB dan laporan sore 17:00–20:00 WIB']},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task dan progress konten']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh David (Direktur Event) dan Wulan (PM Event)']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Direktur Event dan PM Event Senior']},
     ],
     workflows:[WF_MORNING, WF_EVENING, WF_SELF_ASSESS],
     kpiIndicators:[
@@ -1098,7 +1098,7 @@ const PEOPLE = [
     menus:[
       {icon:'🏠',name:'Dashboard',url:'/dashboard',desc:'Ringkasan task dan kegiatan harian.',steps:['Cek task yang diberikan','Check-in pagi sebelum 08:05 WIB dan laporan sore 17:00–20:00 WIB']},
       {icon:'📋',name:'Tugas Saya',url:'/my-tasks',desc:'Task dan check-in harian.',steps:['Lihat task yang di-assign kepadamu','Update status task dan progress']},
-      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh David (Direktur Event) dan Wulan (PM Event)']},
+      {icon:'⭐',name:'Scores / Penilaian',url:'/scores',desc:'Self-assessment bulanan.',steps:['Tab <strong>Penilaian Saya</strong>: isi self-assessment (deadline tanggal 23)','Kamu dinilai oleh Direktur Event dan PM Event Senior']},
     ],
     workflows:[WF_MORNING, WF_EVENING, WF_SELF_ASSESS],
     kpiIndicators:[
