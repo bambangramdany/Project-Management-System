@@ -653,7 +653,7 @@ export default function ScoresPage() {
         {/* ══════════════════════════════════════════════
             TAB: PENILAIAN SAYA
         ══════════════════════════════════════════════ */}
-        {activeTab === 'penilaian-saya' && session.user.role !== 'OWNER' && (
+        {activeTab === 'penilaian-saya' && !['OWNER', 'DIRECTOR'].includes(session.user.role) && (
         <div className="space-y-5">
 
           {/* Skor per project */}
