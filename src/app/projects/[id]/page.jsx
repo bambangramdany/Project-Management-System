@@ -745,6 +745,17 @@ export default function ProjectDetailPage() {
         {/* TAB: Finance (Quotation + Profitabilitas) */}
         {activeTab === 'finance' && (
           <div className="space-y-4">
+            <CatatNilaiFinalCard
+              project={project}
+              canEdit={isManager || ['OWNER','FINANCE','FINANCE_STAFF','DIRECTOR'].includes(session?.user?.role)}
+              fetchProject={fetchProject}
+            />
+            <QuotationInvoiceInfoSection
+              project={project}
+              isManager={isManager}
+              canFinance={['OWNER','FINANCE','FINANCE_STAFF','DIRECTOR'].includes(session?.user?.role)}
+              fetchProject={fetchProject}
+            />
             <QuotationProjectTab
               project={project}
               session={session}
@@ -847,19 +858,6 @@ export default function ProjectDetailPage() {
               )}
               <EvaluationNote project={project} setProject={setProject} isManager={isManager} />
             </div>
-
-            <CatatNilaiFinalCard
-              project={project}
-              canEdit={isManager || ['OWNER','FINANCE','FINANCE_STAFF','DIRECTOR'].includes(session?.user?.role)}
-              fetchProject={fetchProject}
-            />
-
-            <QuotationInvoiceInfoSection
-              project={project}
-              isManager={isManager}
-              canFinance={['OWNER','FINANCE','FINANCE_STAFF','DIRECTOR'].includes(session?.user?.role)}
-              fetchProject={fetchProject}
-            />
 
             <ClientBriefSection project={project} setProject={setProject} isManager={isManager} fetchProject={fetchProject} />
 
