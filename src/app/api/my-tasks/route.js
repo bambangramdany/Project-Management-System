@@ -68,12 +68,31 @@ export async function GET() {
   const today = startOfTodayUTC()
   const teamDivisions = getTeamDivisions(session.user)
 
-  // ── OWNER: lihat semua tim, grouped per divisi (mode lama) ─────────────────
+  // ── OWNER: task sendiri (atas, editable) + monitoring semua tim (bawah, read-only) ──
   if (teamDivisions === null) {
     const DIV_ORDER = ['EVENT', 'CREATIVE', 'PH', 'FINANCE_HRGA']
-    const [allTasks, allPersonalTasks, allUsers] = await Promise.all([
+    const [myOwnTasks, myOwnPersonalTasks, allTasks, allPersonalTasks, allUsers, memberProjects] = await Promise.all([
+      // Task project yang di-assign ke OWNER
       prisma.task.findMany({
-        where: { status: { not: 'DONE' }, assignee: { email: { notIn: HIDDEN_EMAILS } } },
+        where: { assigneeId: userId, status: { not: 'DONE' } },
+        include: {
+          project: { select: { id: true, code: true, name: true, status: true, client: { select: { name: true } } } },
+          progressUpdates: { where: { userId }, orderBy: { date: 'desc' }, take: 1 },
+        },
+        orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
+      }),
+      // Personal task OWNER (hanya untuk diri sendiri, tidak muncul di monitoring tim)
+      prisma.personalTask.findMany({
+        where: { userId, status: { not: 'DONE' } },
+        include: {
+          project: { select: { id: true, code: true, name: true, status: true, client: { select: { name: true } } } },
+          progressUpdates: { where: { userId }, orderBy: { date: 'desc' }, take: 1 },
+        },
+        orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
+      }),
+      // Task tim (exclude OWNER agar tidak duplikat di monitoring)
+      prisma.task.findMany({
+        where: { status: { not: 'DONE' }, assigneeId: { not: userId }, assignee: { email: { notIn: HIDDEN_EMAILS } } },
         include: {
           project: { select: { id: true, code: true, name: true, status: true, division: true, client: { select: { name: true } } } },
           assignee: { select: { id: true, name: true, divisi: true, role: true } },
@@ -81,8 +100,9 @@ export async function GET() {
         },
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
       }),
+      // Personal task tim (exclude OWNER)
       prisma.personalTask.findMany({
-        where: { status: { not: 'DONE' }, user: { email: { notIn: HIDDEN_EMAILS } } },
+        where: { status: { not: 'DONE' }, userId: { not: userId }, user: { email: { notIn: HIDDEN_EMAILS } } },
         include: {
           project: { select: { id: true, code: true, name: true, status: true, division: true, client: { select: { name: true } } } },
           user: { select: { id: true, name: true, divisi: true, role: true } },
@@ -95,24 +115,48 @@ export async function GET() {
         select: { id: true, name: true, divisi: true, role: true },
         orderBy: [{ divisi: 'asc' }, { name: 'asc' }],
       }),
+      prisma.project.findMany({
+        where: {
+          OR: [
+            { picId: userId },
+            { members: { some: { userId } } },
+            { tasks: { some: { assigneeId: userId } } },
+          ],
+        },
+        select: { id: true, code: true, name: true, client: { select: { name: true } } },
+        orderBy: { updatedAt: 'desc' },
+      }),
     ])
+
+    const myItems = [
+      ...myOwnTasks.map(t => shapeItem(t, 'task', today, userId)),
+      ...myOwnPersonalTasks.map(t => shapeItem(t, 'personal', today, userId)),
+    ]
+
     const userDivMap = {}
     for (const u of allUsers) userDivMap[u.id] = u.divisi || 'EVENT'
     const shapeTask = (item, kind) => {
       const uid = kind === 'task' ? item.assigneeId : item.userId
       return { ...shapeItem(item, kind, today, uid), _divisi: userDivMap[uid] || 'EVENT' }
     }
-    const allItems = [
+    const allTeamItems = [
       ...allTasks.map(t => shapeTask(t, 'task')),
       ...allPersonalTasks.map(t => shapeTask(t, 'personal')),
     ]
     const groups = DIV_ORDER.map(div => ({
       divisi: div,
       label: DIV_LABEL[div] || div,
-      items: allItems.filter(i => i._divisi === div),
+      items: allTeamItems.filter(i => i._divisi === div),
     })).filter(g => g.items.length > 0)
 
-    return NextResponse.json({ mode: 'director', groups, deadlinePassed: isPastDeadlineWIB(), today: today.toISOString() })
+    return NextResponse.json({
+      mode: 'owner',
+      myItems,
+      groups,
+      deadlinePassed: isPastDeadlineWIB(),
+      today: today.toISOString(),
+      projectOptions: memberProjects.map(p => ({ id: p.id, code: p.code, name: p.name, clientName: p.client?.name || null })),
+    })
   }
 
   // ── DIRECTOR / PM / FINANCE_STAFF dengan tim: mode team_lead ──────────────

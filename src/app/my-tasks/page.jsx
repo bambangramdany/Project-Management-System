@@ -874,6 +874,115 @@ export default function MyTasksPage() {
     )
   }
 
+  // ── OWNER VIEW: task sendiri (editable) + monitoring tim (read-only) ────────
+  if (data.mode === 'owner') {
+    const myItems        = data.myItems || []
+    const myProjectTasks = myItems.filter(i => i.kind === 'task')
+    const myPersonalTasks = myItems.filter(i => i.kind === 'personal')
+    const myDone         = myItems.filter(i => i.hasTodayUpdate).length
+    const myPending      = myItems.filter(i => !i.hasTodayUpdate)
+    const teamItems      = data.groups.flatMap(g => g.items)
+    const teamDone       = teamItems.filter(i => i.hasTodayUpdate).length
+    const mySharing      = sharingSessions.filter(s => s.userId === session?.user?.id)
+
+    function handleExport() {
+      window.open('/api/my-tasks/export', '_blank')
+    }
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+          {/* Header */}
+          <div className="rounded-2xl bg-gradient-to-br from-violet-600 to-violet-700 p-5 text-white shadow-lg shadow-violet-200">
+            <p className="text-sm text-violet-200 font-medium">Halo, {session?.user?.name?.split(' ')[0]}</p>
+            <p className="text-xs text-violet-300 mt-0.5">{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+            <div className="flex items-center justify-between mt-4">
+              <div>
+                <p className="text-2xl font-black">{myDone}<span className="text-lg text-violet-300">/{myItems.length}</span></p>
+                <p className="text-xs text-violet-200 mt-0.5">tugasmu sudah diupdate</p>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold">{teamDone}/{teamItems.length}</p>
+                <p className="text-xs text-violet-200">tim sudah update</p>
+              </div>
+            </div>
+            {myItems.length > 0 && (
+              <div className="mt-3 h-1.5 rounded-full bg-white/20 overflow-hidden">
+                <div className="h-full rounded-full bg-white transition-all duration-700"
+                  style={{ width: `${myItems.length > 0 ? (myDone / myItems.length) * 100 : 0}%` }} />
+              </div>
+            )}
+          </div>
+
+          <CheckInCard checkIn={checkIn} briefingLog={briefingLog} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} session={session} />
+
+          {mySharing.length > 0 && (
+            <MySharingSessionCard sessions={mySharing}
+              onUpdate={() => fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setSharingSessions(d))} />
+          )}
+
+          {data.deadlinePassed && myPending.length > 0 && (
+            <div className="rounded-2xl bg-red-50 border-2 border-red-200 px-4 py-3">
+              <p className="text-sm font-bold text-red-700">⏰ Sudah lewat 20:00 — {myPending.length} tugasmu belum di-update</p>
+            </div>
+          )}
+
+          {/* Task project yang di-assign ke OWNER */}
+          {myProjectTasks.length > 0 && (
+            <div>
+              <SectionHeader label="Task Project Saya" count={myProjectTasks.length} accent="bg-violet-400" />
+              <div className="space-y-3">
+                {myProjectTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Personal task OWNER (hanya untuk diri sendiri) */}
+          <div>
+            <SectionHeader label="Catatan & To-Do Saya" count={myPersonalTasks.length} accent="bg-gray-300" />
+            <div className="space-y-3">
+              {myPersonalTasks.map(item => (
+                <TaskCard key={item.id} item={item} onSave={saveProgress} onDelete={removePersonalTask} />
+              ))}
+              <AddTaskForm projectOptions={data.projectOptions} onAdd={addPersonalTask} />
+            </div>
+          </div>
+
+          {/* Monitoring tim — read-only, selalu tampil */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <SectionHeader label="Monitoring Tim" count={teamItems.length} accent="bg-blue-400" />
+              <button onClick={handleExport}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow transition-colors shrink-0">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                </svg>
+                Export
+              </button>
+            </div>
+            {data.deadlinePassed && (teamItems.length - teamDone) > 0 && (
+              <div className="rounded-2xl bg-red-50 border-2 border-red-200 px-4 py-3 mb-3">
+                <p className="text-sm font-bold text-red-700">⏰ Sudah lewat jam 20:00 — {teamItems.length - teamDone} anggota belum update</p>
+              </div>
+            )}
+            <div className="space-y-3">
+              {data.groups.map(group => (
+                <DivisionGroup key={group.divisi} group={group} onSave={saveProgress} />
+              ))}
+            </div>
+          </div>
+
+          {sharingSessions.filter(s => s.status === 'UPCOMING').length > 0 && (
+            <CollapsibleSection title="Jadwal Sharing Session" count={sharingSessions.filter(s => s.status === 'UPCOMING').length}>
+              <AllSharingSessionsTable sessions={sharingSessions} />
+            </CollapsibleSection>
+          )}
+        </main>
+      </div>
+    )
+  }
+
   // ── DIRECTOR VIEW ───────────────────────────────────────────────────────────
   if (data.mode === 'director') {
     const allItems   = data.groups.flatMap(g => g.items)
