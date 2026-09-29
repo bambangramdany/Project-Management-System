@@ -104,6 +104,7 @@ export default function FinancePage() {
   const [importingExpenses, setImportingExpenses] = useState(false)
   const [savingBudget, setSavingBudget] = useState(false)
   const [projectValue, setProjectValue] = useState('')
+  const [estimasiBudgetProject, setEstimasiBudgetProject] = useState(null)
   const [includesPpn, setIncludesPpn] = useState(false)
   const [quotationFileUrl, setQuotationFileUrl] = useState(null)
   const [quotationFileName, setQuotationFileName] = useState(null)
@@ -321,6 +322,7 @@ export default function FinancePage() {
     setBudgetProjectId(projectId)
     setBudgetItems([])
     setProjectValue('')
+    setEstimasiBudgetProject(null)
     setQuotationNumber('')
     setBudgetEditing(false)
     setBudgetConfirming(false)
@@ -335,6 +337,7 @@ export default function FinancePage() {
       const items = data.budgetItems || []
       setBudgetItems(items.map(b => ({ ...b, neededDate: b.neededDate ? b.neededDate.slice(0, 10) : '', titipanEntries: b.titipanEntries || [] })))
       setProjectValue(data.projectValue ?? '')
+      setEstimasiBudgetProject(data.estimasiBudget ?? null)
       setIncludesPpn(!!data.includesPpn)
       setQuotationFileUrl(data.quotationFileUrl || null)
       setQuotationFileName(data.quotationFileName || null)
@@ -1781,6 +1784,27 @@ export default function FinancePage() {
                   placeholder="0"
                 />
               </div>
+              {estimasiBudgetProject != null && (
+                <div className="flex items-center justify-between gap-3 pb-2 border-b border-gray-100">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700">Estimasi Total Budget</p>
+                    <p className="text-xs text-gray-400">Plafon kebutuhan belanja (diisi PM)</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-gray-800">{formatRupiah(estimasiBudgetProject)}</p>
+                    {projectValue && (() => {
+                      const rev = parseFloat(projectValue) || 0
+                      const margin = rev - estimasiBudgetProject
+                      const pct = rev > 0 ? Math.round((margin / rev) * 100) : 0
+                      return (
+                        <p className={`text-xs font-semibold ${margin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                          Est. margin: {margin >= 0 ? '+' : ''}{pct}%
+                        </p>
+                      )
+                    })()}
+                  </div>
+                </div>
+              )}
               <div className="flex items-center justify-between gap-3 pb-2 border-b border-gray-100">
                 <label className="text-sm text-gray-600 flex items-center gap-2 flex-1">
                   <input

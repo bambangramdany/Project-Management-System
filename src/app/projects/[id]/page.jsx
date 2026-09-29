@@ -1294,6 +1294,7 @@ function CatatNilaiFinalCard({ project, canEdit, fetchProject }) {
 
   const [open, setOpen] = useState(false)
   const [nilai, setNilai] = useState('')
+  const [estimasiBudget, setEstimasiBudget] = useState('')
   const [nomorQuotation, setNomorQuotation] = useState('')
   const [catatan, setCatatan] = useState('')
   const [saving, setSaving] = useState(false)
@@ -1310,6 +1311,7 @@ function CatatNilaiFinalCard({ project, canEdit, fetchProject }) {
 
   function bukaModeUbah() {
     setNilai(project.projectValue != null ? String(Math.round(project.projectValue)) : '')
+    setEstimasiBudget(project.estimasiBudget != null ? String(Math.round(project.estimasiBudget)) : '')
     setNomorQuotation(project.quotationNumber || '')
     setCatatan(project.notes || '')
     setOpen(true)
@@ -1320,6 +1322,8 @@ function CatatNilaiFinalCard({ project, canEdit, fetchProject }) {
     if (!angka || angka <= 0) { alert('Masukkan nilai project yang valid'); return }
     setSaving(true)
     const body = { projectValue: angka }
+    const budgetAngka = parseFloat(String(estimasiBudget).replace(/\D/g, ''))
+    body.estimasiBudget = budgetAngka > 0 ? budgetAngka : null
     if (nomorQuotation) body.quotationNumber = nomorQuotation
     if (catatan) body.notes = catatan
     const res = await fetch(`/api/projects/${project.id}`, {
@@ -1375,6 +1379,26 @@ function CatatNilaiFinalCard({ project, canEdit, fetchProject }) {
             onChange={e => setNilai(e.target.value.replace(/\D/g, ''))}
             autoFocus />
           <p className="text-[11px] text-gray-400 mt-1">Angka final setelah deal dengan klien. Ini yang jadi acuan invoice dan laporan keuangan.</p>
+        </div>
+        <div>
+          <label className="label">Estimasi Total Budget Belanja (Rp)</label>
+          <input className="input text-lg font-bold" placeholder="Contoh: 120.000.000"
+            value={formatRpInput(estimasiBudget)}
+            onChange={e => setEstimasiBudget(e.target.value.replace(/\D/g, ''))} />
+          <p className="text-[11px] text-gray-400 mt-1">Perkiraan total kebutuhan belanja project. Jadi acuan plafon budget untuk Finance & tim. Detail per komponen diisi di Forecast Budget.</p>
+          {nilai && estimasiBudget && (() => {
+            const rev = parseFloat(String(nilai).replace(/\D/g, ''))
+            const bud = parseFloat(String(estimasiBudget).replace(/\D/g, ''))
+            if (!rev || !bud) return null
+            const margin = rev - bud
+            const pct = Math.round((margin / rev) * 100)
+            return (
+              <p className={`text-[11px] mt-1 font-semibold ${margin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                Estimasi margin: {margin >= 0 ? '+' : ''}Rp {Math.abs(Math.round(margin)).toLocaleString('id-ID')} ({pct}%)
+                {margin < 0 && ' ⚠️ Budget melebihi nilai project'}
+              </p>
+            )
+          })()}
         </div>
         <div>
           <label className="label">Catatan (opsional)</label>
@@ -1451,6 +1475,24 @@ function CatatNilaiFinalCard({ project, canEdit, fetchProject }) {
                 )}
                 <span className="text-xs text-gray-400">Klien: {project.client?.name || '-'}</span>
               </div>
+              {project.estimasiBudget != null && (
+                <div className="mt-1.5 space-y-0.5">
+                  <p className="text-xs text-gray-500">
+                    Estimasi Budget: <span className="font-semibold text-gray-700">Rp {Math.round(project.estimasiBudget).toLocaleString('id-ID')}</span>
+                  </p>
+                  {(() => {
+                    const margin = project.projectValue - project.estimasiBudget
+                    const pct = Math.round((margin / project.projectValue) * 100)
+                    return (
+                      <p className="text-xs">
+                        Estimasi Margin: <span className={`font-semibold ${margin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {margin >= 0 ? '+' : ''}Rp {Math.abs(Math.round(margin)).toLocaleString('id-ID')} ({pct}%)
+                        </span>
+                      </p>
+                    )
+                  })()}
+                </div>
+              )}
               <p className="text-[11px] text-gray-400 mt-0.5">Tercatat di dashboard Finance &amp; Management</p>
             </div>
           </div>

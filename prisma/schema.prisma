@@ -687,6 +687,7 @@ model Project {
   vendorWinner    String?
   evaluationNote  String?
   projectValue      Float?
+  estimasiBudget    Float?   // plafon total kebutuhan belanja (top-down, diisi PM bersamaan dengan nilai final)
   includesPpn       Boolean @default(false)
   quotationNumber   String?
   quotationDeadline DateTime? // target tanggal quotation dikirim ke klien

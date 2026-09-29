@@ -57,7 +57,7 @@ export async function PATCH(req, { params }) {
   const data = {}
   const allowed = ['name','status','pitchStatus','pitchResult','wonLossReason','vendorWinner','category',
     'budgetTier','eventComplexity','recommendation','picId','clientId','briefDate','submitDate',
-    'pitchDuration','startDate','endDate','projectDuration','projectValue','notes','evaluationNote','division',
+    'pitchDuration','startDate','endDate','projectDuration','projectValue','estimasiBudget','notes','evaluationNote','division',
     'quotationNumber','invoiceNumber']
 
   for (const key of allowed) {

@@ -79,6 +79,7 @@ export async function GET(req, { params }) {
   return NextResponse.json({
     budgetItems: budgetItemsFinal,
     projectValue: project.projectValue,
+    estimasiBudget: project.estimasiBudget,
     includesPpn: project.includesPpn,
     quotationNumber: project.quotationNumber,
     quotationFileUrl: project.quotationFileUrl,
