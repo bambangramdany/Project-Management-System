@@ -40,8 +40,8 @@ export async function POST(req, { params }) {
   if (!ALLOWED_TYPES.includes(file.type))
     return NextResponse.json({ error: 'Hanya file PDF atau Excel yang diperbolehkan' }, { status: 400 })
 
-  if (file.size > 10 * 1024 * 1024)
-    return NextResponse.json({ error: 'Ukuran file maksimal 10 MB' }, { status: 400 })
+  if (file.size > 1 * 1024 * 1024)
+    return NextResponse.json({ error: 'Ukuran file maksimal 1 MB. Kompres file terlebih dahulu sebelum upload.' }, { status: 400 })
 
   const ext = file.name.split('.').pop()
   const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
