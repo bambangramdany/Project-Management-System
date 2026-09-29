@@ -848,6 +848,12 @@ export default function ProjectDetailPage() {
               <EvaluationNote project={project} setProject={setProject} isManager={isManager} />
             </div>
 
+            <CatatNilaiFinalCard
+              project={project}
+              canEdit={isManager || ['OWNER','FINANCE','FINANCE_STAFF','DIRECTOR'].includes(session?.user?.role)}
+              fetchProject={fetchProject}
+            />
+
             <QuotationInvoiceInfoSection
               project={project}
               isManager={isManager}
@@ -1280,6 +1286,129 @@ function InfoRow({ label, value }) {
 // ── Quotation & Invoice tracking section (editable, shown in Info tab) ────────
 // Shows the legacy quotation/invoice numbers from pre-system data,
 // and lets Finance/Manager update them + fix pitchResult for DONE projects.
+// ── Catat Nilai Final — quick entry untuk PM saat project WON ───────────────
+// Muncul sebagai prompt di atas QuotationInvoiceInfoSection selama projectValue
+// belum diisi. Setelah diisi, hilang dan nilai langsung masuk ke dashboard.
+function CatatNilaiFinalCard({ project, canEdit, fetchProject }) {
+  const WON_STATUSES = ['PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING', 'DONE']
+  const isWon = WON_STATUSES.includes(project.status)
+  const sudahAda = project.projectValue != null
+
+  const [open, setOpen] = useState(false)
+  const [nilai, setNilai] = useState('')
+  const [catatan, setCatatan] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  function formatRpInput(raw) {
+    const digits = String(raw).replace(/\D/g, '')
+    if (!digits) return ''
+    return parseInt(digits, 10).toLocaleString('id-ID')
+  }
+
+  async function simpan() {
+    const angka = parseFloat(String(nilai).replace(/\D/g, ''))
+    if (!angka || angka <= 0) { alert('Masukkan nilai project yang valid'); return }
+    setSaving(true)
+    const body = { projectValue: angka }
+    if (catatan) body.notes = catatan
+    const res = await fetch(`/api/projects/${project.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setSaving(false)
+    if (res.ok) { setOpen(false); fetchProject() }
+    else alert('Gagal menyimpan')
+  }
+
+  if (!isWon || !canEdit) return null
+
+  // Sudah ada nilai → tampilkan banner ringkas dengan opsi ubah
+  if (sudahAda) {
+    return (
+      <div className="card p-4 border-t-4 border-emerald-400 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-xl">✅</span>
+          <div>
+            <p className="text-sm font-semibold text-emerald-800">Nilai Final Project</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Rp {Math.round(project.projectValue).toLocaleString('id-ID')}
+              <span className="ml-2 text-gray-400">· Tercatat di dashboard finance & management</span>
+            </p>
+          </div>
+        </div>
+        <button onClick={() => { setNilai(String(Math.round(project.projectValue))); setOpen(true) }}
+          className="text-xs text-brand hover:underline shrink-0">✏ Ubah</button>
+        {open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
+              <p className="font-semibold text-gray-800">Ubah Nilai Final Project</p>
+              <div>
+                <label className="label">Nilai yang disetujui klien (Rp)</label>
+                <input className="input text-lg font-bold" placeholder="0"
+                  value={formatRpInput(nilai)}
+                  onChange={e => setNilai(e.target.value.replace(/\D/g, ''))} />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button onClick={simpan} disabled={saving} className="btn-primary flex-1">
+                  {saving ? 'Menyimpan...' : 'Simpan'}
+                </button>
+                <button onClick={() => setOpen(false)} className="btn-secondary">Batal</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Belum ada nilai → prompt mencolok
+  return (
+    <div className="card p-5 border-t-4 border-amber-400 space-y-3">
+      <div className="flex items-start gap-3">
+        <span className="text-2xl shrink-0">💰</span>
+        <div>
+          <p className="text-sm font-semibold text-amber-800">Catat Nilai Final Project</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Project ini sudah berjalan tapi nilai finalnya belum tercatat.
+            Masukkan nilai yang sudah dikonfirmasi klien agar bisa dimonitor oleh Finance & Management.
+          </p>
+        </div>
+      </div>
+
+      {!open ? (
+        <button onClick={() => setOpen(true)}
+          className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors">
+          + Catat Nilai Sekarang
+        </button>
+      ) : (
+        <div className="space-y-3 pt-1">
+          <div>
+            <label className="label">Nilai yang disetujui klien (Rp) <span className="text-red-500">*</span></label>
+            <input className="input text-lg font-bold" placeholder="Contoh: 150.000.000"
+              value={formatRpInput(nilai)}
+              onChange={e => setNilai(e.target.value.replace(/\D/g, ''))}
+              autoFocus />
+            <p className="text-[11px] text-gray-400 mt-1">Angka final setelah deal dengan klien. Ini yang jadi acuan invoice dan laporan keuangan.</p>
+          </div>
+          <div>
+            <label className="label">Catatan (opsional)</label>
+            <input className="input" placeholder="Misal: sudah termasuk PPN, belum termasuk venue..."
+              value={catatan} onChange={e => setCatatan(e.target.value)} />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={simpan} disabled={saving || !nilai}
+              className="btn-primary flex-1 disabled:opacity-50">
+              {saving ? 'Menyimpan...' : '✓ Simpan & Catat ke Dashboard'}
+            </button>
+            <button onClick={() => setOpen(false)} className="btn-secondary">Batal</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function QuotationInvoiceInfoSection({ project, isManager, canFinance, fetchProject }) {
   const canEdit = isManager || canFinance
   const [editing, setEditing] = useState(false)
