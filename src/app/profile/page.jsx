@@ -111,13 +111,36 @@ export default function ProfilePage() {
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarMsg, setAvatarMsg] = useState({ type: '', text: '' })
 
+  function compressImage(file, maxPx = 400, quality = 0.82) {
+    return new Promise((resolve) => {
+      const img = new window.Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        let { width, height } = img
+        if (width > maxPx || height > maxPx) {
+          if (width > height) { height = Math.round(height * maxPx / width); width = maxPx }
+          else { width = Math.round(width * maxPx / height); height = maxPx }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+        canvas.toBlob(blob => resolve(blob), 'image/jpeg', quality)
+      }
+      img.src = url
+    })
+  }
+
   async function handleAvatarChange(e) {
     const file = e.target.files?.[0]
     if (!file) return
     setAvatarUploading(true)
     setAvatarMsg({ type: '', text: '' })
+
+    const compressed = await compressImage(file)
     const fd = new FormData()
-    fd.append('file', file)
+    fd.append('file', new File([compressed], 'avatar.jpg', { type: 'image/jpeg' }))
     const res = await fetch('/api/profile/avatar', { method: 'POST', body: fd })
     const data = await res.json().catch(() => ({}))
     setAvatarUploading(false)
