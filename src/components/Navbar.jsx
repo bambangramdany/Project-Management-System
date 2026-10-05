@@ -111,10 +111,10 @@ export default function Navbar() {
             {session && <NotificationBell />}
             {session && (
               <div className="hidden sm:flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm"
+                <Link href="/profile" className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm hover:opacity-80 transition-opacity"
                      style={{ background: 'linear-gradient(135deg, #7C3AED, #A78BFA)' }}>
                   {session.user.name?.[0]?.toUpperCase()}
-                </div>
+                </Link>
                 <Link href="/profile" className="text-xs text-violet-200 hover:text-white font-medium transition-colors">
                   {session.user.name}
                 </Link>
@@ -158,7 +158,14 @@ export default function Navbar() {
             </Link>
           ))}
           <div className="border-t border-violet-800/50 pt-3 mt-2 flex items-center justify-between">
-            <span className="text-xs text-violet-300 font-medium">{session?.user.name}</span>
+            <Link href="/profile" onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 text-xs text-violet-200 hover:text-white font-medium transition-colors">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                   style={{ background: 'linear-gradient(135deg, #7C3AED, #A78BFA)' }}>
+                {session?.user.name?.[0]?.toUpperCase()}
+              </div>
+              {session?.user.name} · Profil Saya
+            </Link>
             <button onClick={() => signOut({ callbackUrl: '/login' })}
                     className="text-xs text-violet-300 hover:text-white transition-colors">Keluar</button>
           </div>
