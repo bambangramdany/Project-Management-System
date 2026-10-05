@@ -137,7 +137,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden border-t border-violet-800/50 px-4 py-3 space-y-1"
+        <div className="md:hidden border-t border-violet-800/50 px-4 py-3 space-y-1 overflow-y-auto max-h-[calc(100vh-3rem)]"
              style={{ background: 'rgba(30, 27, 75, 0.98)', backdropFilter: 'blur(8px)' }}>
           {visibleItems.map(item => (
             <Link
