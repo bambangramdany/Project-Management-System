@@ -38,6 +38,7 @@ export async function GET() {
       motherName: true,
       fatherName: true,
       siblingCount: true,
+      avatarUrl: true,
     },
   })
 
@@ -93,7 +94,7 @@ export async function PATCH(req) {
       joinDate: true, maritalStatus: true, education: true, educationMajor: true,
       addressKtp: true, addressDomicili: true, bankName: true, bankAccount: true,
       emergencyContact: true, emergencyContactRel: true, ktpNumber: true, npwpNumber: true,
-      hobby: true, motherName: true, fatherName: true, siblingCount: true,
+      hobby: true, motherName: true, fatherName: true, siblingCount: true, avatarUrl: true,
     },
   })
 

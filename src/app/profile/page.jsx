@@ -1,7 +1,8 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import BackButton from '@/components/BackButton'
 
@@ -106,6 +107,42 @@ export default function ProfilePage() {
   const [saveMsg, setSaveMsg] = useState({ type: '', text: '' })
 
   // password state
+  const fileInputRef = useRef(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarMsg, setAvatarMsg] = useState({ type: '', text: '' })
+
+  async function handleAvatarChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarUploading(true)
+    setAvatarMsg({ type: '', text: '' })
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/profile/avatar', { method: 'POST', body: fd })
+    const data = await res.json().catch(() => ({}))
+    setAvatarUploading(false)
+    if (res.ok) {
+      setProfile(prev => ({ ...prev, avatarUrl: data.avatarUrl }))
+      setAvatarMsg({ type: 'success', text: 'Foto profil berhasil diperbarui' })
+    } else {
+      setAvatarMsg({ type: 'error', text: data.error || 'Gagal upload foto' })
+    }
+    e.target.value = ''
+  }
+
+  async function removeAvatar() {
+    setAvatarUploading(true)
+    setAvatarMsg({ type: '', text: '' })
+    const res = await fetch('/api/profile/avatar', { method: 'DELETE' })
+    setAvatarUploading(false)
+    if (res.ok) {
+      setProfile(prev => ({ ...prev, avatarUrl: null }))
+      setAvatarMsg({ type: 'success', text: 'Foto profil dihapus' })
+    } else {
+      setAvatarMsg({ type: 'error', text: 'Gagal menghapus foto' })
+    }
+  }
+
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -220,9 +257,47 @@ export default function ProfilePage() {
 
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Profil Saya</h1>
-            <p className="text-sm text-gray-500 mt-0.5">{session.user.name} · {session.user.email}</p>
+          <div className="flex items-center gap-4">
+            {/* Avatar */}
+            <div className="relative shrink-0">
+              <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-violet-200 bg-violet-100 flex items-center justify-center">
+                {profile?.avatarUrl ? (
+                  <img src={profile.avatarUrl} alt="Foto profil" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-2xl font-bold text-violet-600">{session.user.name?.[0]?.toUpperCase()}</span>
+                )}
+              </div>
+              {/* Upload trigger */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center shadow-md transition-colors disabled:opacity-50"
+                title="Ganti foto"
+              >
+                {avatarUploading ? (
+                  <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                ) : (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                )}
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarChange} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">{session.user.name}</h1>
+              <p className="text-sm text-gray-500 mt-0.5">{session.user.email}</p>
+              {profile?.avatarUrl && !avatarUploading && (
+                <button onClick={removeAvatar} className="text-xs text-red-400 hover:text-red-600 mt-0.5 transition-colors">Hapus foto</button>
+              )}
+              {avatarMsg.text && (
+                <p className={`text-xs mt-0.5 ${avatarMsg.type === 'success' ? 'text-emerald-600' : 'text-red-500'}`}>{avatarMsg.text}</p>
+              )}
+            </div>
           </div>
           {!editing && profile && (
             <button onClick={startEdit} className="btn-secondary text-sm shrink-0">Edit Profil</button>

@@ -3,7 +3,7 @@ import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import NotificationBell from './NotificationBell'
 import { isFinanceDirector } from '@/lib/rbac'
 
@@ -48,6 +48,16 @@ export default function Navbar() {
   const { data: session } = useSession()
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(null)
+
+  useEffect(() => {
+    if (session) {
+      fetch('/api/profile/me').then(r => r.ok ? r.json() : null).then(d => {
+        if (d?.avatarUrl) setAvatarUrl(d.avatarUrl)
+      })
+    }
+  }, [session?.user?.id])
+
   const canSeeAudit = session?.user.role === 'OWNER' || isFinanceDirector(session?.user)
   const canSeeCash = session?.user.role === 'OWNER' || session?.user.role === 'FINANCE' || isFinanceDirector(session?.user)
   const canSeeFinanceStaff = canSeeCash || session?.user.role === 'FINANCE_STAFF'
@@ -111,9 +121,12 @@ export default function Navbar() {
             {session && <NotificationBell />}
             {session && (
               <div className="hidden sm:flex items-center gap-2">
-                <Link href="/profile" className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm hover:opacity-80 transition-opacity"
-                     style={{ background: 'linear-gradient(135deg, #7C3AED, #A78BFA)' }}>
-                  {session.user.name?.[0]?.toUpperCase()}
+                <Link href="/profile" className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold text-white shadow-sm hover:opacity-80 transition-opacity shrink-0"
+                     style={!avatarUrl ? { background: 'linear-gradient(135deg, #7C3AED, #A78BFA)' } : {}}>
+                  {avatarUrl
+                    ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                    : session.user.name?.[0]?.toUpperCase()
+                  }
                 </Link>
                 <Link href="/profile" className="text-xs text-violet-200 hover:text-white font-medium transition-colors">
                   {session.user.name}
@@ -160,9 +173,12 @@ export default function Navbar() {
           <div className="border-t border-violet-800/50 pt-3 mt-2 flex items-center justify-between">
             <Link href="/profile" onClick={() => setMenuOpen(false)}
                   className="flex items-center gap-2 text-xs text-violet-200 hover:text-white font-medium transition-colors">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                   style={{ background: 'linear-gradient(135deg, #7C3AED, #A78BFA)' }}>
-                {session?.user.name?.[0]?.toUpperCase()}
+              <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                   style={!avatarUrl ? { background: 'linear-gradient(135deg, #7C3AED, #A78BFA)' } : {}}>
+                {avatarUrl
+                  ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                  : session?.user.name?.[0]?.toUpperCase()
+                }
               </div>
               {session?.user.name} · Profil Saya
             </Link>

@@ -85,6 +85,7 @@ model User {
   fatherName             String?
   npk                    String?
   siblingCount           Int?
+  avatarUrl              String?
   announcements          Announcement[]        @relation("AnnouncementAuthor")
   announcementTargets    Announcement[]        @relation("AnnouncementTarget")
   announcementReads      AnnouncementRead[]
