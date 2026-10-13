@@ -861,6 +861,9 @@ model Task {
   meetingActionItem MeetingActionItem?
 
   @@index([projectId])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([assigneeId, status])
 }
 
 // Discussion thread on a project task — team members can comment and @mention
@@ -913,6 +916,7 @@ model PersonalTask {
   progressUpdates ProgressUpdate[]
 
   @@index([userId])
+  @@index([userId, status])
 }
 
 // Daily progress check-in submitted by a user for an assigned project task or

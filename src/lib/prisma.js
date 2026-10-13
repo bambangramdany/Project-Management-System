@@ -4,4 +4,5 @@ const globalForPrisma = globalThis
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient()
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+// Cache in both dev and production so warm Vercel instances reuse the connection
+globalForPrisma.prisma = prisma
