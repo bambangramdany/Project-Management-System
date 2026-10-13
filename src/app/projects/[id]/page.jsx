@@ -1361,7 +1361,7 @@ function CatatNilaiFinalCard({ project, canEdit, fetchProject }) {
     else alert('Gagal menghapus file')
   }
 
-  if (!isWon || !canEdit) return null
+  if (!canEdit) return null
 
   const formModal = (title) => (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -1510,10 +1510,10 @@ function CatatNilaiFinalCard({ project, canEdit, fetchProject }) {
       <div className="flex items-start gap-3">
         <span className="text-2xl shrink-0">💰</span>
         <div>
-          <p className="text-sm font-semibold text-amber-800">Catat Nilai Final Project</p>
+          <p className="text-sm font-semibold text-amber-800">Catat Nilai Penawaran & Estimasi Budget</p>
           <p className="text-xs text-gray-500 mt-0.5">
-            Project ini sudah berjalan tapi nilai finalnya belum tercatat.
-            Masukkan nilai yang sudah dikonfirmasi klien agar bisa dimonitor oleh Finance &amp; Management.
+            Masukkan nilai penawaran dan estimasi budget project ini — baik yang sedang berjalan, belum final,
+            maupun yang tidak menang pitch. Data ini digunakan untuk laporan Finance &amp; analisis potential lost.
           </p>
         </div>
       </div>
@@ -1521,9 +1521,9 @@ function CatatNilaiFinalCard({ project, canEdit, fetchProject }) {
       {!open ? (
         <button onClick={() => setOpen(true)}
           className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors">
-          + Catat Nilai Sekarang
+          + Catat Nilai & Estimasi Budget
         </button>
-      ) : formModal('Catat Nilai Final Project')}
+      ) : formModal('Catat Nilai Penawaran & Estimasi Budget')}
     </div>
   )
 }
