@@ -396,7 +396,7 @@ export default function DashboardPage() {
   }, [status, session, router])
 
   const fetchProjects = () => {
-    fetch('/api/projects').then(r => r.json()).then(data => {
+    fetch('/api/projects?list=1').then(r => r.json()).then(data => {
       setProjects(Array.isArray(data) ? data : [])
       setLoading(false)
     }).catch(() => setLoading(false))
