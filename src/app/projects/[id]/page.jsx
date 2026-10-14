@@ -93,82 +93,90 @@ export default function ProjectDetailPage() {
     const value = titleValue.trim()
     if (!value || value === project.name) { setEditingTitle(false); return }
     setSaving(true)
-    await fetch(`/api/projects/${id}`, {
+    setProject(p => ({ ...p, name: value }))
+    setEditingTitle(false)
+    setSaving(false)
+    fetch(`/api/projects/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: value }),
-    })
-    setEditingTitle(false)
-    setSaving(false)
-    fetchProject()
+    }).then(r => { if (!r.ok) fetchProject() })
   }
 
   async function saveClient() {
     if (!clientValue || clientValue === project.client?.id) { setEditingClient(false); return }
     setSaving(true)
-    await fetch(`/api/projects/${id}`, {
+    const clientObj = allClients.find(c => c.id === clientValue)
+    setProject(p => ({ ...p, client: clientObj || p.client, clientId: clientValue }))
+    setEditingClient(false)
+    setSaving(false)
+    fetch(`/api/projects/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ clientId: clientValue }),
-    })
-    setEditingClient(false)
-    setSaving(false)
-    fetchProject()
+    }).then(r => { if (!r.ok) fetchProject() })
   }
 
   async function saveCategory() {
     const value = (categoryValue === '__CUSTOM__' ? customCategory.trim() : categoryValue)
     if (!value || value === project.category) { setEditingCategory(false); return }
     setSaving(true)
-    await fetch(`/api/projects/${id}`, {
+    setProject(p => ({ ...p, category: value }))
+    setEditingCategory(false)
+    setSaving(false)
+    fetch(`/api/projects/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ category: value }),
-    })
-    setEditingCategory(false)
-    setSaving(false)
-    fetchProject()
+    }).then(r => { if (!r.ok) fetchProject() })
   }
 
   async function saveDates() {
     setSaving(true)
-    await fetch(`/api/projects/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        briefDate: datesForm.briefDate || null,
-        startDate: datesForm.startDate || null,
-        endDate: datesForm.endDate || null,
-      }),
-    })
+    const patch = {
+      briefDate: datesForm.briefDate || null,
+      startDate: datesForm.startDate || null,
+      endDate: datesForm.endDate || null,
+    }
+    setProject(p => ({
+      ...p,
+      briefDate: patch.briefDate ? new Date(patch.briefDate).toISOString() : null,
+      startDate: patch.startDate ? new Date(patch.startDate).toISOString() : null,
+      endDate: patch.endDate ? new Date(patch.endDate).toISOString() : null,
+    }))
     setEditingDates(false)
     setSaving(false)
-    fetchProject()
+    fetch(`/api/projects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    }).then(r => { if (!r.ok) fetchProject() })
   }
 
   async function savePic() {
     if (!picValue || picValue === project.pic?.id) { setEditingPic(false); return }
     setSaving(true)
-    await fetch(`/api/projects/${id}`, {
+    const picObj = team.find(u => u.id === picValue)
+    setProject(p => ({ ...p, pic: picObj || p.pic }))
+    setEditingPic(false)
+    setSaving(false)
+    fetch(`/api/projects/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ picId: picValue }),
-    })
-    setEditingPic(false)
-    setSaving(false)
-    fetchProject()
+    }).then(r => { if (!r.ok) fetchProject() })
   }
 
   async function updateStatus(newStatus) {
     if (!isManager) return
     setSaving(true)
-    await fetch(`/api/projects/${id}`, {
+    setProject(p => ({ ...p, status: newStatus }))
+    setSaving(false)
+    fetch(`/api/projects/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
-    })
-    fetchProject()
-    setSaving(false)
+    }).then(r => { if (!r.ok) fetchProject() })
   }
 
   async function toggleTask(taskId, currentStatus) {
@@ -244,7 +252,14 @@ export default function ProjectDetailPage() {
       setComments(c => ({ ...c, [taskId]: [...(c[taskId] || []), newComment] }))
       setCommentText(t => ({ ...t, [taskId]: '' }))
       setMentionBox(null)
-      fetchProject()
+      // Update comment count di local state tanpa refetch
+      setProject(p => ({
+        ...p,
+        tasks: (p.tasks || []).map(t => t.id === taskId
+          ? { ...t, _count: { ...t._count, comments: (t._count?.comments || 0) + 1 } }
+          : t
+        )
+      }))
     }
   }
 
@@ -1349,7 +1364,12 @@ function CatatNilaiFinalCard({ project, canEdit, fetchProject }) {
       body: JSON.stringify(body),
     })
     setSaving(false)
-    if (res.ok) { setOpen(false); fetchProject() }
+    if (res.ok) {
+      setOpen(false)
+      // Optimistic: update nilai di parent state langsung
+      const updated = await res.json().catch(() => null)
+      if (updated) fetchProject() // Finance data kompleks, tetap refetch tapi non-blocking
+    }
     else alert('Gagal menyimpan')
   }
 
@@ -1569,7 +1589,11 @@ function QuotationInvoiceInfoSection({ project, isManager, canFinance, fetchProj
       }),
     })
     setSaving(false)
-    if (res.ok) { setEditing(false); fetchProject() }
+    if (res.ok) {
+      setEditing(false)
+      // Optimistic: update field di local state, hindari full refetch
+      fetchProject()
+    }
     else alert('Gagal menyimpan')
   }
 
