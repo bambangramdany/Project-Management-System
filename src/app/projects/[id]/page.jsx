@@ -173,6 +173,8 @@ export default function ProjectDetailPage() {
 
   async function toggleTask(taskId, currentStatus) {
     const newStatus = currentStatus === 'DONE' ? 'TODO' : currentStatus === 'TODO' ? 'IN_PROGRESS' : 'DONE'
+    // Optimistic update — update status task langsung
+    setProject(p => ({ ...p, tasks: (p.tasks || []).map(t => t.id === taskId ? { ...t, status: newStatus } : t) }))
     const res = await fetch(`/api/tasks/${taskId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -181,9 +183,8 @@ export default function ProjectDetailPage() {
     if (!res.ok) {
       const err = await res.json()
       alert(err.error)
-      return
+      fetchProject() // rollback
     }
-    fetchProject()
   }
 
   async function addTask(e) {
@@ -194,16 +195,25 @@ export default function ProjectDetailPage() {
       body: JSON.stringify({ ...taskForm, projectId: id }),
     })
     if (res.ok) {
+      const newTask = await res.json()
       setTaskForm({ title: '', assigneeId: '', priority: 'MEDIUM', openEnded: false, dueDate: '' })
       setShowTaskForm(false)
-      fetchProject()
+      // Optimistic: tambah task langsung ke state
+      const assigneeObj = taskForm.assigneeId
+        ? [project.pic, ...(project.members?.map(m => m.user) || [])].find(u => u?.id === taskForm.assigneeId)
+        : null
+      setProject(p => ({
+        ...p,
+        tasks: [...(p.tasks || []), { ...newTask, assignee: assigneeObj || null, dependencies: [], _count: { comments: 0 } }]
+      }))
     }
   }
 
   async function deleteTask(taskId) {
-    await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' })
+    // Optimistic: hapus dari state langsung
+    setProject(p => ({ ...p, tasks: (p.tasks || []).filter(t => t.id !== taskId) }))
     setConfirmDeleteTaskId(null)
-    fetchProject()
+    await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' })
   }
 
   async function toggleComments(taskId) {
@@ -259,22 +269,29 @@ export default function ProjectDetailPage() {
     if (!userId) return
     const currentIds = (project.members || []).map(m => m.user.id)
     if (currentIds.includes(userId)) return
-    await fetch(`/api/projects/${id}`, {
+    const userObj = team.find(u => u.id === userId)
+    // Optimistic update — tambah langsung ke state tanpa tunggu server
+    if (userObj) {
+      setProject(p => ({ ...p, members: [...(p.members || []), { user: userObj }] }))
+    }
+    const res = await fetch(`/api/projects/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ memberIds: [...currentIds, userId] }),
     })
-    fetchProject()
+    if (!res.ok) fetchProject() // rollback jika gagal
   }
 
   async function removeMember(userId) {
+    // Optimistic update — hapus langsung dari state
+    setProject(p => ({ ...p, members: (p.members || []).filter(m => m.user.id !== userId) }))
     const currentIds = (project.members || []).map(m => m.user.id).filter(uid => uid !== userId)
-    await fetch(`/api/projects/${id}`, {
+    const res = await fetch(`/api/projects/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ memberIds: currentIds }),
     })
-    fetchProject()
+    if (!res.ok) fetchProject() // rollback jika gagal
   }
 
   if (loading || !project) return <LoadingScreen />
