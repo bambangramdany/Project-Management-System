@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
@@ -37,8 +37,6 @@ export default function ProjectDetailPage() {
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [taskForm, setTaskForm] = useState({ title: '', assigneeId: '', priority: 'MEDIUM', openEnded: false, dueDate: '' })
   const [saving, setSaving] = useState(false)
-  const [activity, setActivity] = useState([])
-  const [activityLoaded, setActivityLoaded] = useState(false)
   const [openCommentsTaskId, setOpenCommentsTaskId] = useState(null)
   const [comments, setComments] = useState({})
   const [commentText, setCommentText] = useState({})
@@ -594,15 +592,7 @@ export default function ProjectDetailPage() {
           {['team', 'tasks', 'timeline', 'vendors', 'ringkasan', 'finance', ...(canScoreProject(session?.user, project) ? ['bonus'] : [])].map(tab => (
             <button
               key={tab}
-              onClick={() => {
-                setActiveTab(tab)
-                if ((tab === 'ringkasan') && !activityLoaded) {
-                  fetch(`/api/projects/${id}/activity`).then(r => r.ok ? r.json() : []).then(data => {
-                    setActivity(Array.isArray(data) ? data : [])
-                    setActivityLoaded(true)
-                  })
-                }
-              }}
+              onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-all whitespace-nowrap shrink-0 ${
                 activeTab === tab ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
               }`}
@@ -893,23 +883,7 @@ export default function ProjectDetailPage() {
 
             <ClientBriefSection project={project} setProject={setProject} isManager={isManager} fetchProject={fetchProject} />
 
-            <div className="card divide-y divide-gray-50 border-t-4 border-brand-400">
-              <div className="px-4 py-3">
-                <p className="text-sm font-semibold text-gray-700">Aktivitas Project</p>
-              </div>
-              {!activityLoaded && <p className="text-sm text-gray-400 text-center py-8">Memuat...</p>}
-              {activityLoaded && activity.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-8">Belum ada aktivitas tercatat</p>
-              )}
-              {activity.map(log => (
-                <div key={log.id} className="px-4 py-3">
-                  <p className="text-sm text-gray-800">{log.summary}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {new Date(log.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
-                  </p>
-                </div>
-              ))}
-            </div>
+            <ActivitySection projectId={id} />
           </div>
         )}
 
@@ -928,6 +902,50 @@ export default function ProjectDetailPage() {
 
 
       </main>
+    </div>
+  )
+}
+
+function ActivitySection({ projectId }) {
+  const [activity, setActivity] = useState([])
+  const [loaded, setLoaded] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !loaded) {
+          fetch(`/api/projects/${projectId}/activity`)
+            .then(r => r.ok ? r.json() : [])
+            .then(data => { setActivity(Array.isArray(data) ? data : []); setLoaded(true) })
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '200px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [projectId, loaded])
+
+  return (
+    <div ref={ref} className="card divide-y divide-gray-50 border-t-4 border-brand-400">
+      <div className="px-4 py-3">
+        <p className="text-sm font-semibold text-gray-700">Aktivitas Project</p>
+      </div>
+      {!loaded && <p className="text-sm text-gray-400 text-center py-8">Memuat...</p>}
+      {loaded && activity.length === 0 && (
+        <p className="text-sm text-gray-400 text-center py-8">Belum ada aktivitas tercatat</p>
+      )}
+      {activity.map(log => (
+        <div key={log.id} className="px-4 py-3">
+          <p className="text-sm text-gray-800">{log.summary}</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {new Date(log.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+          </p>
+        </div>
+      ))}
     </div>
   )
 }
