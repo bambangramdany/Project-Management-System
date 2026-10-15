@@ -7,13 +7,12 @@ import { NextResponse } from 'next/server'
 // GET /api/test-whatsapp?phone=08xxx  → kirim WA ke nomor tertentu
 // GET /api/test-whatsapp              → cek user mana yang punya nomor HP
 export async function GET(req) {
-  const secret = process.env.CRON_SECRET
-  const auth = req.headers.get('authorization')
-  if (!secret || auth !== `Bearer ${secret}`) {
+  const { searchParams } = new URL(req.url)
+  const token = searchParams.get('token')
+  if (token !== process.env.FONNTE_TOKEN) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { searchParams } = new URL(req.url)
   const phone = searchParams.get('phone')
 
   if (phone) {
