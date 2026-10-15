@@ -43,12 +43,12 @@ async function main() {
     prisma.user.upsert({
       where: { email: 'boni@watermark.co.id' },
       update: {},
-      create: { name: 'Boni', email: 'boni@watermark.co.id', hashedPassword: passwordHash, role: 'INTERNSHIP', jobTitle: 'Internship Event', divisi: 'EVENT', employeeStatus: 'ACTIVE', phone: '+62 812-1308-5657' },
+      create: { name: 'Boni', email: 'boni@watermark.co.id', hashedPassword: passwordHash, role: 'PRODUCTION', jobTitle: 'Production', divisi: 'EVENT', employeeStatus: 'ACTIVE', phone: '+62 812-1308-5657' },
     }),
     prisma.user.upsert({
       where: { email: 'eca@watermark.co.id' },
       update: {},
-      create: { name: 'Eca', email: 'eca@watermark.co.id', hashedPassword: passwordHash, role: 'PROJECT_OFFICER', jobTitle: 'Project Officer', divisi: 'EVENT', employeeStatus: 'ACTIVE', npk: '047' },
+      create: { name: 'Eca', email: 'eca@watermark.co.id', hashedPassword: passwordHash, role: 'INTERNSHIP', jobTitle: 'Internship Event', divisi: 'EVENT', employeeStatus: 'ACTIVE', npk: '047' },
     }),
     prisma.user.upsert({
       where: { email: 'kres@watermark.co.id' },
@@ -63,7 +63,7 @@ async function main() {
     prisma.user.upsert({
       where: { email: 'sultan@watermark.co.id' },
       update: {},
-      create: { name: 'Sultan', email: 'sultan@watermark.co.id', hashedPassword: passwordHash, role: 'CONTENT_CREATOR', jobTitle: 'Content Creator', divisi: 'EVENT', employeeStatus: 'ACTIVE', phone: '+62 815-1138-6389' },
+      create: { name: 'Sultan', email: 'sultan@watermark.co.id', hashedPassword: passwordHash, role: 'INTERNSHIP', jobTitle: 'Internship Event', divisi: 'EVENT', employeeStatus: 'ACTIVE', phone: '+62 815-1138-6389' },
     }),
     prisma.user.upsert({
       where: { email: 'bastya@watermark.co.id' },
