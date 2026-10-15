@@ -233,6 +233,7 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
   const [eveningNote, setEveningNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(!!checkIn?.eveningAt)
+  const [showAbsensiReminder, setShowAbsensiReminder] = useState(false)
 
   const hasMorning = !!checkIn?.morningAckAt
   const hasEvening = !!checkIn?.eveningAt || submitted
@@ -292,7 +293,7 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
               </p>
             </div>
             {(isOnTime || isLate) && (
-              <button onClick={onMorningAck}
+              <button onClick={async () => { await onMorningAck(); setShowAbsensiReminder(true) }}
                 className="shrink-0 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-bold transition-colors active:scale-95 border border-white/30">
                 {isOnTime ? '✓ Hadir' : '✓ Hadir (Telat)'}
               </button>
@@ -319,6 +320,17 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
             </p>
           </div>
         )
+      )}
+
+      {/* Reminder absensi aplikasi setelah check-in pagi */}
+      {showAbsensiReminder && hasMorning && (
+        <div className="rounded-2xl bg-amber-50 border border-amber-300 px-4 py-3 flex items-start gap-3">
+          <span className="text-lg shrink-0">⏰</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-800">Jangan lupa melakukan absensi pada pukul 10.00 WIB di aplikasi Absensi Watermark Indonesia</p>
+          </div>
+          <button onClick={() => setShowAbsensiReminder(false)} className="text-amber-500 hover:text-amber-700 shrink-0 text-lg leading-none">✕</button>
+        </div>
       )}
 
       {showEvening && (

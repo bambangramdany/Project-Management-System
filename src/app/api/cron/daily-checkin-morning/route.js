@@ -4,7 +4,7 @@ import { notifyUser } from '@/lib/notify'
 import { getSuperiorIds } from '@/lib/checkinNotify'
 import { NextResponse } from 'next/server'
 
-// Cron: setiap hari 09:00 WIB (02:00 UTC) — Senin s/d Jumat
+// Cron: setiap hari 08:00 WIB (01:00 UTC) — Senin s/d Jumat
 // Notifikasi superior jika anggota tim belum morning check-in
 export async function GET(req) {
   const secret = process.env.CRON_SECRET
@@ -65,7 +65,7 @@ export async function GET(req) {
       userId: supId,
       type: 'CHECKIN_MORNING_MISSING',
       title: `${uniqueNames.length} orang belum check-in pagi`,
-      message: `Belum check-in per pukul 09:00 WIB hari ini: ${uniqueNames.join(', ')}.`,
+      message: `Belum check-in per pukul 08:00 WIB hari ini: ${uniqueNames.join(', ')}.`,
       link: '/my-tasks',
     })
     notified++

@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/daily-checkin-morning",
-      "schedule": "0 2 * * 1-5"
+      "schedule": "0 1 * * 1-5"
     },
     {
       "path": "/api/cron/daily-checkin-evening",

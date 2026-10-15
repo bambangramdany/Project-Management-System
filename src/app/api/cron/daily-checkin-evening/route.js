@@ -44,6 +44,15 @@ export async function GET(req) {
   for (const user of users) {
     if (submittedSet.has(user.id)) continue
 
+    // Kirim reminder langsung ke user yang belum laporan
+    await notifyUser({
+      userId: user.id,
+      type: 'CHECKIN_EVENING_REMINDER',
+      title: 'Pengingat: laporan progress sore belum dikirim',
+      message: 'Kamu belum mengirim laporan progress sore hari ini. Segera buka Tugas Saya dan kirim laporanmu sebelum hari berakhir.',
+      link: '/my-tasks',
+    })
+
     const superiorIds = getSuperiorIds(user, allUsers)
     for (const supId of superiorIds) {
       if (!notifMap[supId]) notifMap[supId] = []
