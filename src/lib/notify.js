@@ -1,11 +1,23 @@
 import { prisma } from '@/lib/prisma'
+import { sendWhatsapp } from '@/lib/whatsapp'
 
 export async function notifyUser({ userId, type, title, message, link }) {
   if (!userId) return null
   try {
-    return await prisma.notification.create({
-      data: { userId, type, title, message: message || null, link: link || null },
-    })
+    const [notification, user] = await Promise.all([
+      prisma.notification.create({
+        data: { userId, type, title, message: message || null, link: link || null },
+      }),
+      prisma.user.findUnique({ where: { id: userId }, select: { phone: true } }),
+    ])
+
+    if (user?.phone) {
+      const waMessage = [title, message].filter(Boolean).join('\n') +
+        (link ? `\n\nhttps://project-management-system-six-psi.vercel.app${link}` : '')
+      sendWhatsapp({ phone: user.phone, message: waMessage }) // fire-and-forget
+    }
+
+    return notification
   } catch (e) {
     console.error('notifyUser failed', e)
     return null
