@@ -43,7 +43,7 @@ async function main() {
     prisma.user.upsert({
       where: { email: 'boni@watermark.co.id' },
       update: {},
-      create: { name: 'Boni', email: 'boni@watermark.co.id', hashedPassword: passwordHash, role: 'PRODUCTION', jobTitle: 'Production', divisi: 'EVENT', employeeStatus: 'ACTIVE', phone: '+62 812-1308-5657' },
+      create: { name: 'Boni', email: 'boni@watermark.co.id', hashedPassword: passwordHash, role: 'PROJECT_OFFICER', jobTitle: 'Project Officer', divisi: 'EVENT', employeeStatus: 'ACTIVE', phone: '+62 812-1308-5657' },
     }),
     prisma.user.upsert({
       where: { email: 'eca@watermark.co.id' },
