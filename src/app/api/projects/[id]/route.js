@@ -3,7 +3,15 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canEditProject, canDeleteProject, canQuickEditProjects } from '@/lib/rbac'
 import { logAudit } from '@/lib/audit'
+import { notifyUser } from '@/lib/notify'
 import { NextResponse } from 'next/server'
+
+const STATUS_LABELS = {
+  PITCHING: 'Pitching', PREPARATION: 'Persiapan', EVENT_DAY: 'Hari-H',
+  DONE: 'Selesai', FAILED: 'Gagal', CANCELED: 'Dibatalkan',
+}
+// Status yang wajib dibroadcast ke seluruh anggota tim
+const BROADCAST_STATUSES = new Set(['EVENT_DAY', 'DONE', 'FAILED', 'CANCELED'])
 
 export async function GET(req, { params }) {
   const session = await getServerSession(authOptions)
@@ -103,6 +111,14 @@ export async function PATCH(req, { params }) {
 
   // Sync members if provided
   if (Array.isArray(memberIds)) {
+    // Find newly added members (not in previous list) to notify them
+    const existing = await prisma.projectMember.findMany({
+      where: { projectId: params.id },
+      select: { userId: true },
+    })
+    const existingSet = new Set(existing.map(m => m.userId))
+    const newMemberIds = memberIds.filter(id => !existingSet.has(id) && id !== session.user.id)
+
     await prisma.projectMember.deleteMany({ where: { projectId: params.id } })
     if (memberIds.length > 0) {
       await prisma.projectMember.createMany({
@@ -110,6 +126,16 @@ export async function PATCH(req, { params }) {
         skipDuplicates: true,
       })
     }
+
+    // Notify newly added members
+    await Promise.all(newMemberIds.map(userId => notifyUser({
+      userId,
+      type: 'PROJECT_MEMBER_ADDED',
+      title: `Kamu ditambahkan ke project "${project.name}"`,
+      message: `${session.user.name} menambahkan kamu sebagai anggota tim project ini.`,
+      link: `/projects/${project.id}`,
+    })))
+
     await logAudit({
       userId: session.user.id, action: 'PROJECT_MEMBERS_CHANGE', entity: 'Project', entityId: project.id,
       summary: `${session.user.name} mengubah anggota project ${project.name}`,
@@ -117,13 +143,33 @@ export async function PATCH(req, { params }) {
     })
   }
 
-  // Log notable field changes
+  // Log notable field changes + broadcast status change to team
   if (data.status && data.status !== existingProject.status) {
     await logAudit({
       userId: session.user.id, action: 'PROJECT_STATUS_CHANGE', entity: 'Project', entityId: project.id,
       summary: `${session.user.name} mengubah status project ${project.name} dari ${existingProject.status} ke ${data.status}`,
       meta: { from: existingProject.status, to: data.status },
     })
+
+    // Broadcast ke seluruh anggota tim untuk status krusial
+    if (BROADCAST_STATUSES.has(data.status)) {
+      const members = await prisma.projectMember.findMany({
+        where: { projectId: params.id },
+        select: { userId: true },
+      })
+      const recipientIds = new Set(members.map(m => m.userId))
+      if (existingProject.picId) recipientIds.add(existingProject.picId)
+      recipientIds.delete(session.user.id) // jangan kirim ke diri sendiri
+
+      const statusLabel = STATUS_LABELS[data.status] ?? data.status
+      await Promise.all([...recipientIds].map(userId => notifyUser({
+        userId,
+        type: 'PROJECT_STATUS_CHANGE',
+        title: `Status project "${project.name}" → ${statusLabel}`,
+        message: `${session.user.name} mengubah status project dari ${STATUS_LABELS[existingProject.status] ?? existingProject.status} ke ${statusLabel}.`,
+        link: `/projects/${project.id}`,
+      })))
+    }
   }
   if ('projectValue' in data && data.projectValue !== existingProject.projectValue) {
     await logAudit({

@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notifyUser } from '@/lib/notify'
 import { NextResponse } from 'next/server'
 
 const CAN_CREATE = ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'PROJECT_OFFICER']
@@ -63,6 +64,22 @@ export async function POST(req, { params }) {
       },
     },
   })
+
+  // Notify action item assignees (skip self-assign)
+  const assignedItems = note.actionItems.filter(
+    item => item.assigneeId && item.assigneeId !== session.user.id
+  )
+  const project = await prisma.project.findUnique({
+    where: { id: params.id },
+    select: { name: true },
+  })
+  await Promise.all(assignedItems.map(item => notifyUser({
+    userId: item.assigneeId,
+    type: 'MOM_ACTION_ITEM',
+    title: `Kamu dapat action item dari MoM "${note.title}"`,
+    message: `${session.user.name} menugaskan: "${item.description}"${item.dueDate ? ` · Deadline: ${new Date(item.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}` : ''} · Project: ${project?.name ?? ''}`,
+    link: `/projects/${params.id}`,
+  })))
 
   return NextResponse.json(note)
 }
