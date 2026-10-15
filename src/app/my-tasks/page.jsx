@@ -241,8 +241,8 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
   const isOverdue   = checkIn?.eveningOverdue
 
   const now = hourWIBNow()
-  const isOnTime  = now <= 8 + 5/60   // ≤ 08:05
-  const isLate    = now > 8 + 5/60 && now < 9.5  // 08:05–09:30
+  const isOnTime  = now <= 8            // ≤ 08:00 WIB tepat waktu
+  const isLate    = now > 8 && now <= 8 + 10/60  // 08:00–08:10 grace period (telat)
   const isWeekend = [0, 6].includes(new Date().getDay())
 
   // Briefing status label
@@ -289,7 +289,7 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
               <p className="text-xs text-white/75 mt-0.5">
                 {isOnTime ? 'Klik untuk konfirmasi kehadiran briefing & cek tugas hari ini'
                 : isLate  ? 'Klik untuk mencatat kehadiran (akan ditandai telat)'
-                : 'Lewat 09:30 — kehadiran dicatat tidak hadir'}
+                : 'Lewat 08:10 — kehadiran dicatat tidak hadir'}
               </p>
             </div>
             {(isOnTime || isLate) && (
