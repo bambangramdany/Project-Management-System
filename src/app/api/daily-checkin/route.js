@@ -57,7 +57,7 @@ export async function GET(req) {
       if (!r.morningAckAt) return false
       const wib = new Date(r.morningAckAt.getTime() + 7 * 60 * 60 * 1000)
       const h = wib.getUTCHours() + wib.getUTCMinutes() / 60
-      return h <= 9.5 // <= 09:30
+      return h <= 8.0 // <= 08:00
     }).length
     const morningLate = records.filter(r => {
       if (!r.morningAckAt) return false

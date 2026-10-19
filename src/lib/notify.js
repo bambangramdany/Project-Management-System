@@ -13,7 +13,7 @@ export async function notifyUser({ userId, type, title, message, link }) {
 
     if (user?.phone) {
       const waMessage = [title, message].filter(Boolean).join('\n') +
-        (link ? `\n\nhttps://project-management-system-six-psi.vercel.app${link}` : '')
+        (link ? `\n\nKlik link aplikasi Watermark PM di bawah ini:\nhttps://project-management-system-six-psi.vercel.app${link}` : '')
       sendWhatsapp({ phone: user.phone, message: waMessage }) // fire-and-forget
     }
 

@@ -4,7 +4,7 @@ import { notifyUser } from '@/lib/notify'
 import { getSuperiorIds } from '@/lib/checkinNotify'
 import { NextResponse } from 'next/server'
 
-// Cron: setiap hari 20:00 WIB (13:00 UTC) — Senin s/d Jumat
+// Cron: setiap hari 17:00 UTC target (10:00 UTC) — Senin s/d Jumat
 // Notifikasi superior jika anggota tim belum kirim evening progress report
 export async function GET(req) {
   const secret = process.env.CRON_SECRET

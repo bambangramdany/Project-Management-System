@@ -50,7 +50,7 @@ export default function SopContent() {
           <li><strong>WhatsApp</strong> (grup & pesan pribadi terkait pekerjaan): maksimal <strong>30 menit</strong>.</li>
           <li><strong>Email</strong> (internal maupun dari klien/vendor): maksimal <strong>1 jam</strong>.</li>
         </ul>
-        <p>Respons minimal adalah acknowledgment ("Noted, sedang ditangani"). Pesan di luar jam kerja wajib direspons paling lambat pukul 09.30 WIB hari kerja berikutnya.</p>
+        <p>Respons minimal adalah acknowledgment ("Noted, sedang ditangani"). Pesan di luar jam kerja wajib direspons paling lambat pukul 08.00 WIB hari kerja berikutnya.</p>
 
         <H2>V. Kerangka Penilaian Kinerja</H2>
         <p>Penilaian kinerja bulanan menggunakan sistem <strong>KPI Assessment</strong> di Watermark PM dengan tiga komponen utama:</p>
@@ -71,7 +71,7 @@ export default function SopContent() {
         <H2>VI. Standar Pelaporan & Check-In Harian</H2>
         <p>Seluruh aktivitas harian wajib dicatat di Watermark PM — sistem otomatis menghitung skor disiplin dari data ini:</p>
         <ul>
-          <li><strong>Check-in Pagi</strong> — wajib paling lambat pukul <strong>09.30 WIB</strong>. Check-in tepat waktu mendapat nilai penuh; terlambat mendapat 50% nilai; tidak check-in mendapat 0.</li>
+          <li><strong>Check-in Pagi</strong> — wajib paling lambat pukul <strong>08.00 WIB</strong>. Check-in tepat waktu mendapat nilai penuh; terlambat mendapat 50% nilai; tidak check-in mendapat 0.</li>
           <li><strong>EOD Report / Check-out</strong> — wajib antara pukul <strong>17.00–20.00 WIB</strong>, disertai laporan progres singkat (tugas selesai, berjalan, kendala). Laporan di luar rentang waktu tersebut mendapat 50% nilai.</li>
           <li>Skor disiplin dihitung otomatis: <em>(jumlah tepat waktu × 100 + jumlah terlambat × 50) ÷ total hari kerja</em>. Skor ≥90% = Istimewa, ≥75% = Sangat Baik, ≥55% = Baik.</li>
           <li>Tidak perlu laporan terpisah — cukup gunakan fitur Check-in & EOD di Watermark PM.</li>

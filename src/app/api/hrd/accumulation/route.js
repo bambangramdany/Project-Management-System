@@ -140,9 +140,9 @@ export async function GET(req) {
       const withMorning = checkIns.filter(c => c.morningAckAt != null)
       const onTime = withMorning.filter(c => {
         const ack = new Date(c.morningAckAt)
-        // 09:30 WIB = 02:30 UTC
+        // 08:00 WIB = 01:00 UTC
         const cutoff = new Date(c.morningAckAt)
-        cutoff.setUTCHours(2, 30, 0, 0)
+        cutoff.setUTCHours(1, 0, 0, 0)
         return ack <= cutoff
       }).length
       const pct = (onTime / checkIns.length) * 100

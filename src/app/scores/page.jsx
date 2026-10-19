@@ -28,7 +28,7 @@ function CheckInScoreCard({ title, data }) {
       <div className="grid sm:grid-cols-2 gap-3">
         {/* Morning */}
         <div className="rounded-lg bg-teal-50 border border-teal-100 p-3">
-          <p className="text-xs text-gray-500 mb-1">☀️ Check-in Pagi (batas 09:30)</p>
+          <p className="text-xs text-gray-500 mb-1">☀️ Check-in Pagi (batas 08:00)</p>
           <p className={`text-2xl font-bold ${scoreColor(data.morning.pct)}`}>{data.morning.pct}%</p>
           <p className="text-xs text-gray-400 mt-0.5">KPI: {data.morning.kpiScore}/5 — {KPI_LABEL[data.morning.kpiScore]}</p>
           <div className="mt-2 text-[10px] text-gray-400 space-y-0.5">
