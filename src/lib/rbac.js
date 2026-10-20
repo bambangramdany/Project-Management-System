@@ -200,8 +200,9 @@ export function canScoreKpi(evaluator, target) {
   }
 
   // ── Finance / HR / GA division ──────────────────────────────────────
-  // Antoni -> Bima
+  // Antoni <-> Bima (dua arah); Henri & Sutrisna hanya self-assessment
   if (eEmail === 'antoni@watermark.co.id') return tEmail === 'bima@watermark.co.id'
+  if (eEmail === 'bima@watermark.co.id') return tEmail === 'antoni@watermark.co.id'
 
   return false
 }
