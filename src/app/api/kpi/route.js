@@ -45,7 +45,7 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
   }
 
-  const target = await prisma.user.findUnique({ where: { id: body.userId }, select: { id: true, name: true, divisi: true, role: true } })
+  const target = await prisma.user.findUnique({ where: { id: body.userId }, select: { id: true, name: true, email: true, divisi: true, role: true } })
   if (!target) return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 })
 
   if (!canScoreKpi(session.user, target)) {

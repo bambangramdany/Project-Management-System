@@ -8,10 +8,10 @@ export function canViewAllProjects(role) {
 // Team leads who maintain the project list (divisi/status/tanggal pelaksanaan)
 // for their division even if their role isn't PROJECT_MANAGER/DIRECTOR.
 export const PROJECT_LIST_EDITOR_EMAILS = [
-  'triwulanaprilia18@gmail.com',
-  'irhamalifakhri@gmail.com',
-  'bagastyaindrawan@gmail.com',
-  'jamal.ludin.jl7@gmail.com',
+  'wulan@watermark.co.id',
+  'irham@watermark.co.id',
+  'bastya@watermark.co.id',
+  'jamal@watermark.co.id',
 ]
 
 // Can the user use the quick-edit (divisi/status/tanggal) on the projects list?
@@ -134,13 +134,12 @@ export function canLockBudget(user, project) {
 // ── KPI RBAC ─────────────────────────────────────────────────────────────
 
 // Wulan has cross-team scoring privilege (can score other PMs and any team member)
-export const CROSS_TEAM_PM_EMAIL = 'triwulanaprilia18@gmail.com'
+export const CROSS_TEAM_PM_EMAIL = 'wulan@watermark.co.id'
 
 // Creative-division peers who may evaluate each other (excluding direksi)
-// Jennifer tidak ada penggantinya — posisi dicover Fakhril (Direktur Creative)
 const CREATIVE_PEER_EMAILS = [
-  'kresensiabs@gmail.com', 'saffiraazkaf@gmail.com',
-  'nauvalzikri30@gmail.com', 'kukuhbayuperkasa@gmail.com',
+  'kres@watermark.co.id', 'saffira@watermark.co.id',
+  'noval@watermark.co.id', 'kukuh@watermark.co.id',
 ]
 
 // Explicit KPI-scoring org chart per division (in addition to self-assessment,
@@ -171,36 +170,38 @@ export function canScoreKpi(evaluator, target) {
     return ['EVENT', 'CREATIVE'].includes(target.divisi)
   }
 
-  // Irham: everyone below (non-PM), plus Wulan specifically
-  if (eEmail === 'irhamalifakhri@gmail.com') {
+  // Irham: nilai semua tim EVENT di bawah level PM (kecuali Wulan dan David)
+  // David sudah di-exclude oleh DIRECTOR check di atas; Wulan adalah PM, exclude juga
+  if (eEmail === 'irham@watermark.co.id') {
     if (['OWNER', 'DIRECTOR'].includes(target.role)) return false
-    if (tEmail === CROSS_TEAM_PM_EMAIL) return true
+    if (target.divisi !== 'EVENT') return false
     return target.role !== 'PROJECT_MANAGER'
   }
 
-  // Julian (Putra) -> Siti Nur (Eca)
-  if (eEmail === 'julianputra02@gmail.com') return tEmail === 'fitriah.salsabilah@gmail.com'
+  // ── Pairing peer review ─────────────────────────────────────────────
+  // Putra -> Eca
+  if (eEmail === 'putra@watermark.co.id') return tEmail === 'eca@watermark.co.id'
 
-  // Doddi <-> Noval Suherman (Reggy), keduanya juga nilai Angga (Boni)
-  if (eEmail === 'doddichf@gmail.com') return ['novalsuherman05@gmail.com', 'anggajulfikar20@gmail.com'].includes(tEmail)
-  if (eEmail === 'novalsuherman05@gmail.com') return ['doddichf@gmail.com', 'anggajulfikar20@gmail.com'].includes(tEmail)
-  // Angga juga bisa nilai Doddi dan Noval (timbal balik)
-  if (eEmail === 'anggajulfikar20@gmail.com') return ['doddichf@gmail.com', 'novalsuherman05@gmail.com'].includes(tEmail)
+  // Doddi <-> Reghy (Noval Suherman), keduanya juga nilai Boni (Angga)
+  if (eEmail === 'doddi@watermark.co.id') return ['reghy@watermark.co.id', 'boni@watermark.co.id'].includes(tEmail)
+  if (eEmail === 'reghy@watermark.co.id') return ['doddi@watermark.co.id', 'boni@watermark.co.id'].includes(tEmail)
+  // Boni juga bisa nilai Doddi dan Reghy (timbal balik)
+  if (eEmail === 'boni@watermark.co.id') return ['doddi@watermark.co.id', 'reghy@watermark.co.id'].includes(tEmail)
 
   // ── PH division ──────────────────────────────────────────────────────
-  // Bagastya <-> Jamaluddin
-  if (eEmail === 'bagastyaindrawan@gmail.com') return tEmail === 'jamal.ludin.jl7@gmail.com'
-  if (eEmail === 'jamal.ludin.jl7@gmail.com') return tEmail === 'bagastyaindrawan@gmail.com'
+  // Bastya <-> Jamal
+  if (eEmail === 'bastya@watermark.co.id') return tEmail === 'jamal@watermark.co.id'
+  if (eEmail === 'jamal@watermark.co.id') return tEmail === 'bastya@watermark.co.id'
 
   // ── Creative division ───────────────────────────────────────────────
-  // Kresensia/Saffira/Nauval/Kukuh saling nilai sesama Creative (Jennifer tidak ada pengganti)
+  // Kres/Saffira/Noval/Kukuh saling nilai sesama Creative
   if (CREATIVE_PEER_EMAILS.includes(eEmail)) {
     return target.divisi === 'CREATIVE' && !['OWNER', 'DIRECTOR'].includes(target.role)
   }
 
   // ── Finance / HR / GA division ──────────────────────────────────────
-  // Antoni -> Bimantoro
-  if (eEmail === 'stevenantoni88@gmail.com') return tEmail === 'hbimantoro@gmail.com'
+  // Antoni -> Bima
+  if (eEmail === 'antoni@watermark.co.id') return tEmail === 'bima@watermark.co.id'
 
   return false
 }
