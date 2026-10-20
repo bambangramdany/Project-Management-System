@@ -241,9 +241,10 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
   const isOverdue   = checkIn?.eveningOverdue
 
   const now = hourWIBNow()
-  const isOnTime  = now <= 8            // ≤ 08:00 WIB tepat waktu
-  const isLate    = now > 8 && now <= 8 + 10/60  // 08:00–08:10 grace period (telat)
-  const isWeekend = [0, 6].includes(new Date().getDay())
+  const isOnTime    = now >= 4 && now <= 8         // 04:00–08:00 WIB tepat waktu
+  const isLate      = now > 8 && now <= 8 + 10/60  // 08:00–08:10 grace period (telat)
+  const inWindow    = isOnTime || isLate            // tombol hanya muncul 04:00–08:10 WIB
+  const isWeekend   = [0, 6].includes(new Date().getDay())
 
   // Briefing status label
   let briefingStatus = null
@@ -274,31 +275,29 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
 
   return (
     <div className="space-y-2">
-      {/* Morning Briefing Check-in */}
+      {/* Morning Briefing Check-in — hanya tampil 04:00–08:10 WIB */}
       {!isWeekend && (
         !hasMorning ? (
+          inWindow ? (
           <div className={`rounded-2xl p-4 flex items-center justify-between gap-4 shadow-lg ${
             isOnTime ? 'bg-gradient-to-r from-violet-600 to-indigo-600 shadow-violet-100'
-            : isLate  ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-amber-100'
-            : 'bg-gradient-to-r from-red-500 to-rose-500 shadow-red-100'
+            : 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-amber-100'
           }`}>
             <div>
               <p className="font-bold text-white text-sm">
-                {isOnTime ? '☀️ Morning Briefing 08:00 WIB' : isLate ? '⚠️ Masih bisa hadir (telat)' : '❌ Briefing sudah lewat'}
+                {isOnTime ? '☀️ Morning Briefing 08:00 WIB' : '⚠️ Masih bisa hadir (telat)'}
               </p>
               <p className="text-xs text-white/75 mt-0.5">
                 {isOnTime ? 'Klik untuk konfirmasi kehadiran briefing & cek tugas hari ini'
-                : isLate  ? 'Klik untuk mencatat kehadiran (akan ditandai telat)'
-                : 'Lewat 08:10 — kehadiran dicatat tidak hadir'}
+                : 'Klik untuk mencatat kehadiran (akan ditandai telat)'}
               </p>
             </div>
-            {(isOnTime || isLate) && (
-              <button onClick={async () => { await onMorningAck(); setShowAbsensiReminder(true) }}
-                className="shrink-0 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-bold transition-colors active:scale-95 border border-white/30">
-                {isOnTime ? '✓ Hadir' : '✓ Hadir (Telat)'}
-              </button>
-            )}
+            <button onClick={async () => { await onMorningAck(); setShowAbsensiReminder(true) }}
+              className="shrink-0 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-bold transition-colors active:scale-95 border border-white/30">
+              {isOnTime ? '✓ Hadir' : '✓ Hadir (Telat)'}
+            </button>
           </div>
+          ) : null
         ) : briefingStatus ? (
           <div className={`rounded-2xl px-4 py-2.5 flex items-center gap-2 ${
             briefingStatus.izin ? 'bg-blue-50 border border-blue-200'
@@ -1107,17 +1106,7 @@ export default function MyTasksPage() {
             </div>
           )}
 
-          {/* My tasks */}
-          {myProjectTasks.length > 0 && (
-            <div>
-              <SectionHeader label="Task Project Saya" count={myProjectTasks.length} accent="bg-violet-400" />
-              <div className="space-y-3">
-                {myProjectTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
-              </div>
-            </div>
-          )}
-
-          {/* Personal tasks */}
+          {/* Personal tasks — di atas task project */}
           <div>
             <SectionHeader label="Catatan & To-Do Saya" count={myPersonalTasks.length} accent="bg-gray-300" />
             <div className="space-y-3">
@@ -1128,6 +1117,16 @@ export default function MyTasksPage() {
               <AddTaskForm projectOptions={data.projectOptions} onAdd={addPersonalTask} />
             </div>
           </div>
+
+          {/* My tasks */}
+          {myProjectTasks.length > 0 && (
+            <div>
+              <SectionHeader label="Task Project Saya" count={myProjectTasks.length} accent="bg-violet-400" />
+              <div className="space-y-3">
+                {myProjectTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
+              </div>
+            </div>
+          )}
 
           {/* Team sections */}
           {data.groups.length > 0 && (
@@ -1238,6 +1237,17 @@ export default function MyTasksPage() {
             onUpdate={() => fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setSharingSessions(d))} />
         )}
 
+        {/* ── Personal tasks — di atas task project ── */}
+        <div>
+          <SectionHeader label="Catatan & To-Do" count={personalTasks.length} accent="bg-gray-300" />
+          <div className="space-y-3">
+            {personalTasks.map(item => (
+              <TaskCard key={item.id} item={item} onSave={saveProgress} onDelete={removePersonalTask} />
+            ))}
+            <AddTaskForm projectOptions={data.projectOptions} onAdd={addPersonalTask} />
+          </div>
+        </div>
+
         {/* ── Terlambat ── */}
         {overdueTasks.length > 0 && (
           <div>
@@ -1267,17 +1277,6 @@ export default function MyTasksPage() {
             </div>
           </div>
         )}
-
-        {/* ── Personal tasks ── */}
-        <div>
-          <SectionHeader label="Catatan & To-Do" count={personalTasks.length} accent="bg-gray-300" />
-          <div className="space-y-3">
-            {personalTasks.map(item => (
-              <TaskCard key={item.id} item={item} onSave={saveProgress} onDelete={removePersonalTask} />
-            ))}
-            <AddTaskForm projectOptions={data.projectOptions} onAdd={addPersonalTask} />
-          </div>
-        </div>
 
         {/* ── Sudah di-update (collapsed) ── */}
         {updatedTasks.length > 0 && (
