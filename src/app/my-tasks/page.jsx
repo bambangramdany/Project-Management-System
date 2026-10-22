@@ -63,6 +63,135 @@ function ProgressRing({ done, total }) {
   )
 }
 
+// ── ReadOnlyTaskCard (monitoring — dengan panel komentar) ─────────────────────
+
+function ReadOnlyTaskCard({ item }) {
+  const lastStatus = STATUS_MAP[item.latestUpdate?.status]
+  const savedAtStr = item.latestUpdate?.savedAt
+    ? new Date(item.latestUpdate.savedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) + ' WIB'
+    : null
+
+  const [showComments, setShowComments] = useState(false)
+  const [comments, setComments] = useState(null) // null = belum dimuat
+  const [commentText, setCommentText] = useState('')
+  const [sending, setSending] = useState(false)
+
+  async function loadComments() {
+    if (comments !== null) return
+    const res = await fetch(`/api/tasks/${item.id}/comments`)
+    if (res.ok) setComments(await res.json())
+    else setComments([])
+  }
+
+  function toggleComments() {
+    const next = !showComments
+    setShowComments(next)
+    if (next) loadComments()
+  }
+
+  async function sendComment(e) {
+    e.preventDefault()
+    if (!commentText.trim()) return
+    setSending(true)
+    const res = await fetch(`/api/tasks/${item.id}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: commentText.trim() }),
+    })
+    if (res.ok) {
+      const c = await res.json()
+      setComments(prev => [...(prev || []), c])
+      setCommentText('')
+    }
+    setSending(false)
+  }
+
+  return (
+    <div className={`rounded-xl border transition-colors ${item.hasTodayUpdate ? 'bg-white border-green-100' : 'bg-white border-gray-100'}`}>
+      {/* Baris utama task */}
+      <div className="flex items-start gap-3 px-3 py-3">
+        <div className="flex-1 min-w-0">
+          {item.assignee && <p className="text-[11px] font-semibold text-violet-600 mb-0.5">{item.assignee.name}</p>}
+          <p className="text-sm font-medium text-gray-900 leading-tight">{item.title}</p>
+          {item.project && (
+            <Link href={`/projects/${item.project.id}`} className="text-[11px] text-violet-500 hover:underline">
+              {item.project.code} · {item.project.name}
+            </Link>
+          )}
+          {savedAtStr && <p className="text-[10px] text-gray-400 mt-0.5">Update: {savedAtStr}</p>}
+        </div>
+        {lastStatus ? (
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <span className={`text-[11px] px-2 py-1 rounded-lg font-semibold ${lastStatus.bg} ${lastStatus.text} border ${lastStatus.border}`}>
+              {lastStatus.label}
+            </span>
+            {item.latestUpdate?.note && (
+              <p className="text-[10px] text-gray-400 max-w-[120px] text-right line-clamp-2">{item.latestUpdate.note}</p>
+            )}
+          </div>
+        ) : (
+          <span className="text-[11px] px-2 py-1 rounded-lg font-semibold shrink-0 bg-gray-100 text-gray-400">Belum update</span>
+        )}
+      </div>
+
+      {/* Tombol komentar */}
+      <button
+        onClick={toggleComments}
+        className="w-full flex items-center gap-1.5 px-3 py-1.5 border-t border-gray-50 text-[11px] text-gray-400 hover:text-violet-500 hover:bg-gray-50 transition-colors rounded-b-xl"
+      >
+        <span>💬</span>
+        <span>{showComments ? 'Tutup komentar' : `Komentar${comments?.length ? ` (${comments.length})` : ''}`}</span>
+      </button>
+
+      {/* Panel komentar */}
+      {showComments && (
+        <div className="border-t border-gray-100 px-3 pt-2 pb-3 space-y-2 bg-gray-50/50 rounded-b-xl">
+          {comments === null ? (
+            <p className="text-[11px] text-gray-400 py-1">Memuat...</p>
+          ) : comments.length === 0 ? (
+            <p className="text-[11px] text-gray-400 py-1 italic">Belum ada komentar</p>
+          ) : (
+            <div className="space-y-2">
+              {comments.map(c => (
+                <div key={c.id} className="flex gap-2">
+                  <div className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-[9px] font-bold text-violet-600">{c.author.name.charAt(0)}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-semibold text-gray-700">{c.author.name}
+                      <span className="font-normal text-gray-400 ml-1">
+                        {new Date(c.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB
+                      </span>
+                    </p>
+                    <p className="text-[12px] text-gray-700 leading-snug">{c.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Form komentar baru */}
+          <form onSubmit={sendComment} className="flex gap-2 pt-1">
+            <input
+              type="text"
+              value={commentText}
+              onChange={e => setCommentText(e.target.value)}
+              placeholder="Tulis komentar..."
+              className="flex-1 text-[12px] px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-violet-300"
+            />
+            <button
+              type="submit"
+              disabled={sending || !commentText.trim()}
+              className="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-[11px] font-semibold disabled:opacity-40 hover:bg-violet-700 transition-colors shrink-0"
+            >
+              {sending ? '...' : 'Kirim'}
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── TaskCard ──────────────────────────────────────────────────────────────────
 
 function TaskCard({ item, onSave, readOnly = false, onDelete }) {
@@ -93,39 +222,7 @@ function TaskCard({ item, onSave, readOnly = false, onDelete }) {
   }
 
   if (readOnly) {
-    const savedAtStr = item.latestUpdate?.savedAt
-      ? new Date(item.latestUpdate.savedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) + ' WIB'
-      : null
-    return (
-      <div className={`flex items-start gap-3 px-3 py-3 rounded-xl border transition-colors ${
-        item.hasTodayUpdate ? 'bg-white border-green-100' : 'bg-white border-gray-100 hover:border-gray-200'
-      }`}>
-        <div className="flex-1 min-w-0">
-          {item.assignee && <p className="text-[11px] font-semibold text-violet-600 mb-0.5">{item.assignee.name}</p>}
-          <p className="text-sm font-medium text-gray-900 leading-tight">{item.title}</p>
-          {item.project && (
-            <Link href={`/projects/${item.project.id}`} className="text-[11px] text-violet-500 hover:underline">
-              {item.project.code} · {item.project.name}
-            </Link>
-          )}
-          {savedAtStr && (
-            <p className="text-[10px] text-gray-400 mt-0.5">Update: {savedAtStr}</p>
-          )}
-        </div>
-        {lastStatus ? (
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            <span className={`text-[11px] px-2 py-1 rounded-lg font-semibold ${lastStatus.bg} ${lastStatus.text} border ${lastStatus.border}`}>
-              {lastStatus.label}
-            </span>
-            {item.latestUpdate?.note && (
-              <p className="text-[10px] text-gray-400 max-w-[120px] text-right line-clamp-2">{item.latestUpdate.note}</p>
-            )}
-          </div>
-        ) : (
-          <span className="text-[11px] px-2 py-1 rounded-lg font-semibold shrink-0 bg-gray-100 text-gray-400">Belum update</span>
-        )}
-      </div>
-    )
+    return <ReadOnlyTaskCard item={item} />
   }
 
   return (
