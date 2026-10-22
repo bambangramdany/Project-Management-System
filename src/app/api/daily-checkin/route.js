@@ -100,8 +100,8 @@ export async function GET(req) {
 
   const currentHour = hourWIB()
   return NextResponse.json({
+    ...(today || {}),
     date,
-    today,
     currentHour,
     showEveningForm: currentHour >= 17 && currentHour < 24,
     eveningOverdue: currentHour >= 20 && !today?.eveningAt,

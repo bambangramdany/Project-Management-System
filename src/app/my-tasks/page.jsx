@@ -252,6 +252,8 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(!!checkIn?.eveningAt)
   const [showAbsensiReminder, setShowAbsensiReminder] = useState(false)
+  const [ackLoading, setAckLoading] = useState(false)
+  const [ackSuccess, setAckSuccess] = useState(false)
 
   const hasMorning = !!checkIn?.morningAckAt
   const hasEvening = !!checkIn?.eveningAt || submitted
@@ -293,7 +295,7 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
 
   return (
     <div className="space-y-2">
-      {/* Morning Briefing Check-in — hanya tampil 04:00–08:10 WIB */}
+      {/* Morning Briefing Check-in */}
       {!isWeekend && (
         !hasMorning ? (
           inWindow ? (
@@ -310,12 +312,28 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
                 : 'Klik untuk mencatat kehadiran (akan ditandai telat)'}
               </p>
             </div>
-            <button onClick={async () => { await onMorningAck(); setShowAbsensiReminder(true) }}
-              className="shrink-0 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-bold transition-colors active:scale-95 border border-white/30">
-              {isOnTime ? '✓ Hadir' : '✓ Hadir (Telat)'}
+            <button
+              disabled={ackLoading || ackSuccess}
+              onClick={async () => {
+                setAckLoading(true)
+                await onMorningAck()
+                setAckLoading(false)
+                setAckSuccess(true)
+                setShowAbsensiReminder(true)
+                setTimeout(() => setAckSuccess(false), 3000)
+              }}
+              className="shrink-0 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-bold transition-colors active:scale-95 border border-white/30 disabled:opacity-60">
+              {ackLoading ? '...' : ackSuccess ? '✓ Tercatat!' : isOnTime ? '✓ Hadir' : '✓ Hadir (Telat)'}
             </button>
           </div>
-          ) : null
+          ) : (
+          <div className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-2.5 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-gray-400 shrink-0" />
+            <p className="text-sm text-gray-500">
+              Jendela check-in pagi sudah ditutup (04:00–08:10 WIB) — absensi hari ini tidak tercatat
+            </p>
+          </div>
+          )
         ) : briefingStatus ? (
           <div className={`rounded-2xl px-4 py-2.5 flex items-center gap-2 ${
             briefingStatus.izin ? 'bg-blue-50 border border-blue-200'
