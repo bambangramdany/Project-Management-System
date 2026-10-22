@@ -787,7 +787,32 @@ function FilterSort({ items, children }) {
   )
 }
 
-// ── DivisionGroup (director view) ─────────────────────────────────────────────
+// ── DivisionGroup (director view) — grouped by project ───────────────────────
+
+function ProjectSubGroup({ projectKey, items, onSave }) {
+  const [open, setOpen] = useState(true)
+  const doneCount = items.filter(i => i.hasTodayUpdate).length
+  // projectKey: "P-038 · Subdealer Gathering" or "(Tanpa Project)"
+  return (
+    <div className="rounded-xl border border-gray-100 overflow-hidden">
+      <button onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 transition-colors text-left">
+        <span className="text-xs font-bold text-gray-700 truncate">{projectKey}</span>
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          <span className="text-[11px] text-gray-400">{doneCount}/{items.length}</span>
+          <span className={`text-gray-400 text-xs transition-transform duration-150 ${open ? 'rotate-180' : ''}`}>⌄</span>
+        </div>
+      </button>
+      {open && (
+        <div className="divide-y divide-gray-50">
+          {items.map(item => (
+            <TaskCard key={`${item.kind}-${item.id}`} item={item} onSave={onSave} readOnly={true} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function DivisionGroup({ group, onSave }) {
   const [open, setOpen] = useState(true)
@@ -801,9 +826,19 @@ function DivisionGroup({ group, onSave }) {
   const filtered = group.items.filter(i => {
     const q = search.toLowerCase()
     const matchName = !q || i.title.toLowerCase().includes(q) || (i.assignee?.name || '').toLowerCase().includes(q)
+      || (i.project?.name || '').toLowerCase().includes(q) || (i.project?.code || '').toLowerCase().includes(q)
     const matchStatus = statusFilter === 'all' || (statusFilter === 'updated' ? i.hasTodayUpdate : !i.hasTodayUpdate)
     return matchName && matchStatus
   })
+
+  // Kelompokkan per project, task tanpa project masuk "(Tanpa Project)"
+  const projectGroups = []
+  const seen = {}
+  for (const item of filtered) {
+    const key = item.project ? `${item.project.code} · ${item.project.name}` : '(Tanpa Project)'
+    if (!seen[key]) { seen[key] = []; projectGroups.push(key) }
+    seen[key].push(item)
+  }
 
   return (
     <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
@@ -831,7 +866,7 @@ function DivisionGroup({ group, onSave }) {
         <div className="bg-white px-4 pb-4 space-y-2 pt-3">
           {totalCount > 3 && (
             <div className="flex gap-2 flex-wrap pb-1">
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nama / tugas..."
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nama / tugas / project..."
                 className="flex-1 min-w-0 px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50 text-xs focus:outline-none focus:ring-2 focus:ring-violet-200 placeholder-gray-300" />
               <div className="flex gap-1">
                 {[['all','Semua'],['updated','Sudah update'],['pending','Belum update']].map(([val, label]) => (
@@ -843,10 +878,10 @@ function DivisionGroup({ group, onSave }) {
               </div>
             </div>
           )}
-          {filtered.length === 0
+          {projectGroups.length === 0
             ? <p className="text-sm text-gray-400 text-center py-4">{search || statusFilter !== 'all' ? 'Tidak ada yang cocok.' : 'Tidak ada tugas aktif.'}</p>
-            : filtered.map(item => (
-                <TaskCard key={`${item.kind}-${item.id}`} item={item} onSave={onSave} readOnly={true} />
+            : projectGroups.map(key => (
+                <ProjectSubGroup key={key} projectKey={key} items={seen[key]} onSave={onSave} />
               ))
           }
         </div>
