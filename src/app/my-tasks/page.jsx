@@ -93,8 +93,13 @@ function TaskCard({ item, onSave, readOnly = false, onDelete }) {
   }
 
   if (readOnly) {
+    const savedAtStr = item.latestUpdate?.savedAt
+      ? new Date(item.latestUpdate.savedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) + ' WIB'
+      : null
     return (
-      <div className="flex items-start gap-3 px-3 py-3 rounded-xl bg-white border border-gray-100 hover:border-gray-200 transition-colors">
+      <div className={`flex items-start gap-3 px-3 py-3 rounded-xl border transition-colors ${
+        item.hasTodayUpdate ? 'bg-white border-green-100' : 'bg-white border-gray-100 hover:border-gray-200'
+      }`}>
         <div className="flex-1 min-w-0">
           {item.assignee && <p className="text-[11px] font-semibold text-violet-600 mb-0.5">{item.assignee.name}</p>}
           <p className="text-sm font-medium text-gray-900 leading-tight">{item.title}</p>
@@ -103,13 +108,21 @@ function TaskCard({ item, onSave, readOnly = false, onDelete }) {
               {item.project.code} · {item.project.name}
             </Link>
           )}
+          {savedAtStr && (
+            <p className="text-[10px] text-gray-400 mt-0.5">Update: {savedAtStr}</p>
+          )}
         </div>
         {lastStatus ? (
-          <span className={`text-[11px] px-2 py-1 rounded-lg font-semibold shrink-0 ${lastStatus.bg} ${lastStatus.text} border ${lastStatus.border}`}>
-            {lastStatus.label}
-          </span>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <span className={`text-[11px] px-2 py-1 rounded-lg font-semibold ${lastStatus.bg} ${lastStatus.text} border ${lastStatus.border}`}>
+              {lastStatus.label}
+            </span>
+            {item.latestUpdate?.note && (
+              <p className="text-[10px] text-gray-400 max-w-[120px] text-right line-clamp-2">{item.latestUpdate.note}</p>
+            )}
+          </div>
         ) : (
-          <span className="text-[11px] px-2 py-1 rounded-lg font-semibold shrink-0 bg-gray-100 text-gray-400">Belum ada update</span>
+          <span className="text-[11px] px-2 py-1 rounded-lg font-semibold shrink-0 bg-gray-100 text-gray-400">Belum update</span>
         )}
       </div>
     )
@@ -778,10 +791,19 @@ function FilterSort({ items, children }) {
 
 function DivisionGroup({ group, onSave }) {
   const [open, setOpen] = useState(true)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all') // all | updated | pending
   const style = DIV_STYLE[group.divisi] || DIV_STYLE.EVENT
   const doneCount  = group.items.filter(i => i.hasTodayUpdate).length
   const totalCount = group.items.length
   const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0
+
+  const filtered = group.items.filter(i => {
+    const q = search.toLowerCase()
+    const matchName = !q || i.title.toLowerCase().includes(q) || (i.assignee?.name || '').toLowerCase().includes(q)
+    const matchStatus = statusFilter === 'all' || (statusFilter === 'updated' ? i.hasTodayUpdate : !i.hasTodayUpdate)
+    return matchName && matchStatus
+  })
 
   return (
     <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
@@ -807,9 +829,23 @@ function DivisionGroup({ group, onSave }) {
       </button>
       {open && (
         <div className="bg-white px-4 pb-4 space-y-2 pt-3">
-          {group.items.length === 0
-            ? <p className="text-sm text-gray-400 text-center py-4">Tidak ada tugas aktif.</p>
-            : group.items.map(item => (
+          {totalCount > 3 && (
+            <div className="flex gap-2 flex-wrap pb-1">
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nama / tugas..."
+                className="flex-1 min-w-0 px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50 text-xs focus:outline-none focus:ring-2 focus:ring-violet-200 placeholder-gray-300" />
+              <div className="flex gap-1">
+                {[['all','Semua'],['updated','Sudah update'],['pending','Belum update']].map(([val, label]) => (
+                  <button key={val} onClick={() => setStatusFilter(val)}
+                    className={`text-[11px] px-2.5 py-1.5 rounded-xl font-semibold border transition-colors ${
+                      statusFilter === val ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                    }`}>{label}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          {filtered.length === 0
+            ? <p className="text-sm text-gray-400 text-center py-4">{search || statusFilter !== 'all' ? 'Tidak ada yang cocok.' : 'Tidak ada tugas aktif.'}</p>
+            : filtered.map(item => (
                 <TaskCard key={`${item.kind}-${item.id}`} item={item} onSave={onSave} readOnly={true} />
               ))
           }
