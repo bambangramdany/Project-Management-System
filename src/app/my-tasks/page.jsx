@@ -200,9 +200,14 @@ function TaskCard({ item, onSave, readOnly = false, onDelete }) {
               ✏ Catatan
             </button>
           )}
+          {item.latestUpdate?.savedAt && (
+            <span className="text-[11px] text-gray-400">
+              {new Date(item.latestUpdate.savedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB
+            </span>
+          )}
           {lastStatus && (
             <span className="text-[11px] text-gray-400 hidden sm:block">
-              Sebelumnya: <span className={`font-semibold ${lastStatus.text}`}>{lastStatus.label}</span>
+              · <span className={`font-semibold ${lastStatus.text}`}>{lastStatus.label}</span>
             </span>
           )}
         </div>
@@ -701,6 +706,74 @@ function SectionHeader({ label, count, accent = 'bg-gray-400', color = 'text-gra
   )
 }
 
+// ── FilterSort ────────────────────────────────────────────────────────────────
+
+function FilterSort({ items, children }) {
+  const [search, setSearch] = useState('')
+  const [projectFilter, setProjectFilter] = useState('')
+  const [sort, setSort] = useState('default')
+
+  // Kumpulkan daftar project unik dari items
+  const projectOptions = [...new Map(
+    items.flatMap(i => i.project ? [{ id: i.project.id, label: `${i.project.code} · ${i.project.name}` }] : [])
+  .map(p => [p.id, p])).values()]
+
+  const filtered = items
+    .filter(i => {
+      const q = search.toLowerCase()
+      const matchName = !q || i.title.toLowerCase().includes(q)
+      const matchProject = !projectFilter || i.project?.id === projectFilter
+      return matchName && matchProject
+    })
+    .sort((a, b) => {
+      if (sort === 'name_asc') return a.title.localeCompare(b.title, 'id')
+      if (sort === 'name_desc') return b.title.localeCompare(a.title, 'id')
+      if (sort === 'project') return (a.project?.name || '').localeCompare(b.project?.name || '', 'id')
+      if (sort === 'deadline') return (a.dueDate || '9') < (b.dueDate || '9') ? -1 : 1
+      return 0
+    })
+
+  const isFiltered = search || projectFilter || sort !== 'default'
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2 flex-wrap">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Cari nama tugas..."
+          className="flex-1 min-w-0 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 placeholder-gray-300"
+        />
+        {projectOptions.length > 1 && (
+          <select value={projectFilter} onChange={e => setProjectFilter(e.target.value)}
+            className="px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-300">
+            <option value="">Semua project</option>
+            {projectOptions.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+          </select>
+        )}
+        <select value={sort} onChange={e => setSort(e.target.value)}
+          className="px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-300">
+          <option value="default">Urutan default</option>
+          <option value="name_asc">Nama A–Z</option>
+          <option value="name_desc">Nama Z–A</option>
+          <option value="project">Project</option>
+          <option value="deadline">Deadline</option>
+        </select>
+        {isFiltered && (
+          <button onClick={() => { setSearch(''); setProjectFilter(''); setSort('default') }}
+            className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 text-xs font-semibold transition-colors">
+            Reset
+          </button>
+        )}
+      </div>
+      {children(filtered)}
+      {isFiltered && filtered.length === 0 && (
+        <p className="text-sm text-gray-400 text-center py-4">Tidak ada tugas yang cocok.</p>
+      )}
+    </div>
+  )
+}
+
 // ── DivisionGroup (director view) ─────────────────────────────────────────────
 
 function DivisionGroup({ group, onSave }) {
@@ -1122,9 +1195,13 @@ export default function MyTasksPage() {
           {myProjectTasks.length > 0 && (
             <div>
               <SectionHeader label="Task Project Saya" count={myProjectTasks.length} accent="bg-violet-400" />
-              <div className="space-y-3">
-                {myProjectTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
-              </div>
+              <FilterSort items={myProjectTasks}>
+                {(filtered) => (
+                  <div className="space-y-3 mt-2">
+                    {filtered.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
+                  </div>
+                )}
+              </FilterSort>
             </div>
           )}
 
@@ -1248,43 +1325,44 @@ export default function MyTasksPage() {
           </div>
         </div>
 
-        {/* ── Terlambat ── */}
-        {overdueTasks.length > 0 && (
-          <div>
-            <SectionHeader label="Terlambat" count={overdueTasks.length} accent="bg-red-500" color="text-red-600" />
-            <div className="space-y-3">
-              {overdueTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
-            </div>
-          </div>
-        )}
-
-        {/* ── Deadline Hari Ini ── */}
-        {dueTodayTasks.length > 0 && (
-          <div>
-            <SectionHeader label="Deadline Hari Ini" count={dueTodayTasks.length} accent="bg-amber-500" color="text-amber-700" />
-            <div className="space-y-3">
-              {dueTodayTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
-            </div>
-          </div>
-        )}
-
-        {/* ── Berjalan ── */}
-        {ongoingTasks.length > 0 && (
-          <div>
-            <SectionHeader label="Task Berjalan" count={ongoingTasks.length} accent="bg-violet-400" />
-            <div className="space-y-3">
-              {ongoingTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
-            </div>
-          </div>
-        )}
-
-        {/* ── Sudah di-update (collapsed) ── */}
-        {updatedTasks.length > 0 && (
-          <CollapsibleSection title="Sudah Di-update Hari Ini" count={updatedTasks.length} defaultOpen={false}>
-            <div className="space-y-2">
-              {updatedTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
-            </div>
-          </CollapsibleSection>
+        {/* ── Task Project dengan Filter/Sort ── */}
+        {projectTasks.length > 0 && (
+          <FilterSort items={projectTasks}>
+            {(filtered) => {
+              const todayFs = new Date(); todayFs.setHours(0,0,0,0)
+              const fOverdue  = filtered.filter(t => !t.hasTodayUpdate && t.dueDate && new Date(t.dueDate) < todayFs)
+              const fDueToday = filtered.filter(t => !t.hasTodayUpdate && t.dueDate && new Date(t.dueDate).setHours(0,0,0,0) === todayFs.getTime())
+              const fOngoing  = filtered.filter(t => !t.hasTodayUpdate && (!t.dueDate || new Date(t.dueDate) >= todayFs) && !fDueToday.includes(t))
+              const fUpdated  = filtered.filter(t => t.hasTodayUpdate)
+              return (
+                <div className="space-y-4 mt-2">
+                  {fOverdue.length > 0 && (
+                    <div>
+                      <SectionHeader label="Terlambat" count={fOverdue.length} accent="bg-red-500" color="text-red-600" />
+                      <div className="space-y-3">{fOverdue.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}</div>
+                    </div>
+                  )}
+                  {fDueToday.length > 0 && (
+                    <div>
+                      <SectionHeader label="Deadline Hari Ini" count={fDueToday.length} accent="bg-amber-500" color="text-amber-700" />
+                      <div className="space-y-3">{fDueToday.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}</div>
+                    </div>
+                  )}
+                  {fOngoing.length > 0 && (
+                    <div>
+                      <SectionHeader label="Task Berjalan" count={fOngoing.length} accent="bg-violet-400" />
+                      <div className="space-y-3">{fOngoing.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}</div>
+                    </div>
+                  )}
+                  {fUpdated.length > 0 && (
+                    <CollapsibleSection title="Sudah Di-update Hari Ini" count={fUpdated.length} defaultOpen={false}>
+                      <div className="space-y-2">{fUpdated.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}</div>
+                    </CollapsibleSection>
+                  )}
+                </div>
+              )
+            }}
+          </FilterSort>
         )}
 
         {/* ── Sharing sessions ── */}

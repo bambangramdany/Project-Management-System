@@ -55,7 +55,7 @@ function shapeItem(item, kind, today, userId) {
     clientName: item.clientName || item.project?.client?.name || null,
     projectName: item.projectName || item.project?.name || null,
     assignee: item.assignee || item.user || null,
-    latestUpdate: latest ? { status: latest.status, note: latest.note, date: latest.date } : null,
+    latestUpdate: latest ? { status: latest.status, note: latest.note, date: latest.date, savedAt: latest.updatedAt || latest.createdAt } : null,
     hasTodayUpdate: !!hasToday,
   }
 }
