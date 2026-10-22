@@ -905,7 +905,7 @@ function FilterSort({ items, children }) {
 // ── DivisionGroup (director view) — grouped by project ───────────────────────
 
 function ProjectSubGroup({ projectKey, items, onSave }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const doneCount = items.filter(i => i.hasTodayUpdate).length
   // projectKey: "P-038 · Subdealer Gathering" or "(Tanpa Project)"
   return (
