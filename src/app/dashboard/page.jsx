@@ -908,6 +908,12 @@ function ProjectRow({ project: p, canEdit, onProjectUpdate, allUsers = [] }) {
           <span className="text-xs text-gray-400 font-mono">{p.code} · {CATEGORY_LABEL[p.category] || p.category}</span>
           <p className="text-sm font-medium text-gray-900 mt-0.5 truncate">{p.name}</p>
           <p className="text-xs text-gray-500">{p.client?.name} · PIC: {p.pic?.name || '—'}</p>
+          {(p.startDate || p.endDate) && (
+            <p className="text-xs text-orange-500 font-medium mt-0.5">
+              {p.startDate ? new Date(p.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '?'}
+              {p.endDate && p.endDate !== p.startDate ? ` – ${new Date(p.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+            </p>
+          )}
         </Link>
         <div className="shrink-0 mt-0.5 flex items-center gap-2">
           {canEdit && (
