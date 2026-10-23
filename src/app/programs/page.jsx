@@ -5,17 +5,7 @@ import { useEffect, useState, useCallback } from 'react'
 import Navbar from '@/components/Navbar'
 import BackButton from '@/components/BackButton'
 
-const WFO_DIVISI = ['EVENT', 'PH', 'CREATIVE']
 const DIVISI_LABEL = { EVENT:'Event', PH:'Production House', CREATIVE:'Creative', FINANCE_HRGA:'Finance & HRGA' }
-
-function getTuesdayOfWeek(offset = 0) {
-  const now = new Date()
-  const day = now.getDay()
-  const diff = 2 - day + offset * 7
-  const tue = new Date(now)
-  tue.setDate(now.getDate() + diff)
-  return tue.toISOString().slice(0, 10)
-}
 
 function getFridayOfWeek(offset = 0) {
   const now = new Date()
@@ -42,9 +32,7 @@ export default function ProgramsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
-  const [wfoOffset, setWfoOffset] = useState(0)
   const [finOffset, setFinOffset] = useState(0)
-  const [wfoDate, setWfoDate] = useState(() => getTuesdayOfWeek(0))
   const [finDate, setFinDate] = useState(() => getFridayOfWeek(0))
 
   const [summary, setSummary] = useState(null)
@@ -56,11 +44,11 @@ export default function ProgramsPage() {
 
   const loadSummary = useCallback(async () => {
     setLoading(true)
-    const res = await fetch(`/api/programs/summary?wfoDate=${wfoDate}&finDate=${finDate}`)
+    const res = await fetch(`/api/programs/summary?finDate=${finDate}`)
     const data = await res.json()
     setSummary(data)
     setLoading(false)
-  }, [wfoDate, finDate])
+  }, [finDate])
 
   useEffect(() => {
     if (status === 'authenticated') loadSummary()
@@ -70,15 +58,7 @@ export default function ProgramsPage() {
 
   const isAdmin = session.user.role === 'OWNER' ||
     (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA')
-  const isDirector = session.user.role === 'DIRECTOR' || session.user.role === 'OWNER'
-  const needsWfo = WFO_DIVISI.includes(session.user.divisi)
   const needsFinMeeting = summary?.finMeeting?.isRequired || isAdmin
-
-  const changeWfoWeek = (dir) => {
-    const next = wfoOffset + dir
-    setWfoOffset(next)
-    setWfoDate(getTuesdayOfWeek(next))
-  }
 
   const changeFinWeek = (dir) => {
     const next = finOffset + dir
@@ -110,19 +90,6 @@ export default function ProgramsPage() {
               totalUsers={summary?.briefing?.totalUsers}
               today={summary?.today}
             />
-
-            {(needsWfo || isDirector) && (
-              <WfoSection
-                session={session}
-                isDirector={isDirector}
-                wfoOffset={wfoOffset}
-                wfoDate={wfoDate}
-                onChangeWeek={changeWfoWeek}
-                initialLog={summary?.wfo?.log}
-                initialTeam={summary?.wfo?.team}
-                needsWfo={needsWfo}
-              />
-            )}
 
             {(needsFinMeeting || isAdmin) && (
               <FinanceMeetingSection
@@ -249,188 +216,6 @@ function BriefingSection({ session, isAdmin, initialLog, initialAllLogs, totalUs
               </div>
             ))
           }
-        </div>
-      )}
-    </section>
-  )
-}
-
-// ── WFO SELASA SECTION ────────────────────────────────────────────────────────
-function WfoSection({ session, isDirector, wfoOffset, wfoDate, onChangeWeek, initialLog, initialTeam, needsWfo }) {
-  const [log, setLog] = useState(initialLog ?? null)
-  const [teamData, setTeamData] = useState(initialTeam ?? null)
-  const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ status: '', reason: '', altTime: '' })
-  const [showTeam, setShowTeam] = useState(false)
-  const [fetching, setFetching] = useState(false)
-
-  // Reload when week changes
-  useEffect(() => {
-    setFetching(true)
-    Promise.all([
-      needsWfo ? fetch(`/api/programs/wfo?weekDate=${wfoDate}`).then(r => r.json()) : Promise.resolve({}),
-      isDirector ? fetch(`/api/programs/wfo?weekDate=${wfoDate}&all=1`).then(r => r.json()) : Promise.resolve(null),
-    ]).then(([personal, team]) => {
-      setLog(personal.log || null)
-      setTeamData(team)
-      setForm({ status: '', reason: '', altTime: '' })
-      setFetching(false)
-    })
-  }, [wfoDate, needsWfo, isDirector])
-
-  const submit = async () => {
-    if (!form.status) return
-    if (form.status === 'TIDAK_HADIR' && !form.reason.trim()) {
-      alert('Alasan wajib diisi jika tidak hadir WFO')
-      return
-    }
-    setSaving(true)
-    const res = await fetch('/api/programs/wfo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weekDate: wfoDate, ...form }),
-    })
-    const data = await res.json()
-    setLog(data)
-    setSaving(false)
-  }
-
-  const isTuesdayThisWeek = wfoOffset === 0
-  const today = new Date().getDay()
-  const isPastOrToday = today >= 2 || wfoOffset < 0
-
-  const byDivisi = {}
-  if (teamData?.users) {
-    teamData.users.forEach(u => {
-      if (!byDivisi[u.divisi]) byDivisi[u.divisi] = []
-      byDivisi[u.divisi].push(u)
-    })
-  }
-
-  const totalTeam = teamData?.users?.length || 0
-  const totalHadir = teamData?.users?.filter(u => u.wfoLogs?.[0]?.status === 'HADIR').length || 0
-  const totalIzin = teamData?.users?.filter(u => u.wfoLogs?.[0]?.status === 'TIDAK_HADIR').length || 0
-  const totalBelum = totalTeam - totalHadir - totalIzin
-
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h2 className="text-base font-bold text-gray-800">🏢 WFO Konsolidasi Selasa</h2>
-          <p className="text-xs text-gray-500">Wajib hadir kantor setiap Selasa · Divisi EVENT, PH, CREATIVE · Penanggung jawab: Director masing-masing divisi</p>
-        </div>
-        <div className="flex items-center gap-1">
-          <button onClick={() => onChangeWeek(-1)} className="p-1 rounded hover:bg-gray-100 text-gray-500 text-sm">‹</button>
-          <span className="text-xs font-medium text-gray-600 w-24 text-center">
-            {isTuesdayThisWeek ? 'Minggu ini' : wfoOffset < 0 ? `${Math.abs(wfoOffset)} minggu lalu` : `${wfoOffset} minggu depan`}
-          </span>
-          <button onClick={() => onChangeWeek(1)} className="p-1 rounded hover:bg-gray-100 text-gray-500 text-sm">›</button>
-        </div>
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-4">
-        <p className="text-xs text-gray-400">Selasa, {fmtDate(wfoDate)}</p>
-
-        {fetching ? <Spinner /> : needsWfo && (
-          log ? (
-            <div className="flex items-center justify-between">
-              <div>
-                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${
-                  log.status === 'HADIR' ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'
-                }`}>
-                  {log.status === 'HADIR' ? '🏢 Hadir WFO' : '🏠 Tidak Hadir'}
-                </div>
-                {log.reason && <p className="text-xs text-gray-500 mt-1">Alasan: {log.reason}</p>}
-                {log.altTime && <p className="text-xs text-gray-500">Waktu alternatif: {log.altTime}</p>}
-                <p className="text-xs text-gray-400 mt-1">Dicatat {fmtDateTime(log.submittedAt)}</p>
-              </div>
-              {isTuesdayThisWeek && (
-                <button onClick={() => setLog(null)} className="text-xs text-gray-400 hover:text-gray-600 underline">Ubah</button>
-              )}
-            </div>
-          ) : isPastOrToday ? (
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-gray-700">Kehadiran WFO Selasa ini:</p>
-              <div className="flex gap-2">
-                <button onClick={() => setForm({...form, status:'HADIR'})}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${form.status === 'HADIR' ? 'bg-green-600 text-white border-green-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                  🏢 Hadir WFO
-                </button>
-                <button onClick={() => setForm({...form, status:'TIDAK_HADIR'})}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${form.status === 'TIDAK_HADIR' ? 'bg-red-500 text-white border-red-500' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                  🏠 Tidak Bisa Hadir
-                </button>
-              </div>
-              {form.status === 'TIDAK_HADIR' && (
-                <div className="space-y-2 pt-1">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Alasan <span className="text-red-500">*</span></label>
-                    <textarea value={form.reason} onChange={e => setForm({...form, reason: e.target.value})}
-                      rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
-                      placeholder="Jelaskan alasan tidak bisa hadir WFO..." />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Waktu konsolidasi pengganti (opsional)</label>
-                    <input value={form.altTime} onChange={e => setForm({...form, altTime: e.target.value})}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
-                      placeholder="Mis: Rabu pagi 09:00, atau Kamis setelah meeting klien..." />
-                  </div>
-                </div>
-              )}
-              {form.status && (
-                <button onClick={submit} disabled={saving}
-                  className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors">
-                  {saving ? 'Menyimpan...' : 'Simpan'}
-                </button>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-400">Pengisian dibuka pada hari Selasa</p>
-          )
-        )}
-      </div>
-
-      {isDirector && teamData && (
-        <div className="mt-3">
-          <button onClick={() => setShowTeam(!showTeam)}
-            className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-            <span>Rekap Tim — {fmtDate(wfoDate)}</span>
-            <div className="flex items-center gap-3 text-xs">
-              <span className="text-green-600 font-semibold">✅ {totalHadir} Hadir</span>
-              <span className="text-red-500 font-semibold">❌ {totalIzin} Tidak Hadir</span>
-              <span className="text-gray-400">⏳ {totalBelum} Belum Isi</span>
-              <span className="text-gray-400">{showTeam ? '▲' : '▼'}</span>
-            </div>
-          </button>
-
-          {showTeam && (
-            <div className="mt-2 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-              {Object.entries(byDivisi).map(([div, users]) => (
-                <div key={div}>
-                  <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    {DIVISI_LABEL[div] || div}
-                  </div>
-                  {users.map(u => {
-                    const wlog = u.wfoLogs?.[0]
-                    return (
-                      <div key={u.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 last:border-0">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold min-w-[72px] text-center ${
-                          !wlog ? 'bg-gray-100 text-gray-400' :
-                          wlog.status === 'HADIR' ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'
-                        }`}>
-                          {!wlog ? 'Belum Isi' : wlog.status === 'HADIR' ? '🏢 Hadir' : '🏠 Tdk Hadir'}
-                        </span>
-                        <span className="text-sm font-medium text-gray-800">{u.name}</span>
-                        <span className="text-xs text-gray-400">{u.role}</span>
-                        {wlog?.reason && <span className="text-xs text-gray-500 italic ml-1">— {wlog.reason}</span>}
-                        {wlog?.altTime && <span className="text-xs text-blue-500 ml-1">Alt: {wlog.altTime}</span>}
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
     </section>

@@ -86,21 +86,6 @@ export default function PersonalStatsWidget() {
                   </div>
                 </div>
 
-                {/* WFO rate (only for EVENT/PH/CREATIVE) */}
-                {stats.needsWfo && stats.wfoRate !== null && (
-                  <div className="flex items-center justify-between px-3 py-2.5 bg-purple-50 rounded-xl border border-purple-100">
-                    <div>
-                      <p className="text-xs font-semibold text-purple-800">WFO Selasa</p>
-                      <p className="text-[10px] text-purple-500">{stats.wfoTotal} Selasa dalam bulan ini</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-black text-purple-900">{stats.wfoRate}<span className="text-xs text-purple-400">%</span></p>
-                      <StatBar value={stats.wfoRate}
-                        color={stats.wfoRate >= 80 ? 'bg-purple-500' : stats.wfoRate >= 50 ? 'bg-amber-500' : 'bg-red-400'} />
-                    </div>
-                  </div>
-                )}
-
                 {/* Finance Meeting KPI */}
                 {stats.needsFinance && stats.financeMeetingRate !== null && (
                   <div className="flex items-center justify-between px-3 py-2.5 bg-emerald-50 rounded-xl border border-emerald-100">

@@ -3,8 +3,6 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
-const WFO_DIVISIONS = ['EVENT', 'PH', 'CREATIVE']
-
 // Finance meeting relevance: same logic as finance-meeting API
 const FINANCE_PM_ROLES = ['PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'OWNER']
 function getFinanceMeetingTypes(user) {
@@ -36,12 +34,11 @@ export async function GET() {
   const monthStartStr = monthStart.toISOString().slice(0, 10)
   const monthEndStr   = monthEnd.toISOString().slice(0, 10)
 
-  const needsWfo = WFO_DIVISIONS.includes(divisi)
   const financeTypes = getFinanceMeetingTypes(session.user)
   const needsFinance = financeTypes.length > 0
 
   // Parallel queries
-  const [updates, checkIns, activeTasks, personalTasks, briefingLogs, wfoLogs, financeAttendances] = await Promise.all([
+  const [updates, checkIns, activeTasks, personalTasks, briefingLogs, financeAttendances] = await Promise.all([
     prisma.progressUpdate.findMany({
       where: { userId, date: { gte: monthStart, lte: monthEnd } },
       orderBy: { date: 'desc' },
@@ -55,9 +52,6 @@ export async function GET() {
     prisma.briefingLog.findMany({
       where: { userId, date: { gte: monthStartStr, lte: monthEndStr } },
     }),
-    needsWfo ? prisma.wfoLog.findMany({
-      where: { userId, weekDate: { gte: monthStartStr, lte: monthEndStr } },
-    }) : Promise.resolve([]),
     needsFinance ? prisma.financeMeetingAttendee.findMany({
       where: { userId, meetingLog: { weekDate: { gte: monthStartStr, lte: monthEndStr }, meetingType: { in: financeTypes } } },
       include: { meetingLog: { select: { weekDate: true, meetingType: true } } },
@@ -123,24 +117,6 @@ export async function GET() {
   const briefingOnTime = briefingLogs.filter(l => l.status === 'HADIR' && l.note !== 'Telat').length
   const briefingLate   = briefingLogs.filter(l => l.status === 'HADIR' && l.note === 'Telat').length
 
-  // WFO scoring: count Tuesdays in month so far, HADIR=100 TIDAK_HADIR=0
-  let wfoPoints = 0
-  let wfoTotal = 0
-  if (needsWfo) {
-    const wfoByWeek = Object.fromEntries(wfoLogs.map(l => [l.weekDate, l]))
-    const iterW = new Date(monthStart)
-    while (iterW <= now) {
-      if (iterW.getDay() === 2) { // Tuesday
-        const key = iterW.toISOString().slice(0, 10)
-        const log = wfoByWeek[key]
-        if (log?.status === 'HADIR') wfoPoints += 100
-        wfoTotal++
-      }
-      iterW.setDate(iterW.getDate() + 1)
-    }
-  }
-  const wfoRate = needsWfo && wfoTotal > 0 ? Math.round((wfoPoints / (wfoTotal * 100)) * 100) : null
-
   // Finance meeting scoring: count Fridays in month, per meeting type
   let financeMeetingRate = null
   let financeMeetingAttended = 0
@@ -181,10 +157,6 @@ export async function GET() {
     briefingOnTime,
     briefingLate,
     briefingTotal,
-    // WFO stats (null if not applicable)
-    wfoRate,
-    wfoTotal,
-    needsWfo,
     // Finance meeting stats
     financeMeetingRate,
     financeMeetingAttended,

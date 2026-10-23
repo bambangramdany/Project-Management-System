@@ -242,12 +242,9 @@ function AnnouncementBanner() {
 
 function ProgramReminderBanner({ session }) {
   const [todayDay] = useState(() => new Date().getDay()) // 0=Sun,2=Tue,5=Fri
-  const [wfoLog, setWfoLog] = useState(undefined)
   const [briefingLog, setBriefingLog] = useState(undefined)
   const [finLog, setFinLog] = useState(undefined)
 
-  const WFO_DIVISI = ['EVENT', 'PH', 'CREATIVE']
-  const needsWfo = WFO_DIVISI.includes(session?.user?.divisi) && todayDay === 2
   const needsFin = (
     ['FINANCE','FINANCE_STAFF'].includes(session?.user?.role) ||
     (session?.user?.role === 'PROJECT_MANAGER' && ['EVENT','PH'].includes(session?.user?.divisi)) ||
@@ -267,7 +264,6 @@ function ProgramReminderBanner({ session }) {
   useEffect(() => {
     if (isWeekend) return
     fetch(`/api/programs/briefing?date=${today}`).then(r => r.json()).then(d => setBriefingLog(d.log)).catch(() => setBriefingLog(null))
-    if (needsWfo) fetch(`/api/programs/wfo?weekDate=${getTuesdayDate()}`).then(r => r.json()).then(d => setWfoLog(d.log)).catch(() => setWfoLog(null))
     if (needsFin) fetch(`/api/programs/finance-meeting?weekDate=${getFridayDate()}`).then(r => r.json()).then(d => setFinLog(d.log)).catch(() => setFinLog(null))
   }, [today, needsWfo, needsFin, isWeekend])
 
@@ -279,16 +275,6 @@ function ProgramReminderBanner({ session }) {
       rail: '#38bdf8', icon: '☀️',
       tag: 'Morning Briefing 08:00 WIB',
       title: 'Catat kehadiran Morning Briefing hari ini',
-      link: '/programs',
-    })
-  }
-
-  if (needsWfo && wfoLog === null) {
-    banners.push({
-      gradient: 'linear-gradient(120deg, #3b0764 0%, #4c1d95 50%, #5b21b6 100%)',
-      rail: '#c4b5fd', icon: '🏢',
-      tag: 'WFO Selasa — Konsolidasi Divisi',
-      title: 'Hari ini Selasa — Isi konfirmasi kehadiran WFO',
       link: '/programs',
     })
   }

@@ -337,7 +337,6 @@ function TaskCard({ item, onSave, readOnly = false, onDelete }) {
 
 // ── CheckInCard (Morning Briefing terintegrasi) ───────────────────────────────
 
-const WFO_DIVISI_LIST = ['EVENT', 'PH', 'CREATIVE']
 
 function hourWIBNow() {
   const wib = new Date(Date.now() + 7 * 3600 * 1000)
@@ -493,83 +492,7 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
   )
 }
 
-// ── WFO Selasa Card ───────────────────────────────────────────────────────────
 
-function WfoCard({ wfoLog, onSubmit }) {
-  const [form, setForm] = useState({ status: wfoLog?.status || '', reason: wfoLog?.reason || '', altTime: wfoLog?.altTime || '' })
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(!!wfoLog)
-  const [editing, setEditing] = useState(false)
-
-  const current = saved && !editing ? wfoLog || form : null
-
-  async function submit() {
-    if (!form.status) return
-    if (form.status === 'TIDAK_HADIR' && !form.reason.trim()) { alert('Alasan wajib diisi'); return }
-    setSaving(true)
-    await onSubmit(form)
-    setSaved(true); setEditing(false); setSaving(false)
-  }
-
-  const getTuesdayDate = () => {
-    const now = new Date(); const day = now.getDay()
-    const diff = 2 - day; const tue = new Date(now)
-    tue.setDate(now.getDate() + diff)
-    return tue.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-  }
-
-  return (
-    <div className="rounded-2xl border-2 border-purple-200 bg-purple-50 p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-bold text-purple-800">🏢 WFO Konsolidasi — Selasa, {getTuesdayDate()}</p>
-          <p className="text-xs text-purple-600 mt-0.5">Kewajiban hadir kantor untuk konsolidasi divisi</p>
-        </div>
-        {saved && !editing && <button onClick={() => setEditing(true)} className="text-xs text-purple-600 underline">Ubah</button>}
-      </div>
-
-      {saved && !editing && current ? (
-        <div className={`flex items-center gap-2 px-3 py-2 rounded-xl ${current.status === 'HADIR' ? 'bg-green-100' : 'bg-red-50'}`}>
-          <span className={`text-sm font-semibold ${current.status === 'HADIR' ? 'text-green-700' : 'text-red-600'}`}>
-            {current.status === 'HADIR' ? '🏢 Hadir WFO' : '🏠 Tidak Hadir'}
-          </span>
-          {current.reason && <span className="text-xs text-gray-500 ml-1">— {current.reason}</span>}
-          {current.altTime && <span className="text-xs text-blue-600 ml-1">Alt: {current.altTime}</span>}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <button onClick={() => setForm({...form, status:'HADIR'})}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-colors ${form.status === 'HADIR' ? 'bg-green-600 text-white border-green-600' : 'border-purple-200 text-purple-700 bg-white hover:bg-purple-50'}`}>
-              🏢 Hadir WFO
-            </button>
-            <button onClick={() => setForm({...form, status:'TIDAK_HADIR'})}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-colors ${form.status === 'TIDAK_HADIR' ? 'bg-red-500 text-white border-red-500' : 'border-purple-200 text-purple-700 bg-white hover:bg-purple-50'}`}>
-              🏠 Tidak Bisa Hadir
-            </button>
-          </div>
-          {form.status === 'TIDAK_HADIR' && (
-            <div className="space-y-2">
-              <textarea value={form.reason} onChange={e => setForm({...form, reason: e.target.value})}
-                rows={2} placeholder="Alasan tidak bisa hadir WFO..." className="w-full rounded-xl border border-purple-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none" />
-              <input value={form.altTime} onChange={e => setForm({...form, altTime: e.target.value})}
-                placeholder="Waktu konsolidasi pengganti (opsional)..." className="w-full rounded-xl border border-purple-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300" />
-            </div>
-          )}
-          {form.status && (
-            <div className="flex gap-2">
-              <button onClick={submit} disabled={saving}
-                className="px-4 py-2 bg-purple-600 text-white text-sm font-bold rounded-xl hover:bg-purple-700 disabled:opacity-50 transition-colors active:scale-95">
-                {saving ? 'Menyimpan...' : 'Simpan'}
-              </button>
-              {editing && <button onClick={() => setEditing(false)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Batal</button>}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
 
 // ── Finance Meeting Card ──────────────────────────────────────────────────────
 
@@ -1032,7 +955,6 @@ export default function MyTasksPage() {
   const [loading, setLoading] = useState(true)
   const [checkIn, setCheckIn] = useState(null)
   const [briefingLog, setBriefingLog] = useState(null)
-  const [wfoLog, setWfoLog] = useState(null)
   const [finMeeting, setFinMeeting] = useState(null)
   const [sharingSessions, setSharingSessions] = useState([])
   const [todayEvents, setTodayEvents] = useState([])
@@ -1052,15 +974,8 @@ export default function MyTasksPage() {
   useEffect(() => {
     if (status !== 'authenticated') return
     const todayStr = new Date(Date.now() + 7*3600000).toISOString().slice(0,10)
-    const dow = new Date().getDay()
-    const isTuesday = dow === 2
-    const needsWfo = WFO_DIVISI_LIST.includes(session?.user?.divisi)
     fetch('/api/daily-checkin').then(r => r.ok ? r.json() : null).then(d => { if (d) setCheckIn(d) })
     fetch(`/api/programs/briefing?date=${todayStr}`).then(r => r.ok ? r.json() : null).then(d => { if (d) setBriefingLog(d.log || null) })
-    if (isTuesday && needsWfo) {
-      const tue = (() => { const n = new Date(); const d2 = 2-n.getDay(); const t = new Date(n); t.setDate(n.getDate()+d2); return t.toISOString().slice(0,10) })()
-      fetch(`/api/programs/wfo?weekDate=${tue}`).then(r => r.ok ? r.json() : null).then(d => { if (d) setWfoLog(d.log || null) })
-    }
     fetch('/api/programs/finance-meeting').then(r => r.ok ? r.json() : null).then(d => { if (d?.types?.length) setFinMeeting(d) })
     fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setSharingSessions(d) })
     fetch('/api/event-day').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setTodayEvents(d) })
@@ -1084,15 +999,6 @@ export default function MyTasksPage() {
     ])
     if (ci) setCheckIn(ci)
     if (br) setBriefingLog(br.log || null)
-  }
-
-  async function handleWfoSubmit(form) {
-    const tue = (() => { const n = new Date(); const d = 2-n.getDay(); const t = new Date(n); t.setDate(n.getDate()+d); return t.toISOString().slice(0,10) })()
-    const res = await fetch('/api/programs/wfo', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weekDate: tue, ...form }),
-    })
-    if (res.ok) { const d = await res.json(); setWfoLog(d) }
   }
 
   async function handleEveningSubmit(note) {
@@ -1345,10 +1251,6 @@ export default function MyTasksPage() {
 
           <CheckInCard checkIn={checkIn} briefingLog={briefingLog} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} session={session} />
 
-          {new Date().getDay() === 2 && WFO_DIVISI_LIST.includes(session?.user?.divisi) && (
-            <WfoCard wfoLog={wfoLog} onSubmit={handleWfoSubmit} />
-          )}
-
           <FinanceMeetingSection meetingData={finMeeting}
             onSaved={() => fetch('/api/programs/finance-meeting').then(r => r.ok ? r.json() : null).then(d => { if (d) setFinMeeting(d) })} />
 
@@ -1468,11 +1370,6 @@ export default function MyTasksPage() {
 
         {/* ── Check-in + Briefing ── */}
         <CheckInCard checkIn={checkIn} briefingLog={briefingLog} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} session={session} />
-
-        {/* ── WFO Selasa (hanya Selasa, hanya EVENT/PH/CREATIVE) ── */}
-        {new Date().getDay() === 2 && WFO_DIVISI_LIST.includes(session?.user?.divisi) && (
-          <WfoCard wfoLog={wfoLog} onSubmit={handleWfoSubmit} />
-        )}
 
         {/* ── Finance Meeting Mingguan ── */}
         <FinanceMeetingSection meetingData={finMeeting}
