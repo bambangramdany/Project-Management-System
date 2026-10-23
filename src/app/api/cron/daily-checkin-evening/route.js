@@ -49,7 +49,7 @@ export async function GET(req) {
       userId: user.id,
       type: 'CHECKIN_EVENING_REMINDER',
       title: 'Pengingat: laporan progress sore belum dikirim',
-      message: 'Kamu belum mengirim laporan progress sore hari ini. Segera buka Tugas Saya dan kirim laporanmu sebelum hari berakhir.',
+      message: 'Kamu belum mengirim laporan progress sore hari ini. Segera buka Tugas Saya dan kirim laporanmu — laporan setelah pukul 20:00 WIB dinyatakan terlambat.',
       link: '/my-tasks',
     })
 
