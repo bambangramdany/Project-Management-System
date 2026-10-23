@@ -130,7 +130,15 @@ function ReadOnlyTaskCard({ item }) {
             )}
           </div>
         ) : (
-          <span className="text-[11px] px-2 py-1 rounded-lg font-semibold shrink-0 bg-gray-100 text-gray-400">Belum update</span>
+          <div className="flex flex-col items-end gap-0.5 shrink-0">
+            <span className="text-[11px] px-2 py-1 rounded-lg font-semibold bg-gray-100 text-gray-400">Belum update</span>
+            {item.latestUpdate?.savedAt && (() => {
+              const days = Math.floor((Date.now() - new Date(item.latestUpdate.savedAt)) / 86400000)
+              return days > 0 ? (
+                <span className="text-[10px] text-red-400">{days === 1 ? '1 hari lalu' : `${days} hari lalu`}</span>
+              ) : null
+            })()}
+          </div>
         )}
       </div>
 
