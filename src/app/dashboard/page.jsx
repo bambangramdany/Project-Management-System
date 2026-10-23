@@ -265,7 +265,7 @@ function ProgramReminderBanner({ session }) {
     if (isWeekend) return
     fetch(`/api/programs/briefing?date=${today}`).then(r => r.json()).then(d => setBriefingLog(d.log)).catch(() => setBriefingLog(null))
     if (needsFin) fetch(`/api/programs/finance-meeting?weekDate=${getFridayDate()}`).then(r => r.json()).then(d => setFinLog(d.log)).catch(() => setFinLog(null))
-  }, [today, needsWfo, needsFin, isWeekend])
+  }, [today, needsFin, isWeekend])
 
   const banners = []
 
