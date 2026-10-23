@@ -51,6 +51,7 @@ function shapeItem(item, kind, today, userId) {
     description: item.description,
     dueDate: item.dueDate,
     status: item.status,
+    createdAt: item.createdAt,
     project: item.project || null,
     clientName: item.clientName || item.project?.client?.name || null,
     projectName: item.projectName || item.project?.name || null,
