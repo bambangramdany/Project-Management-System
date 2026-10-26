@@ -17,9 +17,13 @@ export async function GET(req) {
   // Akun sistem internal yang disembunyikan dari workload & semua proses project
   const HIDDEN_EMAILS = ['hrdwatermark@gmail.com']
 
-  // All active team members
+  // All active team members — exclude management (OWNER/DIRECTOR) dari tampilan workload
   const users = await prisma.user.findMany({
-    where: { employeeStatus: 'ACTIVE', email: { notIn: HIDDEN_EMAILS } },
+    where: {
+      employeeStatus: 'ACTIVE',
+      email: { notIn: HIDDEN_EMAILS },
+      role: { notIn: ['OWNER', 'DIRECTOR'] },
+    },
     select: { id: true, name: true, role: true, jobTitle: true, divisi: true },
     orderBy: [{ divisi: 'asc' }, { name: 'asc' }],
   })

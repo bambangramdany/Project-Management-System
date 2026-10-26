@@ -180,6 +180,7 @@ export const DEFAULT_WORKLOAD_WEIGHTS = {
   WAITING_PITCH_RESULT: { picWeight: 1,   memberWeight: 0 },
   PREPARATION:          { picWeight: 1,   memberWeight: 1 },
   EVENT_DAY:            { picWeight: 1.5, memberWeight: 1.5 },
+  POST_PRODUCTION:      { picWeight: 1,   memberWeight: 1 },
   REPORTING:            { picWeight: 1,   memberWeight: 0.5 },
   INVOICING:            { picWeight: 0.5, memberWeight: 0 },
   DONE:                 { picWeight: 0,   memberWeight: 0 },
