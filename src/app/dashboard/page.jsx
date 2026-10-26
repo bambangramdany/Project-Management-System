@@ -12,18 +12,29 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 const RevenueTrendCharts = dynamic(() => import('@/components/RevenueTrendChart'), { ssr: false })
 
-const PIPELINE_STAGES = [
+const PIPELINE_STAGES_EO = [
   { key: 'HOLD', label: 'Hold' },
   { key: 'PITCHING', label: 'Pitching' },
   { key: 'WAITING_PITCH_RESULT', label: 'Waiting Result' },
   { key: 'PREPARATION', label: 'Preparation' },
-  { key: 'EVENT_DAY', label: 'Event Day' },
+  { key: 'EVENT_DAY', label: 'Project Day' },
+  { key: 'REPORTING', label: 'Reporting' },
+  { key: 'INVOICING', label: 'Invoicing' },
+]
+
+const PIPELINE_STAGES_PH = [
+  { key: 'HOLD', label: 'Hold' },
+  { key: 'PITCHING', label: 'Pitching' },
+  { key: 'WAITING_PITCH_RESULT', label: 'Waiting Result' },
+  { key: 'PREPARATION', label: 'Preparation' },
+  { key: 'EVENT_DAY', label: 'Project Day' },
+  { key: 'POST_PRODUCTION', label: 'Post Production' },
   { key: 'REPORTING', label: 'Reporting' },
   { key: 'INVOICING', label: 'Invoicing' },
 ]
 
 // Order for the morning briefing list — pitching through invoicing
-const BRIEFING_ORDER = ['PITCHING', 'WAITING_PITCH_RESULT', 'PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING']
+const BRIEFING_ORDER = ['PITCHING', 'WAITING_PITCH_RESULT', 'PREPARATION', 'EVENT_DAY', 'POST_PRODUCTION', 'REPORTING', 'INVOICING']
 
 function getHoroscope(birthDate) {
   const d = new Date(birthDate)
@@ -690,11 +701,11 @@ export default function DashboardPage() {
         )}
 
         {/* EO / Event division */}
-        <DivisionSection title="Event Organizer (EO)" projects={eoProjects}
+        <DivisionSection title="Event Organizer (EO)" projects={eoProjects} isPH={false}
           onProjectUpdate={updated => setProjects(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))} />
 
         {/* Production House division */}
-        <DivisionSection title="Production House (PH)" projects={phProjects}
+        <DivisionSection title="Production House (PH)" projects={phProjects} isPH={true}
           onProjectUpdate={updated => setProjects(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))} />
 
       </main>
@@ -705,7 +716,7 @@ export default function DashboardPage() {
 function OverviewCard({ title, icon, gradient, labelColor, data, linkBase }) {
   const STAGE_LABEL = {
     HOLD: 'Hold', PITCHING: 'Pitching', WAITING_PITCH_RESULT: 'Waiting Result',
-    PREPARATION: 'Preparation', EVENT_DAY: 'Event Day', REPORTING: 'Reporting', INVOICING: 'Invoicing',
+    PREPARATION: 'Preparation', EVENT_DAY: 'Project Day', POST_PRODUCTION: 'Post Production', REPORTING: 'Reporting', INVOICING: 'Invoicing',
   }
   return (
     <div className="card overflow-hidden">
@@ -756,12 +767,13 @@ function OverviewCard({ title, icon, gradient, labelColor, data, linkBase }) {
   )
 }
 
-function DivisionSection({ title, projects, onProjectUpdate }) {
+function DivisionSection({ title, projects, isPH, onProjectUpdate }) {
   const { data: session } = useSession()
   const [allUsers, setAllUsers] = useState([])
   useEffect(() => {
     fetch('/api/team').then(r => r.ok ? r.json() : []).then(d => setAllUsers(Array.isArray(d) ? d : [])).catch(() => {})
   }, [])
+  const PIPELINE_STAGES = isPH ? PIPELINE_STAGES_PH : PIPELINE_STAGES_EO
   const active = projects.filter(p => ACTIVE_STATUSES.includes(p.status))
   const countByStatus = {}
   PIPELINE_STAGES.forEach(s => { countByStatus[s.key] = projects.filter(p => p.status === s.key).length })

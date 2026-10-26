@@ -719,6 +719,7 @@ model Project {
   briefItems ProjectBriefItem[]
   milestones ProjectMilestone[]
   rundown   EventRundown[]
+  projectDates ProjectDate[]
   issues    EventIssue[]
   meetingNotes MeetingNote[]
 
@@ -767,6 +768,7 @@ enum ProjectStatus {
   WAITING_PITCH_RESULT
   PREPARATION
   EVENT_DAY
+  POST_PRODUCTION
   REPORTING
   INVOICING
   DONE
@@ -1603,6 +1605,21 @@ model MeetingActionItem {
   task          Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
   @@index([meetingNoteId])
+}
+
+model ProjectDate {
+  id          String    @id @default(cuid())
+  projectId   String
+  label       String?   // e.g. "Jakarta", "Surabaya", "Day 1"
+  startDate   DateTime
+  endDate     DateTime?
+  location    String?   // free-text or dropdown value
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
 }
 
 model EventIssue {

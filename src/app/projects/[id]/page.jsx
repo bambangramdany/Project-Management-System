@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { StatusBadge, CategoryBadge, PitchResultBadge } from '@/components/StatusBadge'
-import { STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, EO_CATEGORIES, PH_CATEGORIES, RECOMMENDATION_ICON, DIVISION_LABEL, PROJECT_SCORE_CRITERIA, KPI_SCORE_LABEL, LOSE_REASON_OPTIONS, CLIENT_BRIEF_TEMPLATES } from '@/lib/constants'
+import { STATUS_PIPELINE, EO_STATUS_PIPELINE, PH_STATUS_PIPELINE, STATUS_LABEL, CATEGORY_LABEL, EO_CATEGORIES, PH_CATEGORIES, RECOMMENDATION_ICON, DIVISION_LABEL, PROJECT_SCORE_CRITERIA, KPI_SCORE_LABEL, LOSE_REASON_OPTIONS, CLIENT_BRIEF_TEMPLATES, PROJECT_LOCATIONS } from '@/lib/constants'
 import { canScoreProject } from '@/lib/rbac'
 import ProjectBonusTab from '@/components/ProjectBonusTab'
 import QuotationProjectTab from '@/components/QuotationProjectTab'
@@ -54,6 +54,11 @@ export default function ProjectDetailPage() {
   const [confirmRemoveMemberId, setConfirmRemoveMemberId] = useState(null)
   const [editingDates, setEditingDates] = useState(false)
   const [datesForm, setDatesForm] = useState({ briefDate: '', startDate: '', endDate: '' })
+  const [projectDates, setProjectDates] = useState([])
+  const [showAddDate, setShowAddDate] = useState(false)
+  const [newDateForm, setNewDateForm] = useState({ label: '', startDate: '', endDate: '', location: '', notes: '' })
+  const [editingDateId, setEditingDateId] = useState(null)
+  const [editDateForm, setEditDateForm] = useState({})
   const [picValue, setPicValue] = useState('')
 
   useEffect(() => {
@@ -81,6 +86,7 @@ export default function ProjectDetailPage() {
       fetchProject()
       fetch('/api/team').then(r => r.json()).then(setTeam)
       fetch('/api/clients?simple=1').then(r => r.json()).then(setAllClients)
+      fetch(`/api/projects/${id}/dates`).then(r => r.ok ? r.json() : []).then(setProjectDates)
     }
   }, [status, id])
 
@@ -313,7 +319,8 @@ export default function ProjectDetailPage() {
   const totalTasks = project.tasks?.length || 0
   const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
 
-  const currentStageIndex = STATUS_PIPELINE.indexOf(project.status)
+  const divPipeline = project.division === 'PH' ? PH_STATUS_PIPELINE : EO_STATUS_PIPELINE
+  const currentStageIndex = divPipeline.indexOf(project.status)
 
   return (
     <div className="min-h-screen bg-brand-50">
@@ -561,7 +568,7 @@ export default function ProjectDetailPage() {
             <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-xs text-gray-500 mb-2">Pindah stage:</p>
               <div className="flex flex-wrap gap-2">
-                {STATUS_PIPELINE.filter(s => !['FAILED', 'CANCELED'].includes(s)).map((s, i) => (
+                {divPipeline.filter(s => !['FAILED', 'CANCELED'].includes(s)).map((s, i) => (
                   <button
                     key={s}
                     onClick={() => updateStatus(s)}
@@ -582,6 +589,162 @@ export default function ProjectDetailPage() {
                 <span className="self-center text-[10px] text-gray-400 font-medium uppercase tracking-wide">Tutup:</span>
                 <button onClick={() => updateStatus('FAILED')} disabled={saving} className="px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 border border-red-100">Failed</button>
                 <button onClick={() => updateStatus('CANCELED')} disabled={saving} className="px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-400 hover:bg-gray-100 border border-gray-200">Canceled</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Tanggal Pelaksanaan (multi-date) */}
+        <div className="card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-800">Tanggal Pelaksanaan</h3>
+            {isManager && (
+              <button onClick={() => setShowAddDate(v => !v)} className="text-xs text-brand-600 hover:text-brand-700 font-medium">
+                {showAddDate ? 'Batal' : '+ Tambah Tanggal'}
+              </button>
+            )}
+          </div>
+
+          {/* Daftar tanggal */}
+          {projectDates.length === 0 && !showAddDate && (
+            <p className="text-xs text-gray-400 italic">Belum ada tanggal pelaksanaan ditambahkan.</p>
+          )}
+          <div className="space-y-2">
+            {projectDates.map(pd => (
+              <div key={pd.id} className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+                {editingDateId === pd.id ? (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="label">Label/Nama</label>
+                        <input className="input text-sm" placeholder="cth. Jakarta, Day 1" value={editDateForm.label || ''} onChange={e => setEditDateForm(f => ({ ...f, label: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="label">Lokasi</label>
+                        <select className="select text-sm" value={editDateForm.location || ''} onChange={e => setEditDateForm(f => ({ ...f, location: e.target.value }))}>
+                          <option value="">— Pilih kota —</option>
+                          {PROJECT_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+                          <option value="__other">Lainnya (ketik manual)</option>
+                        </select>
+                        {editDateForm.location === '__other' && (
+                          <input className="input text-sm mt-1" placeholder="Nama kota/lokasi" value={editDateForm.locationCustom || ''} onChange={e => setEditDateForm(f => ({ ...f, locationCustom: e.target.value }))} />
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="label">Tanggal Mulai</label>
+                        <input type="date" className="input text-sm" value={editDateForm.startDate || ''} onChange={e => setEditDateForm(f => ({ ...f, startDate: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="label">Tanggal Selesai</label>
+                        <input type="date" className="input text-sm" value={editDateForm.endDate || ''} onChange={e => setEditDateForm(f => ({ ...f, endDate: e.target.value }))} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="label">Catatan</label>
+                      <input className="input text-sm" placeholder="opsional" value={editDateForm.notes || ''} onChange={e => setEditDateForm(f => ({ ...f, notes: e.target.value }))} />
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="btn-primary text-xs py-1.5 px-3" onClick={async () => {
+                        const loc = editDateForm.location === '__other' ? (editDateForm.locationCustom || '') : (editDateForm.location || '')
+                        const res = await fetch(`/api/projects/${id}/dates/${pd.id}`, {
+                          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ label: editDateForm.label, startDate: editDateForm.startDate, endDate: editDateForm.endDate || null, location: loc, notes: editDateForm.notes }),
+                        })
+                        if (res.ok) {
+                          const updated = await res.json()
+                          setProjectDates(prev => prev.map(d => d.id === pd.id ? updated : d))
+                          setEditingDateId(null)
+                        }
+                      }}>Simpan</button>
+                      <button className="btn-secondary text-xs py-1.5 px-3" onClick={() => setEditingDateId(null)}>Batal</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {pd.label && <span className="text-xs font-semibold text-gray-700">{pd.label}</span>}
+                        {pd.location && <span className="text-[11px] bg-brand-50 text-brand-600 px-2 py-0.5 rounded-full font-medium">{pd.location}</span>}
+                      </div>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        {new Date(pd.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        {pd.endDate && pd.endDate !== pd.startDate && (
+                          <> – {new Date(pd.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</>
+                        )}
+                      </p>
+                      {pd.notes && <p className="text-[11px] text-gray-400 mt-0.5">{pd.notes}</p>}
+                    </div>
+                    {isManager && (
+                      <div className="flex gap-1 shrink-0">
+                        <button className="text-[11px] text-gray-400 hover:text-brand-600 px-1.5 py-0.5 rounded hover:bg-brand-50" onClick={() => {
+                          setEditingDateId(pd.id)
+                          setEditDateForm({ label: pd.label || '', startDate: pd.startDate?.slice(0,10) || '', endDate: pd.endDate?.slice(0,10) || '', location: pd.location || '', notes: pd.notes || '' })
+                        }}>Edit</button>
+                        <button className="text-[11px] text-red-400 hover:text-red-600 px-1.5 py-0.5 rounded hover:bg-red-50" onClick={async () => {
+                          if (!confirm('Hapus tanggal ini?')) return
+                          const res = await fetch(`/api/projects/${id}/dates/${pd.id}`, { method: 'DELETE' })
+                          if (res.ok) setProjectDates(prev => prev.filter(d => d.id !== pd.id))
+                        }}>Hapus</button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Form tambah tanggal baru */}
+          {showAddDate && (
+            <div className="rounded-xl border border-brand-200 bg-brand-50/40 p-3 space-y-2">
+              <p className="text-xs font-semibold text-brand-700">Tanggal Baru</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="label">Label/Nama</label>
+                  <input className="input text-sm" placeholder="cth. Jakarta, Day 1" value={newDateForm.label} onChange={e => setNewDateForm(f => ({ ...f, label: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="label">Lokasi</label>
+                  <select className="select text-sm" value={newDateForm.location} onChange={e => setNewDateForm(f => ({ ...f, location: e.target.value }))}>
+                    <option value="">— Pilih kota —</option>
+                    {PROJECT_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+                    <option value="__other">Lainnya (ketik manual)</option>
+                  </select>
+                  {newDateForm.location === '__other' && (
+                    <input className="input text-sm mt-1" placeholder="Nama kota/lokasi" value={newDateForm.locationCustom || ''} onChange={e => setNewDateForm(f => ({ ...f, locationCustom: e.target.value }))} />
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="label">Tanggal Mulai *</label>
+                  <input type="date" className="input text-sm" value={newDateForm.startDate} onChange={e => setNewDateForm(f => ({ ...f, startDate: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="label">Tanggal Selesai</label>
+                  <input type="date" className="input text-sm" value={newDateForm.endDate} onChange={e => setNewDateForm(f => ({ ...f, endDate: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <label className="label">Catatan</label>
+                <input className="input text-sm" placeholder="opsional" value={newDateForm.notes} onChange={e => setNewDateForm(f => ({ ...f, notes: e.target.value }))} />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button className="btn-primary text-xs py-1.5 px-3" disabled={!newDateForm.startDate} onClick={async () => {
+                  const loc = newDateForm.location === '__other' ? (newDateForm.locationCustom || '') : (newDateForm.location || '')
+                  const res = await fetch(`/api/projects/${id}/dates`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ label: newDateForm.label, startDate: newDateForm.startDate, endDate: newDateForm.endDate || null, location: loc, notes: newDateForm.notes }),
+                  })
+                  if (res.ok) {
+                    const created = await res.json()
+                    setProjectDates(prev => [...prev, created])
+                    setNewDateForm({ label: '', startDate: '', endDate: '', location: '', notes: '' })
+                    setShowAddDate(false)
+                  }
+                }}>+ Simpan</button>
+                <button className="btn-secondary text-xs py-1.5 px-3" onClick={() => setShowAddDate(false)}>Batal</button>
               </div>
             </div>
           )}

@@ -1,6 +1,18 @@
 export const STATUS_PIPELINE = [
   'HOLD', 'PITCHING', 'WAITING_PITCH_RESULT', 'PREPARATION',
+  'EVENT_DAY', 'POST_PRODUCTION', 'REPORTING', 'INVOICING', 'DONE', 'FAILED', 'CANCELED',
+]
+
+// Pipeline stages for EO (no POST_PRODUCTION)
+export const EO_STATUS_PIPELINE = [
+  'HOLD', 'PITCHING', 'WAITING_PITCH_RESULT', 'PREPARATION',
   'EVENT_DAY', 'REPORTING', 'INVOICING', 'DONE', 'FAILED', 'CANCELED',
+]
+
+// Pipeline stages for PH (includes POST_PRODUCTION after EVENT_DAY)
+export const PH_STATUS_PIPELINE = [
+  'HOLD', 'PITCHING', 'WAITING_PITCH_RESULT', 'PREPARATION',
+  'EVENT_DAY', 'POST_PRODUCTION', 'REPORTING', 'INVOICING', 'DONE', 'FAILED', 'CANCELED',
 ]
 
 // Display groups: beberapa status digabung dalam satu header group
@@ -10,6 +22,7 @@ export const STATUS_DISPLAY_GROUPS = [
   { key: 'WAITING_PITCH_RESULT', label: 'Waiting Result',           statuses: ['WAITING_PITCH_RESULT'],            color: 'bg-yellow-500 text-white' },
   { key: 'PREPARATION',         label: 'Preparation',            statuses: ['PREPARATION'],                   color: 'bg-orange-500 text-white' },
   { key: 'EVENT_DAY',           label: 'Project Days (Pelaksanaan)', statuses: ['EVENT_DAY'],                 color: 'bg-purple-500 text-white' },
+  { key: 'POST_PRODUCTION',     label: 'Post Production/Editing', statuses: ['POST_PRODUCTION'],              color: 'bg-pink-500 text-white' },
   { key: 'REPORTING_INVOICING', label: 'Reporting & Invoicing',  statuses: ['REPORTING', 'INVOICING'],        color: 'bg-teal-500 text-white' },
   { key: 'DONE',                label: 'Done',                   statuses: ['DONE'],                          color: 'bg-green-500 text-white' },
   { key: 'FAILED',              label: 'Failed',                 statuses: ['FAILED'],                        color: 'bg-red-500 text-white' },
@@ -21,7 +34,8 @@ export const STATUS_LABEL = {
   PITCHING: 'Pitching',
   WAITING_PITCH_RESULT: 'Waiting Result',
   PREPARATION: 'Preparation',
-  EVENT_DAY: 'Event Day',
+  EVENT_DAY: 'Project Day',
+  POST_PRODUCTION: 'Post Production/Editing',
   REPORTING: 'Reporting',
   INVOICING: 'Invoicing',
   DONE: 'Done',
@@ -35,6 +49,7 @@ export const STATUS_COLOR = {
   WAITING_PITCH_RESULT: 'bg-yellow-100 text-yellow-700',
   PREPARATION: 'bg-orange-100 text-orange-700',
   EVENT_DAY: 'bg-purple-100 text-purple-700',
+  POST_PRODUCTION: 'bg-pink-100 text-pink-700',
   REPORTING: 'bg-indigo-100 text-indigo-700',
   INVOICING: 'bg-teal-100 text-teal-700',
   DONE: 'bg-green-100 text-green-700',
@@ -48,12 +63,21 @@ export const STATUS_GROUP_COLOR = {
   WAITING_PITCH_RESULT: 'bg-yellow-500 text-white',
   PREPARATION: 'bg-orange-500 text-white',
   EVENT_DAY: 'bg-purple-500 text-white',
+  POST_PRODUCTION: 'bg-pink-500 text-white',
   REPORTING: 'bg-indigo-500 text-white',
   INVOICING: 'bg-teal-500 text-white',
   DONE: 'bg-green-500 text-white',
   FAILED: 'bg-red-500 text-white',
   CANCELED: 'bg-slate-400 text-white',
 }
+
+// Lokasi/kota yang tersedia sebagai pilihan di multi-date project
+export const PROJECT_LOCATIONS = [
+  'Jakarta', 'Bandung', 'Surabaya', 'Yogyakarta', 'Semarang',
+  'Bali / Denpasar', 'Medan', 'Makassar', 'Balikpapan', 'Palembang',
+  'Pekanbaru', 'Manado', 'Lombok', 'Batam', 'Solo',
+  'Malang', 'Bogor', 'Tangerang', 'Bekasi', 'Depok',
+]
 
 export const PITCH_RESULT_COLOR = {
   WIN: 'bg-green-100 text-green-700',

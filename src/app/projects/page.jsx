@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import clsx from 'clsx'
 import { PitchResultBadge } from '@/components/StatusBadge'
-import { STATUS_PIPELINE, STATUS_DISPLAY_GROUPS, STATUS_LABEL, STATUS_GROUP_COLOR, CATEGORY_LABEL, DIVISION_LABEL, EO_CATEGORIES, PH_CATEGORIES } from '@/lib/constants'
+import { STATUS_PIPELINE, EO_STATUS_PIPELINE, PH_STATUS_PIPELINE, STATUS_DISPLAY_GROUPS, STATUS_LABEL, STATUS_GROUP_COLOR, CATEGORY_LABEL, DIVISION_LABEL, EO_CATEGORIES, PH_CATEGORIES } from '@/lib/constants'
 import { canViewAllProjects, canQuickEditProjects, canDeleteProject } from '@/lib/rbac'
 import { HEALTH_LABEL, HEALTH_DOT } from '@/lib/health'
 import Link from 'next/link'
@@ -104,7 +104,7 @@ function ProjectsContent() {
   }
 
   const FINISHED_STATUSES = ['DONE', 'FAILED', 'CANCELED']
-  const BRIEFING_ORDER = ['PITCHING', 'WAITING_PITCH_RESULT', 'PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING']
+  const BRIEFING_ORDER = ['PITCHING', 'WAITING_PITCH_RESULT', 'PREPARATION', 'EVENT_DAY', 'POST_PRODUCTION', 'REPORTING', 'INVOICING']
   function relevantDate(p) {
     switch (p.status) {
       case 'PITCHING':
@@ -353,7 +353,7 @@ function ProjectsContent() {
             />
             <select className="select sm:w-44 transition-shadow focus:shadow-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
               <option value="">Semua Status</option>
-              {STATUS_PIPELINE.map(s => (
+              {(showPH && !showEO ? PH_STATUS_PIPELINE : EO_STATUS_PIPELINE).map(s => (
                 <option key={s} value={s}>{STATUS_LABEL[s]}</option>
               ))}
             </select>
@@ -525,7 +525,7 @@ function ProjectsContent() {
                     <div>
                       <label className="label">Status</label>
                       <select className="select text-sm" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
-                        {STATUS_PIPELINE.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+                        {(editForm.division === 'PH' ? PH_STATUS_PIPELINE : EO_STATUS_PIPELINE).map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
                       </select>
                     </div>
                   </div>
