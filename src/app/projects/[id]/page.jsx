@@ -52,6 +52,7 @@ export default function ProjectDetailPage() {
   const [editingPic, setEditingPic] = useState(false)
   const [confirmDeleteTaskId, setConfirmDeleteTaskId] = useState(null)
   const [confirmRemoveMemberId, setConfirmRemoveMemberId] = useState(null)
+  const [confirmStatusChange, setConfirmStatusChange] = useState(null) // 'FAILED' | 'CANCELED' | null
   const [editingDates, setEditingDates] = useState(false)
   const [datesForm, setDatesForm] = useState({ briefDate: '', startDate: '', endDate: '' })
   const [projectDates, setProjectDates] = useState([])
@@ -587,8 +588,52 @@ export default function ProjectDetailPage() {
                 {/* Divider + terminal states */}
                 <span className="self-center text-gray-300 select-none">|</span>
                 <span className="self-center text-[10px] text-gray-400 font-medium uppercase tracking-wide">Tutup:</span>
-                <button onClick={() => updateStatus('FAILED')} disabled={saving} className="px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 border border-red-100">Failed</button>
-                <button onClick={() => updateStatus('CANCELED')} disabled={saving} className="px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-400 hover:bg-gray-100 border border-gray-200">Canceled</button>
+                <button onClick={() => setConfirmStatusChange('FAILED')} disabled={saving} className="px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 border border-red-100">Failed</button>
+                <button onClick={() => setConfirmStatusChange('CANCELED')} disabled={saving} className="px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-400 hover:bg-gray-100 border border-gray-200">Canceled</button>
+              </div>
+            </div>
+          )}
+
+          {/* Recover project yang salah di-Failed/Canceled */}
+          {isManager && ['FAILED', 'CANCELED'].includes(project.status) && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-xs text-gray-400 mb-2">Project ini ditutup sebagai <span className="font-semibold text-red-400">{project.status === 'FAILED' ? 'Failed' : 'Canceled'}</span>. Jika salah, pulihkan ke stage yang sesuai:</p>
+              <div className="flex flex-wrap gap-2">
+                {divPipeline.filter(s => !['FAILED', 'CANCELED'].includes(s)).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => updateStatus(s)}
+                    disabled={saving}
+                    className="px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100 transition-all active:scale-95"
+                  >
+                    Pulihkan ke: {STATUS_LABEL[s]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Dialog konfirmasi Failed / Canceled */}
+          {confirmStatusChange && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setConfirmStatusChange(null)}>
+              <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
+                <p className="font-semibold text-gray-800">
+                  {confirmStatusChange === 'FAILED' ? '⚠️ Tandai project sebagai Failed?' : '⚠️ Batalkan project ini?'}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {confirmStatusChange === 'FAILED'
+                    ? 'Project akan ditutup sebagai "Failed". Kamu masih bisa memulihkannya jika salah.'
+                    : 'Project akan ditutup sebagai "Canceled". Kamu masih bisa memulihkannya jika salah.'}
+                </p>
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => setConfirmStatusChange(null)} className="px-4 py-2 text-sm rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200">Batal</button>
+                  <button
+                    onClick={() => { updateStatus(confirmStatusChange); setConfirmStatusChange(null) }}
+                    className={`px-4 py-2 text-sm rounded-xl text-white font-medium ${confirmStatusChange === 'FAILED' ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-500 hover:bg-gray-600'}`}
+                  >
+                    Ya, {confirmStatusChange === 'FAILED' ? 'Failed' : 'Cancel'} project
+                  </button>
+                </div>
               </div>
             </div>
           )}
