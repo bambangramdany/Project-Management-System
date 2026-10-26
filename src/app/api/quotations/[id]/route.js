@@ -69,14 +69,31 @@ export async function PATCH(req, { params }) {
 
   // ── Status transitions ──────────────────────────────────────────────────
   if (body.action === 'submit') {
-    // PM/creator submits → PENDING_WULAN
+    // PH langsung ke PENDING_DIRECTOR (skip Wulan), EO tetap ke PENDING_WULAN
     if (!['DRAFT'].includes(quotation.status)) {
       return NextResponse.json({ error: 'Quotation sudah tidak bisa disubmit' }, { status: 400 })
     }
+    const isPH = quotation.division === 'PH'
     const updated = await prisma.quotation.update({
       where: { id: params.id },
-      data: { status: 'PENDING_WULAN' },
+      data: { status: isPH ? 'PENDING_DIRECTOR' : 'PENDING_WULAN' },
     })
+    if (isPH) {
+      // Notifikasi langsung ke Direktur PH + Owner
+      const directors = await prisma.user.findMany({
+        where: { OR: [{ role: 'OWNER' }, { role: 'DIRECTOR', divisi: 'PH' }] },
+        select: { id: true },
+      })
+      const qNum = quotation.quotationNumber || params.id
+      const projectName = quotation.project?.name || ''
+      await Promise.all(directors.map(u => notifyUser({
+        userId: u.id,
+        type: 'QUOTATION_PENDING_DIRECTOR',
+        title: '📋 Quotation PH Menunggu Persetujuan Direktur',
+        message: `Quotation ${qNum}${projectName ? ` (${projectName})` : ''} diajukan dan menunggu approval Direktur PH.`,
+        link: `/quotation/${params.id}`,
+      }).catch(() => {})))
+    }
     return NextResponse.json(updated)
   }
 

@@ -274,7 +274,7 @@ export default function QuotationDetailPage() {
               <>
                 <button onClick={() => setEditing(true)} className="btn-secondary text-sm">✏ Edit</button>
                 <button onClick={() => action('submit')} disabled={acting} className="btn-primary text-sm">
-                  Ajukan ke Wulan →
+                  {q.division === 'PH' ? 'Ajukan ke Guna →' : 'Ajukan ke Wulan →'}
                 </button>
               </>
             )}
