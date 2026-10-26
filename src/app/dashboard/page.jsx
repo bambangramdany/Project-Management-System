@@ -832,7 +832,7 @@ function DivisionSection({ title, projects, isPH, onProjectUpdate }) {
                 </summary>
                 <div className="divide-y divide-gray-50 border-t border-gray-50">
                   {projectsInStatus.map(p => (
-                    <ProjectRow key={p.id} project={p} canEdit={canEditBase || (role === 'DIRECTOR' && p.division === session?.user?.divisi)} onProjectUpdate={onProjectUpdate} allUsers={allUsers} />
+                    <ProjectRow key={p.id} project={p} canEdit={canEditBase || (role === 'DIRECTOR' && p.division === session?.user?.divisi)} onProjectUpdate={onProjectUpdate} allUsers={allUsers} pipeline={PIPELINE_STAGES} />
                   ))}
                 </div>
               </details>
@@ -844,7 +844,7 @@ function DivisionSection({ title, projects, isPH, onProjectUpdate }) {
   )
 }
 
-function ProjectRow({ project: p, canEdit, onProjectUpdate, allUsers = [] }) {
+function ProjectRow({ project: p, canEdit, onProjectUpdate, allUsers = [], pipeline = PIPELINE_STAGES_EO }) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
@@ -931,7 +931,7 @@ function ProjectRow({ project: p, canEdit, onProjectUpdate, allUsers = [] }) {
           <div>
             <label className="label">Stage / Status</label>
             <select className="select text-sm" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-              {PIPELINE_STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+              {pipeline.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
               <option value="DONE">Done</option>
               <option value="FAILED">Failed</option>
               <option value="CANCELED">Canceled</option>
