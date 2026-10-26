@@ -44,14 +44,15 @@ function getUsersPromise(me) {
       select: { id: true, name: true, jobTitle: true, role: true, divisi: true },
     })
   }
-  if (me.role === 'PROJECT_MANAGER') {
+  if (me.role === 'PROJECT_MANAGER' || me.role === 'PRODUCER') {
     return prisma.project.findMany({
-      where: { picId: me.id },
+      where: { OR: [{ picId: me.id }, { members: { some: { userId: me.id } } }] },
       select: { members: { include: { user: { select: { id: true, name: true, jobTitle: true, role: true, divisi: true } } } } },
     }).then(myProjects => {
+      const EXCLUDED = ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER']
       const map = {}
       myProjects.forEach(p => p.members.forEach(m => {
-        if (m.user.id !== me.id && m.user.role !== 'PROJECT_MANAGER') map[m.user.id] = m.user
+        if (m.user.id !== me.id && !EXCLUDED.includes(m.user.role)) map[m.user.id] = m.user
       }))
       return Object.values(map)
     })
