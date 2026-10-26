@@ -362,7 +362,6 @@ export default function QuotationDetailPage() {
                   setSigForm({
                     picQuotationId: q.picQuotationId || '',
                     approver1Id:    q.approver1Id    || '',
-                    approver2Id:    q.approver2Id    || '',
                   })
                   setEditingSig(true)
                 }} className="text-xs text-brand hover:underline">✏ Edit</button>
@@ -379,8 +378,7 @@ export default function QuotationDetailPage() {
               <div className="space-y-2 pt-1">
                 {[
                   { label: 'Prepared by', key: 'picQuotationId' },
-                  { label: 'Approved by #1', key: 'approver1Id' },
-                  { label: 'Approved by #2', key: 'approver2Id' },
+                  { label: 'Approved by', key: 'approver1Id' },
                 ].map(({ label, key }) => (
                   <div key={key} className="flex items-center gap-2">
                     <span className="text-xs text-gray-500 w-28 shrink-0">{label}:</span>
@@ -400,9 +398,8 @@ export default function QuotationDetailPage() {
             ) : (
               <>
                 {q.picQuotation && <div className="text-sm"><span className="text-gray-500">Prepared by:</span> <span className="font-medium">{q.picQuotation.name}</span></div>}
-                {q.approver1    && <div className="text-sm"><span className="text-gray-500">Approved by #1:</span> <span className="font-medium">{q.approver1.name}</span></div>}
-                {q.approver2    && <div className="text-sm"><span className="text-gray-500">Approved by #2:</span> <span className="font-medium">{q.approver2.name}</span></div>}
-                {!q.picQuotation && !q.approver1 && !q.approver2 && (
+                {q.approver1    && <div className="text-sm"><span className="text-gray-500">Approved by:</span> <span className="font-medium">{q.approver1.name}</span></div>}
+                {!q.picQuotation && !q.approver1 && (
                   <p className="text-xs text-amber-500">Belum diisi — klik Edit untuk menentukan siapa yang prepared dan approve.</p>
                 )}
               </>

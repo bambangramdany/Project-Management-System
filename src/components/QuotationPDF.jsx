@@ -470,20 +470,12 @@ export function QuotationPDF({ quotation: q, isDraft = false }) {
               <Text style={s.sigRole}>{q.picQuotation?.jobTitle || 'Project Manager'}</Text>
             </View>
 
-            {/* Approved by #1 — Wulan */}
-            <View style={s.sigCol}>
-              <Text style={s.sigTitle}>Checked by</Text>
-              <View style={s.sigLine} />
-              <Text style={s.sigName}>{q.approver1?.name || '________________________'}</Text>
-              <Text style={s.sigRole}>{q.approver1?.jobTitle || 'Manager'}</Text>
-            </View>
-
-            {/* Approved by #2 — Director */}
+            {/* Approved by */}
             <View style={s.sigCol}>
               <Text style={s.sigTitle}>Approved by</Text>
               <View style={s.sigLine} />
-              <Text style={s.sigName}>{q.approver2?.name || '________________________'}</Text>
-              <Text style={s.sigRole}>{q.approver2?.jobTitle || 'Direktur'}</Text>
+              <Text style={s.sigName}>{q.approver1?.name || '________________________'}</Text>
+              <Text style={s.sigRole}>{q.approver1?.jobTitle || 'Direktur'}</Text>
             </View>
           </View>
         </View>
