@@ -221,6 +221,8 @@ export function canScoreProject(user, project) {
   if (user.email === CROSS_TEAM_PM_EMAIL) return true
   if (project.picId === user.id) return true
   if (user.role === 'DIRECTOR' && user.divisi === project.division) return true
+  // PRODUCER yang terdaftar sebagai member project bisa buka tab scoring
+  if (user.role === 'PRODUCER' && project.members?.some(m => m.userId === user.id || m.user?.id === user.id)) return true
   return false
 }
 
@@ -245,6 +247,12 @@ export function canScoreProjectMember(evaluator, target, project) {
   }
 
   if (evaluator.role === 'DIRECTOR' && evaluator.divisi === project.division) return true
+
+  // PRODUCER yang pairing dengan PM bisa menilai PM dan member lain di project yang sama
+  if (evaluator.role === 'PRODUCER') {
+    const isMember = project.members?.some(m => m.userId === evaluator.id || m.user?.id === evaluator.id)
+    return isMember
+  }
 
   // Peer review among non-PM/director/owner members of the same project
   return target.role !== 'PROJECT_MANAGER'
