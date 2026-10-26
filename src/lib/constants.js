@@ -166,9 +166,9 @@ export const RECOMMENDATION_ICON = {
   EVALUATE: '⚠️ Evaluate',
 }
 
-export const ACTIVE_STATUSES = ['HOLD', 'PITCHING', 'WAITING_PITCH_RESULT', 'PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING']
+export const ACTIVE_STATUSES = ['HOLD', 'PITCHING', 'WAITING_PITCH_RESULT', 'PREPARATION', 'EVENT_DAY', 'POST_PRODUCTION', 'REPORTING', 'INVOICING']
 export const CLOSED_STATUSES = ['DONE', 'FAILED', 'CANCELED']
-export const WON_STATUSES = ['PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING', 'DONE']
+export const WON_STATUSES = ['PREPARATION', 'EVENT_DAY', 'POST_PRODUCTION', 'REPORTING', 'INVOICING', 'DONE']
 
 // ── Workload scoring ─────────────────────────────────────────────────────
 // Default weight each project stage contributes to a person's workload score —

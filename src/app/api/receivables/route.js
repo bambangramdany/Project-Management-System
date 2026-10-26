@@ -14,7 +14,7 @@ function canViewReceivables(user) {
 }
 
 // Status project yang dianggap aktif / layak ditagih
-const BILLABLE_STATUSES = ['PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING', 'DONE']
+const BILLABLE_STATUSES = ['PREPARATION', 'EVENT_DAY', 'POST_PRODUCTION', 'REPORTING', 'INVOICING', 'DONE']
 
 export async function GET(req) {
   const session = await getServerSession(authOptions)

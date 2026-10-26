@@ -1501,7 +1501,7 @@ function InfoRow({ label, value }) {
 // Muncul sebagai prompt di atas QuotationInvoiceInfoSection selama projectValue
 // belum diisi. Setelah diisi, hilang dan nilai langsung masuk ke dashboard.
 function CatatNilaiFinalCard({ project, canEdit, fetchProject }) {
-  const WON_STATUSES = ['PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING', 'DONE']
+  const WON_STATUSES = ['PREPARATION', 'EVENT_DAY', 'POST_PRODUCTION', 'REPORTING', 'INVOICING', 'DONE']
   const isWon = WON_STATUSES.includes(project.status)
   const sudahAda = project.projectValue != null
 

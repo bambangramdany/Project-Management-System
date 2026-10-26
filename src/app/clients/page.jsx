@@ -156,7 +156,7 @@ export default function ClientsPage() {
             {filtered.map(c => {
               const isOpen = !!expanded[c.id]
               const tab = activeTab[c.id] || 'info'
-              const wonProjects = c.projects?.filter(p => ['PREPARATION','EVENT_DAY','REPORTING','INVOICING','DONE'].includes(p.status)) || []
+              const wonProjects = c.projects?.filter(p => ['PREPARATION','EVENT_DAY','POST_PRODUCTION','REPORTING','INVOICING','DONE'].includes(p.status)) || []
 
               return (
                 <div key={c.id} className="card overflow-hidden">

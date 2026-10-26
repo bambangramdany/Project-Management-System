@@ -41,7 +41,7 @@ export async function GET(req) {
       by: ['clientId'],
       _sum: { projectValue: true },
       _count: { id: true },
-      where: { clientId: { not: null }, status: { in: ['PREPARATION','EVENT_DAY','REPORTING','INVOICING','DONE'] } },
+      where: { clientId: { not: null }, status: { in: ['PREPARATION','EVENT_DAY','POST_PRODUCTION','REPORTING','INVOICING','DONE'] } },
     }),
   ])
 

@@ -742,7 +742,7 @@ export default function FinancePage() {
 
   const forecastLocked = budgetMeta.canEditBudget && budgetSaved && !budgetEditing && !budgetMeta.budgetLockedAt
 
-  const WON_STATUSES = ['PREPARATION', 'EVENT_DAY', 'REPORTING', 'INVOICING', 'DONE']
+  const WON_STATUSES = ['PREPARATION', 'EVENT_DAY', 'POST_PRODUCTION', 'REPORTING', 'INVOICING', 'DONE']
 
   // Untuk dropdown forecast: hanya project yang statusnya menang (atau sudah selesai)
   // dan/atau project yang memiliki quotation terkait
