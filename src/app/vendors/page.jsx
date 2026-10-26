@@ -266,6 +266,16 @@ function RatingModal({ vendor, onClose, onSaved }) {
   )
 }
 
+// ── Vendor form field helper (must be outside VendorFormModal to avoid remount on every keystroke) ──
+function VendorField({ label, k, type = 'text', placeholder = '', form, set }) {
+  return (
+    <div>
+      <label className="label">{label}</label>
+      <input className="input" type={type} value={form[k]} onChange={e => set(k, e.target.value)} placeholder={placeholder} />
+    </div>
+  )
+}
+
 // ── Vendor form modal (add / edit) ────────────────────────────────────────────
 const EMPTY_FORM = {
   name: '', vendorType: '', subCategory: '', qualityTier: '',
@@ -301,13 +311,6 @@ function VendorFormModal({ vendor, onClose, onSaved }) {
     } finally { setSaving(false) }
   }
 
-  const F = ({ label, k, type = 'text', placeholder = '' }) => (
-    <div>
-      <label className="label">{label}</label>
-      <input className="input" type={type} value={form[k]} onChange={e => set(k, e.target.value)} placeholder={placeholder} />
-    </div>
-  )
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
@@ -316,7 +319,7 @@ function VendorFormModal({ vendor, onClose, onSaved }) {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
         </div>
         <div className="px-5 py-4 grid grid-cols-2 gap-3">
-          <div className="col-span-2"><F label="Nama Vendor *" k="name" /></div>
+          <div className="col-span-2"><VendorField label="Nama Vendor *" k="name" form={form} set={set} /></div>
 
           <div>
             <label className="label">Jenis Vendor *</label>
@@ -347,19 +350,19 @@ function VendorFormModal({ vendor, onClose, onSaved }) {
             </select>
           </div>
 
-          <F label="Kota" k="city" />
-          <F label="Provinsi" k="province" />
-          <div className="col-span-2"><F label="Alamat" k="address" /></div>
-          <F label="Area / Kawasan" k="area" />
-          <F label="PIC / Kontak" k="picContact" />
-          <F label="Nomor HP / WA" k="phone" type="tel" />
-          <F label="Email" k="email" type="email" />
-          <F label="Website" k="website" />
-          <F label="Instagram" k="instagram" placeholder="@handle" />
-          <div className="col-span-2"><F label="Output / Produk & Jasa" k="productService" /></div>
-          <F label="Harga Min (Rp)" k="priceMin" type="number" />
-          <F label="Harga Max (Rp)" k="priceMax" type="number" />
-          <div className="col-span-2"><F label="Catatan Harga" k="priceNote" /></div>
+          <VendorField label="Kota" k="city" form={form} set={set} />
+          <VendorField label="Provinsi" k="province" form={form} set={set} />
+          <div className="col-span-2"><VendorField label="Alamat" k="address" form={form} set={set} /></div>
+          <VendorField label="Area / Kawasan" k="area" form={form} set={set} />
+          <VendorField label="PIC / Kontak" k="picContact" form={form} set={set} />
+          <VendorField label="Nomor HP / WA" k="phone" type="tel" form={form} set={set} />
+          <VendorField label="Email" k="email" type="email" form={form} set={set} />
+          <VendorField label="Website" k="website" form={form} set={set} />
+          <VendorField label="Instagram" k="instagram" placeholder="@handle" form={form} set={set} />
+          <div className="col-span-2"><VendorField label="Output / Produk & Jasa" k="productService" form={form} set={set} /></div>
+          <VendorField label="Harga Min (Rp)" k="priceMin" type="number" form={form} set={set} />
+          <VendorField label="Harga Max (Rp)" k="priceMax" type="number" form={form} set={set} />
+          <div className="col-span-2"><VendorField label="Catatan Harga" k="priceNote" form={form} set={set} /></div>
           <div className="col-span-2">
             <label className="label">Catatan Umum</label>
             <textarea className="input resize-none" rows={3} value={form.notes} onChange={e => set('notes', e.target.value)} />
@@ -368,10 +371,10 @@ function VendorFormModal({ vendor, onClose, onSaved }) {
           <div className="col-span-2 border-t border-gray-100 pt-3">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Info Rekening</p>
           </div>
-          <F label="Bank" k="bankName" />
-          <F label="No. Rekening" k="bankAccountNumber" />
-          <F label="Nama Pemilik Rekening" k="accountHolder" />
-          <F label="NPWP" k="npwp" />
+          <VendorField label="Bank" k="bankName" form={form} set={set} />
+          <VendorField label="No. Rekening" k="bankAccountNumber" form={form} set={set} />
+          <VendorField label="Nama Pemilik Rekening" k="accountHolder" form={form} set={set} />
+          <VendorField label="NPWP" k="npwp" form={form} set={set} />
         </div>
         <div className="px-5 pb-5 flex gap-2 border-t border-gray-100 pt-3">
           <button onClick={onClose} className="btn-secondary flex-1">Batal</button>
