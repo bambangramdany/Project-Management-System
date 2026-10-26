@@ -151,8 +151,10 @@ function calcTotals(q) {
   const allItems = (q.sections || []).flatMap(sec => sec.items || [])
   let sub = 0, agBase = 0
   allItems.forEach(it => {
-    sub += it.subtotal || 0
-    if (it.includeAgencyFee) agBase += it.subtotal || 0
+    const titipan = it.titipanKlien ?? 0
+    const effectiveSub = (it.subtotal || 0) + titipan
+    sub += effectiveSub
+    if (it.includeAgencyFee) agBase += effectiveSub
   })
   const agencyFeeAmt = agBase * ((q.agencyFeePercent || 0) / 100)
   const ppnBase      = sub + agencyFeeAmt
@@ -162,7 +164,7 @@ function calcTotals(q) {
 }
 
 function sectionTotal(sec) {
-  return (sec.items || []).reduce((a, it) => a + (it.subtotal || 0), 0)
+  return (sec.items || []).reduce((a, it) => a + (it.subtotal || 0) + (it.titipanKlien ?? 0), 0)
 }
 
 // ── Internal draft helpers ────────────────────────────────────────────────────
@@ -170,11 +172,13 @@ function calcInternalTotals(q) {
   const allItems = (q.sections || []).flatMap(sec => sec.items || [])
   let totalHpp = 0, totalTitipan = 0, totalQuot = 0, hppFilled = 0
   allItems.forEach(it => {
-    if (it.hppSubtotal != null) { totalHpp += it.hppSubtotal; hppFilled++ }
-    if (it.titipanKlien != null) totalTitipan += (it.titipanKlien * (it.qty || 1) * (it.days || 1))
-    totalQuot += it.subtotal || 0
+    const titipan = it.titipanKlien ?? 0
+    if (it.hppSubtotal != null) { totalHpp += it.hppSubtotal + titipan; hppFilled++ }
+    if (it.titipanKlien != null) totalTitipan += titipan
+    totalQuot += (it.subtotal || 0) + titipan
   })
-  const grossMargin = totalQuot - totalHpp - totalTitipan
+  // margin = totalQuot - totalHpp (titipan sudah netral di kedua sisi)
+  const grossMargin = totalQuot - totalHpp
   const marginPct   = totalQuot > 0 ? (grossMargin / totalQuot) * 100 : null
   return { totalHpp, totalTitipan, totalQuot, grossMargin, marginPct, hppFilled, itemCount: allItems.length }
 }
@@ -282,7 +286,7 @@ export function QuotationPDF({ quotation: q, isDraft = false }) {
                   <Text style={[s.td, s.cQty]}>{it.qty}</Text>
                   <Text style={[s.td, s.cDay]}>{it.days}</Text>
                   <Text style={[s.td, s.cSub]}>
-                    {it.rate == null ? '—' : rp(it.subtotal)}
+                    {it.rate == null ? '—' : rp((it.subtotal || 0) + (it.titipanKlien ?? 0))}
                   </Text>
                 </View>
               ))}
@@ -359,13 +363,14 @@ export function QuotationPDF({ quotation: q, isDraft = false }) {
                       <Text style={s.internalSecTxt}>{sec.letter}. {sec.name}</Text>
                     </View>
                     {(sec.items || []).map((it, i) => {
-                      const hpp      = it.hppSubtotal ?? null
-                      const titipan  = it.titipanKlien != null ? it.titipanKlien * (it.qty || 1) * (it.days || 1) : null
-                      const quot     = it.subtotal || 0
-                      const margin   = hpp != null ? quot - hpp - (titipan || 0) : null
-                      const marginP  = hpp != null && quot > 0 ? ((quot - hpp - (titipan || 0)) / quot * 100) : null
-                      secHpp     += hpp     ?? 0
-                      secTitipan += titipan ?? 0
+                      const titipan  = it.titipanKlien ?? 0
+                      const hppBase  = it.hppSubtotal ?? null
+                      const hppEff   = hppBase != null ? hppBase + titipan : null
+                      const quot     = (it.subtotal || 0) + titipan  // effective subtotal ke klien
+                      const margin   = hppEff != null ? quot - hppEff : null
+                      const marginP  = hppEff != null && quot > 0 ? (margin / quot * 100) : null
+                      secHpp     += hppEff  ?? 0
+                      secTitipan += titipan
                       secQuot    += quot
                       return (
                         <View key={it.id || i} style={[s.internalRow, i % 2 === 1 && s.internalRowAlt]}>
@@ -373,12 +378,13 @@ export function QuotationPDF({ quotation: q, isDraft = false }) {
                           <View style={s.ciDesc}>
                             <Text style={[s.internalTd, { fontFamily: 'Helvetica-Bold' }]}>{it.description}</Text>
                             {it.vendorName && <Text style={s.internalTdMuted}>🏢 {it.vendorName}</Text>}
+                            {titipan > 0 && <Text style={[s.internalTdMuted, { color: '#D97706' }]}>Titipan: {rp(titipan)}</Text>}
                           </View>
-                          <Text style={[hpp == null ? s.internalTdMuted : s.internalTd, s.ciHpp]}>
-                            {hpp != null ? rp(hpp) : '—'}
+                          <Text style={[hppEff == null ? s.internalTdMuted : s.internalTd, s.ciHpp]}>
+                            {hppEff != null ? rp(hppEff) : '—'}
                           </Text>
-                          <Text style={[titipan == null ? s.internalTdMuted : s.internalTd, s.ciTitipan]}>
-                            {titipan != null ? rp(titipan) : '—'}
+                          <Text style={[titipan === 0 ? s.internalTdMuted : s.internalTd, s.ciTitipan]}>
+                            {titipan > 0 ? rp(titipan) : '—'}
                           </Text>
                           <Text style={[margin == null ? s.internalTdMuted : s.internalTdRed, s.ciMargin]}>
                             {margin != null ? `${rp(margin)}${marginP != null ? ` (${marginP.toFixed(1)}%)` : ''}` : '—'}
@@ -397,13 +403,13 @@ export function QuotationPDF({ quotation: q, isDraft = false }) {
               <Text style={s.internalSummaryTitle}>🔒 Ringkasan Internal</Text>
               {internal.totalHpp > 0 && (
                 <View style={s.internalSummaryRow}>
-                  <Text style={s.internalSummaryLbl}>Total HPP/Modal ({internal.hppFilled}/{internal.itemCount} item)</Text>
+                  <Text style={s.internalSummaryLbl}>Total HPP/Modal ({internal.hppFilled}/{internal.itemCount} item, incl. titipan)</Text>
                   <Text style={s.internalSummaryVal}>{rp(internal.totalHpp)}</Text>
                 </View>
               )}
               {internal.totalTitipan > 0 && (
                 <View style={s.internalSummaryRow}>
-                  <Text style={s.internalSummaryLbl}>Total Titipan Klien</Text>
+                  <Text style={s.internalSummaryLbl}>Total Titipan Klien (sudah lebur ke harga jual)</Text>
                   <Text style={s.internalSummaryVal}>{rp(internal.totalTitipan)}</Text>
                 </View>
               )}

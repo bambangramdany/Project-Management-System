@@ -39,11 +39,15 @@ function calcTotals(q) {
   let base = 0, agencyBase = 0, hppTotal = 0, hppFilled = 0, titipanTotal = 0, itemCount = 0
   for (const sec of q.sections || []) {
     for (const item of sec.items || []) {
-      base += item.subtotal || 0
-      if (item.includeAgencyFee) agencyBase += item.subtotal || 0
+      const titipan = item.titipanKlien ?? 0
+      // effective subtotal = base rate subtotal + titipan (titipan lebur ke harga jual)
+      const effectiveSub = (item.subtotal || 0) + titipan
+      base += effectiveSub
+      if (item.includeAgencyFee) agencyBase += effectiveSub
       if (item.rate !== null) {
         itemCount++
-        if (item.hppSubtotal != null) { hppTotal += item.hppSubtotal; hppFilled++ }
+        // HPP efektif = modal + titipan (WTM keluarkan cash untuk titipan)
+        if (item.hppSubtotal != null) { hppTotal += item.hppSubtotal + titipan; hppFilled++ }
         if (item.titipanKlien != null) titipanTotal += item.titipanKlien
       }
     }
@@ -51,7 +55,8 @@ function calcTotals(q) {
   const agencyFeeAmt = agencyBase * ((q.agencyFeePercent || 0) / 100)
   const ppn = q.includesPpn ? (base + agencyFeeAmt) * ((q.ppnPercent || 11) / 100) : 0
   const grand = base + agencyFeeAmt + ppn
-  const grossMargin = hppFilled > 0 ? grand - hppTotal - titipanTotal : null
+  // margin = Grand Total - HPP efektif (titipan sudah netral di kedua sisi)
+  const grossMargin = hppFilled > 0 ? grand - hppTotal : null
   const marginPct   = grossMargin != null && grand > 0 ? (grossMargin / grand) * 100 : null
   return { base, agencyFeeAmt, ppn, grand, hppTotal, hppFilled, titipanTotal, itemCount, grossMargin, marginPct }
 }
@@ -458,11 +463,16 @@ export default function QuotationDetailPage() {
                           <td className="px-2 py-2 text-center text-gray-700 align-top">{item.qty}</td>
                           <td className="px-2 py-2 text-center text-gray-700 align-top hidden md:table-cell">{item.days}</td>
                           <td className="px-5 py-2 text-right font-medium text-gray-800 align-top">
-                            {item.rate == null ? '—' : fmt(item.subtotal)}
+                            {item.rate == null ? '—' : fmt((item.subtotal || 0) + (item.titipanKlien ?? 0))}
+                            {item.titipanKlien != null && canSeeHpp && (
+                              <div className="text-[10px] text-amber-500 font-normal">incl. titipan {fmt(item.titipanKlien)}</div>
+                            )}
                           </td>
                           {canSeeHpp && (
                             <td className="px-2 py-2 text-right align-top text-rose-500 text-xs">
-                              {item.hppSubtotal != null ? fmt(item.hppSubtotal) : <span className="text-gray-300">—</span>}
+                              {item.hppSubtotal != null
+                                ? <>{fmt(item.hppSubtotal + (item.titipanKlien ?? 0))}{item.titipanKlien != null && <div className="text-[10px] text-amber-400">+titipan {fmt(item.titipanKlien)}</div>}</>
+                                : <span className="text-gray-300">—</span>}
                             </td>
                           )}
                           {canSeeHpp && (
@@ -515,13 +525,13 @@ export default function QuotationDetailPage() {
               <p className="text-xs font-semibold text-rose-500 uppercase tracking-wide">🔒 Breakdown Internal</p>
               {totals.hppFilled > 0 && (
                 <div className="flex justify-between text-sm gap-2">
-                  <span className="text-gray-500 min-w-0">Total HPP/Modal ({totals.hppFilled}/{totals.itemCount} item diisi)</span>
+                  <span className="text-gray-500 min-w-0">Total HPP/Modal ({totals.hppFilled}/{totals.itemCount} item diisi, incl. titipan)</span>
                   <span className="font-medium text-red-600 shrink-0">{fmt(totals.hppTotal)}</span>
                 </div>
               )}
               {totals.titipanTotal > 0 && (
                 <div className="flex justify-between text-sm gap-2">
-                  <span className="text-amber-600 min-w-0">Total Titipan Klien</span>
+                  <span className="text-amber-600 min-w-0">Total Titipan Klien <span className="text-xs font-normal text-gray-400">(sudah lebur ke harga jual)</span></span>
                   <span className="font-medium text-amber-600 shrink-0">{fmt(totals.titipanTotal)}</span>
                 </div>
               )}
