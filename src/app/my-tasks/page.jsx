@@ -1114,17 +1114,7 @@ export default function MyTasksPage() {
             </div>
           )}
 
-          {/* Task project yang di-assign ke OWNER */}
-          {myProjectTasks.length > 0 && (
-            <div>
-              <SectionHeader label="Task Project Saya" count={myProjectTasks.length} accent="bg-violet-400" />
-              <div className="space-y-3">
-                {myProjectTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
-              </div>
-            </div>
-          )}
-
-          {/* Personal task OWNER (hanya untuk diri sendiri) */}
+          {/* Personal task OWNER — di atas task project */}
           <div>
             <SectionHeader label="Catatan & To-Do Saya" count={myPersonalTasks.length} accent="bg-gray-300" />
             <div className="space-y-3">
@@ -1134,6 +1124,16 @@ export default function MyTasksPage() {
               <AddTaskForm projectOptions={data.projectOptions} onAdd={addPersonalTask} />
             </div>
           </div>
+
+          {/* Task project yang di-assign ke OWNER */}
+          {myProjectTasks.length > 0 && (
+            <div>
+              <SectionHeader label="Task Project Saya" count={myProjectTasks.length} accent="bg-violet-400" />
+              <div className="space-y-3">
+                {myProjectTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
+              </div>
+            </div>
+          )}
 
           {/* Monitoring tim — read-only, selalu tampil */}
           <div>
