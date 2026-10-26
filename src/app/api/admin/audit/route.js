@@ -26,7 +26,7 @@ function computeQuotTotal(q) {
   return base + af + ppn
 }
 
-const AUDIT_ROLES = ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER']
+const AUDIT_ROLES = ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER']
 
 export async function GET() {
   const session = await getServerSession(authOptions)

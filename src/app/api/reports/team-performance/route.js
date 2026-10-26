@@ -3,7 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
-const VIEWER_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE', 'PROJECT_MANAGER']
+const VIEWER_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE', 'PROJECT_MANAGER', 'PRODUCER']
 const HIDDEN_EMAILS = ['hrdwatermark@gmail.com']
 
 function workDaysInRange(start, end) {

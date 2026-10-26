@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-const FINANCE_MEETING_ROLES = ['FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER']
+const FINANCE_MEETING_ROLES = ['FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER', 'PRODUCER']
 const FINANCE_MEETING_DIVISI = ['FINANCE_HRGA', 'EVENT', 'PH']
 
 function todayWIB() {

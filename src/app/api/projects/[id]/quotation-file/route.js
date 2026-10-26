@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 const BUCKET = 'quotations'
-const ALLOWED_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER']
+const ALLOWED_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF', 'PROJECT_MANAGER', 'PRODUCER']
 const ALLOWED_TYPES = [
   'application/pdf',
   'application/vnd.ms-excel',

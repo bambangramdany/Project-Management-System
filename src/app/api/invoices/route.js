@@ -8,7 +8,7 @@ function canManageInvoices(user) {
   return user.role === 'OWNER' || user.role === 'FINANCE' || user.role === 'FINANCE_STAFF' || isFinanceDirector(user)
 }
 function canViewInvoices(user) {
-  return canManageInvoices(user) || user.role === 'DIRECTOR' || user.role === 'PROJECT_MANAGER'
+  return canManageInvoices(user) || user.role === 'DIRECTOR' || user.role === 'PROJECT_MANAGER' || user.role === 'PRODUCER'
 }
 
 // Extract sequence dari quotationNumber, misal "WTM/EO/QUOT/2026/001" → "001"

@@ -6,7 +6,7 @@ import Navbar from '@/components/Navbar'
 import Link from 'next/link'
 import BackButton from '@/components/BackButton'
 
-const VIEWER_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE', 'PROJECT_MANAGER']
+const VIEWER_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE', 'PROJECT_MANAGER', 'PRODUCER']
 
 const DIVISI_LABEL = {
   EVENT:        'Event Organizer',

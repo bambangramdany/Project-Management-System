@@ -33,7 +33,7 @@ const LOAD_LABEL = (score) => {
 
 const formatScore = (score) => Number.isInteger(score) ? String(score) : score.toFixed(1)
 
-const MANAGER_ROLES = ['OWNER', 'PROJECT_MANAGER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF']
+const MANAGER_ROLES = ['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF']
 
 export default function WorkloadPage() {
   const { data: session, status } = useSession()

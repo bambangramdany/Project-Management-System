@@ -11,7 +11,7 @@ import { NextResponse } from 'next/server'
 
 export async function POST(req) {
   const session = await getServerSession(authOptions)
-  if (!session || !['OWNER', 'DIRECTOR', 'PROJECT_MANAGER'].includes(session.user.role)) {
+  if (!session || !['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

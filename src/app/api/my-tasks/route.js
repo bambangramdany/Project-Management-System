@@ -19,7 +19,7 @@ const DIV_LABEL = {
 function getTeamDivisions(user) {
   const { role, divisi } = user
   if (role === 'OWNER') return null
-  if (role === 'DIRECTOR' || role === 'PROJECT_MANAGER') {
+  if (role === 'DIRECTOR' || role === 'PROJECT_MANAGER' || role === 'PRODUCER') {
     if (divisi === 'EVENT')        return ['EVENT', 'CREATIVE']
     if (divisi === 'CREATIVE')     return ['CREATIVE']
     if (divisi === 'PH')           return ['PH']
