@@ -92,6 +92,7 @@ export default function QuotationListPage() {
               ))}
             </select>
           </div>
+          {['PROJECT_MANAGER', 'PRODUCER'].includes(session?.user?.role) ? null : (
           <div>
             <label className="label text-xs">Divisi</label>
             <select className="select text-sm py-1.5" value={filter.division} onChange={e => setFilter(f => ({ ...f, division: e.target.value }))}>
@@ -100,6 +101,7 @@ export default function QuotationListPage() {
               <option value="PH">PH</option>
             </select>
           </div>
+          )}
         </div>
 
         {/* List */}

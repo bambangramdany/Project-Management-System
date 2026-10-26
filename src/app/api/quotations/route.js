@@ -37,8 +37,17 @@ export async function GET(req) {
 
   const where = {}
   if (status    && status    !== 'all') where.status    = status
-  if (division  && division  !== 'all') where.division  = division
   if (projectId) where.projectId = projectId
+
+  // PM & PRODUCER hanya lihat quotation divisi mereka sendiri
+  const { role, divisi } = session.user
+  const isPMLevel = ['PROJECT_MANAGER', 'PRODUCER'].includes(role)
+  if (isPMLevel) {
+    const userDiv = divisi === 'PH' ? 'PH' : 'EO'
+    where.division = userDiv
+  } else if (division && division !== 'all') {
+    where.division = division
+  }
 
   const quotations = await prisma.quotation.findMany({
     where,
