@@ -822,7 +822,7 @@ function DivisionSection({ title, projects, isPH, onProjectUpdate }) {
           {ACTIVE_STATUSES.filter(s => briefingActive.some(p => p.status === s)).map(s => {
             const projectsInStatus = briefingActive.filter(p => p.status === s)
             return (
-              <details key={s} open className="group">
+              <details key={s} className="group">
                 <summary className={clsx('px-5 py-2.5 flex items-center justify-between gap-2 cursor-pointer select-none list-none', STATUS_GROUP_COLOR[s] || 'bg-gray-500 text-white')}>
                   <span className="flex items-center gap-2 text-sm font-bold">
                     {STATUS_LABEL[s] || s}
