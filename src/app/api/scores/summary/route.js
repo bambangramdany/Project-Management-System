@@ -54,8 +54,8 @@ function getUsersPromise(me) {
         const u = m.user
         if (u.id === me.id) return
         if (['OWNER', 'DIRECTOR'].includes(u.role)) return
-        // PM hanya boleh tampil jika satu divisi (pairing dalam divisi yang sama)
-        if (u.role === 'PROJECT_MANAGER' && u.divisi !== me.divisi) return
+        // Hanya tampilkan anggota dari divisi yang sama
+        if (u.divisi !== me.divisi) return
         map[u.id] = u
       }))
       return Object.values(map)
