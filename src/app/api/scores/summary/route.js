@@ -49,10 +49,14 @@ function getUsersPromise(me) {
       where: { OR: [{ picId: me.id }, { members: { some: { userId: me.id } } }] },
       select: { members: { include: { user: { select: { id: true, name: true, jobTitle: true, role: true, divisi: true } } } } },
     }).then(myProjects => {
-      const EXCLUDED = ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER']
       const map = {}
       myProjects.forEach(p => p.members.forEach(m => {
-        if (m.user.id !== me.id && !EXCLUDED.includes(m.user.role)) map[m.user.id] = m.user
+        const u = m.user
+        if (u.id === me.id) return
+        if (['OWNER', 'DIRECTOR'].includes(u.role)) return
+        // PM hanya boleh tampil jika satu divisi (pairing dalam divisi yang sama)
+        if (u.role === 'PROJECT_MANAGER' && u.divisi !== me.divisi) return
+        map[u.id] = u
       }))
       return Object.values(map)
     })
