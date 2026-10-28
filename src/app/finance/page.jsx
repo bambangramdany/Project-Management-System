@@ -13,7 +13,7 @@ import {
 import { isFinanceDirector } from '@/lib/rbac'
 import BackButton from '@/components/BackButton'
 
-const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF']
+const FINANCE_ROLES = ['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'FINANCE']
 
 const BUDGET_ITEM_STATUS_LABEL = {
   BELUM_DIAJUKAN: 'Belum Diajukan',
