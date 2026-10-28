@@ -134,5 +134,15 @@ export async function POST(req) {
     },
   })
 
+  // Mark PersonalTask terkait sebagai DONE (idempotent via marker di description)
+  const marker = `[inv-queue:${quotationId}]`
+  await prisma.personalTask.updateMany({
+    where: {
+      description: { contains: marker },
+      status: { not: 'DONE' },
+    },
+    data: { status: 'DONE' },
+  })
+
   return NextResponse.json({ ok: true, invoiceId: invoice.id, invoiceNumber }, { status: 201 })
 }
