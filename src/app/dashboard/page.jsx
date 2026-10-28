@@ -383,7 +383,7 @@ export default function DashboardPage() {
   const [pendingPRCount, setPendingPRCount] = useState(null)
   const [teamStats, setTeamStats] = useState(null)
 
-  const MANAGER_ROLES = ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'FINANCE']
+  const MANAGER_ROLES = ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'FINANCE', 'FINANCE_STAFF']
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
