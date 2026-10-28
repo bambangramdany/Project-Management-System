@@ -27,12 +27,12 @@ const NAV_ITEMS = [
   { href: '/invoice',   label: 'Invoice',   roles: ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'] },
 
   // ── Finance & Operasional ──
-  { href: '/finance',  label: 'Finance',    roles: ['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'] },
+  { href: '/finance',  label: 'Finance',    roles: ['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'FINANCE'] },
   { href: '/targets',  label: 'Target',     roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/cashflow', label: 'Kas',        cashOnly: true },
-  { href: '/opex',     label: 'Opex',       financeStaffOk: true },
+  { href: '/opex',     label: 'Opex',       roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/debts',    label: 'Hutang',     roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
-  { href: '/assets',   label: 'Aset',       financeStaffOk: true },
+  { href: '/assets',   label: 'Aset',       roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
   { href: '/salary',   label: 'Gaji',       roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
 
   // ── Referensi ──
