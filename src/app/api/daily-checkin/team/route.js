@@ -9,7 +9,7 @@ export async function GET(req) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const allowed = ['OWNER', 'DIRECTOR', 'FINANCE']
+  const allowed = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF']
   if (!allowed.includes(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }

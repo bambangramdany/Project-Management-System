@@ -12,7 +12,7 @@ import KpiGapSummary from '@/components/KpiGapSummary'
 import clsx from 'clsx'
 import BackButton from '@/components/BackButton'
 
-const KPI_SUMMARY_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE']
+const KPI_SUMMARY_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF']
 const RATER_ROLES = ['PROJECT_MANAGER', 'PRODUCER']
 
 function fmt(v) {
@@ -127,7 +127,7 @@ export default function ScoresPage() {
 
   useEffect(() => {
     if (status !== 'authenticated') return
-    const isAdmin = ['OWNER', 'DIRECTOR', 'FINANCE'].includes(session?.user?.role)
+    const isAdmin = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'].includes(session?.user?.role)
     if (isAdmin) {
       fetch(`/api/daily-checkin/team?period=${checkInPeriod}`).then(r => r.ok ? r.json() : null).then(setCheckInTeam)
     }
@@ -306,7 +306,7 @@ export default function ScoresPage() {
           )}
 
           {/* Disiplin Harian Tim (admin) */}
-          {['OWNER', 'DIRECTOR', 'FINANCE'].includes(session.user.role) && (
+          {['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'].includes(session.user.role) && (
             <div className="card p-4 border-t-4 border-teal-400">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                 <div>

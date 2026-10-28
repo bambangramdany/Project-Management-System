@@ -27,7 +27,7 @@ export async function GET(req) {
 
   // Hanya diri sendiri atau superior yang boleh lihat
   const isSelf  = userId === session.user.id
-  const isAdmin = ['OWNER', 'DIRECTOR', 'FINANCE'].includes(session.user.role)
+  const isAdmin = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'].includes(session.user.role)
   if (!isSelf && !isAdmin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }

@@ -209,7 +209,7 @@ export function canScoreKpi(evaluator, target) {
 
 // Roles that can view the KPI summary (HR / management)
 export function canViewKpiSummary(user) {
-  return ['OWNER', 'DIRECTOR', 'FINANCE'].includes(user?.role)
+  return ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'].includes(user?.role)
 }
 
 // ── Project bonus scoring RBAC ──────────────────────────────────────────
@@ -277,5 +277,6 @@ export function canViewDirectorNoteAuthors(user) {
 export function canViewAllScores(user) {
   if (!user) return false
   if (user.role === 'OWNER') return true
+  if (user.role === 'FINANCE_STAFF') return true
   return user.role === 'DIRECTOR' && user.divisi === 'FINANCE_HRGA'
 }
