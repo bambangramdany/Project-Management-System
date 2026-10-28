@@ -50,7 +50,7 @@ export async function GET() {
       orderBy: { date: 'desc' },
     }),
     prisma.task.count({ where: { assigneeId: userId, status: { not: 'DONE' } } }),
-    prisma.personalTask.count({ where: { userId, done: false } }),
+    prisma.personalTask.count({ where: { userId, status: { not: 'DONE' } } }),
     prisma.briefingLog.findMany({
       where: { userId, date: { gte: monthStartStr, lte: monthEndStr } },
     }),
