@@ -1221,6 +1221,8 @@ export default function MyTasksPage() {
               <AllSharingSessionsTable sessions={sharingSessions} />
             </CollapsibleSection>
           )}
+
+          <PersonalStatsWidget />
         </main>
       </div>
     )
@@ -1321,6 +1323,8 @@ export default function MyTasksPage() {
               <AllSharingSessionsTable sessions={sharingSessions} />
             </CollapsibleSection>
           )}
+
+          <PersonalStatsWidget />
         </main>
       </div>
     )
