@@ -31,8 +31,10 @@ export async function GET() {
   // Today
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
 
-  const monthStartStr = monthStart.toISOString().slice(0, 10)
-  const monthEndStr   = monthEnd.toISOString().slice(0, 10)
+  const pad = n => String(n).padStart(2, '0')
+  const monthStartStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const monthEndStr   = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(lastDay)}`
 
   const financeTypes = getFinanceMeetingTypes(session.user)
   const needsFinance = financeTypes.length > 0
@@ -44,7 +46,7 @@ export async function GET() {
       orderBy: { date: 'desc' },
     }),
     prisma.dailyCheckIn.findMany({
-      where: { userId, date: { gte: monthStart, lte: monthEnd } },
+      where: { userId, date: { gte: monthStartStr, lte: monthEndStr } },
       orderBy: { date: 'desc' },
     }),
     prisma.task.count({ where: { assigneeId: userId, status: { not: 'DONE' } } }),
