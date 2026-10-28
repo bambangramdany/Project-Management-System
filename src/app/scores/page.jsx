@@ -11,6 +11,7 @@ import KpiMyResultPanel from '@/components/KpiMyResultPanel'
 import KpiGapSummary from '@/components/KpiGapSummary'
 import clsx from 'clsx'
 import BackButton from '@/components/BackButton'
+import * as XLSX from 'xlsx'
 
 const KPI_SUMMARY_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF']
 const RATER_ROLES = ['PROJECT_MANAGER', 'PRODUCER']
@@ -158,6 +159,79 @@ export default function ScoresPage() {
 
   const canSubmitNote = !['OWNER', 'DIRECTOR'].includes(session.user.role)
 
+  const exportExcel = () => {
+    const wb = XLSX.utils.book_new()
+    const period = checkInPeriod || kpiPeriod || resolveKpiPeriod()
+
+    // Sheet 1: Ringkasan Akumulasi
+    const summaryRows = [['Nama', 'Divisi', 'Jabatan', 'Skor Per Project', 'KPI Bulanan', 'Potongan', 'Gabungan']]
+    if (data?.team) {
+      data.team.forEach(({ user, summary }) => {
+        summaryRows.push([
+          user.name,
+          user.divisi || '',
+          user.jobTitle || user.role,
+          summary.overall != null ? +summary.overall.toFixed(2) : '',
+          summary.kpiOverall != null ? +summary.kpiOverall.toFixed(2) : '',
+          summary.deduction || 0,
+          summary.combinedOverall != null ? +summary.combinedOverall.toFixed(2) : '',
+        ])
+      })
+    }
+    const ws1 = XLSX.utils.aoa_to_sheet(summaryRows)
+    XLSX.utils.book_append_sheet(wb, ws1, 'Ringkasan Penilaian')
+
+    // Sheet 2: Disiplin Check-in
+    if (checkInTeam?.summary?.length > 0) {
+      const checkinRows = [
+        ['Nama', 'Divisi', 'Hari Kerja',
+          'Pagi – Tepat Waktu', 'Pagi – Terlambat', 'Pagi – Tidak Hadir', 'Pagi – Skor (%)',
+          'Sore – Tepat Waktu', 'Sore – Terlambat', 'Sore – Tidak Hadir', 'Sore – Skor (%)'],
+      ]
+      checkInTeam.summary
+        .sort((a, b) => (a.divisi || '').localeCompare(b.divisi || '') || a.userName.localeCompare(b.userName))
+        .forEach(s => {
+          checkinRows.push([
+            s.userName,
+            s.divisi || s.role,
+            checkInTeam.workDays,
+            s.morning.onTime, s.morning.late, s.morning.missed, s.morning.score,
+            s.evening.onTime, s.evening.late, s.evening.missed, s.evening.score,
+          ])
+        })
+      const ws2 = XLSX.utils.aoa_to_sheet(checkinRows)
+      XLSX.utils.book_append_sheet(wb, ws2, `Disiplin ${period}`)
+    }
+
+    // Sheet 3: Detail KPI per karyawan
+    if (kpiAssessments.length > 0) {
+      const kpiRows = [['Nama', 'Divisi', 'Kriteria KPI', 'Skor', 'Penilai', 'Komentar', 'Terlambat Input']]
+      const byUser = {}
+      kpiAssessments.forEach(a => {
+        if (['OWNER', 'DIRECTOR'].includes(a.user.role)) return
+        if (!byUser[a.userId]) byUser[a.userId] = { user: a.user, items: [] }
+        byUser[a.userId].items.push(a)
+      })
+      Object.values(byUser).forEach(({ user, items }) => {
+        items.forEach(a => {
+          kpiRows.push([
+            user.name,
+            user.divisi || '',
+            a.kpiKey || '',
+            a.score,
+            a.evaluator?.name || '',
+            a.comment || '',
+            a.late ? 'Ya' : 'Tidak',
+          ])
+        })
+      })
+      const ws3 = XLSX.utils.aoa_to_sheet(kpiRows)
+      XLSX.utils.book_append_sheet(wb, ws3, `KPI ${period}`)
+    }
+
+    XLSX.writeFile(wb, `Akumulasi_Penilaian_${period}.xlsx`)
+  }
+
   const sendReminders = async () => {
     setReminding(true)
     const res = await fetch('/api/kpi/remind', { method: 'POST' })
@@ -202,15 +276,25 @@ export default function ScoresPage() {
         {/* Header + Tab Nav */}
         <div className="space-y-3">
           <BackButton />
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Penilaian Tim</h1>
-            <p className="text-sm text-gray-500">
-              {RATER_ROLES.includes(session.user.role)
-                ? 'Nilai tim di project Anda & pantau kinerja anggota'
-                : KPI_SUMMARY_ROLES.includes(session.user.role)
-                ? 'Ringkasan penilaian seluruh tim'
-                : 'Penilaian per project & KPI bulanan'}
-            </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Penilaian Tim</h1>
+              <p className="text-sm text-gray-500">
+                {RATER_ROLES.includes(session.user.role)
+                  ? 'Nilai tim di project Anda & pantau kinerja anggota'
+                  : KPI_SUMMARY_ROLES.includes(session.user.role)
+                  ? 'Ringkasan penilaian seluruh tim'
+                  : 'Penilaian per project & KPI bulanan'}
+              </p>
+            </div>
+            {KPI_SUMMARY_ROLES.includes(session.user.role) && (
+              <button
+                onClick={exportExcel}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors"
+              >
+                <span>⬇</span> Export Excel
+              </button>
+            )}
           </div>
           {tabs.length > 1 && (
             <div className="flex gap-1 border-b border-gray-200">
