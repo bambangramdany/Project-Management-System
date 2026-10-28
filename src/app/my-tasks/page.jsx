@@ -938,18 +938,23 @@ function DivisionGroup({ group, onSave }) {
   )
 }
 
-function CollapsibleSection({ title, count, defaultOpen = true, icon, children }) {
+function CollapsibleSection({ title, count, defaultOpen = true, icon, accent, children }) {
   const [open, setOpen] = useState(defaultOpen)
+  const headerCls = accent
+    ? `w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${accent}`
+    : 'w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50/60 transition-colors'
+  const titleCls = accent ? 'text-sm font-semibold text-white' : 'text-sm font-semibold text-gray-800'
+  const countCls = accent ? 'text-xs bg-white/20 text-white rounded-full px-2 py-0.5 font-semibold' : 'text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5'
+  const chevronCls = accent ? 'text-white/70 text-xs' : 'text-gray-400 text-xs'
   return (
     <div className="rounded-2xl overflow-hidden border border-gray-100 bg-white shadow-sm">
-      <button onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50/60 transition-colors">
+      <button onClick={() => setOpen(o => !o)} className={headerCls}>
         <div className="flex items-center gap-2">
           {icon && <span>{icon}</span>}
-          <span className="text-sm font-semibold text-gray-800">{title}</span>
-          {count != null && <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{count}</span>}
+          <span className={titleCls}>{title}</span>
+          {count != null && <span className={countCls}>{count}</span>}
         </div>
-        <span className="text-gray-400 text-xs">{open ? '▲' : '▼'}</span>
+        <span className={chevronCls}>{open ? '▲' : '▼'}</span>
       </button>
       {open && <div className="px-4 pb-4 space-y-2">{children}</div>}
     </div>
@@ -1127,7 +1132,7 @@ export default function MyTasksPage() {
 
           {/* Task project yang di-assign ke OWNER */}
           {myProjectTasks.length > 0 && (
-            <CollapsibleSection title="Task Project Saya" count={myProjectTasks.length} defaultOpen={false}>
+            <CollapsibleSection title="Task Project Saya" count={myProjectTasks.length} defaultOpen={false} accent="bg-violet-500 hover:bg-violet-600">
               <div className="space-y-3 mt-2">
                 {myProjectTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
               </div>
@@ -1290,7 +1295,7 @@ export default function MyTasksPage() {
 
           {/* My tasks */}
           {myProjectTasks.length > 0 && (
-            <CollapsibleSection title="Task Project Saya" count={myProjectTasks.length} defaultOpen={false}>
+            <CollapsibleSection title="Task Project Saya" count={myProjectTasks.length} defaultOpen={false} accent="bg-violet-500 hover:bg-violet-600">
               <FilterSort items={myProjectTasks}>
                 {(filtered) => (
                   <div className="space-y-3 mt-2">
