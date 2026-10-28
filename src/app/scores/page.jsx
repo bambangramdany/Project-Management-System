@@ -788,22 +788,6 @@ export default function ScoresPage() {
             <CheckInScoreCard title="🕐 Disiplin Harian Saya" data={myCheckIn} />
           )}
 
-          {/* Kirim catatan ke direktur */}
-          {canSubmitNote && directors.length > 0 && (
-            <div className="card p-4 border-t-4 border-amber-400">
-              <p className="text-sm font-semibold text-ink-800 mb-1">💬 Sampaikan Catatan ke Direktur</p>
-              <p className="text-xs text-gray-500 mb-3">Identitas Anda dirahasiakan dari direktur penerima.</p>
-              <form onSubmit={submitNote} className="space-y-2">
-                <select className="select" value={noteForm.directorId} onChange={e => setNoteForm(f => ({ ...f, directorId: e.target.value }))} required>
-                  <option value="">Pilih direktur tujuan</option>
-                  {directors.map(d => <option key={d.id} value={d.id}>{d.name} — {d.jobTitle || d.role}</option>)}
-                </select>
-                <textarea className="input" rows={3} placeholder="Tulis catatan Anda..." value={noteForm.message} onChange={e => setNoteForm(f => ({ ...f, message: e.target.value }))} required />
-                <button type="submit" className="btn-primary">Kirim Catatan</button>
-                {noteSent && <span className="ml-2 text-xs text-green-600">Catatan terkirim.</span>}
-              </form>
-            </div>
-          )}
 
         </div>
         )}
@@ -813,6 +797,23 @@ export default function ScoresPage() {
         ══════════════════════════════════════════════ */}
         {activeTab === 'akumulasi' && (
           <AkumulasiTab userId={session.user.id} isOwner={session.user.role === 'OWNER'} canHrdEvaluate={session.user.canHrdEvaluate} />
+        )}
+
+        {/* Kirim catatan ke direktur — selalu muncul di bawah untuk semua non-direktur */}
+        {canSubmitNote && directors.length > 0 && (
+          <div className="card p-4 border-t-4 border-amber-400">
+            <p className="text-sm font-semibold text-ink-800 mb-1">💬 Sampaikan Catatan ke Direktur</p>
+            <p className="text-xs text-gray-500 mb-3">Identitas Anda dirahasiakan dari direktur penerima.</p>
+            <form onSubmit={submitNote} className="space-y-2">
+              <select className="select" value={noteForm.directorId} onChange={e => setNoteForm(f => ({ ...f, directorId: e.target.value }))} required>
+                <option value="">Pilih direktur tujuan</option>
+                {directors.map(d => <option key={d.id} value={d.id}>{d.name} — {d.jobTitle || d.role}</option>)}
+              </select>
+              <textarea className="input" rows={3} placeholder="Tulis catatan Anda..." value={noteForm.message} onChange={e => setNoteForm(f => ({ ...f, message: e.target.value }))} required />
+              <button type="submit" className="btn-primary">Kirim Catatan</button>
+              {noteSent && <span className="ml-2 text-xs text-green-600">Catatan terkirim.</span>}
+            </form>
+          </div>
         )}
 
       </main>
