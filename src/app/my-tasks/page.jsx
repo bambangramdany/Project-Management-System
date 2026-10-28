@@ -1127,12 +1127,11 @@ export default function MyTasksPage() {
 
           {/* Task project yang di-assign ke OWNER */}
           {myProjectTasks.length > 0 && (
-            <div>
-              <SectionHeader label="Task Project Saya" count={myProjectTasks.length} accent="bg-violet-400" />
-              <div className="space-y-3">
+            <CollapsibleSection title="Task Project Saya" count={myProjectTasks.length} defaultOpen={false}>
+              <div className="space-y-3 mt-2">
                 {myProjectTasks.map(item => <TaskCard key={item.id} item={item} onSave={saveProgress} />)}
               </div>
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* Monitoring tim — read-only, selalu tampil */}
@@ -1291,8 +1290,7 @@ export default function MyTasksPage() {
 
           {/* My tasks */}
           {myProjectTasks.length > 0 && (
-            <div>
-              <SectionHeader label="Task Project Saya" count={myProjectTasks.length} accent="bg-violet-400" />
+            <CollapsibleSection title="Task Project Saya" count={myProjectTasks.length} defaultOpen={false}>
               <FilterSort items={myProjectTasks}>
                 {(filtered) => (
                   <div className="space-y-3 mt-2">
@@ -1300,7 +1298,7 @@ export default function MyTasksPage() {
                   </div>
                 )}
               </FilterSort>
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* Team sections */}
