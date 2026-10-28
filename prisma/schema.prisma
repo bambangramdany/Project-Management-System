@@ -64,6 +64,7 @@ model User {
   hrdEvaluationsReceived HrdMonthlyEvaluation[] @relation("HrdEvaluatee")
   evaluationWeightsSet   EvaluationWeight[]    @relation("WeightUpdater")
   canHrdEvaluate         Boolean               @default(false)
+  canHrAnnounce          Boolean               @default(false)
   birthDate              DateTime?
   birthPlace             String?
   gender                 String?               // L / P

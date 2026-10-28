@@ -36,7 +36,8 @@ export default function HrAnnouncementsPage() {
   if (status !== 'authenticated') return null
 
   const isAdmin = session.user.role === 'OWNER' ||
-    (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA')
+    (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA') ||
+    session.user.canHrAnnounce
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -11,7 +11,8 @@ export async function GET(req) {
   const all = searchParams.get('all') === '1' // for HR admin view
 
   const isAdmin = ['OWNER'].includes(session.user.role) ||
-    (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA')
+    (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA') ||
+    session.user.canHrAnnounce
 
   const now = new Date()
 
@@ -74,7 +75,8 @@ export async function POST(req) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const isAdmin = ['OWNER'].includes(session.user.role) ||
-    (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA')
+    (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA') ||
+    session.user.canHrAnnounce
   if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()

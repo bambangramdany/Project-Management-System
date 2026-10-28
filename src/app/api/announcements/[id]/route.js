@@ -8,7 +8,8 @@ export async function PATCH(req, { params }) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const isAdmin = ['OWNER'].includes(session.user.role) ||
-    (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA')
+    (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA') ||
+    session.user.canHrAnnounce
   if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
@@ -35,7 +36,8 @@ export async function DELETE(req, { params }) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const isAdmin = ['OWNER'].includes(session.user.role) ||
-    (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA')
+    (session.user.role === 'DIRECTOR' && session.user.divisi === 'FINANCE_HRGA') ||
+    session.user.canHrAnnounce
   if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   await prisma.announcement.delete({ where: { id: params.id } })
