@@ -62,6 +62,7 @@ function shapeItem(item, kind, today, userId) {
 }
 
 export async function GET() {
+  try {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -310,6 +311,10 @@ export async function GET() {
     today: today.toISOString(),
     projectOptions: memberProjects.map(p => ({ id: p.id, code: p.code, name: p.name, clientName: p.client?.name || null })),
   })
+  } catch (e) {
+    console.error('[my-tasks] GET error:', e)
+    return NextResponse.json({ error: e.message }, { status: 500 })
+  }
 }
 
 export async function POST(req) {
