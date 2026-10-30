@@ -56,7 +56,9 @@ model User {
   addCostsCreated       AddCost[]     @relation("AddCostCreator")
   invoicesCreated       Invoice[]     @relation("InvoiceCreator")
   vendorRatings         VendorRating[] @relation("VendorRatingCreator")
-  dailyCheckIns         DailyCheckIn[]
+  dailyCheckIns              DailyCheckIn[]
+  morningExcuseReviews       DailyCheckIn[] @relation("MorningReasonReviewer")
+  eveningExcuseReviews       DailyCheckIn[] @relation("EveningReasonReviewer")
   sharingSessions        SharingSession[]      @relation("SharingSessionPresenter")
   sharingSessionsCreated SharingSession[]      @relation("SharingSessionCreator")
   sharingSessionsScored  SharingSession[]      @relation("SharingSessionScorer")
@@ -202,14 +204,36 @@ model DailyCheckIn {
   morningAckAt DateTime? // waktu acknowledge pagi (on time jika <= 09:30 WIB)
   eveningNote  String?   // laporan progress sore hari
   eveningAt    DateTime? // waktu submit sore (on time jika 17:00-20:00 WIB)
+
+  // Alasan keterlambatan / absen
+  morningReason           String?
+  morningReasonStatus     ExcuseStatus?
+  morningReasonReviewerId String?
+  morningReasonNote       String?       // catatan dari Director saat review
+  morningReasonReviewedAt DateTime?
+
+  eveningReason           String?
+  eveningReasonStatus     ExcuseStatus?
+  eveningReasonReviewerId String?
+  eveningReasonNote       String?
+  eveningReasonReviewedAt DateTime?
+
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                   User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  morningReasonReviewer  User? @relation("MorningReasonReviewer", fields: [morningReasonReviewerId], references: [id])
+  eveningReasonReviewer  User? @relation("EveningReasonReviewer", fields: [eveningReasonReviewerId], references: [id])
 
   @@unique([userId, date])
   @@index([date])
   @@index([userId])
+}
+
+enum ExcuseStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum CashTransactionType {

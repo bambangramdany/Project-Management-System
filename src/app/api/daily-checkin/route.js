@@ -54,12 +54,15 @@ export async function GET(req) {
     }
 
     const morningOnTime = records.filter(r => {
+      // Excuse approved = dianggap on time
+      if (r.morningReasonStatus === 'APPROVED') return true
       if (!r.morningAckAt) return false
       const wib = new Date(r.morningAckAt.getTime() + 7 * 60 * 60 * 1000)
       const h = wib.getUTCHours() + wib.getUTCMinutes() / 60
       return h <= 8.0 // <= 08:00
     }).length
     const morningLate = records.filter(r => {
+      if (r.morningReasonStatus === 'APPROVED') return false // excuse approved = tidak dihitung terlambat
       if (!r.morningAckAt) return false
       const wib = new Date(r.morningAckAt.getTime() + 7 * 60 * 60 * 1000)
       const h = wib.getUTCHours() + wib.getUTCMinutes() / 60
@@ -67,16 +70,22 @@ export async function GET(req) {
     }).length
     const morningMissed = workDays.filter(wd => {
       const past = wd < date
-      return past && !records.find(r => r.date === wd && r.morningAckAt)
+      if (!past) return false
+      const r = records.find(r => r.date === wd)
+      if (r?.morningAckAt) return false
+      if (r?.morningReasonStatus === 'APPROVED') return false // excuse approved = tidak absen
+      return true
     }).length
 
     const eveningOnTime = records.filter(r => {
+      if (r.eveningReasonStatus === 'APPROVED') return true
       if (!r.eveningAt) return false
       const wib = new Date(r.eveningAt.getTime() + 7 * 60 * 60 * 1000)
       const h = wib.getUTCHours() + wib.getUTCMinutes() / 60
       return h >= 17 && h <= 20
     }).length
     const eveningLate = records.filter(r => {
+      if (r.eveningReasonStatus === 'APPROVED') return false
       if (!r.eveningAt) return false
       const wib = new Date(r.eveningAt.getTime() + 7 * 60 * 60 * 1000)
       const h = wib.getUTCHours() + wib.getUTCMinutes() / 60
@@ -84,7 +93,11 @@ export async function GET(req) {
     }).length
     const eveningMissed = workDays.filter(wd => {
       const past = wd < date
-      return past && !records.find(r => r.date === wd && r.eveningAt)
+      if (!past) return false
+      const r = records.find(r => r.date === wd)
+      if (r?.eveningAt) return false
+      if (r?.eveningReasonStatus === 'APPROVED') return false
+      return true
     }).length
 
     const totalWorkDays = workDays.filter(wd => wd <= date).length || 1
@@ -99,10 +112,15 @@ export async function GET(req) {
   }
 
   const currentHour = hourWIB()
+  const morningLate = today?.morningAckAt
+    ? (() => { const wib = new Date(today.morningAckAt.getTime() + 7 * 60 * 60 * 1000); return (wib.getUTCHours() + wib.getUTCMinutes() / 60) > 9.5 })()
+    : false
+
   return NextResponse.json({
     ...(today || {}),
     date,
     currentHour,
+    morningLate,
     showEveningForm: currentHour >= 17 && currentHour < 24,
     eveningOverdue: currentHour >= 20 && !today?.eveningAt,
     periodSummary,

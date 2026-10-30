@@ -82,6 +82,11 @@ export default function ScoresPage() {
   const [reminding, setReminding] = useState(false)
   const [reminded, setReminded] = useState(null)
   const [myResultPeriod, setMyResultPeriod] = useState(resolveKpiPeriod())
+  const [excuses, setExcuses] = useState([])
+  const [excusesLoading, setExcusesLoading] = useState(false)
+  const [excuseFilter, setExcuseFilter] = useState('PENDING')
+  const [excuseReviewNote, setExcuseReviewNote] = useState({}) // { checkinId_type: note }
+  const [excuseReviewing, setExcuseReviewing] = useState(null) // 'checkinId_type'
 
   // Tab default: PM/Producer/Admin langsung ke "Nilai Tim"; staff lihat skor diri sendiri dulu
   // Gunakan lazy init agar konsisten saat session belum tersedia di render pertama
@@ -148,6 +153,33 @@ export default function ScoresPage() {
     if (!scoreProjectId) { setScoreProject(null); return }
     fetch(`/api/projects/${scoreProjectId}`).then(r => r.json()).then(setScoreProject)
   }, [scoreProjectId])
+
+  // Fetch excuses ketika tab review-alasan aktif atau filter berubah
+  useEffect(() => {
+    if (activeTab !== 'review-alasan') return
+    if (!['OWNER', 'DIRECTOR'].includes(session?.user?.role)) return
+    setExcusesLoading(true)
+    fetch(`/api/daily-checkin/excuse?status=${excuseFilter}`)
+      .then(r => r.json())
+      .then(d => { setExcuses(Array.isArray(d) ? d : []); setExcusesLoading(false) })
+      .catch(() => setExcusesLoading(false))
+  }, [activeTab, excuseFilter, session?.user?.role])
+
+  async function reviewExcuse(checkinId, type, decision, note) {
+    setExcuseReviewing(`${checkinId}_${type}`)
+    const res = await fetch('/api/daily-checkin/excuse', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ checkinId, type, decision, note }),
+    })
+    if (res.ok) {
+      // Refresh list
+      fetch(`/api/daily-checkin/excuse?status=${excuseFilter}`)
+        .then(r => r.json())
+        .then(d => setExcuses(Array.isArray(d) ? d : []))
+    }
+    setExcuseReviewing(null)
+  }
 
   if (status !== 'authenticated' || loading || !data) {
     return (
@@ -265,6 +297,10 @@ export default function ScoresPage() {
       : []),
     // Semua bisa lihat akumulasi penilaian
     { key: 'akumulasi', label: '📊 Akumulasi', desc: 'Nilai akhir bulanan, kuartalan, tahunan' },
+    // Director bisa review alasan keterlambatan
+    ...(['OWNER', 'DIRECTOR'].includes(session.user.role)
+      ? [{ key: 'review-alasan', label: '📋 Review Alasan', desc: 'Tinjau alasan terlambat/absen tim' }]
+      : []),
   ]
   // Owner punya tab Nilai Tim saja (+ Semua Catatan), tidak ada tab diri sendiri
 
@@ -797,6 +833,105 @@ export default function ScoresPage() {
         ══════════════════════════════════════════════ */}
         {activeTab === 'akumulasi' && (
           <AkumulasiTab userId={session.user.id} isOwner={session.user.role === 'OWNER'} canHrdEvaluate={session.user.canHrdEvaluate} />
+        )}
+
+        {/* Tab Review Alasan (Director/Owner) */}
+        {activeTab === 'review-alasan' && ['OWNER', 'DIRECTOR'].includes(session.user.role) && (
+          <div className="space-y-4">
+            <div className="card p-4">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div>
+                  <h2 className="text-base font-bold text-gray-900">Review Alasan Keterlambatan</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">Tinjau dan berikan keputusan atas alasan keterlambatan/absen tim</p>
+                </div>
+                <div className="flex gap-1">
+                  {['PENDING', 'APPROVED', 'REJECTED', 'all'].map(s => (
+                    <button key={s} onClick={() => setExcuseFilter(s)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${excuseFilter === s ? 'bg-brand text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                      {s === 'PENDING' ? '⏳ Pending' : s === 'APPROVED' ? '✓ Diterima' : s === 'REJECTED' ? '✗ Ditolak' : '📋 Semua'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {excusesLoading ? (
+                <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" /></div>
+              ) : excuses.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 text-sm">Tidak ada alasan {excuseFilter === 'PENDING' ? 'yang menunggu review' : excuseFilter === 'all' ? '' : excuseFilter === 'APPROVED' ? 'yang diterima' : 'yang ditolak'}</div>
+              ) : (
+                <div className="space-y-3">
+                  {excuses.map(c => {
+                    const items = []
+                    if (c.morningReason) items.push({ type: 'morning', reason: c.morningReason, status: c.morningReasonStatus, reviewer: c.morningReasonReviewer, note: c.morningReasonNote, reviewedAt: c.morningReasonReviewedAt })
+                    if (c.eveningReason) items.push({ type: 'evening', reason: c.eveningReason, status: c.eveningReasonStatus, reviewer: c.eveningReasonReviewer, note: c.eveningReasonNote, reviewedAt: c.eveningReasonReviewedAt })
+                    return items.map(item => {
+                      const key = `${c.id}_${item.type}`
+                      const isReviewing = excuseReviewing === key
+                      return (
+                        <div key={key} className={`rounded-xl border p-4 space-y-3 ${
+                          item.status === 'APPROVED' ? 'border-green-200 bg-green-50'
+                          : item.status === 'REJECTED' ? 'border-red-100 bg-red-50'
+                          : 'border-amber-200 bg-amber-50'
+                        }`}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-sm text-gray-900">{c.user?.name}</span>
+                                <span className="text-xs text-gray-500">{c.user?.divisi}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${item.type === 'morning' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'}`}>
+                                  {item.type === 'morning' ? '☀️ Pagi' : '🌆 Sore'}
+                                </span>
+                                <span className="text-xs text-gray-400">{c.date}</span>
+                              </div>
+                              <p className="text-sm text-gray-700 mt-2 leading-relaxed">{item.reason}</p>
+                            </div>
+                            <span className={`shrink-0 text-xs px-2 py-1 rounded-lg font-semibold ${
+                              item.status === 'APPROVED' ? 'bg-green-100 text-green-700'
+                              : item.status === 'REJECTED' ? 'bg-red-100 text-red-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                            }`}>
+                              {item.status === 'APPROVED' ? '✓ Diterima' : item.status === 'REJECTED' ? '✗ Ditolak' : '⏳ Pending'}
+                            </span>
+                          </div>
+
+                          {item.status === 'APPROVED' || item.status === 'REJECTED' ? (
+                            <div className="text-xs text-gray-500">
+                              Diputuskan oleh <span className="font-semibold">{item.reviewer?.name}</span>
+                              {item.reviewedAt ? ` pada ${new Date(item.reviewedAt).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}
+                              {item.note && <span> · Catatan: "{item.note}"</span>}
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <input
+                                value={excuseReviewNote[key] || ''}
+                                onChange={e => setExcuseReviewNote(prev => ({ ...prev, [key]: e.target.value }))}
+                                placeholder="Catatan (opsional)..."
+                                className="w-full rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  disabled={isReviewing}
+                                  onClick={() => reviewExcuse(c.id, item.type, 'APPROVED', excuseReviewNote[key])}
+                                  className="px-4 py-1.5 rounded-lg bg-green-600 text-white text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition-colors">
+                                  {isReviewing ? '...' : '✓ Terima'}
+                                </button>
+                                <button
+                                  disabled={isReviewing}
+                                  onClick={() => reviewExcuse(c.id, item.type, 'REJECTED', excuseReviewNote[key])}
+                                  className="px-4 py-1.5 rounded-lg bg-red-500 text-white text-sm font-bold hover:bg-red-600 disabled:opacity-50 transition-colors">
+                                  {isReviewing ? '...' : '✗ Tolak'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Kirim catatan ke direktur — selalu muncul di bawah untuk semua non-direktur */}

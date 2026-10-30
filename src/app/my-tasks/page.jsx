@@ -360,17 +360,45 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
   const [showAbsensiReminder, setShowAbsensiReminder] = useState(false)
   const [ackLoading, setAckLoading] = useState(false)
   const [ackSuccess, setAckSuccess] = useState(false)
+  const [morningExcuse, setMorningExcuse] = useState('')
+  const [eveningExcuse, setEveningExcuse] = useState('')
+  const [showMorningExcuse, setShowMorningExcuse] = useState(false)
+  const [showEveningExcuse, setShowEveningExcuse] = useState(false)
+  const [excuseSubmitting, setExcuseSubmitting] = useState(false)
+  const [excuseStatus, setExcuseStatus] = useState({ morning: checkIn?.morningReasonStatus, evening: checkIn?.eveningReasonStatus })
+  const [excuseReason, setExcuseReason] = useState({ morning: checkIn?.morningReason, evening: checkIn?.eveningReason })
 
   const hasMorning = !!checkIn?.morningAckAt
   const hasEvening = !!checkIn?.eveningAt || submitted
   const showEvening = checkIn?.showEveningForm
   const isOverdue   = checkIn?.eveningOverdue
+  const morningLate = checkIn?.morningLate
 
   const now = hourWIBNow()
   const isOnTime    = now >= 4 && now <= 8         // 04:00–08:00 WIB tepat waktu
-  const isLate      = now > 8 && now <= 8 + 10/60  // 08:00–08:10 grace period (telat)
-  const inWindow    = isOnTime || isLate            // tombol hanya muncul 04:00–08:10 WIB
+  const isAfterCutoff = now > 8                    // lewat jam 08:00, dianggap terlambat
   const isWeekend   = [0, 6].includes(new Date().getDay())
+
+  async function submitExcuse(type) {
+    const reason = type === 'morning' ? morningExcuse : eveningExcuse
+    if (!reason.trim()) return
+    setExcuseSubmitting(true)
+    try {
+      const res = await fetch('/api/daily-checkin/excuse', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, reason, date: checkIn?.date }),
+      })
+      if (res.ok) {
+        setExcuseStatus(prev => ({ ...prev, [type]: 'PENDING' }))
+        setExcuseReason(prev => ({ ...prev, [type]: reason }))
+        if (type === 'morning') setShowMorningExcuse(false)
+        else setShowEveningExcuse(false)
+      }
+    } finally {
+      setExcuseSubmitting(false)
+    }
+  }
 
   // Briefing status label
   let briefingStatus = null
@@ -404,18 +432,17 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
       {/* Morning Briefing Check-in */}
       {!isWeekend && (
         !hasMorning ? (
-          inWindow ? (
           <div className={`rounded-2xl p-4 flex items-center justify-between gap-4 shadow-lg ${
             isOnTime ? 'bg-gradient-to-r from-violet-600 to-indigo-600 shadow-violet-100'
             : 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-amber-100'
           }`}>
             <div>
               <p className="font-bold text-white text-sm">
-                {isOnTime ? '☀️ Morning Briefing 08:00 WIB' : '⚠️ Masih bisa hadir (telat)'}
+                {isOnTime ? '☀️ Morning Briefing 08:00 WIB' : '⚠️ Check-in pagi (terlambat)'}
               </p>
               <p className="text-xs text-white/75 mt-0.5">
                 {isOnTime ? 'Klik untuk konfirmasi kehadiran briefing & cek tugas hari ini'
-                : 'Klik untuk mencatat kehadiran (akan ditandai telat)'}
+                : 'Catat jam hadir sekarang — sistem merekam waktu terlambat'}
               </p>
             </div>
             <button
@@ -426,40 +453,79 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
                 setAckLoading(false)
                 setAckSuccess(true)
                 setShowAbsensiReminder(true)
+                if (isAfterCutoff) setShowMorningExcuse(true)
                 setTimeout(() => setAckSuccess(false), 3000)
               }}
               className="shrink-0 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-bold transition-colors active:scale-95 border border-white/30 disabled:opacity-60">
               {ackLoading ? '...' : ackSuccess ? '✓ Tercatat!' : isOnTime ? '✓ Hadir' : '✓ Hadir (Telat)'}
             </button>
           </div>
-          ) : (
-          <div className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-2.5 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-gray-400 shrink-0" />
-            <p className="text-sm text-gray-500">
-              Jendela check-in pagi sudah ditutup (04:00–08:10 WIB) — absensi hari ini tidak tercatat
-            </p>
-          </div>
-          )
-        ) : briefingStatus ? (
-          <div className={`rounded-2xl px-4 py-2.5 flex items-center gap-2 ${
-            briefingStatus.izin ? 'bg-blue-50 border border-blue-200'
-            : briefingStatus.late ? 'bg-amber-50 border border-amber-200'
-            : 'bg-green-50 border border-green-200'
-          }`}>
-            <div className={`w-2 h-2 rounded-full shrink-0 ${briefingStatus.izin ? 'bg-blue-500' : briefingStatus.late ? 'bg-amber-500' : 'bg-green-500'}`} />
-            <p className={`text-sm font-semibold ${briefingStatus.izin ? 'text-blue-700' : briefingStatus.late ? 'text-amber-700' : 'text-green-700'}`}>
-              {briefingStatus.izin ? '🔄 Izin project — tercatat'
-              : briefingStatus.late ? `⚠️ Hadir briefing (telat)${briefingStatus.time ? ` — ${briefingStatus.time} WIB` : ''}`
-              : `☀️ Hadir briefing tepat waktu${briefingStatus.time ? ` — ${briefingStatus.time} WIB` : ''}`}
-            </p>
-          </div>
         ) : (
-          <div className="rounded-2xl bg-green-50 border border-green-200 px-4 py-2.5 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-            <p className="text-sm text-green-700 font-semibold">
-              ☀️ Check-in pagi tercatat — {new Date(checkIn.morningAckAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB
-            </p>
-          </div>
+          <>
+            {briefingStatus ? (
+              <div className={`rounded-2xl px-4 py-2.5 flex items-center gap-2 ${
+                briefingStatus.izin ? 'bg-blue-50 border border-blue-200'
+                : briefingStatus.late ? 'bg-amber-50 border border-amber-200'
+                : 'bg-green-50 border border-green-200'
+              }`}>
+                <div className={`w-2 h-2 rounded-full shrink-0 ${briefingStatus.izin ? 'bg-blue-500' : briefingStatus.late ? 'bg-amber-500' : 'bg-green-500'}`} />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-semibold ${briefingStatus.izin ? 'text-blue-700' : briefingStatus.late ? 'text-amber-700' : 'text-green-700'}`}>
+                    {briefingStatus.izin ? '🔄 Izin project — tercatat'
+                    : briefingStatus.late ? `⚠️ Hadir briefing (telat)${briefingStatus.time ? ` — ${briefingStatus.time} WIB` : ''}`
+                    : `☀️ Hadir briefing tepat waktu${briefingStatus.time ? ` — ${briefingStatus.time} WIB` : ''}`}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className={`rounded-2xl px-4 py-2.5 flex items-center justify-between gap-2 ${morningLate ? 'bg-amber-50 border border-amber-200' : 'bg-green-50 border border-green-200'}`}>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${morningLate ? 'bg-amber-500' : 'bg-green-500'}`} />
+                  <p className={`text-sm font-semibold ${morningLate ? 'text-amber-700' : 'text-green-700'}`}>
+                    {morningLate
+                      ? `⚠️ Check-in pagi tercatat (terlambat) — ${new Date(checkIn.morningAckAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB`
+                      : `☀️ Check-in pagi tercatat — ${new Date(checkIn.morningAckAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB`
+                    }
+                  </p>
+                </div>
+                {morningLate && !excuseStatus.morning && (
+                  <button onClick={() => setShowMorningExcuse(v => !v)}
+                    className="shrink-0 text-xs px-2 py-1 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 font-semibold">
+                    + Alasan
+                  </button>
+                )}
+                {excuseStatus.morning && (
+                  <span className={`text-xs px-2 py-1 rounded-lg font-semibold ${
+                    excuseStatus.morning === 'APPROVED' ? 'bg-green-100 text-green-700'
+                    : excuseStatus.morning === 'REJECTED' ? 'bg-red-100 text-red-700'
+                    : 'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {excuseStatus.morning === 'APPROVED' ? '✓ Alasan diterima' : excuseStatus.morning === 'REJECTED' ? '✗ Alasan ditolak' : '⏳ Alasan pending review'}
+                  </span>
+                )}
+              </div>
+            )}
+            {/* Morning excuse form */}
+            {showMorningExcuse && !excuseStatus.morning && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
+                <p className="text-sm font-semibold text-amber-800">Alasan terlambat check-in pagi</p>
+                <p className="text-xs text-amber-600">Alasan akan dikirim ke Director divisi dan Direktur HR untuk ditinjau.</p>
+                <textarea value={morningExcuse} onChange={e => setMorningExcuse(e.target.value)} rows={3}
+                  placeholder="Ceritakan alasan keterlambatan check-in pagi ini..."
+                  className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none" />
+                <div className="flex gap-2">
+                  <button onClick={() => submitExcuse('morning')} disabled={excuseSubmitting || !morningExcuse.trim()}
+                    className="px-4 py-1.5 rounded-lg bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 disabled:opacity-50">
+                    {excuseSubmitting ? 'Mengirim...' : 'Kirim Alasan'}
+                  </button>
+                  <button onClick={() => setShowMorningExcuse(false)}
+                    className="px-4 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-sm font-semibold hover:bg-gray-200">
+                    Batal
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )
       )}
 
@@ -476,17 +542,43 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
 
       {showEvening && (
         hasEvening ? (
-          <div className="rounded-2xl bg-blue-50 border border-blue-200 px-4 py-2.5 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-            <p className="text-sm text-blue-700 font-semibold">Laporan sore sudah dikirim {checkIn.eveningAt ? `· ${new Date(checkIn.eveningAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB` : ''}</p>
+          <div className="space-y-2">
+            <div className={`rounded-2xl px-4 py-2.5 flex items-center justify-between gap-2 ${
+              checkIn?.eveningReasonStatus === 'APPROVED' ? 'bg-green-50 border border-green-200'
+              : checkIn?.eveningAt && new Date(checkIn.eveningAt).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' }).split(':')[0] > 20 ? 'bg-amber-50 border border-amber-200'
+              : 'bg-blue-50 border border-blue-200'
+            }`}>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                <p className="text-sm text-blue-700 font-semibold">Laporan sore sudah dikirim {checkIn.eveningAt ? `· ${new Date(checkIn.eveningAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })} WIB` : ''}</p>
+              </div>
+              {excuseStatus.evening && (
+                <span className={`text-xs px-2 py-1 rounded-lg font-semibold ${
+                  excuseStatus.evening === 'APPROVED' ? 'bg-green-100 text-green-700'
+                  : excuseStatus.evening === 'REJECTED' ? 'bg-red-100 text-red-700'
+                  : 'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {excuseStatus.evening === 'APPROVED' ? '✓ Alasan diterima' : excuseStatus.evening === 'REJECTED' ? '✗ Alasan ditolak' : '⏳ Alasan pending review'}
+                </span>
+              )}
+            </div>
           </div>
         ) : (
+          <div className="space-y-2">
           <form onSubmit={submitEvening} className={`rounded-2xl border-2 p-4 space-y-3 ${isOverdue ? 'border-orange-300 bg-orange-50' : 'border-blue-200 bg-blue-50/50'}`}>
-            <div>
+            <div className="flex items-start justify-between gap-2">
+              <div>
               <p className={`font-bold text-sm ${isOverdue ? 'text-orange-700' : 'text-blue-700'}`}>
-                {isOverdue ? 'Terlambat — laporan harus dikirim sebelum 20:00' : 'Laporan Progress Sore (17:00–20:00 WIB)'}
+                {isOverdue ? '⚠️ Terlambat — laporan harus dikirim sebelum 20:00' : 'Laporan Progress Sore (17:00–20:00 WIB)'}
               </p>
               <p className="text-xs text-gray-500 mt-0.5">Ceritakan apa yang sudah dikerjakan dan status setiap tugas</p>
+              </div>
+              {isOverdue && !excuseStatus.evening && (
+                <button type="button" onClick={() => setShowEveningExcuse(v => !v)}
+                  className="shrink-0 text-xs px-2 py-1 rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 font-semibold">
+                  + Alasan
+                </button>
+              )}
             </div>
             <textarea value={eveningNote} onChange={e => setEveningNote(e.target.value)} rows={3}
               placeholder="Contoh: Sudah survey lokasi, sedang proses rundown target selesai besok pagi..."
@@ -496,6 +588,38 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
               {submitting ? 'Mengirim...' : 'Kirim Laporan'}
             </button>
           </form>
+          {/* Evening excuse form */}
+          {showEveningExcuse && !excuseStatus.evening && (
+            <div className="rounded-xl border border-orange-200 bg-orange-50 p-3 space-y-2">
+              <p className="text-sm font-semibold text-orange-800">Alasan terlambat laporan sore</p>
+              <p className="text-xs text-orange-600">Alasan akan dikirim ke Director divisi dan Direktur HR untuk ditinjau.</p>
+              <textarea value={eveningExcuse} onChange={e => setEveningExcuse(e.target.value)} rows={3}
+                placeholder="Ceritakan alasan kenapa laporan sore terlambat atau belum terkirim..."
+                className="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none" />
+              <div className="flex gap-2">
+                <button onClick={() => submitExcuse('evening')} disabled={excuseSubmitting || !eveningExcuse.trim()}
+                  className="px-4 py-1.5 rounded-lg bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 disabled:opacity-50">
+                  {excuseSubmitting ? 'Mengirim...' : 'Kirim Alasan'}
+                </button>
+                <button onClick={() => setShowEveningExcuse(false)}
+                  className="px-4 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-sm font-semibold hover:bg-gray-200">
+                  Batal
+                </button>
+              </div>
+            </div>
+          )}
+          {excuseStatus.evening && (
+            <div className={`rounded-xl px-4 py-2.5 text-sm font-semibold ${
+              excuseStatus.evening === 'APPROVED' ? 'bg-green-50 border border-green-200 text-green-700'
+              : excuseStatus.evening === 'REJECTED' ? 'bg-red-50 border border-red-200 text-red-700'
+              : 'bg-yellow-50 border border-yellow-200 text-yellow-700'
+            }`}>
+              {excuseStatus.evening === 'APPROVED' ? '✓ Alasan laporan sore diterima Director'
+              : excuseStatus.evening === 'REJECTED' ? '✗ Alasan laporan sore ditolak Director'
+              : '⏳ Alasan laporan sore menunggu review Director'}
+            </div>
+          )}
+          </div>
         )
       )}
     </div>
