@@ -3,6 +3,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 const HIDDEN_EMAILS = ['hrdwatermark@gmail.com']
 
 const DIV_LABEL = {
