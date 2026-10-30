@@ -94,27 +94,28 @@ export async function GET() {
         },
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
       }),
-      // Task tim (exclude OWNER agar tidak duplikat di monitoring)
+      // Task tim (exclude OWNER agar tidak duplikat di monitoring) — tanpa progressUpdates untuk hemat query
       prisma.task.findMany({
         where: { status: { not: 'DONE' }, assigneeId: { not: userId }, assignee: { email: { notIn: HIDDEN_EMAILS } } },
-        include: {
+        select: {
+          id: true, title: true, description: true, dueDate: true, status: true, createdAt: true, assigneeId: true,
           project: { select: { id: true, code: true, name: true, status: true, division: true, client: { select: { name: true } } } },
           assignee: { select: { id: true, name: true, divisi: true, role: true } },
-          progressUpdates: { orderBy: { date: 'desc' }, take: 1 },
         },
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
-        take: 500,
+        take: 300,
       }),
-      // Personal task tim (exclude OWNER)
+      // Personal task tim (exclude OWNER) — tanpa progressUpdates
       prisma.personalTask.findMany({
         where: { status: { not: 'DONE' }, userId: { not: userId }, user: { email: { notIn: HIDDEN_EMAILS } } },
-        include: {
+        select: {
+          id: true, title: true, description: true, dueDate: true, status: true, createdAt: true, userId: true,
+          clientName: true, projectName: true,
           project: { select: { id: true, code: true, name: true, status: true, division: true, client: { select: { name: true } } } },
           user: { select: { id: true, name: true, divisi: true, role: true } },
-          progressUpdates: { orderBy: { date: 'desc' }, take: 1 },
         },
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
-        take: 500,
+        take: 300,
       }),
       prisma.user.findMany({
         where: { employeeStatus: 'ACTIVE', email: { notIn: HIDDEN_EMAILS } },
