@@ -181,10 +181,27 @@ function SubCategorySection({ subCat, vendorType, vendors, onEdit, onRate, isOpe
 // ── Rating modal (5-dimension scorecard) ─────────────────────────────────────
 function RatingModal({ vendor, onClose, onSaved }) {
   const [dims, setDims] = useState({ ratingQuality: 3, ratingTimeliness: 3, ratingCommunication: 3, ratingValue: 3, ratingFlexibility: 3 })
-  const [projectName, setProjectName] = useState('')
+  const [selectedProject, setSelectedProject] = useState(null) // { id, name, code }
+  const [projects, setProjects] = useState([])
+  const [projectSearch, setProjectSearch] = useState('')
+  const [showProjectDrop, setShowProjectDrop] = useState(false)
   const [review, setReview] = useState('')
   const [usageDate, setUsageDate] = useState('')
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/projects?limit=200')
+      .then(r => r.json())
+      .then(d => setProjects(Array.isArray(d) ? d : (d.projects || [])))
+      .catch(() => {})
+  }, [])
+
+  const filteredProjects = useMemo(() => {
+    const q = projectSearch.toLowerCase()
+    return projects.filter(p =>
+      !q || p.name?.toLowerCase().includes(q) || p.code?.toLowerCase().includes(q) || p.clientName?.toLowerCase().includes(q)
+    ).slice(0, 30)
+  }, [projects, projectSearch])
 
   const weighted = useMemo(() => {
     let total = 0, wSum = 0
@@ -201,7 +218,13 @@ function RatingModal({ vendor, onClose, onSaved }) {
       const res = await fetch(`/api/vendors/${vendor.id}/ratings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...dims, projectName: projectName || null, review: review || null, usageDate: usageDate || null }),
+        body: JSON.stringify({
+          ...dims,
+          projectId:   selectedProject?.id   || null,
+          projectName: selectedProject?.name || null,
+          review:      review || null,
+          usageDate:   usageDate || null,
+        }),
       })
       if (!res.ok) { const e = await res.json(); alert(e.error || 'Gagal'); return }
       onSaved()
@@ -219,9 +242,41 @@ function RatingModal({ vendor, onClose, onSaved }) {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
         </div>
         <div className="px-5 py-4 space-y-4">
-          <div>
-            <label className="label">Nama Project</label>
-            <input className="input" value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="Opsional" />
+          {/* Project selector */}
+          <div className="relative">
+            <label className="label">Project <span className="text-gray-400 font-normal">(opsional)</span></label>
+            {selectedProject ? (
+              <div className="flex items-center gap-2 p-2.5 border border-violet-300 bg-violet-50 rounded-lg">
+                <span className="text-xs font-mono text-violet-600 bg-violet-100 px-1.5 py-0.5 rounded">{selectedProject.code}</span>
+                <span className="text-sm font-medium text-gray-800 flex-1 truncate">{selectedProject.name}</span>
+                <button onClick={() => { setSelectedProject(null); setProjectSearch('') }} className="text-gray-400 hover:text-red-500 text-xs">✕</button>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  className="input"
+                  value={projectSearch}
+                  onChange={e => { setProjectSearch(e.target.value); setShowProjectDrop(true) }}
+                  onFocus={() => setShowProjectDrop(true)}
+                  onBlur={() => setTimeout(() => setShowProjectDrop(false), 150)}
+                  placeholder="Cari nama / kode project..."
+                />
+                {showProjectDrop && filteredProjects.length > 0 && (
+                  <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {filteredProjects.map(p => (
+                      <button
+                        key={p.id}
+                        onMouseDown={() => { setSelectedProject({ id: p.id, name: p.name, code: p.code }); setProjectSearch(''); setShowProjectDrop(false) }}
+                        className="w-full text-left px-3 py-2 hover:bg-violet-50 flex items-center gap-2 border-b border-gray-50 last:border-0"
+                      >
+                        <span className="text-xs font-mono text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded shrink-0">{p.code}</span>
+                        <span className="text-sm text-gray-800 truncate">{p.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div>
             <label className="label">Tanggal Pemakaian</label>
