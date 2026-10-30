@@ -326,11 +326,13 @@ const ROLE_SPECIFIC_KPI = {
     { key: 'execution_sop',        label: 'Eksekusi lapangan sesuai brief & SOP', group: 'role' },
     { key: 'progress_update',      label: 'Update progress & dokumentasi tepat waktu', group: 'role' },
     { key: 'field_problem_solving',label: 'Penanganan masalah lapangan (problem-solving)', group: 'role' },
+    { key: 'vendor_database',      label: 'Kontribusi database vendor baru (target 4/bulan)', group: 'role' },
   ],
   PRODUCTION: [
     { key: 'equipment_ready',  label: 'Kelengkapan & kesiapan alat/produksi', group: 'role' },
     { key: 'zero_issue',       label: 'Zero technical issue saat event/shooting', group: 'role' },
     { key: 'budget_efficiency',label: 'Efisiensi penggunaan budget produksi', group: 'role' },
+    { key: 'vendor_database',  label: 'Kontribusi database vendor baru (target 4/bulan)', group: 'role' },
   ],
   PRODUCER: [
     { key: 'production_planning',           label: 'Kualitas perencanaan produksi (jadwal, crew, lokasi)', group: 'role' },
@@ -459,10 +461,12 @@ export const PROJECT_SCORE_EXTRA_BY_ROLE = {
   PROJECT_OFFICER: [
     { key: 'field_execution', label: 'Kelancaran eksekusi lapangan' },
     { key: 'documentation_project', label: 'Dokumentasi & laporan project lengkap' },
+    { key: 'vendor_rating_project', label: 'Penilaian vendor yang digunakan di project ini' },
   ],
   PRODUCTION: [
     { key: 'equipment_readiness_project', label: 'Kesiapan alat tepat waktu' },
     { key: 'zero_issue_project', label: 'Zero issue saat hari-H' },
+    { key: 'vendor_rating_project', label: 'Penilaian vendor yang digunakan di project ini' },
   ],
   PRODUCER: [
     { key: 'production_schedule', label: 'Ketepatan jadwal produksi' },

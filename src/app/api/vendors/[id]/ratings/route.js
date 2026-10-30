@@ -105,6 +105,29 @@ export async function POST(req, { params }) {
     },
   })
 
+  // Auto-upsert ProjectScore vendor_rating_project jika rating terkait project
+  if (created.projectId) {
+    await prisma.projectScore.upsert({
+      where: {
+        projectId_userId_evaluatorId_criteria: {
+          projectId:   created.projectId,
+          userId:      session.user.id,
+          evaluatorId: session.user.id,
+          criteria:    'vendor_rating_project',
+        },
+      },
+      update: { score: 5 },
+      create: {
+        projectId:   created.projectId,
+        userId:      session.user.id,
+        evaluatorId: session.user.id,
+        criteria:    'vendor_rating_project',
+        score:       5,
+        comment:     'Otomatis: vendor project sudah dinilai',
+      },
+    })
+  }
+
   return NextResponse.json(created, { status: 201 })
 }
 

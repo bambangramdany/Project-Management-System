@@ -2,7 +2,16 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logAudit } from '@/lib/audit'
+import { resolveKpiPeriod } from '@/lib/constants'
 import { NextResponse } from 'next/server'
+
+// Roles yang punya kewajiban input vendor baru dan dihitung ke KPI
+const VENDOR_KPI_ROLES = ['PROJECT_OFFICER', 'PRODUCTION']
+
+// Hitung score vendor_database dari jumlah vendor: 1→2, 2→3, 3→4, 4+→5
+function vendorCountToScore(count) {
+  return Math.min(count + 1, 5)
+}
 
 export async function GET(req) {
   const session = await getServerSession(authOptions)
@@ -101,6 +110,45 @@ export async function POST(req) {
     userId: session.user.id, action: 'VENDOR_CREATE', entity: 'Vendor', entityId: vendor.id,
     summary: `${session.user.name} menambahkan vendor ${vendor.name}`,
   })
+
+  // Auto-update KPI vendor_database untuk PROJECT_OFFICER dan PRODUCTION
+  if (VENDOR_KPI_ROLES.includes(session.user.role)) {
+    const period = resolveKpiPeriod(new Date())
+    const [periodYear, periodMonth] = period.split('-').map(Number)
+    const monthStart = new Date(periodYear, periodMonth - 1, 1)
+    const monthEnd   = new Date(periodYear, periodMonth, 1)
+
+    const countThisMonth = await prisma.vendor.count({
+      where: {
+        enteredById: session.user.id,
+        createdAt: { gte: monthStart, lt: monthEnd },
+      },
+    })
+
+    // Capped di 4 (target maksimal); score 1-5: 1→2, 2→3, 3→4, 4+→5
+    const cappedCount = Math.min(countThisMonth, 4)
+    const score = vendorCountToScore(cappedCount)
+
+    await prisma.kpiAssessment.upsert({
+      where: {
+        userId_evaluatorId_period_kpiKey: {
+          userId:      session.user.id,
+          evaluatorId: session.user.id,
+          period,
+          kpiKey:      'vendor_database',
+        },
+      },
+      update: { score },
+      create: {
+        userId:      session.user.id,
+        evaluatorId: session.user.id,
+        period,
+        kpiKey:      'vendor_database',
+        score,
+        comment:     `Otomatis: ${cappedCount} vendor baru ditambahkan bulan ini`,
+      },
+    })
+  }
 
   return NextResponse.json(vendor, { status: 201 })
 }
