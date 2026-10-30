@@ -100,9 +100,10 @@ export async function GET() {
         include: {
           project: { select: { id: true, code: true, name: true, status: true, division: true, client: { select: { name: true } } } },
           assignee: { select: { id: true, name: true, divisi: true, role: true } },
-          progressUpdates: { orderBy: { date: 'desc' }, take: 5 },
+          progressUpdates: { orderBy: { date: 'desc' }, take: 1 },
         },
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
+        take: 500,
       }),
       // Personal task tim (exclude OWNER)
       prisma.personalTask.findMany({
@@ -110,9 +111,10 @@ export async function GET() {
         include: {
           project: { select: { id: true, code: true, name: true, status: true, division: true, client: { select: { name: true } } } },
           user: { select: { id: true, name: true, divisi: true, role: true } },
-          progressUpdates: { orderBy: { date: 'desc' }, take: 5 },
+          progressUpdates: { orderBy: { date: 'desc' }, take: 1 },
         },
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
+        take: 500,
       }),
       prisma.user.findMany({
         where: { employeeStatus: 'ACTIVE', email: { notIn: HIDDEN_EMAILS } },
@@ -197,7 +199,7 @@ export async function GET() {
         include: {
           project: { select: { id: true, code: true, name: true, status: true, client: { select: { name: true } } } },
           assignee: { select: { id: true, name: true, divisi: true, role: true } },
-          progressUpdates: { orderBy: { date: 'desc' }, take: 5 },
+          progressUpdates: { orderBy: { date: 'desc' }, take: 1 },
         },
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
       }),
@@ -213,7 +215,7 @@ export async function GET() {
         include: {
           project: { select: { id: true, code: true, name: true, status: true, client: { select: { name: true } } } },
           user: { select: { id: true, name: true, divisi: true, role: true } },
-          progressUpdates: { orderBy: { date: 'desc' }, take: 5 },
+          progressUpdates: { orderBy: { date: 'desc' }, take: 1 },
         },
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
       }),
