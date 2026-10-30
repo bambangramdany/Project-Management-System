@@ -75,8 +75,7 @@ export async function GET() {
   // ── OWNER: task sendiri (atas, editable) + monitoring semua tim (bawah, read-only) ──
   if (teamDivisions === null) {
     const DIV_ORDER = ['EVENT', 'CREATIVE', 'PH', 'FINANCE_HRGA']
-    // Gunakan $transaction agar semua query pakai 1 koneksi DB (hemat pool pgbouncer)
-    const [myOwnTasks, myOwnPersonalTasks, allTasks, allPersonalTasks, allUsers, memberProjects] = await prisma.$transaction([
+    const [myOwnTasks, myOwnPersonalTasks, allTasks, allPersonalTasks, memberProjects] = await Promise.all([
       // Task project yang di-assign ke OWNER
       prisma.task.findMany({
         where: { assigneeId: userId, status: { not: 'DONE' } },
@@ -95,7 +94,7 @@ export async function GET() {
         },
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
       }),
-      // Task tim (exclude OWNER) — tanpa progressUpdates untuk hemat query
+      // Task tim (exclude OWNER) — assignee.divisi sudah termasuk, tidak perlu allUsers
       prisma.task.findMany({
         where: { status: { not: 'DONE' }, assigneeId: { not: userId }, assignee: { email: { notIn: HIDDEN_EMAILS } } },
         select: {
@@ -106,7 +105,7 @@ export async function GET() {
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
         take: 300,
       }),
-      // Personal task tim (exclude OWNER) — tanpa progressUpdates
+      // Personal task tim (exclude OWNER)
       prisma.personalTask.findMany({
         where: { status: { not: 'DONE' }, userId: { not: userId }, user: { email: { notIn: HIDDEN_EMAILS } } },
         select: {
@@ -118,12 +117,7 @@ export async function GET() {
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
         take: 300,
       }),
-      prisma.user.findMany({
-        where: { employeeStatus: 'ACTIVE', email: { notIn: HIDDEN_EMAILS } },
-        select: { id: true, name: true, divisi: true, role: true },
-        orderBy: [{ divisi: 'asc' }, { name: 'asc' }],
-      }),
-      // Untuk OWNER: ambil project terbaru saja (tidak perlu filter by member)
+      // Untuk OWNER: ambil 50 project aktif terbaru
       prisma.project.findMany({
         where: { status: { not: 'ARCHIVED' } },
         select: { id: true, code: true, name: true, client: { select: { name: true } } },
@@ -137,11 +131,11 @@ export async function GET() {
       ...myOwnPersonalTasks.map(t => shapeItem(t, 'personal', today, userId)),
     ]
 
-    const userDivMap = {}
-    for (const u of allUsers) userDivMap[u.id] = u.divisi || 'EVENT'
+    // Divisi langsung dari relasi assignee/user yang sudah di-select
     const shapeTask = (item, kind) => {
       const uid = kind === 'task' ? item.assigneeId : item.userId
-      return { ...shapeItem(item, kind, today, uid), _divisi: userDivMap[uid] || 'EVENT' }
+      const divisi = (kind === 'task' ? item.assignee?.divisi : item.user?.divisi) || 'EVENT'
+      return { ...shapeItem(item, kind, today, uid), _divisi: divisi }
     }
     const allTeamItems = [
       ...allTasks.map(t => shapeTask(t, 'task')),
@@ -166,7 +160,7 @@ export async function GET() {
   // ── DIRECTOR / PM / FINANCE_STAFF dengan tim: mode team_lead ──────────────
   // Tampilkan: (1) task sendiri — bisa di-edit, (2) task tim per divisi — read-only
   if (teamDivisions.length > 0) {
-    const [myTasks, myPersonalTasks, teamTasks, teamPersonalTasks, allUsers, memberProjects] = await prisma.$transaction([
+    const [myTasks, myPersonalTasks, teamTasks, teamPersonalTasks, memberProjects] = await Promise.all([
       // Task sendiri
       prisma.task.findMany({
         where: { assigneeId: userId, status: { not: 'DONE' } },
@@ -184,15 +178,12 @@ export async function GET() {
         },
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
       }),
-      // Task tim (semua divisi yang relevan, EXCLUDE diri sendiri)
+      // Task tim — assignee.divisi sudah termasuk, tidak perlu allUsers
       prisma.task.findMany({
         where: {
           status: { not: 'DONE' },
           assigneeId: { not: userId },
-          assignee: {
-            divisi: { in: teamDivisions },
-            email: { notIn: HIDDEN_EMAILS },
-          },
+          assignee: { divisi: { in: teamDivisions }, email: { notIn: HIDDEN_EMAILS } },
         },
         include: {
           project: { select: { id: true, code: true, name: true, status: true, client: { select: { name: true } } } },
@@ -205,10 +196,7 @@ export async function GET() {
         where: {
           status: { not: 'DONE' },
           userId: { not: userId },
-          user: {
-            divisi: { in: teamDivisions },
-            email: { notIn: HIDDEN_EMAILS },
-          },
+          user: { divisi: { in: teamDivisions }, email: { notIn: HIDDEN_EMAILS } },
         },
         include: {
           project: { select: { id: true, code: true, name: true, status: true, client: { select: { name: true } } } },
@@ -216,10 +204,6 @@ export async function GET() {
           progressUpdates: { orderBy: { date: 'desc' }, take: 1 },
         },
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
-      }),
-      prisma.user.findMany({
-        where: { employeeStatus: 'ACTIVE', email: { notIn: HIDDEN_EMAILS } },
-        select: { id: true, name: true, divisi: true },
       }),
       prisma.project.findMany({
         where: {
@@ -240,13 +224,10 @@ export async function GET() {
       ...myPersonalTasks.map(t => shapeItem(t, 'personal', today, userId)),
     ]
 
-    // Map userId → divisi untuk task tim
-    const userDivMap = {}
-    for (const u of allUsers) userDivMap[u.id] = u.divisi || 'EVENT'
-
     const shapeTeamTask = (item, kind) => {
       const uid = kind === 'task' ? item.assigneeId : item.userId
-      return { ...shapeItem(item, kind, today, uid), _divisi: userDivMap[uid] || 'EVENT' }
+      const divisi = (kind === 'task' ? item.assignee?.divisi : item.user?.divisi) || 'EVENT'
+      return { ...shapeItem(item, kind, today, uid), _divisi: divisi }
     }
     const allTeamItems = [
       ...teamTasks.map(t => shapeTeamTask(t, 'task')),
