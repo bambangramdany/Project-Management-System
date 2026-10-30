@@ -75,7 +75,8 @@ export async function GET() {
   // ── OWNER: task sendiri (atas, editable) + monitoring semua tim (bawah, read-only) ──
   if (teamDivisions === null) {
     const DIV_ORDER = ['EVENT', 'CREATIVE', 'PH', 'FINANCE_HRGA']
-    const [myOwnTasks, myOwnPersonalTasks, allTasks, allPersonalTasks, allUsers, memberProjects] = await Promise.all([
+    // Gunakan $transaction agar semua query pakai 1 koneksi DB (hemat pool pgbouncer)
+    const [myOwnTasks, myOwnPersonalTasks, allTasks, allPersonalTasks, allUsers, memberProjects] = await prisma.$transaction([
       // Task project yang di-assign ke OWNER
       prisma.task.findMany({
         where: { assigneeId: userId, status: { not: 'DONE' } },
@@ -85,7 +86,7 @@ export async function GET() {
         },
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
       }),
-      // Personal task OWNER (hanya untuk diri sendiri, tidak muncul di monitoring tim)
+      // Personal task OWNER
       prisma.personalTask.findMany({
         where: { userId, status: { not: 'DONE' } },
         include: {
@@ -94,7 +95,7 @@ export async function GET() {
         },
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
       }),
-      // Task tim (exclude OWNER agar tidak duplikat di monitoring) — tanpa progressUpdates untuk hemat query
+      // Task tim (exclude OWNER) — tanpa progressUpdates untuk hemat query
       prisma.task.findMany({
         where: { status: { not: 'DONE' }, assigneeId: { not: userId }, assignee: { email: { notIn: HIDDEN_EMAILS } } },
         select: {
@@ -122,16 +123,12 @@ export async function GET() {
         select: { id: true, name: true, divisi: true, role: true },
         orderBy: [{ divisi: 'asc' }, { name: 'asc' }],
       }),
+      // Untuk OWNER: ambil project terbaru saja (tidak perlu filter by member)
       prisma.project.findMany({
-        where: {
-          OR: [
-            { picId: userId },
-            { members: { some: { userId } } },
-            { tasks: { some: { assigneeId: userId } } },
-          ],
-        },
+        where: { status: { not: 'ARCHIVED' } },
         select: { id: true, code: true, name: true, client: { select: { name: true } } },
         orderBy: { updatedAt: 'desc' },
+        take: 50,
       }),
     ])
 
@@ -169,7 +166,7 @@ export async function GET() {
   // ── DIRECTOR / PM / FINANCE_STAFF dengan tim: mode team_lead ──────────────
   // Tampilkan: (1) task sendiri — bisa di-edit, (2) task tim per divisi — read-only
   if (teamDivisions.length > 0) {
-    const [myTasks, myPersonalTasks, teamTasks, teamPersonalTasks, allUsers, memberProjects] = await Promise.all([
+    const [myTasks, myPersonalTasks, teamTasks, teamPersonalTasks, allUsers, memberProjects] = await prisma.$transaction([
       // Task sendiri
       prisma.task.findMany({
         where: { assigneeId: userId, status: { not: 'DONE' } },
