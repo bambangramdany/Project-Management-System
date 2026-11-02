@@ -68,8 +68,6 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // TEMP: early diagnostic — remove after debugging
-  return NextResponse.json({ ok: true, role: session.user.role, id: session.user.id })
 
   const userId = session.user.id
   const today = startOfTodayUTC()
@@ -120,9 +118,9 @@ export async function GET() {
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
         take: 300,
       }),
-      // Untuk OWNER: ambil 50 project aktif terbaru
+      // Untuk OWNER: ambil 50 project aktif terbaru (hindari DONE/CANCELED/FAILED)
       prisma.project.findMany({
-        where: { status: { not: 'ARCHIVED' } },
+        where: { status: { notIn: ['DONE', 'CANCELED', 'FAILED'] } },
         select: { id: true, code: true, name: true, client: { select: { name: true } } },
         orderBy: { updatedAt: 'desc' },
         take: 50,
