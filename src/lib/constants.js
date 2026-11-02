@@ -420,7 +420,7 @@ export const KPI_SCORE_LABEL = { 1: 'Kurang', 2: 'Cukup', 3: 'Baik', 4: 'Sangat 
 
 // Day of month by which the current month's KPI assessment must be submitted.
 // Submissions after this date are flagged "late" and the activity/project shifts to next period.
-export const KPI_DEADLINE_DAY = 23
+export const KPI_DEADLINE_DAY = 20
 
 // Determine the KPI period (YYYY-MM) a date should be scored under, applying the deadline rule:
 // activities/evaluations occurring after the deadline day roll into the next month's period.
