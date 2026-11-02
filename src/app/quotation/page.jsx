@@ -28,6 +28,7 @@ export default function QuotationListPage() {
   const [quotations, setQuotations] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState({ status: 'all', division: 'all' })
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -81,8 +82,16 @@ export default function QuotationListPage() {
           )}
         </div>
 
-        {/* Filter bar */}
+        {/* Search + Filter bar */}
         <div className="card p-3 flex flex-wrap gap-3 items-center">
+          <div className="flex-1 min-w-[200px]">
+            <input
+              className="input text-sm"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Cari nama project atau klien…"
+            />
+          </div>
           <div>
             <label className="label text-xs">Status</label>
             <select className="select text-sm py-1.5" value={filter.status} onChange={e => setFilter(f => ({ ...f, status: e.target.value }))}>
@@ -110,11 +119,34 @@ export default function QuotationListPage() {
           {!loading && quotations.length === 0 && (
             <div className="py-12 text-center text-sm text-gray-400">Belum ada quotation</div>
           )}
+          {!loading && quotations.length > 0 && search.trim() && (() => {
+            const q_s = search.trim().toLowerCase()
+            const match = quotations.filter(q =>
+              q.eventName?.toLowerCase().includes(q_s) ||
+              q.clientName?.toLowerCase().includes(q_s) ||
+              q.quotationNumber?.toLowerCase().includes(q_s)
+            )
+            if (match.length === 0) return (
+              <div className="py-12 text-center text-sm text-gray-400">
+                Tidak ditemukan hasil untuk <strong>"{search}"</strong>
+              </div>
+            )
+            return null
+          })()}
           {!loading && (() => {
+            const q_search = search.trim().toLowerCase()
+            const filtered = q_search
+              ? quotations.filter(q =>
+                  q.eventName?.toLowerCase().includes(q_search) ||
+                  q.clientName?.toLowerCase().includes(q_search) ||
+                  q.quotationNumber?.toLowerCase().includes(q_search)
+                )
+              : quotations
+
             // Pisahkan parent (bukan sub) dan sub — render parent dulu lalu sub-nya langsung di bawah
             const subs = new Map() // parentId → [sub, ...]
             const parents = []
-            for (const q of quotations) {
+            for (const q of filtered) {
               if (q.parentQuotationId) {
                 if (!subs.has(q.parentQuotationId)) subs.set(q.parentQuotationId, [])
                 subs.get(q.parentQuotationId).push(q)
@@ -123,7 +155,7 @@ export default function QuotationListPage() {
               }
             }
             // Sub yang induknya tidak ada di halaman ini (misal disaring filter) — tampilkan sendiri
-            const orphanSubs = quotations.filter(q => q.parentQuotationId && !quotations.find(p => p.id === q.parentQuotationId))
+            const orphanSubs = filtered.filter(q => q.parentQuotationId && !filtered.find(p => p.id === q.parentQuotationId))
 
             const renderRow = (q, isSubRow = false) => {
               const st = STATUS_LABEL[q.status] || STATUS_LABEL.DRAFT
