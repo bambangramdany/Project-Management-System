@@ -64,15 +64,9 @@ function shapeItem(item, kind, today, userId) {
 }
 
 export async function GET() {
-  // DIAG-4: naked return, no session, no DB
-  return NextResponse.json({ chk: 'naked', v: 'diag4' })
-
   try {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  // DIAG-3: return immediately after session check
-  return NextResponse.json({ chk: 'session-ok', role: session.user?.role, uid: session.user?.id?.slice(0,8), v: 'diag3' })
 
   const userId = session.user.id
   const today = startOfTodayUTC()
@@ -80,8 +74,6 @@ export async function GET() {
 
   // ── OWNER: task sendiri (atas, editable) + monitoring semua tim (bawah, read-only) ──
   if (teamDivisions === null) {
-    // DIAG: checkpoint sebelum Promise.all
-    return NextResponse.json({ chk: 'before-query', userId, v: 'diag2' })
     const DIV_ORDER = ['EVENT', 'CREATIVE', 'PH', 'FINANCE_HRGA']
     const [myOwnTasks, myOwnPersonalTasks, allTasks, allPersonalTasks, memberProjects] = await Promise.all([
       // Task project yang di-assign ke OWNER
