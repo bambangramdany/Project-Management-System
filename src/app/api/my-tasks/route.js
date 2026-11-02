@@ -297,7 +297,7 @@ export async function GET() {
   })
   } catch (e) {
     console.error('[my-tasks] GET error:', e)
-    return NextResponse.json({ error: e.message }, { status: 500 })
+    return NextResponse.json({ error: e.message, type: e.constructor?.name, v: 'nov02' }, { status: 500 })
   }
 }
 
