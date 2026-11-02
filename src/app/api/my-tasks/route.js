@@ -68,6 +68,12 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // DIAGNOSTIC: return early to confirm route handler runs
+  // Remove after confirming fix works
+  if (session.user.role === 'OWNER') {
+    const count = await prisma.task.count({ where: { status: { not: 'DONE' } } })
+    return NextResponse.json({ ok: true, role: 'OWNER', taskCount: count, v: 'diag-nov02' })
+  }
 
   const userId = session.user.id
   const today = startOfTodayUTC()
