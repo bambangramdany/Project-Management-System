@@ -64,6 +64,9 @@ function shapeItem(item, kind, today, userId) {
 }
 
 export async function GET() {
+  // DIAG-4: naked return, no session, no DB
+  return NextResponse.json({ chk: 'naked', v: 'diag4' })
+
   try {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
