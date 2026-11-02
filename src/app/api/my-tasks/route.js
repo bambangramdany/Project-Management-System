@@ -68,6 +68,9 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // DIAG-3: return immediately after session check
+  return NextResponse.json({ chk: 'session-ok', role: session.user?.role, uid: session.user?.id?.slice(0,8), v: 'diag3' })
+
   const userId = session.user.id
   const today = startOfTodayUTC()
   const teamDivisions = getTeamDivisions(session.user)
