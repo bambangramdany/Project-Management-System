@@ -30,7 +30,9 @@ export async function GET(req, { params }) {
       picQuotation: { select: { id: true, name: true, jobTitle: true } },
       approver1:    { select: { id: true, name: true, jobTitle: true } },
       approver2:    { select: { id: true, name: true, jobTitle: true } },
-      project:      { select: { id: true, code: true, name: true } },
+      project:       { select: { id: true, code: true, name: true } },
+      parent:        { select: { id: true, quotationNumber: true, eventName: true, clientName: true } },
+      subQuotations: { select: { id: true, quotationNumber: true, eventName: true, status: true, location: true, eventDate: true } },
       // signedPdfUrl & signedPdfName are scalar fields — included automatically
       sections: {
         orderBy: { order: 'asc' },

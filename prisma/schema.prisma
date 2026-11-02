@@ -1285,6 +1285,16 @@ model Quotation {
   // Add Cost: quotation tambahan di luar quotation utama (invoice terpisah, budget digabung)
   isAddCost       Boolean  @default(false)
 
+  // Nomor: AUTO = generate otomatis, MANUAL = user isi sendiri (mengacu nomor klien/kontrak)
+  numberMode      String   @default("AUTO")  // "AUTO" | "MANUAL"
+
+  // Sub-quotation: project yang sama tapi beda kota/tanggal/invoice
+  // parentQuotationId diisi → quotation ini adalah sub (12a, 12b, dst)
+  // parent & sub masing-masing berdiri sendiri; parent hanya sebagai referensi grouping
+  parentQuotationId String?
+  parent            Quotation?  @relation("QuotationSubs", fields: [parentQuotationId], references: [id], onDelete: SetNull)
+  subQuotations     Quotation[] @relation("QuotationSubs")
+
   // Signed PDF — upload setelah quotation APPROVED / WON
   signedPdfUrl    String?
   signedPdfName   String?
@@ -1303,6 +1313,7 @@ model Quotation {
   @@index([division])
   @@index([createdById])
   @@index([projectId])
+  @@index([parentQuotationId])
 }
 
 // Category group within a quotation, labeled alphabetically: A, B, C...

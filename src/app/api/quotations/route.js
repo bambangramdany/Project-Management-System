@@ -25,6 +25,34 @@ async function nextQuotationNumber(division, year) {
   return `WTM/${divCode}/QUOT/${year}/${num}`
 }
 
+// Generate sub-quotation number suffix (a, b, c, ...)
+// Finds existing subs of the parent and picks the next letter
+async function nextSubSuffix(parentId, parentNumber) {
+  const existingSubs = await prisma.quotation.findMany({
+    where: { parentQuotationId: parentId },
+    select: { quotationNumber: true },
+  })
+  // Extract suffixes already used: "012a" → "a", "012b" → "b"
+  const used = existingSubs.map(s => {
+    const match = s.quotationNumber.match(/([a-z]+)$/)
+    return match ? match[1] : ''
+  }).filter(Boolean)
+
+  // Find next available single letter
+  for (let i = 0; i < 26; i++) {
+    const letter = String.fromCharCode(97 + i) // a, b, c ...
+    if (!used.includes(letter)) return `${parentNumber}${letter}`
+  }
+  // Fallback: double letters aa, ab, ...
+  for (let i = 0; i < 26; i++) {
+    for (let j = 0; j < 26; j++) {
+      const letters = String.fromCharCode(97 + i) + String.fromCharCode(97 + j)
+      if (!used.includes(letters)) return `${parentNumber}${letters}`
+    }
+  }
+  return `${parentNumber}z`
+}
+
 export async function GET(req) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -56,7 +84,9 @@ export async function GET(req) {
       picQuotation: { select: { id: true, name: true } },
       approver1:    { select: { id: true, name: true } },
       approver2:    { select: { id: true, name: true } },
-      project:      { select: { id: true, code: true, name: true } },
+      project:        { select: { id: true, code: true, name: true } },
+      parent:         { select: { id: true, quotationNumber: true, eventName: true } },
+      subQuotations:  { select: { id: true, quotationNumber: true, eventName: true, status: true, location: true } },
       sections: {
         orderBy: { order: 'asc' },
         include: {
@@ -83,7 +113,23 @@ export async function POST(req) {
 
   const year = new Date().getFullYear()
   const division = body.division || 'EVENT'
-  const quotationNumber = await nextQuotationNumber(division, year)
+  const numberMode = body.numberMode === 'MANUAL' ? 'MANUAL' : 'AUTO'
+
+  let quotationNumber
+  if (numberMode === 'MANUAL') {
+    if (!body.quotationNumber?.trim()) return NextResponse.json({ error: 'Nomor quotation wajib diisi untuk mode manual' }, { status: 400 })
+    quotationNumber = body.quotationNumber.trim()
+  } else if (body.parentQuotationId) {
+    // Sub-quotation: cari nomor induk dulu
+    const parent = await prisma.quotation.findUnique({
+      where: { id: body.parentQuotationId },
+      select: { id: true, quotationNumber: true },
+    })
+    if (!parent) return NextResponse.json({ error: 'Quotation induk tidak ditemukan' }, { status: 400 })
+    quotationNumber = await nextSubSuffix(parent.id, parent.quotationNumber)
+  } else {
+    quotationNumber = await nextQuotationNumber(division, year)
+  }
 
   // Build sections + items
   const sections = (body.sections || []).map((sec, si) => ({
@@ -134,9 +180,11 @@ export async function POST(req) {
       createdById:     session.user.id,
       approver1Id:     body.approver1Id     || null,
       approver2Id:     body.approver2Id     || null,
-      projectId:       body.projectId       || null,
-      isAddCost:       !!body.isAddCost,
-      notes:           body.notes           || null,
+      projectId:          body.projectId          || null,
+      isAddCost:          !!body.isAddCost,
+      numberMode,
+      parentQuotationId:  body.parentQuotationId  || null,
+      notes:              body.notes              || null,
       termsConditions: body.termsConditions || null,
       sections: { create: sections },
     },

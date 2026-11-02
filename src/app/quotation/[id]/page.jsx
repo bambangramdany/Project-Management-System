@@ -239,6 +239,29 @@ export default function QuotationDetailPage() {
               </div>
               <h1 className="text-xl font-bold text-gray-900 mt-0.5">{q.eventName}</h1>
               <p className="text-sm text-gray-600">{q.clientName}</p>
+
+              {/* Relasi parent / sub */}
+              {q.parent && (
+                <Link href={`/quotation/${q.parent.id}`}
+                  className="inline-flex items-center gap-1 mt-1 text-xs text-violet-600 hover:underline">
+                  ↑ Sub dari: <span className="font-mono">{q.parent.quotationNumber}</span> · {q.parent.eventName}
+                </Link>
+              )}
+              {q.subQuotations?.length > 0 && (
+                <div className="mt-1 space-y-0.5">
+                  {q.subQuotations.map(sub => (
+                    <Link key={sub.id} href={`/quotation/${sub.id}`}
+                      className="flex items-center gap-1 text-xs text-violet-600 hover:underline">
+                      ↳ <span className="font-mono">{sub.quotationNumber}</span>
+                      {sub.location && ` · ${sub.location}`}
+                      {sub.eventDate && ` · ${sub.eventDate}`}
+                      <span className={`ml-1 px-1.5 py-0 rounded-full text-[10px] font-medium ${(STATUS_META[sub.status] || STATUS_META.DRAFT).color}`}>
+                        {(STATUS_META[sub.status] || STATUS_META.DRAFT).label}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <div className="flex gap-2 flex-wrap justify-end">

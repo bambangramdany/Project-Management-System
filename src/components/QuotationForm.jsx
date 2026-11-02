@@ -142,6 +142,14 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
   const [termsConditions,  setTermsConditions]  = useState(initial?.termsConditions  ?? DEFAULT_TERMS)
   const [isAddCost,        setIsAddCost]        = useState(initial?.isAddCost        ?? false)
 
+  // Penomoran
+  const [numberMode,         setNumberMode]         = useState(initial?.numberMode         || 'AUTO')
+  const [manualNumber,       setManualNumber]       = useState(initial?.quotationNumber    || '')
+  const [parentQuotationId,  setParentQuotationId]  = useState(initial?.parentQuotationId || '')
+  // Daftar quotation yang bisa dijadikan induk
+  const [parentOptions,      setParentOptions]      = useState([])
+  const [loadingParents,     setLoadingParents]     = useState(false)
+
   // PIC & approvers — user IDs
   const [picQuotationId, setPicQuotationId] = useState(initial?.picQuotationId || '')
   const [approver1Id,    setApprover1Id]    = useState(initial?.approver1Id    || '')
@@ -190,6 +198,21 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
     fetch('/api/team').then(r => r.json()).then(d => setUsers(Array.isArray(d) ? d : (d.users || [])))
     fetch('/api/vendors?limit=500').then(r => r.json()).then(d => setVendors(Array.isArray(d) ? d : (d.vendors || [])))
   }, [])
+
+  // Load daftar quotation induk saat user pilih mode SUB
+  useEffect(() => {
+    if (numberMode !== 'SUB') return
+    setLoadingParents(true)
+    fetch('/api/quotations')
+      .then(r => r.json())
+      .then(d => {
+        const list = Array.isArray(d) ? d : (d.quotations || [])
+        // Hanya quotation yang bukan sub (tidak punya parentQuotationId)
+        setParentOptions(list.filter(q => !q.parentQuotationId && q.id !== initial?.id))
+      })
+      .catch(() => setParentOptions([]))
+      .finally(() => setLoadingParents(false))
+  }, [numberMode])
 
   // Auto-recalculate subtotals when items change
   const updateItem = useCallback((secIdx, itemIdx, patch) => {
@@ -299,6 +322,12 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
     if (!eventName.trim())  { setError('Nama event wajib diisi');  return }
 
     setSaving(true)
+    // Validasi nomor manual
+    const isEdit = !!(initial?.id)
+    if (!isEdit && numberMode === 'MANUAL' && !manualNumber.trim()) {
+      setError('Nomor quotation wajib diisi untuk mode manual'); return
+    }
+
     const payload = {
       division,
       clientName: clientName.trim(),
@@ -315,6 +344,9 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
       approver2Id:     approver2Id     || null,
       projectId:       initial?.projectId || null,
       isAddCost:       isAddCost,
+      numberMode:      numberMode === 'SUB' ? 'AUTO' : numberMode,
+      quotationNumber: numberMode === 'MANUAL' ? manualNumber.trim() : undefined,
+      parentQuotationId: numberMode === 'SUB' ? (parentQuotationId || null) : null,
       notes:           notes           || null,
       termsConditions: termsConditions || null,
       sections: sections.map((sec, si) => ({
@@ -343,7 +375,6 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
     }
 
     // Jika initial ada .id → EDIT (PATCH), kalau tidak → BUAT BARU (POST)
-    const isEdit = !!(initial?.id)
     const url    = isEdit ? `/api/quotations/${initial.id}` : '/api/quotations'
     const method = isEdit ? 'PATCH' : 'POST'
     if (isEdit) payload.action = 'update_content'
@@ -396,6 +427,72 @@ export default function QuotationForm({ initial = null, onSaved, onCancel }) {
                 <option value="PH">PH (Production House)</option>
               </select>
             </div>
+
+            {/* Penomoran — hanya tampil saat CREATE */}
+            {!initial?.id && (
+              <div className="sm:col-span-2">
+                <label className="label">Nomor Quotation</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {[
+                    { val: 'AUTO',   label: 'Otomatis',        desc: 'Generate WTM/EO/QUOT/2026/001' },
+                    { val: 'SUB',    label: 'Sub-quotation',   desc: 'Tambah suffix dari quotation induk (012a, 012b…)' },
+                    { val: 'MANUAL', label: 'Manual',          desc: 'Ketik nomor sendiri (misal nomor PO klien)' },
+                  ].map(opt => (
+                    <button
+                      key={opt.val}
+                      type="button"
+                      onClick={() => setNumberMode(opt.val)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                        numberMode === opt.val
+                          ? 'bg-brand text-white border-brand'
+                          : 'bg-white text-gray-600 border-gray-300 hover:border-brand hover:text-brand'
+                      }`}
+                      title={opt.desc}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                {numberMode === 'AUTO' && (
+                  <p className="text-xs text-gray-400">Nomor akan digenerate otomatis saat disimpan.</p>
+                )}
+
+                {numberMode === 'MANUAL' && (
+                  <input
+                    className="input"
+                    value={manualNumber}
+                    onChange={e => setManualNumber(e.target.value)}
+                    placeholder="Contoh: PO-CLIENT-2026/007 atau WTM/2026/012"
+                  />
+                )}
+
+                {numberMode === 'SUB' && (
+                  <div className="space-y-1">
+                    {loadingParents ? (
+                      <p className="text-xs text-gray-400">Memuat daftar quotation…</p>
+                    ) : (
+                      <select
+                        className="select"
+                        value={parentQuotationId}
+                        onChange={e => setParentQuotationId(e.target.value)}
+                      >
+                        <option value="">— Pilih quotation induk —</option>
+                        {parentOptions.map(q => (
+                          <option key={q.id} value={q.id}>
+                            {q.quotationNumber} · {q.eventName} · {q.clientName}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <p className="text-xs text-gray-400">
+                      Nomor sub-quotation akan otomatis mendapat suffix huruf (a, b, c…) dari nomor induk.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
               <label className="label">Nama Klien *</label>
               <input className="input" value={clientName} onChange={e => setClientName(e.target.value)} placeholder="PT Contoh Tbk" />
