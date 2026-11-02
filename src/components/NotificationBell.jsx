@@ -1,23 +1,14 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
+import { useNotifications } from '@/hooks/useNotifications'
 
 export default function NotificationBell() {
-  const [items, setItems] = useState([])
+  const { notifications: items, mutate } = useNotifications()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const router = useRouter()
-
-  const load = () => {
-    fetch('/api/notifications').then(r => r.json()).then(data => setItems(Array.isArray(data) ? data : []))
-  }
-
-  useEffect(() => {
-    load()
-    const interval = setInterval(load, 60000)
-    return () => clearInterval(interval)
-  }, [])
 
   useEffect(() => {
     function onClick(e) {
@@ -31,13 +22,13 @@ export default function NotificationBell() {
 
   async function markAllRead() {
     await fetch('/api/notifications', { method: 'PATCH' })
-    setItems(items.map(n => ({ ...n, read: true })))
+    mutate(items.map(n => ({ ...n, read: true })), false)
   }
 
   async function onItemClick(n) {
     if (!n.read) {
       await fetch(`/api/notifications/${n.id}`, { method: 'PATCH' })
-      setItems(items.map(i => i.id === n.id ? { ...i, read: true } : i))
+      mutate(items.map(i => i.id === n.id ? { ...i, read: true } : i), false)
     }
     setOpen(false)
     if (n.link) router.push(n.link)

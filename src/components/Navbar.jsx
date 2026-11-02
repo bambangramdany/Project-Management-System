@@ -3,9 +3,10 @@ import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import NotificationBell from './NotificationBell'
 import { isFinanceDirector } from '@/lib/rbac'
+import { useProfile } from '@/hooks/useProfile'
 
 // ── Menu order: Daily → PM → Network → Commercial → Finance → Admin ──────────
 const NAV_ITEMS = [
@@ -48,15 +49,8 @@ export default function Navbar() {
   const { data: session } = useSession()
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [avatarUrl, setAvatarUrl] = useState(null)
-
-  useEffect(() => {
-    if (session) {
-      fetch('/api/profile/me').then(r => r.ok ? r.json() : null).then(d => {
-        if (d?.avatarUrl) setAvatarUrl(d.avatarUrl)
-      })
-    }
-  }, [session?.user?.id])
+  const { profile } = useProfile()
+  const avatarUrl = profile?.avatarUrl || null
 
   const canSeeAudit = session?.user.role === 'OWNER' || isFinanceDirector(session?.user)
   const canSeeCash = session?.user.role === 'OWNER' || session?.user.role === 'FINANCE' || isFinanceDirector(session?.user)
