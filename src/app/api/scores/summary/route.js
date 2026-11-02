@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { CROSS_TEAM_PM_EMAIL, canViewAllScores } from '@/lib/rbac'
+import { CROSS_TEAM_PM_EMAIL, canViewAllScores, canScoreKpi } from '@/lib/rbac'
 import { PROJECT_SCORE_CRITERIA } from '@/lib/constants'
 import { NextResponse } from 'next/server'
 
@@ -47,15 +47,16 @@ function getUsersPromise(me) {
   if (me.role === 'PROJECT_MANAGER' || me.role === 'PRODUCER') {
     return prisma.project.findMany({
       where: { OR: [{ picId: me.id }, { members: { some: { userId: me.id } } }] },
-      select: { members: { include: { user: { select: { id: true, name: true, jobTitle: true, role: true, divisi: true } } } } },
+      select: { members: { include: { user: { select: { id: true, name: true, jobTitle: true, role: true, divisi: true, email: true } } } } },
     }).then(myProjects => {
       const map = {}
       myProjects.forEach(p => p.members.forEach(m => {
         const u = m.user
         if (u.id === me.id) return
         if (['OWNER', 'DIRECTOR'].includes(u.role)) return
-        // Hanya tampilkan anggota dari divisi yang sama
         if (u.divisi !== me.divisi) return
+        // Filter: hanya tampilkan jika canScoreKpi mengizinkan (untuk menghormati pairing rules)
+        if (!canScoreKpi(me, u)) return
         map[u.id] = u
       }))
       return Object.values(map)

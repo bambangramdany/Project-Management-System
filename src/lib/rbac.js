@@ -179,14 +179,14 @@ export function canScoreKpi(evaluator, target) {
   }
 
   // ── Pairing peer review ─────────────────────────────────────────────
-  // Putra -> Eca
-  if (eEmail === 'putra@watermark.co.id') return tEmail === 'eca@watermark.co.id'
+  // Putra -> Eca + Boni (Project Officer)
+  if (eEmail === 'putra@watermark.co.id') return ['eca@watermark.co.id', 'boni@watermark.co.id'].includes(tEmail)
 
-  // Doddi <-> Reghy (Noval Suherman), keduanya juga nilai Boni (Angga)
-  if (eEmail === 'doddi@watermark.co.id') return ['reghy@watermark.co.id', 'boni@watermark.co.id'].includes(tEmail)
-  if (eEmail === 'reghy@watermark.co.id') return ['doddi@watermark.co.id', 'boni@watermark.co.id'].includes(tEmail)
-  // Boni juga bisa nilai Doddi dan Reghy (timbal balik)
-  if (eEmail === 'boni@watermark.co.id') return ['doddi@watermark.co.id', 'reghy@watermark.co.id'].includes(tEmail)
+  // Doddi <-> Reghy (Noval Suherman)
+  if (eEmail === 'doddi@watermark.co.id') return tEmail === 'reghy@watermark.co.id'
+  if (eEmail === 'reghy@watermark.co.id') return tEmail === 'doddi@watermark.co.id'
+  // Boni nilai Putra (timbal balik)
+  if (eEmail === 'boni@watermark.co.id') return tEmail === 'putra@watermark.co.id'
 
   // ── PH division ──────────────────────────────────────────────────────
   // Bastya <-> Jamal
