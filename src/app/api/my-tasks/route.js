@@ -74,6 +74,8 @@ export async function GET() {
 
   // ── OWNER: task sendiri (atas, editable) + monitoring semua tim (bawah, read-only) ──
   if (teamDivisions === null) {
+    // DIAG: checkpoint sebelum Promise.all
+    return NextResponse.json({ chk: 'before-query', userId, v: 'diag2' })
     const DIV_ORDER = ['EVENT', 'CREATIVE', 'PH', 'FINANCE_HRGA']
     const [myOwnTasks, myOwnPersonalTasks, allTasks, allPersonalTasks, memberProjects] = await Promise.all([
       // Task project yang di-assign ke OWNER
