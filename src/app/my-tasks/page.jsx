@@ -1203,8 +1203,8 @@ export default function MyTasksPage() {
   // ── OWNER VIEW: task sendiri (editable) + monitoring tim (read-only) ────────
   if (data.mode === 'owner') {
     const myItems        = data.myItems || []
-    const myProjectTasks = myItems.filter(i => i.kind === 'task')
-    const myPersonalTasks = myItems.filter(i => i.kind === 'personal')
+    const myProjectTasks = myItems.filter(i => i.kind === 'task' || (i.kind === 'personal' && i.project))
+    const myPersonalTasks = myItems.filter(i => i.kind === 'personal' && !i.project)
     const myDone         = myItems.filter(i => i.hasTodayUpdate).length
     const myPending      = myItems.filter(i => !i.hasTodayUpdate)
     const teamItems      = data.groups.flatMap(g => g.items)
@@ -1371,8 +1371,8 @@ export default function MyTasksPage() {
     const myDone       = myItems.filter(i => i.hasTodayUpdate).length
     const teamDone     = teamItems.filter(i => i.hasTodayUpdate).length
     const myPending    = myItems.filter(i => !i.hasTodayUpdate)
-    const myProjectTasks  = myItems.filter(i => i.kind === 'task')
-    const myPersonalTasks = myItems.filter(i => i.kind === 'personal')
+    const myProjectTasks  = myItems.filter(i => i.kind === 'task' || (i.kind === 'personal' && i.project))
+    const myPersonalTasks = myItems.filter(i => i.kind === 'personal' && !i.project)
     const mySharing = sharingSessions.filter(s => s.userId === session?.user?.id)
     const teamLeadAllTasksDone = myItems.length > 0 && myItems.every(i => i.hasTodayUpdate)
 
@@ -1469,8 +1469,10 @@ export default function MyTasksPage() {
 
   // ── PERSONAL VIEW (operational staff) ──────────────────────────────────────
   const allItems    = data.items || []
-  const projectTasks  = allItems.filter(i => i.kind === 'task')
-  const personalTasks = allItems.filter(i => i.kind === 'personal')
+  // Personal task yg ada project-nya → ikut grup project tasks
+  // Personal task tanpa project → tetap di "Catatan & To-Do"
+  const projectTasks  = allItems.filter(i => i.kind === 'task' || (i.kind === 'personal' && i.project))
+  const personalTasks = allItems.filter(i => i.kind === 'personal' && !i.project)
   const doneToday   = allItems.filter(i => i.hasTodayUpdate).length
   const pendingCount = allItems.filter(i => !i.hasTodayUpdate).length
   const personalAllTasksDone = allItems.length > 0 && allItems.every(i => i.hasTodayUpdate)
