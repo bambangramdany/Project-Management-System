@@ -353,7 +353,7 @@ function hourWIBNow() {
   return wib.getUTCHours() + wib.getUTCMinutes() / 60
 }
 
-function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, session }) {
+function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, session, allTasksDone }) {
   const [eveningNote, setEveningNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(!!checkIn?.eveningAt)
@@ -418,10 +418,9 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
   }
 
   async function submitEvening(e) {
-    e.preventDefault()
-    if (!eveningNote.trim()) return
+    e?.preventDefault()
     setSubmitting(true)
-    await onEveningSubmit(eveningNote)
+    await onEveningSubmit('')
     setSubmitted(true); setSubmitting(false)
   }
 
@@ -455,6 +454,7 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
                 setShowAbsensiReminder(true)
                 if (isAfterCutoff) setShowMorningExcuse(true)
                 setTimeout(() => setAckSuccess(false), 3000)
+                window.open('https://us02web.zoom.us/j/83057800992', '_blank')
               }}
               className="shrink-0 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-bold transition-colors active:scale-95 border border-white/30 disabled:opacity-60">
               {ackLoading ? '...' : ackSuccess ? '✓ Tercatat!' : isOnTime ? '✓ Hadir' : '✓ Hadir (Telat)'}
@@ -565,13 +565,23 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
           </div>
         ) : (
           <div className="space-y-2">
-          <form onSubmit={submitEvening} className={`rounded-2xl border-2 p-4 space-y-3 ${isOverdue ? 'border-orange-300 bg-orange-50' : 'border-blue-200 bg-blue-50/50'}`}>
+          <div className={`rounded-2xl border-2 p-4 space-y-3 ${
+            isOverdue ? 'border-orange-300 bg-orange-50'
+            : allTasksDone ? 'border-green-300 bg-green-50/60'
+            : 'border-blue-200 bg-blue-50/50'
+          }`}>
             <div className="flex items-start justify-between gap-2">
               <div>
-              <p className={`font-bold text-sm ${isOverdue ? 'text-orange-700' : 'text-blue-700'}`}>
-                {isOverdue ? '⚠️ Terlambat — laporan harus dikirim sebelum 20:00' : 'Laporan Progress Sore (17:00–20:00 WIB)'}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">Ceritakan apa yang sudah dikerjakan dan status setiap tugas</p>
+                <p className={`font-bold text-sm ${isOverdue ? 'text-orange-700' : allTasksDone ? 'text-green-700' : 'text-blue-700'}`}>
+                  {isOverdue ? '⚠️ Terlambat — check-in harus dikirim sebelum 20:00'
+                  : allTasksDone ? '✅ Semua task sudah diupdate — konfirmasi selesai kerja'
+                  : 'Sudah selesai kerja hari ini?'}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {allTasksDone
+                    ? 'Kamu bisa konfirmasi sekarang tanpa perlu tunggu sore'
+                    : 'Update progress tiap task dulu, lalu konfirmasi di sini'}
+                </p>
               </div>
               {isOverdue && !excuseStatus.evening && (
                 <button type="button" onClick={() => setShowEveningExcuse(v => !v)}
@@ -580,14 +590,15 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
                 </button>
               )}
             </div>
-            <textarea value={eveningNote} onChange={e => setEveningNote(e.target.value)} rows={3}
-              placeholder="Contoh: Sudah survey lokasi, sedang proses rundown target selesai besok pagi..."
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none" />
-            <button type="submit" disabled={submitting || !eveningNote.trim()}
-              className="px-5 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors active:scale-95">
-              {submitting ? 'Mengirim...' : 'Kirim Laporan'}
+            <button onClick={submitEvening} disabled={submitting}
+              className={`w-full py-2.5 rounded-xl text-white text-sm font-bold transition-colors active:scale-95 disabled:opacity-50 ${
+                isOverdue ? 'bg-orange-500 hover:bg-orange-600'
+                : allTasksDone ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-blue-600 hover:bg-blue-700'
+              }`}>
+              {submitting ? 'Mengirim...' : '✓ Konfirmasi Selesai Kerja'}
             </button>
-          </form>
+          </div>
           {/* Evening excuse form */}
           {showEveningExcuse && !excuseStatus.evening && (
             <div className="rounded-xl border border-orange-200 bg-orange-50 p-3 space-y-2">
@@ -1140,10 +1151,10 @@ export default function MyTasksPage() {
     if (br) setBriefingLog(br.log || null)
   }
 
-  async function handleEveningSubmit(note) {
+  async function handleEveningSubmit() {
     const res = await fetch('/api/daily-checkin', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ eveningNote: note }),
+      body: JSON.stringify({}),
     })
     if (res.ok) { const d = await res.json(); setCheckIn(prev => ({ ...prev, today: d, eveningAt: d.eveningAt })) }
   }
@@ -1199,6 +1210,7 @@ export default function MyTasksPage() {
     const teamItems      = data.groups.flatMap(g => g.items)
     const teamDone       = teamItems.filter(i => i.hasTodayUpdate).length
     const mySharing      = sharingSessions.filter(s => s.userId === session?.user?.id)
+    const ownerAllTasksDone = myItems.length > 0 && myItems.every(i => i.hasTodayUpdate)
 
     function handleExport() {
       window.open('/api/my-tasks/export', '_blank')
@@ -1230,9 +1242,9 @@ export default function MyTasksPage() {
             )}
           </div>
 
-          <CheckInCard checkIn={checkIn} briefingLog={briefingLog} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} session={session} />
+          <CheckInCard checkIn={checkIn} briefingLog={briefingLog} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} session={session} allTasksDone={ownerAllTasksDone} />
 
-          {mySharing.length > 0 && (
+{mySharing.length > 0 && (
             <MySharingSessionCard sessions={mySharing}
               onUpdate={() => fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setSharingSessions(d))} />
           )}
@@ -1362,6 +1374,7 @@ export default function MyTasksPage() {
     const myProjectTasks  = myItems.filter(i => i.kind === 'task')
     const myPersonalTasks = myItems.filter(i => i.kind === 'personal')
     const mySharing = sharingSessions.filter(s => s.userId === session?.user?.id)
+    const teamLeadAllTasksDone = myItems.length > 0 && myItems.every(i => i.hasTodayUpdate)
 
     return (
       <div className="min-h-screen bg-gray-50">
@@ -1389,7 +1402,7 @@ export default function MyTasksPage() {
             )}
           </div>
 
-          <CheckInCard checkIn={checkIn} briefingLog={briefingLog} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} session={session} />
+          <CheckInCard checkIn={checkIn} briefingLog={briefingLog} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} session={session} allTasksDone={teamLeadAllTasksDone} />
 
           <FinanceMeetingSection meetingData={finMeeting}
             onSaved={() => fetch('/api/programs/finance-meeting').then(r => r.ok ? r.json() : null).then(d => { if (d) setFinMeeting(d) })} />
@@ -1460,6 +1473,7 @@ export default function MyTasksPage() {
   const personalTasks = allItems.filter(i => i.kind === 'personal')
   const doneToday   = allItems.filter(i => i.hasTodayUpdate).length
   const pendingCount = allItems.filter(i => !i.hasTodayUpdate).length
+  const personalAllTasksDone = allItems.length > 0 && allItems.every(i => i.hasTodayUpdate)
   const mySharing = sharingSessions.filter(s => s.userId === session?.user?.id)
 
   // Group project tasks by urgency
@@ -1510,7 +1524,7 @@ export default function MyTasksPage() {
         </div>
 
         {/* ── Check-in + Briefing ── */}
-        <CheckInCard checkIn={checkIn} briefingLog={briefingLog} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} session={session} />
+        <CheckInCard checkIn={checkIn} briefingLog={briefingLog} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} session={session} allTasksDone={personalAllTasksDone} />
 
         {/* ── Finance Meeting Mingguan ── */}
         <FinanceMeetingSection meetingData={finMeeting}

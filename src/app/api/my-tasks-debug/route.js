@@ -11,11 +11,28 @@ export async function GET() {
     if (!session) return NextResponse.json({ step: 'no-session' }, { status: 401 })
 
     const userId = session.user.id
-    const step1 = await prisma.task.count({ where: { assigneeId: userId } })
-    const step2 = await prisma.personalTask.count({ where: { userId } })
-    const step3 = await prisma.task.count({ where: { status: { not: 'DONE' } } })
+    const [totalAssigned, doneAssigned, activeTasks] = await Promise.all([
+      prisma.task.count({ where: { assigneeId: userId } }),
+      prisma.task.count({ where: { assigneeId: userId, status: 'DONE' } }),
+      prisma.task.findMany({
+        where: { assigneeId: userId, status: { not: 'DONE' } },
+        select: { id: true, title: true, status: true, dueDate: true, project: { select: { code: true, name: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+    ])
+    const personalCount = await prisma.personalTask.count({ where: { userId } })
 
-    return NextResponse.json({ ok: true, userId, step1, step2, step3, role: session.user.role })
+    return NextResponse.json({
+      ok: true, userId,
+      role: session.user.role,
+      divisi: session.user.divisi,
+      totalAssigned,
+      doneAssigned,
+      activeCount: totalAssigned - doneAssigned,
+      activeTasks,
+      personalCount,
+    })
   } catch (e) {
     return NextResponse.json({ error: String(e), stack: e.stack?.slice(0, 500) }, { status: 500 })
   }

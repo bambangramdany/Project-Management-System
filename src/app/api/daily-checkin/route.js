@@ -121,7 +121,7 @@ export async function GET(req) {
     date,
     currentHour,
     morningLate,
-    showEveningForm: currentHour >= 17 && currentHour < 24,
+    showEveningForm: !!today?.morningAckAt && !today?.eveningAt,
     eveningOverdue: currentHour >= 20 && !today?.eveningAt,
     periodSummary,
   })
@@ -156,16 +156,16 @@ export async function PATCH(req) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { eveningNote } = await req.json()
-  if (!eveningNote?.trim()) return NextResponse.json({ error: 'Progress tidak boleh kosong' }, { status: 400 })
+  const body = await req.json().catch(() => ({}))
+  const eveningNote = body.eveningNote || null
 
   const date = todayWIB()
   const now = new Date()
 
   const record = await prisma.dailyCheckIn.upsert({
     where: { userId_date: { userId: session.user.id, date } },
-    update: { eveningNote: eveningNote.trim(), eveningAt: now },
-    create: { userId: session.user.id, date, eveningNote: eveningNote.trim(), eveningAt: now },
+    update: { eveningNote: eveningNote ? eveningNote.trim() : null, eveningAt: now },
+    create: { userId: session.user.id, date, eveningNote: eveningNote ? eveningNote.trim() : null, eveningAt: now },
   })
 
   return NextResponse.json(record)

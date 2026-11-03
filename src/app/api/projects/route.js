@@ -124,7 +124,7 @@ export async function POST(req) {
           projectId: project.id,
           title: t.title,
           priority: t.priority || 'MEDIUM',
-          assigneeId: project.picId || null,
+          assigneeId: null,
           order: idx,
         })),
       })
