@@ -580,7 +580,7 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
                 <p className="text-xs text-gray-500 mt-0.5">
                   {allTasksDone
                     ? 'Kamu bisa konfirmasi sekarang tanpa perlu tunggu sore'
-                    : 'Update progress tiap task dulu, lalu konfirmasi di sini'}
+                    : 'Pastikan semua task & tugas project harian sudah diupdate statusnya (Berjalan / Selesai / dll) — tombol Konfirmasi Selesai Kerja akan aktif otomatis setelah semua terisi. Task mingguan dan bulanan tidak diwajibkan diupdate hari ini.'}
                 </p>
               </div>
               {isOverdue && !excuseStatus.evening && (
@@ -590,13 +590,14 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
                 </button>
               )}
             </div>
-            <button onClick={submitEvening} disabled={submitting}
-              className={`w-full py-2.5 rounded-xl text-white text-sm font-bold transition-colors active:scale-95 disabled:opacity-50 ${
-                isOverdue ? 'bg-orange-500 hover:bg-orange-600'
-                : allTasksDone ? 'bg-green-600 hover:bg-green-700'
-                : 'bg-blue-600 hover:bg-blue-700'
+            <button onClick={submitEvening} disabled={submitting || !allTasksDone}
+              title={!allTasksDone ? 'Update semua to-do list harian dulu sebelum konfirmasi selesai kerja' : ''}
+              className={`w-full py-2.5 rounded-xl text-white text-sm font-bold transition-all active:scale-95 ${
+                !allTasksDone ? 'bg-gray-400 cursor-not-allowed opacity-40 blur-[0.5px]'
+                : isOverdue ? 'bg-orange-500 hover:bg-orange-600'
+                : 'bg-green-600 hover:bg-green-700'
               }`}>
-              {submitting ? 'Mengirim...' : '✓ Konfirmasi Selesai Kerja'}
+              {submitting ? 'Mengirim...' : !allTasksDone ? '⏳ Update semua task dulu...' : '✓ Konfirmasi Selesai Kerja'}
             </button>
           </div>
           {/* Evening excuse form */}
@@ -638,6 +639,116 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
 }
 
 
+
+// ── Discipline Leaderboard ───────────────────────────────────────────────────
+
+const DIV_BADGE = {
+  EVENT:        { label: 'EO',  color: 'bg-blue-100 text-blue-700' },
+  CREATIVE:     { label: 'CR',  color: 'bg-violet-100 text-violet-700' },
+  PH:           { label: 'PH',  color: 'bg-amber-100 text-amber-700' },
+  FINANCE_HRGA: { label: 'FN',  color: 'bg-emerald-100 text-emerald-700' },
+}
+
+function DisciplineLeaderboard({ currentUserId }) {
+  const [open, setOpen] = useState(false)
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const monthLabel = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+
+  function load() {
+    if (data || loading) return
+    setLoading(true)
+    const period = new Date().toISOString().slice(0, 7)
+    fetch(`/api/daily-checkin/leaderboard?period=${period}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setData(d) })
+      .finally(() => setLoading(false))
+  }
+
+  function toggle() {
+    const next = !open
+    setOpen(next)
+    if (next) load()
+  }
+
+  const myRank = data?.rows ? data.rows.findIndex(r => r.userId === currentUserId) : -1
+
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+      <button onClick={toggle}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+        <div className="flex items-center gap-2">
+          <span className="text-base">🏆</span>
+          <div className="text-left">
+            <p className="text-sm font-bold text-gray-800">Disiplin Tim — {monthLabel}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {myRank >= 0 && (
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+              #{myRank + 1}
+            </span>
+          )}
+          {data && !loading && (
+            <span className="text-xs text-gray-400">{data.rows.length} orang</span>
+          )}
+          <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t border-gray-100">
+          {loading && <p className="text-xs text-gray-400 text-center py-3">Memuat...</p>}
+          {data && (
+            <>
+              {/* Header tabel */}
+              <div className="flex items-center px-4 py-1.5 text-[10px] text-gray-400 font-semibold uppercase tracking-wide border-b border-gray-50">
+                <span className="w-6 shrink-0">#</span>
+                <span className="flex-1">Nama</span>
+                <span className="w-8 text-center text-indigo-400">Pagi</span>
+                <span className="w-8 text-center text-amber-400">Sore</span>
+                <span className="w-8 text-right font-bold text-gray-500">Skor</span>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {data.rows.map((row, i) => {
+                  const isMe = row.userId === currentUserId
+                  const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
+                  const div = DIV_BADGE[row.divisi] || { label: '—', color: 'bg-gray-100 text-gray-500' }
+                  const scoreColor = row.avgScore >= 75 ? 'text-green-600' : row.avgScore >= 50 ? 'text-amber-500' : 'text-red-400'
+                  return (
+                    <div key={row.userId}
+                      className={`flex items-center px-4 py-2 ${isMe ? 'bg-violet-50' : ''}`}>
+                      <span className="w-6 shrink-0 text-sm">
+                        {medal || <span className="text-xs text-gray-400">{i + 1}</span>}
+                      </span>
+                      <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                        <span className={`text-sm font-medium truncate ${isMe ? 'text-violet-700 font-semibold' : 'text-gray-800'}`}>
+                          {row.name.split(' ')[0]}
+                        </span>
+                        <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${div.color} shrink-0`}>{div.label}</span>
+                        {isMe && <span className="text-[9px] text-violet-400 shrink-0">kamu</span>}
+                      </div>
+                      <span className="w-8 text-center text-xs tabular-nums text-indigo-500">{row.morningScore}</span>
+                      <span className="w-8 text-center text-xs tabular-nums text-amber-500">{row.eveningScore}</span>
+                      <span className={`w-8 text-right text-sm font-black tabular-nums ${scoreColor}`}>{row.avgScore}</span>
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="text-[10px] text-gray-400 text-center py-2 border-t border-gray-50">
+                {data.workDays} hari kerja · Pagi ≤09:30 = 100 · Sore 17–20 = 100 · Terlambat = 50
+              </p>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ── Finance Meeting Card ──────────────────────────────────────────────────────
 
@@ -815,49 +926,172 @@ function FinanceMeetingCard({ meetingType, weekDate, log: initialLog, potentialA
   )
 }
 
-function FinanceMeetingSection({ meetingData, onSaved }) {
-  if (!meetingData || !meetingData.types?.length) return null
-  const { types, logs, weekDate, potentialAttendees, canWrite } = meetingData
+function getFriday(offset = 0) {
+  const n = new Date()
+  const fri = new Date(n)
+  fri.setDate(n.getDate() + (5 - n.getDay()) + offset * 7)
+  return fri.toISOString().slice(0, 10)
+}
+
+function FinanceMeetingSection({ show, onSaved }) {
+  if (!show) return null
+
+  const thisWeek = getFriday(0)
+  const [open, setOpen] = useState(false)
+  const [meetingData, setMeetingData] = useState(null)
+  const [selectedWeek, setSelectedWeek] = useState(thisWeek)
+  const [weekData, setWeekData] = useState(null)
+  const [loadingWeek, setLoadingWeek] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
+  async function loadWeek(date) {
+    setLoadingWeek(true)
+    const res = await fetch(`/api/programs/finance-meeting?weekDate=${date}`)
+    if (res.ok) {
+      const d = await res.json()
+      if (!meetingData) setMeetingData(d)
+      setWeekData({ logs: d.logs, weekDate: d.weekDate })
+    }
+    setLoadingWeek(false)
+  }
+
+  function handleOpen() {
+    const next = !open
+    setOpen(next)
+    if (next && !meetingData) loadWeek(thisWeek)
+  }
+
+  function navigate(dir) {
+    const cur = new Date(selectedWeek + 'T12:00:00')
+    cur.setDate(cur.getDate() + dir * 7)
+    const next = cur.toISOString().slice(0, 10)
+    setSelectedWeek(next)
+    loadWeek(next)
+  }
+
+  function goThisWeek() {
+    setSelectedWeek(thisWeek)
+    loadWeek(thisWeek)
+  }
+
+  async function exportExcel() {
+    setExporting(true)
+    const res = await fetch('/api/programs/finance-meeting/export')
+    if (res.ok) {
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Finance_Meeting_${new Date().toISOString().slice(0,10)}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+    setExporting(false)
+  }
+
+  const isThisWeek = selectedWeek === thisWeek
+  const isFuture = selectedWeek > thisWeek
+  const displayDate = new Date(selectedWeek + 'T12:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <div className="w-1 h-4 rounded-full bg-emerald-500 shrink-0" />
-        <span className="text-sm font-bold text-gray-800">Finance Meeting Mingguan</span>
-        <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 font-semibold">{types.length} meeting</span>
-      </div>
-      {types.map(type => (
-        <FinanceMeetingCard
-          key={type}
-          meetingType={type}
-          weekDate={weekDate}
-          log={logs?.[type] || null}
-          potentialAttendees={potentialAttendees?.[type] || []}
-          canWrite={canWrite}
-          onSaved={onSaved}
-        />
-      ))}
+    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+      {/* Header toggle */}
+      <button onClick={handleOpen}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+        <div className="flex items-center gap-2">
+          <div className="w-1 h-4 rounded-full bg-emerald-500 shrink-0" />
+          <span className="text-sm font-bold text-gray-800">Finance Meeting Mingguan</span>
+          {meetingData && <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 font-semibold">{meetingData.types.length} meeting</span>}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t border-gray-100 p-4 space-y-3">
+          {(!meetingData || loadingWeek) ? (
+            <div className="rounded-2xl bg-white border border-gray-100 p-6 text-center text-sm text-gray-400 animate-pulse">Memuat data...</div>
+          ) : (
+            <>
+              {/* Export + Week navigator */}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2 bg-gray-50 rounded-2xl px-3 py-2 border border-gray-100 flex-1">
+                  <button onClick={() => navigate(-1)}
+                    className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors text-sm font-bold shrink-0">‹</button>
+                  <div className="flex-1 text-center">
+                    <p className="text-xs font-semibold text-gray-700">Jumat, {displayDate}</p>
+                    {isThisWeek && <p className="text-[10px] text-emerald-600 font-medium">Minggu ini</p>}
+                    {!isThisWeek && <button onClick={goThisWeek} className="text-[10px] text-violet-500 hover:underline">↩ Kembali ke minggu ini</button>}
+                  </div>
+                  <button onClick={() => navigate(1)} disabled={isFuture}
+                    className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors text-sm font-bold shrink-0 disabled:opacity-30">›</button>
+                </div>
+                <button onClick={exportExcel} disabled={exporting}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow transition-colors disabled:opacity-60">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                  </svg>
+                  {exporting ? 'Mengunduh...' : 'Export Excel'}
+                </button>
+              </div>
+
+              {meetingData.types.map(type => (
+                <FinanceMeetingCard
+                  key={type + selectedWeek}
+                  meetingType={type}
+                  weekDate={selectedWeek}
+                  log={weekData?.logs?.[type] || null}
+                  potentialAttendees={meetingData.potentialAttendees?.[type] || []}
+                  canWrite={meetingData.canWrite && isThisWeek}
+                  onSaved={() => { onSaved?.(); loadWeek(selectedWeek) }}
+                />
+              ))}
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
 // ── AddTaskForm ───────────────────────────────────────────────────────────────
 
-function AddTaskForm({ projectOptions, onAdd }) {
+const TIMING_OPTIONS = [
+  { value: 'daily',    label: '☀️ Harian',   color: 'bg-orange-100 text-orange-700 border-orange-300' },
+  { value: 'weekly',   label: '📅 Mingguan',  color: 'bg-blue-100 text-blue-700 border-blue-300' },
+  { value: 'monthly',  label: '🗓️ Bulanan',   color: 'bg-violet-100 text-violet-700 border-violet-300' },
+  { value: 'yearly',   label: '📆 Tahunan',   color: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
+  { value: 'periodic', label: '🔁 Berkala',   color: 'bg-teal-100 text-teal-700 border-teal-300' },
+  { value: '',         label: '📝 Lainnya',   color: 'bg-gray-100 text-gray-600 border-gray-300' },
+]
+
+function AddTaskForm({ projectOptions, onAdd, defaultTiming = '' }) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [due, setDue] = useState('')
   const [projectId, setProjectId] = useState('')
+  const [timing, setTiming] = useState(defaultTiming)
   const [adding, setAdding] = useState(false)
+
+  // Sync timing when user switches tab (only when form is closed)
+  useEffect(() => {
+    if (!open) setTiming(defaultTiming)
+  }, [defaultTiming, open])
 
   async function submit(e) {
     e.preventDefault()
     if (!title.trim()) return
     setAdding(true)
-    await onAdd({ title, dueDate: due || null, projectId: projectId || null })
-    setTitle(''); setDue(''); setProjectId(''); setOpen(false)
+    await onAdd({ title, dueDate: due || null, projectId: projectId || null, timing: timing || null })
+    setTitle(''); setDue(''); setProjectId(''); setTiming(defaultTiming); setOpen(false)
     setAdding(false)
   }
+
+  const activeTiming = TIMING_OPTIONS.find(o => o.value === timing) || TIMING_OPTIONS[TIMING_OPTIONS.length - 1]
 
   if (!open) return (
     <button onClick={() => setOpen(true)}
@@ -870,6 +1104,28 @@ function AddTaskForm({ projectOptions, onAdd }) {
   return (
     <div className="rounded-2xl border-2 border-violet-300 bg-violet-50/40 p-4 space-y-3">
       <p className="text-sm font-bold text-violet-700">Tugas Baru</p>
+
+      {/* Timing selector — pill buttons */}
+      <div>
+        <p className="text-xs text-gray-500 mb-1.5 font-medium">Kategori tugas</p>
+        <div className="flex flex-wrap gap-1.5">
+          {TIMING_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setTiming(opt.value)}
+              className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                timing === opt.value
+                  ? opt.color + ' shadow-sm'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <input className="input w-full" placeholder="Nama tugas..." value={title} onChange={e => setTitle(e.target.value)} autoFocus />
       <div className="flex gap-2">
         <input type="date" className="input flex-1" value={due} onChange={e => setDue(e.target.value)} />
@@ -882,7 +1138,9 @@ function AddTaskForm({ projectOptions, onAdd }) {
       </div>
       <div className="flex gap-2">
         <button onClick={() => setOpen(false)} className="btn-secondary flex-1 py-2">Batal</button>
-        <button onClick={submit} disabled={adding || !title.trim()} className="btn-primary flex-1 py-2">{adding ? 'Menyimpan...' : 'Tambah'}</button>
+        <button onClick={submit} disabled={adding || !title.trim()} className="btn-primary flex-1 py-2">
+          {adding ? 'Menyimpan...' : `Tambah ke ${activeTiming.label}`}
+        </button>
       </div>
     </div>
   )
@@ -997,8 +1255,61 @@ function ProjectSubGroup({ projectKey, items, onSave }) {
   )
 }
 
+// Read-only tab view for one member's personal tasks (used in monitoring)
+function MemberPersonalTaskTabs({ name, tasks }) {
+  const groups = {
+    daily:    tasks.filter(i => i.timing === 'daily'),
+    weekly:   tasks.filter(i => i.timing === 'weekly'),
+    monthly:  tasks.filter(i => i.timing === 'monthly'),
+    yearly:   tasks.filter(i => i.timing === 'yearly'),
+    periodic: tasks.filter(i => i.timing === 'periodic'),
+    other:    tasks.filter(i => !i.timing),
+  }
+  const tabDefs = TIMING_TAB_DEFS.filter(t => groups[t.key].length > 0)
+  const [activeTab, setActiveTab] = useState(tabDefs[0]?.key || 'other')
+  const resolvedTab = tabDefs.find(t => t.key === activeTab) ? activeTab : tabDefs[0]?.key
+  const items = groups[resolvedTab] || []
+  const allDoneAll = tasks.length > 0 && tasks.every(i => i.hasTodayUpdate)
+
+  return (
+    <div className="rounded-xl border border-gray-100 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-100">
+        <span className="text-xs font-bold text-gray-700">{name}</span>
+        {allDoneAll && <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✓ Semua selesai</span>}
+      </div>
+      {tabDefs.length > 0 && (
+        <div className="flex overflow-x-auto border-b border-gray-100 bg-white">
+          {tabDefs.map(tab => {
+            const isActive = tab.key === resolvedTab
+            const count = groups[tab.key].length
+            const allDone = count > 0 && groups[tab.key].every(i => i.hasTodayUpdate)
+            return (
+              <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                className={`flex-shrink-0 flex items-center gap-1 px-3 py-2 text-xs font-medium transition-all border-b-2 ${
+                  isActive ? tab.active : 'border-transparent text-gray-400 hover:text-gray-600'
+                }`}>
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+                <span className={`text-[10px] rounded-full px-1 py-0.5 font-semibold ${
+                  allDone ? 'bg-green-100 text-green-700' : isActive ? tab.badge : 'bg-gray-100 text-gray-400'
+                }`}>{allDone ? '✓' : count}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+      <div className="divide-y divide-gray-50">
+        {items.length > 0
+          ? items.map(item => <ReadOnlyTaskCard key={item.id} item={item} />)
+          : <p className="text-xs text-gray-400 text-center py-4">Belum ada tugas di kategori ini</p>
+        }
+      </div>
+    </div>
+  )
+}
+
 function DivisionGroup({ group, onSave }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all') // all | updated | pending
   const style = DIV_STYLE[group.divisi] || DIV_STYLE.EVENT
@@ -1006,7 +1317,12 @@ function DivisionGroup({ group, onSave }) {
   const totalCount = group.items.length
   const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0
 
-  const filtered = group.items.filter(i => {
+  // Pisahkan: personal tasks (tanpa project) → tampil per orang dengan timing tabs
+  // Project tasks (task biasa + personal task dengan project) → tampil per project
+  const personalOnlyItems = group.items.filter(i => i.kind === 'personal' && !i.project)
+  const projectItems      = group.items.filter(i => i.kind === 'task' || (i.kind === 'personal' && i.project))
+
+  const filtered = projectItems.filter(i => {
     const q = search.toLowerCase()
     const matchName = !q || i.title.toLowerCase().includes(q) || (i.assignee?.name || '').toLowerCase().includes(q)
       || (i.project?.name || '').toLowerCase().includes(q) || (i.project?.code || '').toLowerCase().includes(q)
@@ -1014,7 +1330,7 @@ function DivisionGroup({ group, onSave }) {
     return matchName && matchStatus
   })
 
-  // Kelompokkan per project, task tanpa project masuk "(Tanpa Project)"
+  // Kelompokkan per project
   const projectGroups = []
   const seen = {}
   for (const item of filtered) {
@@ -1022,6 +1338,15 @@ function DivisionGroup({ group, onSave }) {
     if (!seen[key]) { seen[key] = []; projectGroups.push(key) }
     seen[key].push(item)
   }
+
+  // Kelompokkan personal tasks per anggota
+  const memberMap = {}
+  for (const item of personalOnlyItems) {
+    const name = item.assignee?.name || 'Anggota'
+    if (!memberMap[name]) memberMap[name] = []
+    memberMap[name].push(item)
+  }
+  const memberNames = Object.keys(memberMap).sort()
 
   return (
     <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
@@ -1046,34 +1371,59 @@ function DivisionGroup({ group, onSave }) {
         </div>
       </button>
       {open && (
-        <div className="bg-white px-4 pb-4 space-y-2 pt-3">
-          {totalCount > 3 && (
-            <div className="flex gap-2 flex-wrap pb-1">
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nama / tugas / project..."
-                className="flex-1 min-w-0 px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50 text-xs focus:outline-none focus:ring-2 focus:ring-violet-200 placeholder-gray-300" />
-              <div className="flex gap-1">
-                {[['all','Semua'],['updated','Sudah update'],['pending','Belum update']].map(([val, label]) => (
-                  <button key={val} onClick={() => setStatusFilter(val)}
-                    className={`text-[11px] px-2.5 py-1.5 rounded-xl font-semibold border transition-colors ${
-                      statusFilter === val ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
-                    }`}>{label}</button>
+        <div className="bg-white px-4 pb-4 space-y-3 pt-3">
+
+          {/* Tugas rutin per anggota (personal tasks dengan timing) */}
+          {memberNames.length > 0 && (
+            <div>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">Tugas Rutin Anggota</p>
+              <div className="space-y-2">
+                {memberNames.map(name => (
+                  <MemberPersonalTaskTabs key={name} name={name} tasks={memberMap[name]} />
                 ))}
               </div>
             </div>
           )}
-          {projectGroups.length === 0
-            ? <p className="text-sm text-gray-400 text-center py-4">{search || statusFilter !== 'all' ? 'Tidak ada yang cocok.' : 'Tidak ada tugas aktif.'}</p>
-            : projectGroups.map(key => (
-                <ProjectSubGroup key={key} projectKey={key} items={seen[key]} onSave={onSave} />
-              ))
-          }
+
+          {/* Task project */}
+          {projectItems.length > 0 && (
+            <div>
+              {memberNames.length > 0 && <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2 mt-1">Task Project</p>}
+              {projectItems.length > 3 && (
+                <div className="flex gap-2 flex-wrap pb-2">
+                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nama / tugas / project..."
+                    className="flex-1 min-w-0 px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50 text-xs focus:outline-none focus:ring-2 focus:ring-violet-200 placeholder-gray-300" />
+                  <div className="flex gap-1">
+                    {[['all','Semua'],['updated','Sudah update'],['pending','Belum update']].map(([val, label]) => (
+                      <button key={val} onClick={() => setStatusFilter(val)}
+                        className={`text-[11px] px-2.5 py-1.5 rounded-xl font-semibold border transition-colors ${
+                          statusFilter === val ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                        }`}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="space-y-2">
+                {projectGroups.length === 0
+                  ? <p className="text-sm text-gray-400 text-center py-4">{search || statusFilter !== 'all' ? 'Tidak ada yang cocok.' : ''}</p>
+                  : projectGroups.map(key => (
+                      <ProjectSubGroup key={key} projectKey={key} items={seen[key]} onSave={onSave} />
+                    ))
+                }
+              </div>
+            </div>
+          )}
+
+          {memberNames.length === 0 && projectGroups.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-4">Tidak ada tugas aktif.</p>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-function CollapsibleSection({ title, count, defaultOpen = true, icon, accent, children }) {
+function CollapsibleSection({ title, count, defaultOpen = false, icon, accent, children }) {
   const [open, setOpen] = useState(defaultOpen)
   const headerCls = accent
     ? `w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${accent}`
@@ -1096,6 +1446,98 @@ function CollapsibleSection({ title, count, defaultOpen = true, icon, accent, ch
   )
 }
 
+// ── Personal task tab panel (shared across all render modes) ──────────────────
+const TIMING_TAB_DEFS = [
+  { key: 'daily',    label: 'Harian',   icon: '☀️',
+    active: 'border-orange-400 text-orange-700 bg-orange-50',
+    badge:  'bg-orange-100 text-orange-700' },
+  { key: 'weekly',   label: 'Mingguan', icon: '📅',
+    active: 'border-blue-500 text-blue-700 bg-blue-50',
+    badge:  'bg-blue-100 text-blue-700' },
+  { key: 'monthly',  label: 'Bulanan',  icon: '🗓️',
+    active: 'border-violet-500 text-violet-700 bg-violet-50',
+    badge:  'bg-violet-100 text-violet-700' },
+  { key: 'yearly',   label: 'Tahunan',  icon: '📆',
+    active: 'border-emerald-500 text-emerald-700 bg-emerald-50',
+    badge:  'bg-emerald-100 text-emerald-700' },
+  { key: 'periodic', label: 'Berkala',  icon: '🔁',
+    active: 'border-teal-500 text-teal-700 bg-teal-50',
+    badge:  'bg-teal-100 text-teal-700' },
+  { key: 'other',    label: 'Lainnya',  icon: '📝',
+    active: 'border-gray-500 text-gray-700 bg-gray-50',
+    badge:  'bg-gray-200 text-gray-600' },
+]
+
+function PersonalTaskTabs({ tasks, projectOptions, onSave, onDelete, onAdd }) {
+  const groups = {
+    daily:    tasks.filter(i => i.timing === 'daily'),
+    weekly:   tasks.filter(i => i.timing === 'weekly'),
+    monthly:  tasks.filter(i => i.timing === 'monthly'),
+    yearly:   tasks.filter(i => i.timing === 'yearly'),
+    periodic: tasks.filter(i => i.timing === 'periodic'),
+    other:    tasks.filter(i => !i.timing),
+  }
+  const tabDefs = TIMING_TAB_DEFS.filter(t => groups[t.key].length > 0)
+  const [activeTab, setActiveTab] = useState(tabDefs[0]?.key || 'other')
+
+  // If the active tab becomes empty (e.g. task deleted), fall back
+  const resolvedTab = tabDefs.find(t => t.key === activeTab) ? activeTab : tabDefs[0]?.key
+  const activeDef = TIMING_TAB_DEFS.find(t => t.key === resolvedTab)
+  const items = groups[resolvedTab] || []
+
+  return (
+    <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+      {/* Tab bar */}
+      <div className="flex overflow-x-auto border-b border-gray-100 bg-gray-50/50">
+        {tabDefs.map(tab => {
+          const isActive = tab.key === resolvedTab
+          const count = groups[tab.key].length
+          const allDone = count > 0 && groups[tab.key].every(i => i.hasTodayUpdate)
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-all border-b-2 ${
+                isActive ? tab.active : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/60'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+              <span className={`text-xs rounded-full px-1.5 py-0.5 font-semibold ${
+                allDone ? 'bg-green-100 text-green-700' : isActive ? tab.badge : 'bg-gray-200 text-gray-500'
+              }`}>
+                {allDone ? '✓' : count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* AddTaskForm — always visible at top, above task list */}
+      <div className="px-4 pt-4">
+        <AddTaskForm
+          projectOptions={projectOptions}
+          defaultTiming={resolvedTab && resolvedTab !== 'other' ? resolvedTab : ''}
+          onAdd={(item) => { onAdd(item); setActiveTab(item.timing || 'other') }}
+        />
+      </div>
+
+      {/* Task list */}
+      <div className="px-4 pb-4 pt-3">
+        {items.length > 0 ? (
+          <div className="space-y-2">
+            {items.map(item => (
+              <TaskCard key={item.id} item={item} onSave={onSave} onDelete={onDelete} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-center py-6 text-gray-400 text-sm">Belum ada tugas di kategori ini</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function MyTasksPage() {
@@ -1105,7 +1547,7 @@ export default function MyTasksPage() {
   const [loading, setLoading] = useState(true)
   const [checkIn, setCheckIn] = useState(null)
   const [briefingLog, setBriefingLog] = useState(null)
-  const [finMeeting, setFinMeeting] = useState(null)
+  const [hasFinanceMeeting, setHasFinanceMeeting] = useState(false)
   const [sharingSessions, setSharingSessions] = useState([])
   const [todayEvents, setTodayEvents] = useState([])
 
@@ -1123,12 +1565,14 @@ export default function MyTasksPage() {
 
   useEffect(() => {
     if (status !== 'authenticated') return
-    const todayStr = new Date(Date.now() + 7*3600000).toISOString().slice(0,10)
-    fetch('/api/daily-checkin').then(r => r.ok ? r.json() : null).then(d => { if (d) setCheckIn(d) })
-    fetch(`/api/programs/briefing?date=${todayStr}`).then(r => r.ok ? r.json() : null).then(d => { if (d) setBriefingLog(d.log || null) })
-    fetch('/api/programs/finance-meeting').then(r => r.ok ? r.json() : null).then(d => { if (d?.types?.length) setFinMeeting(d) })
-    fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setSharingSessions(d) })
-    fetch('/api/event-day').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setTodayEvents(d) })
+    fetch('/api/my-tasks/init').then(r => r.ok ? r.json() : null).then(d => {
+      if (!d) return
+      setCheckIn(d.checkIn)
+      if (d.briefingLog !== undefined) setBriefingLog(d.briefingLog)
+      if (d.hasFinanceMeeting) setHasFinanceMeeting(true)
+      if (Array.isArray(d.sharingSessions)) setSharingSessions(d.sharingSessions)
+      if (Array.isArray(d.todayEvents)) setTodayEvents(d.todayEvents)
+    })
     load()
   }, [status, load])
 
@@ -1171,10 +1615,10 @@ export default function MyTasksPage() {
     else { const err = await res.json().catch(() => ({})); alert(err.error || 'Gagal menyimpan') }
   }
 
-  async function addPersonalTask({ title, dueDate, projectId }) {
+  async function addPersonalTask({ title, dueDate, projectId, timing }) {
     const res = await fetch('/api/my-tasks', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, dueDate, projectId }),
+      body: JSON.stringify({ title, dueDate, projectId, timing: timing || null }),
     })
     if (res.ok) load()
   }
@@ -1210,7 +1654,8 @@ export default function MyTasksPage() {
     const teamItems      = data.groups.flatMap(g => g.items)
     const teamDone       = teamItems.filter(i => i.hasTodayUpdate).length
     const mySharing      = sharingSessions.filter(s => s.userId === session?.user?.id)
-    const ownerAllTasksDone = myItems.length > 0 && myItems.every(i => i.hasTodayUpdate)
+    const dailyItems = myItems.filter(i => i.kind === 'task' || !i.timing || i.timing === 'daily')
+    const ownerAllTasksDone = dailyItems.length === 0 || dailyItems.every(i => i.hasTodayUpdate)
 
     function handleExport() {
       window.open('/api/my-tasks/export', '_blank')
@@ -1244,6 +1689,10 @@ export default function MyTasksPage() {
 
           <CheckInCard checkIn={checkIn} briefingLog={briefingLog} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} session={session} allTasksDone={ownerAllTasksDone} />
 
+          <FinanceMeetingSection show={hasFinanceMeeting} />
+
+          <DisciplineLeaderboard currentUserId={session?.user?.id} />
+
 {mySharing.length > 0 && (
             <MySharingSessionCard sessions={mySharing}
               onUpdate={() => fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setSharingSessions(d))} />
@@ -1255,16 +1704,8 @@ export default function MyTasksPage() {
             </div>
           )}
 
-          {/* Personal task OWNER — di atas task project */}
-          <div>
-            <SectionHeader label="Catatan & To-Do Saya" count={myPersonalTasks.length} accent="bg-gray-300" />
-            <div className="space-y-3">
-              {myPersonalTasks.map(item => (
-                <TaskCard key={item.id} item={item} onSave={saveProgress} onDelete={removePersonalTask} />
-              ))}
-              <AddTaskForm projectOptions={data.projectOptions} onAdd={addPersonalTask} />
-            </div>
-          </div>
+          {/* Personal task OWNER */}
+          <PersonalTaskTabs tasks={myPersonalTasks} projectOptions={data.projectOptions} onSave={saveProgress} onDelete={removePersonalTask} onAdd={addPersonalTask} />
 
           {/* Task project yang di-assign ke OWNER */}
           {myProjectTasks.length > 0 && (
@@ -1358,6 +1799,8 @@ export default function MyTasksPage() {
             </CollapsibleSection>
           )}
 
+          <DisciplineLeaderboard currentUserId={session?.user?.id} />
+
           <PersonalStatsWidget />
         </main>
       </div>
@@ -1374,7 +1817,8 @@ export default function MyTasksPage() {
     const myProjectTasks  = myItems.filter(i => i.kind === 'task' || (i.kind === 'personal' && i.project))
     const myPersonalTasks = myItems.filter(i => i.kind === 'personal' && !i.project)
     const mySharing = sharingSessions.filter(s => s.userId === session?.user?.id)
-    const teamLeadAllTasksDone = myItems.length > 0 && myItems.every(i => i.hasTodayUpdate)
+    const dailyItems = myItems.filter(i => i.kind === 'task' || !i.timing || i.timing === 'daily')
+    const teamLeadAllTasksDone = dailyItems.length === 0 || dailyItems.every(i => i.hasTodayUpdate)
 
     return (
       <div className="min-h-screen bg-gray-50">
@@ -1404,8 +1848,9 @@ export default function MyTasksPage() {
 
           <CheckInCard checkIn={checkIn} briefingLog={briefingLog} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} session={session} allTasksDone={teamLeadAllTasksDone} />
 
-          <FinanceMeetingSection meetingData={finMeeting}
-            onSaved={() => fetch('/api/programs/finance-meeting').then(r => r.ok ? r.json() : null).then(d => { if (d) setFinMeeting(d) })} />
+          <FinanceMeetingSection show={hasFinanceMeeting} />
+
+          <DisciplineLeaderboard currentUserId={session?.user?.id} />
 
           {mySharing.length > 0 && <MySharingSessionCard sessions={mySharing} onUpdate={() => fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setSharingSessions(d))} />}
 
@@ -1420,17 +1865,8 @@ export default function MyTasksPage() {
             </div>
           )}
 
-          {/* Personal tasks — di atas task project */}
-          <div>
-            <SectionHeader label="Catatan & To-Do Saya" count={myPersonalTasks.length} accent="bg-gray-300" />
-            <div className="space-y-3">
-              {myPersonalTasks.map(item => (
-                <TaskCard key={item.id} item={item} onSave={saveProgress}
-                  onDelete={removePersonalTask} />
-              ))}
-              <AddTaskForm projectOptions={data.projectOptions} onAdd={addPersonalTask} />
-            </div>
-          </div>
+          {/* Personal tasks — team_lead */}
+          <PersonalTaskTabs tasks={myPersonalTasks} projectOptions={data.projectOptions} onSave={saveProgress} onDelete={removePersonalTask} onAdd={addPersonalTask} />
 
           {/* My tasks */}
           {myProjectTasks.length > 0 && (
@@ -1473,9 +1909,11 @@ export default function MyTasksPage() {
   // Personal task tanpa project → tetap di "Catatan & To-Do"
   const projectTasks  = allItems.filter(i => i.kind === 'task' || (i.kind === 'personal' && i.project))
   const personalTasks = allItems.filter(i => i.kind === 'personal' && !i.project)
+
   const doneToday   = allItems.filter(i => i.hasTodayUpdate).length
   const pendingCount = allItems.filter(i => !i.hasTodayUpdate).length
-  const personalAllTasksDone = allItems.length > 0 && allItems.every(i => i.hasTodayUpdate)
+  const dailyItems = allItems.filter(i => i.kind === 'task' || !i.timing || i.timing === 'daily')
+  const personalAllTasksDone = dailyItems.length === 0 || dailyItems.every(i => i.hasTodayUpdate)
   const mySharing = sharingSessions.filter(s => s.userId === session?.user?.id)
 
   // Group project tasks by urgency
@@ -1529,8 +1967,9 @@ export default function MyTasksPage() {
         <CheckInCard checkIn={checkIn} briefingLog={briefingLog} onMorningAck={handleMorningAck} onEveningSubmit={handleEveningSubmit} session={session} allTasksDone={personalAllTasksDone} />
 
         {/* ── Finance Meeting Mingguan ── */}
-        <FinanceMeetingSection meetingData={finMeeting}
-          onSaved={() => fetch('/api/programs/finance-meeting').then(r => r.ok ? r.json() : null).then(d => { if (d) setFinMeeting(d) })} />
+        <FinanceMeetingSection show={hasFinanceMeeting} />
+
+        <DisciplineLeaderboard currentUserId={session?.user?.id} />
 
         {/* ── Event Day Mode ── */}
         {todayEvents.length > 0 && (
@@ -1554,16 +1993,8 @@ export default function MyTasksPage() {
             onUpdate={() => fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setSharingSessions(d))} />
         )}
 
-        {/* ── Personal tasks — di atas task project ── */}
-        <div>
-          <SectionHeader label="Catatan & To-Do" count={personalTasks.length} accent="bg-gray-300" />
-          <div className="space-y-3">
-            {personalTasks.map(item => (
-              <TaskCard key={item.id} item={item} onSave={saveProgress} onDelete={removePersonalTask} />
-            ))}
-            <AddTaskForm projectOptions={data.projectOptions} onAdd={addPersonalTask} />
-          </div>
-        </div>
+        {/* ── Personal tasks — personal mode ── */}
+        <PersonalTaskTabs tasks={personalTasks} projectOptions={data.projectOptions} onSave={saveProgress} onDelete={removePersonalTask} onAdd={addPersonalTask} />
 
         {/* ── Task Project dengan Filter/Sort ── */}
         {projectTasks.length > 0 && (
