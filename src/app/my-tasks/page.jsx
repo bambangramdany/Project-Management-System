@@ -1565,7 +1565,7 @@ export default function MyTasksPage() {
 
   useEffect(() => {
     if (status !== 'authenticated') return
-    fetch('/api/my-tasks/init').then(r => r.ok ? r.json() : null).then(d => {
+    fetch('/api/my-tasks/init', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
       if (!d) return
       setCheckIn(d.checkIn)
       if (d.briefingLog !== undefined) setBriefingLog(d.briefingLog)
