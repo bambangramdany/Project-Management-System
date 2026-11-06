@@ -9,39 +9,47 @@ import { isFinanceDirector } from '@/lib/rbac'
 import { useProfile } from '@/hooks/useProfile'
 
 // ── Menu order: Daily → PM → Network → Commercial → Finance → Admin ──────────
+//
+// Kelompok akses:
+//   Direksi      : OWNER, DIRECTOR
+//   PM/Produser  : PROJECT_MANAGER, PRODUCER
+//   Tim Ops      : MEMBER, PRODUCTION
+//   Tim Finance  : FINANCE, FINANCE_STAFF
+//
 const NAV_ITEMS = [
-  // ── Harian & PM ──
+  // ── Semua role ──
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/my-tasks',  label: 'Tugas Saya' },
-  { href: '/projects',  label: 'Projects' },
-  { href: '/workload',  label: 'Workload Tim', roles: ['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'] },
-  { href: '/reports',   label: 'Laporan Kinerja', roles: ['OWNER', 'DIRECTOR', 'FINANCE', 'PROJECT_MANAGER'] },
-  { href: '/scores',    label: 'Penilaian' },
 
-  // ── Network ──
-  { href: '/vendors', label: 'Vendor' },
-  { href: '/clients', label: 'Klien' },
-  { href: '/team',    label: 'Tim' },
+  // ── Direksi + PM/Produser + Tim Ops ──
+  { href: '/projects',  label: 'Projects', roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'MEMBER', 'PRODUCTION'] },
 
-  // ── Commercial / Pipeline ──
+  // ── Direksi + PM/Produser + Finance ──
+  { href: '/workload',  label: 'Workload Tim', roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'FINANCE', 'FINANCE_STAFF'] },
+
+  // ── Direksi saja ──
+  { href: '/reports',   label: 'Laporan Kinerja', roles: ['OWNER', 'DIRECTOR'] },
+
+  // ── Direksi + PM/Produser + Tim Ops + Finance (self-assessment & pairing) ──
+  { href: '/scores',    label: 'Penilaian', roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'MEMBER', 'PRODUCTION', 'FINANCE', 'FINANCE_STAFF'] },
+
+  // ── Network: Direksi + PM/Produser + Finance (Tim Ops tidak perlu Klien) ──
+  { href: '/vendors', label: 'Vendor', roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'MEMBER', 'PRODUCTION', 'FINANCE'] },
+  { href: '/clients', label: 'Klien',  roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'FINANCE'] },
+
+  // ── Commercial ──
   { href: '/quotation', label: 'Quotation', roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'FINANCE', 'FINANCE_STAFF'] },
-  { href: '/invoice',   label: 'Invoice',   roles: ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'] },
+  { href: '/invoice',   label: 'Invoice',   roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'FINANCE', 'FINANCE_STAFF'] },
 
-  // ── Finance & Operasional ──
-  { href: '/finance',  label: 'Finance',    roles: ['OWNER', 'PROJECT_MANAGER', 'PRODUCER', 'DIRECTOR', 'FINANCE'] },
-  { href: '/targets',  label: 'Target',     roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
-  { href: '/cashflow', label: 'Kas',        cashOnly: true },
-  { href: '/opex',     label: 'Opex',       roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
-  { href: '/debts',    label: 'Hutang',     roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
-  { href: '/assets',   label: 'Aset',       roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
-  { href: '/salary',   label: 'Gaji',       roles: ['OWNER', 'DIRECTOR', 'FINANCE'] },
+  // ── Finance: Direksi + PM/Produser + Finance ──
+  { href: '/finance',     label: 'Finance',      roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'FINANCE'] },
+  { href: '/finance-ops', label: 'Keuangan Ops', roles: ['OWNER', 'DIRECTOR', 'FINANCE'], financeOpsOk: true },
 
-  // ── Referensi ──
+  // ── Referensi: semua role ──
   { href: '/peraturan', label: 'SOP & Peraturan' },
-  { href: '/hr/announcements', label: 'Pengumuman & HR' },
+  { href: '/hr',        label: 'HR' },
 
   // ── Admin ──
-  { href: '/hrd/evaluations', label: 'Input HRD', hrdOnly: true },
   { href: '/settings', label: 'Pengaturan', settingsOnly: true },
 ]
 
@@ -59,6 +67,7 @@ export default function Navbar() {
     if (item.settingsOnly) return session?.user.role === 'OWNER' || canSeeAudit
     if (item.cashOnly) return canSeeCash
     if (item.financeStaffOk) return canSeeFinanceStaff
+    if (item.financeOpsOk) return canSeeCash || session?.user.role === 'DIRECTOR'
     if (item.hrdOnly) return session?.user?.canHrdEvaluate || session?.user?.role === 'OWNER' || isFinanceDirector(session?.user)
     return !item.roles || item.roles.includes(session?.user.role)
   })

@@ -1692,7 +1692,10 @@ export default function MyTasksPage() {
 
           <FinanceMeetingSection show={hasFinanceMeeting} />
 
-          <DisciplineLeaderboard currentUserId={session?.user?.id} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', alignItems: 'start' }}>
+            <PersonalStatsWidget />
+            <DisciplineLeaderboard currentUserId={session?.user?.id} />
+          </div>
 
 {mySharing.length > 0 && (
             <MySharingSessionCard sessions={mySharing}
@@ -1800,9 +1803,10 @@ export default function MyTasksPage() {
             </CollapsibleSection>
           )}
 
-          <DisciplineLeaderboard currentUserId={session?.user?.id} />
-
-          <PersonalStatsWidget />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', alignItems: 'start' }}>
+            <PersonalStatsWidget />
+            <DisciplineLeaderboard currentUserId={session?.user?.id} />
+          </div>
         </main>
       </div>
     )
@@ -1851,7 +1855,10 @@ export default function MyTasksPage() {
 
           <FinanceMeetingSection show={hasFinanceMeeting} />
 
-          <DisciplineLeaderboard currentUserId={session?.user?.id} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', alignItems: 'start' }}>
+            <PersonalStatsWidget />
+            <DisciplineLeaderboard currentUserId={session?.user?.id} />
+          </div>
 
           {mySharing.length > 0 && <MySharingSessionCard sessions={mySharing} onUpdate={() => fetch('/api/sharing-sessions').then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setSharingSessions(d))} />}
 
@@ -1897,8 +1904,6 @@ export default function MyTasksPage() {
               <AllSharingSessionsTable sessions={sharingSessions} />
             </CollapsibleSection>
           )}
-
-          <PersonalStatsWidget />
         </main>
       </div>
     )
@@ -1970,7 +1975,10 @@ export default function MyTasksPage() {
         {/* ── Finance Meeting Mingguan ── */}
         <FinanceMeetingSection show={hasFinanceMeeting} />
 
-        <DisciplineLeaderboard currentUserId={session?.user?.id} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', alignItems: 'start' }}>
+          <PersonalStatsWidget />
+          <DisciplineLeaderboard currentUserId={session?.user?.id} />
+        </div>
 
         {/* ── Event Day Mode ── */}
         {todayEvents.length > 0 && (
@@ -2043,9 +2051,6 @@ export default function MyTasksPage() {
             <AllSharingSessionsTable sessions={sharingSessions} />
           </CollapsibleSection>
         )}
-
-        {/* ── Kinerja & Pengumuman ── */}
-        <PersonalStatsWidget />
 
         {/* Empty state */}
         {allItems.length === 0 && personalTasks.length === 0 && (

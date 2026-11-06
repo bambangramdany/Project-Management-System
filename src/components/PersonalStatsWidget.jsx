@@ -12,8 +12,8 @@ function StatBar({ value, color = 'bg-violet-500' }) {
 export default function PersonalStatsWidget() {
   const [stats, setStats] = useState(null)
   const [announcements, setAnnouncements] = useState([])
-  const [open, setOpen] = useState(true)
-  const [annOpen, setAnnOpen] = useState(true)
+  const [open, setOpen] = useState(false)
+  const [annOpen, setAnnOpen] = useState(false)
 
   useEffect(() => {
     fetch('/api/my-stats').then(r => r.ok ? r.json() : null).then(d => { if (d) setStats(d) })
