@@ -447,6 +447,8 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
             <button
               disabled={ackLoading || ackSuccess}
               onClick={async () => {
+                // Open Zoom synchronously before await — mobile browsers block window.open after async
+                window.open('https://us02web.zoom.us/j/83057800992', '_blank')
                 setAckLoading(true)
                 await onMorningAck()
                 setAckLoading(false)
@@ -454,7 +456,6 @@ function CheckInCard({ checkIn, briefingLog, onMorningAck, onEveningSubmit, sess
                 setShowAbsensiReminder(true)
                 if (isAfterCutoff) setShowMorningExcuse(true)
                 setTimeout(() => setAckSuccess(false), 3000)
-                window.open('https://us02web.zoom.us/j/83057800992', '_blank')
               }}
               className="shrink-0 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-bold transition-colors active:scale-95 border border-white/30 disabled:opacity-60">
               {ackLoading ? '...' : ackSuccess ? '✓ Tercatat!' : isOnTime ? '✓ Hadir' : '✓ Hadir (Telat)'}

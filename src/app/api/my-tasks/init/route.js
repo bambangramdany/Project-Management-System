@@ -46,11 +46,13 @@ function hasFinanceMeeting(user) {
 // Combined init payload: checkin + briefing + finMeeting + sharingSessions + eventDay
 // Replaces 5 separate fetch() calls on page mount with 1 request and 1 session check.
 export async function GET() {
+  let session = null
+  let userId = null
   try {
-  const session = await getServerSession(authOptions)
+  session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const userId = session.user.id
+  userId = session.user.id
   const today = todayWIB()
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
   const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999)
@@ -124,10 +126,15 @@ export async function GET() {
   )
   } catch (e) {
     console.error('[my-tasks/init] GET error:', e)
-    // Return minimal checkIn so the check-in card still renders even on partial failure
     const today = todayWIB()
+    // Try to get at least the check-in record so the morning status is correct
+    let checkInRecord = null
+    try {
+      const userId = session?.user?.id
+      if (userId) checkInRecord = await prisma.dailyCheckIn.findUnique({ where: { userId_date: { userId, date: today } } })
+    } catch {}
     return NextResponse.json(
-      { checkIn: shapeCheckIn(null, today), briefingLog: null, sharingSessions: [], todayEvents: [], hasFinanceMeeting: false },
+      { checkIn: shapeCheckIn(checkInRecord, today), briefingLog: null, sharingSessions: [], todayEvents: [], hasFinanceMeeting: false },
       { status: 200 }
     )
   }
