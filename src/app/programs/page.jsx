@@ -124,6 +124,8 @@ function BriefingSection({ session, isAdmin, initialLog, initialAllLogs, totalUs
     setAllLogs(all)
   }, [today, isAdmin])
 
+  const ZOOM_LINK = 'https://us02web.zoom.us/j/83057800992'
+
   const submit = async (status) => {
     setSaving(true)
     const res = await fetch('/api/programs/briefing', {
@@ -135,6 +137,7 @@ function BriefingSection({ session, isAdmin, initialLog, initialAllLogs, totalUs
     setLog(data)
     setSaving(false)
     if (isAdmin) reload()
+    if (status === 'HADIR') window.open(ZOOM_LINK, '_blank')
   }
 
   const hadir = log?.status === 'HADIR'
