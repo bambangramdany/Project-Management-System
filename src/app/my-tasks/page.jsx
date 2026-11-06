@@ -1374,14 +1374,30 @@ function DivisionGroup({ group, onSave }) {
       {open && (
         <div className="bg-white px-4 pb-4 space-y-3 pt-3">
 
+          {/* Search bar — selalu tampil di atas */}
+          <div className="flex gap-2 flex-wrap">
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nama anggota / tugas / project..."
+              className="flex-1 min-w-0 px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50 text-xs focus:outline-none focus:ring-2 focus:ring-violet-200 placeholder-gray-300" />
+            <div className="flex gap-1">
+              {[['all','Semua'],['updated','Sudah update'],['pending','Belum update']].map(([val, label]) => (
+                <button key={val} onClick={() => setStatusFilter(val)}
+                  className={`text-[11px] px-2.5 py-1.5 rounded-xl font-semibold border transition-colors ${
+                    statusFilter === val ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                  }`}>{label}</button>
+              ))}
+            </div>
+          </div>
+
           {/* Tugas rutin per anggota (personal tasks dengan timing) */}
           {memberNames.length > 0 && (
             <div>
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">Tugas Rutin Anggota</p>
               <div className="space-y-2">
-                {memberNames.map(name => (
-                  <MemberPersonalTaskTabs key={name} name={name} tasks={memberMap[name]} />
-                ))}
+                {memberNames
+                  .filter(name => !search || name.toLowerCase().includes(search.toLowerCase()))
+                  .map(name => (
+                    <MemberPersonalTaskTabs key={name} name={name} tasks={memberMap[name]} />
+                  ))}
               </div>
             </div>
           )}
@@ -1390,20 +1406,6 @@ function DivisionGroup({ group, onSave }) {
           {projectItems.length > 0 && (
             <div>
               {memberNames.length > 0 && <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2 mt-1">Task Project</p>}
-              {projectItems.length > 3 && (
-                <div className="flex gap-2 flex-wrap pb-2">
-                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nama / tugas / project..."
-                    className="flex-1 min-w-0 px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50 text-xs focus:outline-none focus:ring-2 focus:ring-violet-200 placeholder-gray-300" />
-                  <div className="flex gap-1">
-                    {[['all','Semua'],['updated','Sudah update'],['pending','Belum update']].map(([val, label]) => (
-                      <button key={val} onClick={() => setStatusFilter(val)}
-                        className={`text-[11px] px-2.5 py-1.5 rounded-xl font-semibold border transition-colors ${
-                          statusFilter === val ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
-                        }`}>{label}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
               <div className="space-y-2">
                 {projectGroups.length === 0
                   ? <p className="text-sm text-gray-400 text-center py-4">{search || statusFilter !== 'all' ? 'Tidak ada yang cocok.' : ''}</p>
