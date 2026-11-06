@@ -1601,7 +1601,7 @@ export default function MyTasksPage() {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
     })
-    if (res.ok) { const d = await res.json(); setCheckIn(prev => ({ ...prev, today: d, eveningAt: d.eveningAt })) }
+    if (res.ok) { const d = await res.json(); setCheckIn(prev => ({ ...prev, eveningAt: d.eveningAt })) }
   }
 
   async function saveProgress(item, statusVal, note) {

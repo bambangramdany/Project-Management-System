@@ -92,7 +92,7 @@ export async function GET() {
       p.members.forEach(m => crewIds.add(m.userId))
     })
     const crewCheckIns = await prisma.dailyCheckIn.findMany({
-      where: { userId: { in: [...crewIds] }, date: { gte: todayStart, lte: todayEnd } },
+      where: { userId: { in: [...crewIds] }, date: today },
       select: { userId: true, morningAckAt: true },
     })
     const checkInMap = Object.fromEntries(crewCheckIns.map(c => [c.userId, c]))
@@ -117,7 +117,7 @@ export async function GET() {
   return NextResponse.json(
     {
       checkIn: shapeCheckIn(checkIn, today),
-      briefingLog: briefingLog?.log ?? null,
+      briefingLog: briefingLog ?? null,
       sharingSessions,
       todayEvents,
       hasFinanceMeeting: hasFinanceMeeting(session.user),
