@@ -204,23 +204,47 @@ export default function ProjectDetailPage() {
 
   async function addTask(e) {
     e.preventDefault()
+    const currentForm = { ...taskForm }
+    const assigneeObj = currentForm.assigneeId
+      ? [project.pic, ...(project.members?.map(m => m.user) || [])].find(u => u?.id === currentForm.assigneeId)
+      : null
+    const tempId = 'temp_' + Date.now()
+    // Optimistic: tampilkan task & tutup form langsung tanpa tunggu server
+    setProject(p => ({
+      ...p,
+      tasks: [...(p.tasks || []), {
+        id: tempId,
+        title: currentForm.title,
+        assigneeId: currentForm.assigneeId || null,
+        assignee: assigneeObj || null,
+        priority: currentForm.priority || 'MEDIUM',
+        status: 'TODO',
+        openEnded: currentForm.openEnded || false,
+        dueDate: currentForm.dueDate ? new Date(currentForm.dueDate) : null,
+        dependencies: [],
+        _count: { comments: 0 },
+      }]
+    }))
+    setTaskForm({ title: '', assigneeId: '', priority: 'MEDIUM', openEnded: false, dueDate: '' })
+    setShowTaskForm(false)
+    // POST ke server di background
     const res = await fetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...taskForm, projectId: id }),
+      body: JSON.stringify({ ...currentForm, projectId: id }),
     })
     if (res.ok) {
       const newTask = await res.json()
-      setTaskForm({ title: '', assigneeId: '', priority: 'MEDIUM', openEnded: false, dueDate: '' })
-      setShowTaskForm(false)
-      // Optimistic: tambah task langsung ke state
-      const assigneeObj = taskForm.assigneeId
-        ? [project.pic, ...(project.members?.map(m => m.user) || [])].find(u => u?.id === taskForm.assigneeId)
-        : null
+      // Ganti tempId dengan data real dari server
       setProject(p => ({
         ...p,
-        tasks: [...(p.tasks || []), { ...newTask, assignee: assigneeObj || null, dependencies: [], _count: { comments: 0 } }]
+        tasks: (p.tasks || []).map(t => t.id === tempId
+          ? { ...newTask, assignee: assigneeObj || null, dependencies: [], _count: { comments: 0 } }
+          : t)
       }))
+    } else {
+      // Rollback: hapus task optimistic jika gagal
+      setProject(p => ({ ...p, tasks: (p.tasks || []).filter(t => t.id !== tempId) }))
     }
   }
 
