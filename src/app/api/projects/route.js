@@ -3,7 +3,6 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { canViewAllProjects } from '@/lib/rbac'
 import { computeProjectHealth } from '@/lib/health'
-import { SOP_TEMPLATES } from '@/lib/constants'
 import { NextResponse } from 'next/server'
 
 export async function GET(req) {
@@ -114,22 +113,6 @@ export async function POST(req) {
     include: { client: true, pic: true },
   })
 
-  // Auto-generate SOP checklist tasks for this project's category, unless the
-  // caller explicitly opted out.
-  if (body.applySopTemplate !== false) {
-    const template = SOP_TEMPLATES[project.category]
-    if (template && template.length > 0) {
-      await prisma.task.createMany({
-        data: template.map((t, idx) => ({
-          projectId: project.id,
-          title: t.title,
-          priority: t.priority || 'MEDIUM',
-          assigneeId: null,
-          order: idx,
-        })),
-      })
-    }
-  }
 
   return NextResponse.json(project, { status: 201 })
 }
