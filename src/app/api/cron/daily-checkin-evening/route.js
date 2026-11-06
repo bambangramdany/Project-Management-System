@@ -67,7 +67,7 @@ export async function GET(req) {
       userId: supId,
       type: 'CHECKIN_EVENING_MISSING',
       title: `${uniqueNames.length} orang belum laporan progress`,
-      message: `Belum submit laporan progress sore per pukul 20:00 WIB: ${uniqueNames.join(', ')}.`,
+      message: `Belum submit laporan progress sore per pukul 20:00 WIB:\n${uniqueNames.map(n => `• ${n}`).join('\n')}`,
       link: '/my-tasks',
     })
     notified++

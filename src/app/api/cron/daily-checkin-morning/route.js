@@ -65,7 +65,7 @@ export async function GET(req) {
       userId: supId,
       type: 'CHECKIN_MORNING_MISSING',
       title: `${uniqueNames.length} orang belum check-in pagi`,
-      message: `Belum check-in per pukul 08:00 WIB hari ini: ${uniqueNames.join(', ')}.`,
+      message: `Belum check-in per pukul 08:00 WIB hari ini:\n${uniqueNames.map(n => `• ${n}`).join('\n')}`,
       link: '/my-tasks',
     })
     notified++
