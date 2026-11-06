@@ -51,6 +51,8 @@ export default function ProjectDetailPage() {
   const [customCategory, setCustomCategory] = useState('')
   const [editingPic, setEditingPic] = useState(false)
   const [confirmDeleteTaskId, setConfirmDeleteTaskId] = useState(null)
+  const addingMemberRef = useRef(false)
+  const [addingMember, setAddingMember] = useState(false)
   const [confirmRemoveMemberId, setConfirmRemoveMemberId] = useState(null)
   const [confirmStatusChange, setConfirmStatusChange] = useState(null) // 'FAILED' | 'CANCELED' | null
   const [editingDates, setEditingDates] = useState(false)
@@ -287,19 +289,27 @@ export default function ProjectDetailPage() {
 
   async function addMember(userId) {
     if (!userId) return
+    if (addingMemberRef.current) return
     const currentIds = (project.members || []).map(m => m.user.id)
     if (currentIds.includes(userId)) return
+    addingMemberRef.current = true
+    setAddingMember(true)
     const userObj = team.find(u => u.id === userId)
     // Optimistic update — tambah langsung ke state tanpa tunggu server
     if (userObj) {
       setProject(p => ({ ...p, members: [...(p.members || []), { user: userObj }] }))
     }
-    const res = await fetch(`/api/projects/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ memberIds: [...currentIds, userId] }),
-    })
-    if (!res.ok) fetchProject() // rollback jika gagal
+    try {
+      const res = await fetch(`/api/projects/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberIds: [...currentIds, userId] }),
+      })
+      if (!res.ok) fetchProject() // rollback jika gagal
+    } finally {
+      addingMemberRef.current = false
+      setAddingMember(false)
+    }
   }
 
   async function removeMember(userId) {
@@ -1043,8 +1053,8 @@ export default function ProjectDetailPage() {
             {isManager && (
               <div className="card p-3">
                 <label className="label">+ Tambah anggota (semua divisi)</label>
-                <select className="select" value="" onChange={e => addMember(e.target.value)}>
-                  <option value="">Pilih anggota...</option>
+                <select className="select" value="" onChange={e => addMember(e.target.value)} disabled={addingMember}>
+                  <option value="">{addingMember ? 'Menambahkan...' : 'Pilih anggota...'}</option>
                   {team
                     .filter(u => u.id !== project.pic?.id && !project.members?.some(m => m.user.id === u.id))
                     .map(u => (
