@@ -52,6 +52,7 @@ function shapeItem(item, kind, today, userId) {
     title: item.title,
     description: item.description,
     dueDate: item.dueDate,
+    timing: item.timing || null,
     status: item.status,
     createdAt: item.createdAt,
     project: item.project || null,
@@ -96,7 +97,7 @@ export async function GET() {
       }),
       // Task tim (exclude OWNER) — assignee.divisi sudah termasuk, tidak perlu allUsers
       prisma.task.findMany({
-        where: { status: { not: 'DONE' }, assigneeId: { not: userId }, assignee: { email: { notIn: HIDDEN_EMAILS } } },
+        where: { status: { not: 'DONE' }, assigneeId: { not: userId }, assignee: { email: { notIn: HIDDEN_EMAILS }, role: { not: 'OWNER' } } },
         select: {
           id: true, title: true, description: true, dueDate: true, status: true, createdAt: true, assigneeId: true,
           project: { select: { id: true, code: true, name: true, status: true, division: true, client: { select: { name: true } } } },
@@ -105,12 +106,12 @@ export async function GET() {
         orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
         take: 300,
       }),
-      // Personal task tim (exclude OWNER)
+      // Personal task tim (exclude OWNER dan dirinya sendiri)
       prisma.personalTask.findMany({
-        where: { status: { not: 'DONE' }, userId: { not: userId }, user: { email: { notIn: HIDDEN_EMAILS } } },
+        where: { status: { not: 'DONE' }, userId: { not: userId }, user: { email: { notIn: HIDDEN_EMAILS }, role: { not: 'OWNER' } } },
         select: {
           id: true, title: true, description: true, dueDate: true, status: true, createdAt: true, userId: true,
-          clientName: true, projectName: true,
+          timing: true, clientName: true, projectName: true,
           project: { select: { id: true, code: true, name: true, status: true, division: true, client: { select: { name: true } } } },
           user: { select: { id: true, name: true, divisi: true, role: true } },
         },
@@ -147,14 +148,17 @@ export async function GET() {
       items: allTeamItems.filter(i => i._divisi === div),
     })).filter(g => g.items.length > 0)
 
-    return NextResponse.json({
-      mode: 'owner',
-      myItems,
-      groups,
-      deadlinePassed: isPastDeadlineWIB(),
-      today: today.toISOString(),
-      projectOptions: memberProjects.map(p => ({ id: p.id, code: p.code, name: p.name, clientName: p.client?.name || null })),
-    })
+    return NextResponse.json(
+      {
+        mode: 'owner',
+        myItems,
+        groups,
+        deadlinePassed: isPastDeadlineWIB(),
+        today: today.toISOString(),
+        projectOptions: memberProjects.map(p => ({ id: p.id, code: p.code, name: p.name, clientName: p.client?.name || null })),
+      },
+      { headers: { 'Cache-Control': 'private, max-age=20, stale-while-revalidate=60' } }
+    )
   }
 
   // ── DIRECTOR / PM / FINANCE_STAFF dengan tim: mode team_lead ──────────────
@@ -183,7 +187,7 @@ export async function GET() {
         where: {
           status: { not: 'DONE' },
           assigneeId: { not: userId },
-          assignee: { divisi: { in: teamDivisions }, email: { notIn: HIDDEN_EMAILS } },
+          assignee: { divisi: { in: teamDivisions }, email: { notIn: HIDDEN_EMAILS }, role: { not: 'OWNER' } },
         },
         include: {
           project: { select: { id: true, code: true, name: true, status: true, client: { select: { name: true } } } },
@@ -196,7 +200,7 @@ export async function GET() {
         where: {
           status: { not: 'DONE' },
           userId: { not: userId },
-          user: { divisi: { in: teamDivisions }, email: { notIn: HIDDEN_EMAILS } },
+          user: { divisi: { in: teamDivisions }, email: { notIn: HIDDEN_EMAILS }, role: { not: 'OWNER' } },
         },
         include: {
           project: { select: { id: true, code: true, name: true, status: true, client: { select: { name: true } } } },
@@ -241,14 +245,17 @@ export async function GET() {
       items: allTeamItems.filter(i => i._divisi === div),
     }))
 
-    return NextResponse.json({
-      mode: 'team_lead',
-      myItems,
-      groups,
-      deadlinePassed: isPastDeadlineWIB(),
-      today: today.toISOString(),
-      projectOptions: memberProjects.map(p => ({ id: p.id, code: p.code, name: p.name, clientName: p.client?.name || null })),
-    })
+    return NextResponse.json(
+      {
+        mode: 'team_lead',
+        myItems,
+        groups,
+        deadlinePassed: isPastDeadlineWIB(),
+        today: today.toISOString(),
+        projectOptions: memberProjects.map(p => ({ id: p.id, code: p.code, name: p.name, clientName: p.client?.name || null })),
+      },
+      { headers: { 'Cache-Control': 'private, max-age=20, stale-while-revalidate=60' } }
+    )
   }
 
   // ── USER BIASA: hanya tugas sendiri ────────────────────────────────────────
@@ -287,13 +294,16 @@ export async function GET() {
     ...personalTasks.map(t => shapeItem(t, 'personal', today, userId)),
   ]
 
-  return NextResponse.json({
-    mode: 'personal',
-    items,
-    deadlinePassed: isPastDeadlineWIB(),
-    today: today.toISOString(),
-    projectOptions: memberProjects.map(p => ({ id: p.id, code: p.code, name: p.name, clientName: p.client?.name || null })),
-  })
+  return NextResponse.json(
+    {
+      mode: 'personal',
+      items,
+      deadlinePassed: isPastDeadlineWIB(),
+      today: today.toISOString(),
+      projectOptions: memberProjects.map(p => ({ id: p.id, code: p.code, name: p.name, clientName: p.client?.name || null })),
+    },
+    { headers: { 'Cache-Control': 'private, max-age=20, stale-while-revalidate=60' } }
+  )
   } catch (e) {
     console.error('[my-tasks] GET error:', e)
     return NextResponse.json({ error: e.message, type: e.constructor?.name, v: 'nov02' }, { status: 500 })
@@ -315,6 +325,7 @@ export async function POST(req) {
       title: body.title.trim(),
       description: body.description || null,
       dueDate: body.dueDate ? new Date(body.dueDate) : null,
+      timing: body.timing || null,
       projectId: body.projectId || null,
       clientName: body.projectId ? null : (body.clientName || null),
       projectName: body.projectId ? null : (body.projectName || null),

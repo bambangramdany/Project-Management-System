@@ -418,16 +418,18 @@ export function getKpiByRole(role) {
 
 export const KPI_SCORE_LABEL = { 1: 'Kurang', 2: 'Cukup', 3: 'Baik', 4: 'Sangat Baik', 5: 'Istimewa' }
 
-// Day of month by which the current month's KPI assessment must be submitted.
-// Submissions after this date are flagged "late" and the activity/project shifts to next period.
-export const KPI_DEADLINE_DAY = 20
+// KPI assessment deadline = last day of each month at 23:59 WIB
+export function getKpiDeadlineDay(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+}
+// Keep for backward compat where a plain number is needed (returns last day of current month)
+export const KPI_DEADLINE_DAY = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
 
-// Determine the KPI period (YYYY-MM) a date should be scored under, applying the deadline rule:
-// activities/evaluations occurring after the deadline day roll into the next month's period.
 export function resolveKpiPeriod(date = new Date()) {
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
   let y = date.getFullYear()
-  let m = date.getMonth() // 0-indexed
-  if (date.getDate() > KPI_DEADLINE_DAY) {
+  let m = date.getMonth()
+  if (date.getDate() > lastDay) {
     m += 1
     if (m > 11) { m = 0; y += 1 }
   }

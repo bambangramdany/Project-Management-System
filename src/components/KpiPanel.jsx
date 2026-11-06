@@ -21,7 +21,10 @@ export default function KpiPanel({ user, session, defaultOpen = false, period: p
   const [items, setItems] = useState(getKpiByRole(user.role))
   const period = periodProp || resolveKpiPeriod()
   const today = new Date()
-  const isPastDeadline = today.getDate() > KPI_DEADLINE_DAY
+  const [_pYear, _pMonth] = period.split('-').map(Number)
+  // Deadline = last day of period month at 23:59 WIB (UTC+7 → 16:59 UTC)
+  const deadlineUTC = new Date(Date.UTC(_pYear, _pMonth, 0, 16, 59, 59))
+  const isPastDeadline = today > deadlineUTC
   const [scores, setScores] = useState({})
   const [comments, setComments] = useState({})
   const [masukan, setMasukan] = useState({})     // group → text
@@ -155,7 +158,7 @@ export default function KpiPanel({ user, session, defaultOpen = false, period: p
 
           {canScore && isPastDeadline && (
             <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-2 py-1.5 mb-3">
-              ⚠ Sudah lewat tanggal {KPI_DEADLINE_DAY}. Penilaian ini tercatat terlambat.
+              ⚠ Sudah lewat batas akhir bulan ini pukul 23.59. Penilaian ini tercatat terlambat.
             </p>
           )}
 

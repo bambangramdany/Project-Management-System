@@ -419,7 +419,7 @@ export default function WorkloadPage() {
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-gray-400 leading-relaxed">
                   Isi penilaian KPI bulanan untuk anggota tim yang menjadi tanggung jawab Anda.
-                  Batas pengisian: <strong>tanggal 23</strong> setiap bulan.
+                  Batas pengisian: <strong>akhir bulan pukul 23.59</strong>.
                 </p>
               </div>
             </div>

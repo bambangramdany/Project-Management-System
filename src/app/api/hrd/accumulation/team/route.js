@@ -45,8 +45,28 @@ export async function GET(req) {
     const type = searchParams.get('type') || 'monthly'
     const periods = getPeriods(period, type)
 
-    // Weights
-    const weightsRec = await prisma.evaluationWeight.findFirst({ orderBy: { updatedAt: 'desc' } })
+    const startDate = new Date(`${periods[0]}-01`)
+    const lastPeriod = periods[periods.length - 1]
+    const [endYear, endMonth] = lastPeriod.split('-').map(Number)
+    const endDate = new Date(endYear, endMonth, 0)
+    const startStr = `${periods[0]}-01`
+    const endStr = `${lastPeriod}-31`
+
+    const [weightsRec, users, hrdEvals, sharingSessions, kpiAssessments, checkIns] = await Promise.all([
+      prisma.evaluationWeight.findFirst({ orderBy: { updatedAt: 'desc' } }),
+      prisma.user.findMany({
+        where: { role: { not: 'OWNER' } },
+        select: { id: true, name: true, role: true, jobTitle: true, divisi: true },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.hrdMonthlyEvaluation.findMany({ where: { period: { in: periods } } }),
+      prisma.sharingSession.findMany({
+        where: { scheduledDate: { gte: startDate, lte: endDate }, scoreMateri: { not: null } },
+      }),
+      prisma.kpiAssessment.findMany({ where: { period: { in: periods } } }),
+      prisma.dailyCheckIn.findMany({ where: { date: { gte: startStr, lte: endStr } } }),
+    ])
+
     const W = {
       kpi: weightsRec?.kpiWeight ?? 40,
       attendance: weightsRec?.attendanceWeight ?? 20,
@@ -54,42 +74,6 @@ export async function GET(req) {
       attitude: weightsRec?.attitudeWeight ?? 15,
       skill: weightsRec?.skillWeight ?? 10,
     }
-
-    // All team members (exclude OWNER)
-    const users = await prisma.user.findMany({
-      where: { role: { not: 'OWNER' } },
-      select: { id: true, name: true, role: true, jobTitle: true, divisi: true },
-      orderBy: { name: 'asc' },
-    })
-
-    // Bulk fetch HRD monthly evaluations
-    const hrdEvals = await prisma.hrdMonthlyEvaluation.findMany({
-      where: { period: { in: periods } },
-    })
-
-    // Bulk fetch sharing sessions with scores
-    const startDate = new Date(`${periods[0]}-01`)
-    const lastPeriod = periods[periods.length - 1]
-    const [endYear, endMonth] = lastPeriod.split('-').map(Number)
-    const endDate = new Date(endYear, endMonth, 0) // last day of last month
-    const sharingSessions = await prisma.sharingSession.findMany({
-      where: {
-        scheduledDate: { gte: startDate, lte: endDate },
-        scoreMateri: { not: null },
-      },
-    })
-
-    // Bulk fetch KPI assessments
-    const kpiAssessments = await prisma.kpiAssessment.findMany({
-      where: { period: { in: periods } },
-    })
-
-    // Bulk fetch daily check-ins
-    const startStr = `${periods[0]}-01`
-    const endStr = `${lastPeriod}-31`
-    const checkIns = await prisma.dailyCheckIn.findMany({
-      where: { date: { gte: startStr, lte: endStr } },
-    })
 
     // Compute per-user scores
     const results = users.map(user => {

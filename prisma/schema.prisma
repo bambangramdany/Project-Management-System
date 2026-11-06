@@ -930,6 +930,7 @@ model PersonalTask {
   title       String
   description String?
   dueDate     DateTime?
+  timing      String?    // 'daily' | 'weekly' | 'monthly' | 'yearly' | 'periodic' | null
   status      TaskStatus @default(TODO)
   order       Int        @default(0)
   projectId   String?

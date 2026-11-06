@@ -1,13 +1,11 @@
 import { prisma } from '@/lib/prisma'
 import { notifyUser } from '@/lib/notify'
 import { canScoreKpi } from '@/lib/rbac'
-import { KPI_BY_ROLE, KPI_DEADLINE_DAY, resolveKpiPeriod } from '@/lib/constants'
+import { KPI_BY_ROLE, resolveKpiPeriod } from '@/lib/constants'
 import { NextResponse } from 'next/server'
 
-// Daily job: reminds everyone about KPI deadlines before the 23rd cutoff.
-// H-7 (day 16): early warning for both self-assessment and team scoring
-// H-3 (day 20): urgent reminder for both
-// Deadline day (day 23): final reminder — HR collects data on the 24th
+// Daily job: reminds everyone about KPI deadlines (last day of each month, 23:59).
+// H-7: early warning · H-3: urgent · Deadline (last day): final
 // Triggered by Vercel Cron (see vercel.json) — protect with CRON_SECRET if set.
 export async function GET(req) {
   const secret = process.env.CRON_SECRET
@@ -18,9 +16,10 @@ export async function GET(req) {
 
   const now = new Date()
   const dayOfMonth = now.getDate()
-  const isH7 = dayOfMonth === KPI_DEADLINE_DAY - 7
-  const isH3 = dayOfMonth === KPI_DEADLINE_DAY - 3
-  const isDeadline = dayOfMonth === KPI_DEADLINE_DAY
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const isH7 = dayOfMonth === lastDay - 7
+  const isH3 = dayOfMonth === lastDay - 3
+  const isDeadline = dayOfMonth === lastDay
 
   if (!isH7 && !isH3 && !isDeadline) {
     return NextResponse.json({ skipped: true, reason: 'not a reminder day' })
@@ -40,10 +39,10 @@ export async function GET(req) {
   const filledSet = new Set(existing.map(a => `${a.evaluatorId}:${a.userId}:${a.kpiKey}`))
 
   const urgency = isDeadline
-    ? `HARI INI — batas akhir tanggal ${KPI_DEADLINE_DAY}! Data HR diambil besok.`
+    ? `HARI INI — batas akhir akhir bulan pukul 23.59! Data HR diambil besok.`
     : isH3
-      ? `${KPI_DEADLINE_DAY - dayOfMonth} hari lagi (H-3)`
-      : `${KPI_DEADLINE_DAY - dayOfMonth} hari lagi (H-7)`
+      ? `${lastDay - dayOfMonth} hari lagi (H-3)`
+      : `${lastDay - dayOfMonth} hari lagi (H-7)`
 
   let notifiedSelf = 0
   let notifiedTeam = 0
@@ -62,7 +61,7 @@ export async function GET(req) {
       userId: user.id,
       type: 'KPI_REMINDER',
       title: `Penilaian diri KPI — ${urgency}`,
-      message: `Kamu belum mengisi self-assessment KPI periode ${period}. Selesaikan sebelum tanggal ${KPI_DEADLINE_DAY} — data HR diambil tanggal ${KPI_DEADLINE_DAY + 1}.`,
+      message: `Kamu belum mengisi self-assessment KPI periode ${period}. Selesaikan sebelum akhir bulan pukul 23.59 — data HR diambil awal bulan berikutnya.`,
       link: '/scores',
     })
     notifiedSelf++
@@ -84,7 +83,7 @@ export async function GET(req) {
         userId: evaluator.id,
         type: 'KPI_REMINDER',
         title: `Penilaian tim KPI — ${urgency}`,
-        message: `Kamu belum mengisi KPI periode ${period} untuk: ${pendingTargets.join(', ')}. Selesaikan sebelum tanggal ${KPI_DEADLINE_DAY}.`,
+        message: `Kamu belum mengisi KPI periode ${period} untuk: ${pendingTargets.join(', ')}. Selesaikan sebelum akhir bulan pukul 23.59.`,
         link: '/scores',
       })
       notifiedTeam++

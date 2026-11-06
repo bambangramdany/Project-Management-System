@@ -20,7 +20,9 @@ const MEETING_DIVISI = {
 }
 
 function getMeetingTypes(user) {
-  const isFinance = (FINANCE_ROLES.includes(user.role) || ['OWNER', 'DIRECTOR'].includes(user.role))
+  if (user.role === 'OWNER') return ['FINANCE_EVENT', 'FINANCE_PH']
+
+  const isFinance = (FINANCE_ROLES.includes(user.role) || user.role === 'DIRECTOR')
     && user.divisi === 'FINANCE_HRGA'
   const isEvent = PM_ROLES.includes(user.role) && user.divisi === 'EVENT'
   const isPH    = PM_ROLES.includes(user.role) && user.divisi === 'PH'

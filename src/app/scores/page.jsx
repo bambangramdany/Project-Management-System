@@ -85,8 +85,10 @@ export default function ScoresPage() {
   const [excuses, setExcuses] = useState([])
   const [excusesLoading, setExcusesLoading] = useState(false)
   const [excuseFilter, setExcuseFilter] = useState('PENDING')
-  const [excuseReviewNote, setExcuseReviewNote] = useState({}) // { checkinId_type: note }
-  const [excuseReviewing, setExcuseReviewing] = useState(null) // 'checkinId_type'
+  const [excuseReviewNote, setExcuseReviewNote] = useState({})
+  const [excuseReviewing, setExcuseReviewing] = useState(null)
+  const [disiplinOpen, setDisiplinOpen] = useState(false)
+  const [ringkasanOpen, setRingkasanOpen] = useState(false)
 
   // Tab default: PM/Producer/Admin langsung ke "Nilai Tim"; staff lihat skor diri sendiri dulu
   // Gunakan lazy init agar konsisten saat session belum tersedia di render pertama
@@ -404,7 +406,7 @@ export default function ScoresPage() {
                 </div>
                 <input type="month" className="input w-auto" value={teamKpiPeriod} onChange={e => setTeamKpiPeriod(e.target.value)} />
               </div>
-              <p className="text-xs text-gray-400 mb-3">Periode {teamKpiPeriod} · Batas pengisian: tgl 23 setiap bulan</p>
+              <p className="text-xs text-gray-400 mb-3">Periode {teamKpiPeriod} · Batas pengisian: akhir bulan pukul 23.59</p>
               {/* Penilaian Diri — tampil paling atas */}
               {team.filter(m => m.id === session.user.id).map(m => (
                 <div key={m.id} className="rounded-xl border-2 border-brand-200 bg-brand-50/40 p-3 mb-1">
@@ -427,46 +429,59 @@ export default function ScoresPage() {
 
           {/* Disiplin Harian Tim (admin) */}
           {['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF'].includes(session.user.role) && (
-            <div className="card p-4 border-t-4 border-teal-400">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <div className="card border-t-4 border-teal-400 overflow-hidden">
+              <button onClick={() => setDisiplinOpen(o => !o)}
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
                 <div>
-                  <p className="text-sm font-semibold text-ink-800">🕐 Disiplin Harian Tim</p>
-                  <p className="text-xs text-gray-500">Rekap check-in pagi & laporan progress sore per anggota</p>
+                  <p className="text-sm font-semibold text-ink-800 text-left">🕐 Disiplin Harian Tim</p>
+                  <p className="text-xs text-gray-500 text-left">Rekap check-in pagi & laporan progress sore per anggota</p>
                 </div>
-                <input type="month" className="input w-auto" value={checkInPeriod} onChange={e => setCheckInPeriod(e.target.value)} />
-              </div>
-              {!checkInTeam ? (
-                <p className="text-sm text-gray-400">Memuat data...</p>
-              ) : checkInTeam.summary.length === 0 ? (
-                <p className="text-sm text-gray-400">Belum ada data check-in untuk periode {checkInPeriod}.</p>
-              ) : (
-                <div className="space-y-2">
-                  {checkInTeam.summary
-                    .sort((a, b) => (a.divisi || '').localeCompare(b.divisi || '') || a.userName.localeCompare(b.userName))
-                    .map(s => (
-                    <div key={s.userId} className="rounded-lg border border-gray-100 bg-white p-3">
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">{s.userName}</p>
-                          <p className="text-xs text-gray-400">{s.divisi || s.role} · {checkInTeam.workDays} hari kerja</p>
-                        </div>
-                        <div className="flex gap-3 text-right">
-                          <div>
-                            <p className="text-[10px] text-gray-400">Pagi</p>
-                            <p className="text-sm font-bold text-teal-700">{s.morning.score}%</p>
+                <div className="flex items-center gap-2 shrink-0">
+                  <input type="month" className="input w-auto text-xs py-1" value={checkInPeriod}
+                    onClick={e => e.stopPropagation()}
+                    onChange={e => { e.stopPropagation(); setCheckInPeriod(e.target.value) }} />
+                  <svg className={`w-4 h-4 text-gray-400 transition-transform ${disiplinOpen ? 'rotate-180' : ''}`}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </button>
+              {disiplinOpen && (
+                <div className="px-4 pb-4 border-t border-gray-100">
+                  {!checkInTeam ? (
+                    <p className="text-sm text-gray-400 pt-3">Memuat data...</p>
+                  ) : checkInTeam.summary.length === 0 ? (
+                    <p className="text-sm text-gray-400 pt-3">Belum ada data check-in untuk periode {checkInPeriod}.</p>
+                  ) : (
+                    <div className="space-y-2 pt-3">
+                      {checkInTeam.summary
+                        .sort((a, b) => (a.divisi || '').localeCompare(b.divisi || '') || a.userName.localeCompare(b.userName))
+                        .map(s => (
+                        <div key={s.userId} className="rounded-lg border border-gray-100 bg-white p-3">
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <div>
+                              <p className="text-sm font-medium text-gray-800">{s.userName}</p>
+                              <p className="text-xs text-gray-400">{s.divisi || s.role} · {checkInTeam.workDays} hari kerja</p>
+                            </div>
+                            <div className="flex gap-3 text-right">
+                              <div>
+                                <p className="text-[10px] text-gray-400">Pagi</p>
+                                <p className="text-sm font-bold text-teal-700">{s.morning.score}%</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-gray-400">Sore</p>
+                                <p className="text-sm font-bold text-teal-700">{s.evening.score}%</p>
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-[10px] text-gray-400">Sore</p>
-                            <p className="text-sm font-bold text-teal-700">{s.evening.score}%</p>
+                          <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-500">
+                            <p>Pagi: {s.morning.onTime} tepat · {s.morning.late} terlambat · {s.morning.missed} tidak hadir</p>
+                            <p>Sore: {s.evening.onTime} tepat · {s.evening.late} terlambat · {s.evening.missed} tidak hadir</p>
                           </div>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-500">
-                        <p>Pagi: {s.morning.onTime} tepat · {s.morning.late} terlambat · {s.morning.missed} tidak hadir</p>
-                        <p>Sore: {s.evening.onTime} tepat · {s.evening.late} terlambat · {s.evening.missed} tidak hadir</p>
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
             </div>
@@ -474,9 +489,18 @@ export default function ScoresPage() {
 
           {/* Ringkasan penilaian seluruh tim (admin) */}
           {data.team && data.team.length > 0 && (
-            <div className="card p-4 border-t-4 border-pink-400">
-              <p className="text-sm font-semibold text-ink-800 mb-1">📋 Ringkasan Penilaian Tim</p>
-              <p className="text-xs text-gray-500 mb-3">
+            <div className="card border-t-4 border-pink-400 overflow-hidden">
+              <button onClick={() => setRingkasanOpen(o => !o)}
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+                <p className="text-sm font-semibold text-ink-800">📋 Ringkasan Penilaian Tim</p>
+                <svg className={`w-4 h-4 text-gray-400 transition-transform ${ringkasanOpen ? 'rotate-180' : ''}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            {ringkasanOpen && (
+            <div className="px-4 pb-4 border-t border-gray-100">
+              <p className="text-xs text-gray-500 mt-3 mb-3">
                 "Per Project" = akumulasi dari penilaian di tiap project.
                 "KPI Bulanan" = akumulasi dari penilaian KPI.
                 "Gabungan" = rata-rata keduanya.
@@ -591,6 +615,8 @@ export default function ScoresPage() {
                   </tbody>
                 </table>
               </div>
+            </div>
+            )}
             </div>
           )}
 

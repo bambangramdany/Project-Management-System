@@ -121,7 +121,7 @@ export async function GET(req) {
     date,
     currentHour,
     morningLate,
-    showEveningForm: !!today?.morningAckAt && !today?.eveningAt,
+    showEveningForm: !today?.eveningAt,
     eveningOverdue: currentHour >= 20 && !today?.eveningAt,
     periodSummary,
   })
