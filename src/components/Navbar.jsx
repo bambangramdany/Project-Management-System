@@ -31,7 +31,7 @@ const NAV_ITEMS = [
   { href: '/reports',   label: 'Laporan Kinerja', roles: ['OWNER', 'DIRECTOR'] },
 
   // ── Direksi + PM/Produser + Tim Ops + Finance (self-assessment & pairing) ──
-  { href: '/scores',    label: 'Penilaian', roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'MEMBER', 'PRODUCTION', 'FINANCE', 'FINANCE_STAFF'] },
+  { href: '/scores',    label: 'Penilaian', roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'MEMBER', 'PRODUCTION', 'FINANCE', 'FINANCE_STAFF', 'STAGE_DESIGNER', 'INTERNSHIP', 'PROJECT_OFFICER'] },
 
   // ── Network: Direksi + PM/Produser + Finance (Tim Ops tidak perlu Klien) ──
   { href: '/vendors', label: 'Vendor', roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'MEMBER', 'PRODUCTION', 'FINANCE'] },

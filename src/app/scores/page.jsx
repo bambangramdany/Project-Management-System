@@ -14,7 +14,7 @@ import BackButton from '@/components/BackButton'
 import * as XLSX from 'xlsx'
 
 const KPI_SUMMARY_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE', 'FINANCE_STAFF']
-const RATER_ROLES = ['PROJECT_MANAGER', 'PRODUCER']
+const RATER_ROLES = ['PROJECT_MANAGER', 'PRODUCER', 'STAGE_DESIGNER', 'INTERNSHIP', 'PROJECT_OFFICER', 'PRODUCTION', 'MEMBER']
 
 function fmt(v) {
   return v == null ? '-' : v.toFixed(1)
@@ -289,8 +289,8 @@ export default function ScoresPage() {
 
   // Tabs yang tersedia sesuai role
   const tabs = [
-    // PM/Producer/Admin → bisa nilai tim
-    ...(team.length > 0 || KPI_SUMMARY_ROLES.includes(session.user.role)
+    // PM/Producer/Admin/Ops → bisa nilai tim atau per project
+    ...(team.length > 0 || KPI_SUMMARY_ROLES.includes(session.user.role) || RATER_ROLES.includes(session.user.role)
       ? [{ key: 'nilai-tim', label: '⭐ Nilai Tim', desc: 'Beri & lihat penilaian anggota tim' }]
       : []),
     // Semua (kecuali Owner & Director yang fokus ke penilaian tim) → lihat skor diri
