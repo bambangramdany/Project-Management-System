@@ -128,11 +128,24 @@ function ReadOnlyTaskCard({ item }) {
             {item.latestUpdate?.note && (
               <p className="text-[10px] text-gray-400 max-w-[120px] text-right line-clamp-2">{item.latestUpdate.note}</p>
             )}
+            {(() => {
+              if (!item.dueDate) return null
+              const overdueDays = Math.floor((Date.now() - new Date(item.dueDate)) / 86400000)
+              return overdueDays > 0 ? (
+                <span className="text-[10px] font-semibold text-red-500">⚠ Terlambat {overdueDays} hari</span>
+              ) : null
+            })()}
           </div>
         ) : (
           <div className="flex flex-col items-end gap-0.5 shrink-0">
             <span className="text-[11px] px-2 py-1 rounded-lg font-semibold bg-gray-100 text-gray-400">Belum update</span>
             {(() => {
+              if (item.dueDate) {
+                const overdueDays = Math.floor((Date.now() - new Date(item.dueDate)) / 86400000)
+                if (overdueDays > 0) return (
+                  <span className="text-[10px] font-semibold text-red-500">⚠ Terlambat {overdueDays} hari</span>
+                )
+              }
               const ref = item.latestUpdate?.savedAt || item.createdAt
               if (!ref) return null
               const days = Math.floor((Date.now() - new Date(ref)) / 86400000)
