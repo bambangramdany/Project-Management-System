@@ -34,7 +34,7 @@ const NAV_ITEMS = [
   { href: '/scores',    label: 'Penilaian', roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'MEMBER', 'PRODUCTION', 'FINANCE', 'FINANCE_STAFF', 'STAGE_DESIGNER', 'INTERNSHIP', 'PROJECT_OFFICER'] },
 
   // ── Network: Direksi + PM/Produser + Finance (Tim Ops tidak perlu Klien) ──
-  { href: '/vendors', label: 'Vendor', roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'MEMBER', 'PRODUCTION', 'FINANCE', 'PROJECT_OFFICER'] },
+  { href: '/vendors', label: 'Vendor', roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'MEMBER', 'PRODUCTION', 'FINANCE', 'PROJECT_OFFICER', 'INTERNSHIP'] },
   { href: '/clients', label: 'Klien',  roles: ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'FINANCE'] },
 
   // ── Commercial ──
