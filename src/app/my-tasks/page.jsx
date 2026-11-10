@@ -113,11 +113,17 @@ function ReadOnlyTaskCard({ item }) {
         <div className="flex-1 min-w-0">
           {item.assignee && <p className="text-[11px] font-semibold text-violet-600 mb-0.5">{item.assignee.name}</p>}
           <p className="text-sm font-medium text-gray-900 leading-tight">{item.title}</p>
-          {item.project && (
-            <Link href={`/projects/${item.project.id}`} className="text-[11px] text-violet-500 hover:underline">
-              {item.project.code} · {item.project.name}
-            </Link>
-          )}
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            {item.project && (
+              <Link href={`/projects/${item.project.id}`} className="text-[11px] text-violet-500 hover:underline">
+                {item.project.code} · {item.project.name}
+              </Link>
+            )}
+            {item.timing && (() => {
+              const t = { daily: '☀️ Harian', weekly: '📅 Mingguan', monthly: '🗓️ Bulanan', yearly: '📆 Tahunan', periodic: '🔁 Berkala' }[item.timing]
+              return t ? <span className="text-[10px] font-semibold bg-orange-50 text-orange-600 border border-orange-200 px-1.5 py-0.5 rounded-md">{t}</span> : null
+            })()}
+          </div>
           {savedAtStr && <p className="text-[10px] text-gray-400 mt-0.5">Update: {savedAtStr}</p>}
         </div>
         {lastStatus ? (
