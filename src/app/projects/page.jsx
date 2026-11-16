@@ -424,7 +424,7 @@ function ProjectsContent() {
             const group = visibleProjects.filter(p => grp.statuses.includes(p.status))
             if (group.length === 0) return null
             return (
-            <details key={grp.key} open className="group rounded-xl overflow-hidden border border-gray-100">
+            <details key={grp.key} className="group rounded-xl overflow-hidden border border-gray-100">
               <summary className={clsx('px-4 py-2.5 flex items-center justify-between gap-2 cursor-pointer select-none list-none', grp.color)}>
                 <span className="flex items-center gap-2 text-sm font-bold">
                   {grp.label}
