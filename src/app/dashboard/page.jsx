@@ -383,6 +383,19 @@ export default function DashboardPage() {
   const [pendingPRCount, setPendingPRCount] = useState(null)
   const [teamStats, setTeamStats] = useState(null)
 
+  // Collapsible section states — default closed except "Project Perlu Perhatian"
+  const [statsOpen, setStatsOpen] = useState(() => { try { return localStorage.getItem('dash_stats_open') === 'true' } catch { return false } })
+  const [alertsOpen, setAlertsOpen] = useState(() => { try { return localStorage.getItem('dash_alerts_open') === 'true' } catch { return false } })
+  const [eoOpen, setEoOpen] = useState(() => { try { return localStorage.getItem('dash_eo_open') === 'true' } catch { return false } })
+  const [phOpen, setPhOpen] = useState(() => { try { return localStorage.getItem('dash_ph_open') === 'true' } catch { return false } })
+  function toggleSection(key, setter) {
+    setter(prev => {
+      const next = !prev
+      try { localStorage.setItem(key, String(next)) } catch {}
+      return next
+    })
+  }
+
   const MANAGER_ROLES = ['OWNER', 'DIRECTOR', 'PROJECT_MANAGER', 'PRODUCER', 'FINANCE', 'FINANCE_STAFF']
 
   useEffect(() => {
@@ -514,7 +527,20 @@ export default function DashboardPage() {
 
         {/* ── Overview panels — company-wide stats from dedicated endpoint ── */}
         {teamStats && (
-          <div className="space-y-4">
+          <div className="card border-t-4 border-indigo-300">
+            <button onClick={() => toggleSection('dash_stats_open', setStatsOpen)}
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs">📊</span>
+                Statistik Tim
+                {!statsOpen && <span className="text-[10px] font-normal text-gray-400 ml-1">— klik untuk expand</span>}
+              </h3>
+              <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${statsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {statsOpen && (
+          <div className="px-5 pb-5 space-y-4">
             {/* Row 1: Overall + EO + PH */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <OverviewCard
@@ -618,16 +644,25 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+            )}
+          </div>
         )}
 
         {/* Finance alerts: overdue piutang + pending approvals */}
         {((piutangAlerts?.count ?? 0) > 0 || (pendingPRCount?.count ?? 0) > 0) && (
           <div className="card border-t-4 border-red-400 overflow-hidden">
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-red-100 text-red-600 flex items-center justify-center text-xs">🚨</span>
-              <h3 className="text-sm font-semibold text-gray-700">Perlu Tindakan Segera</h3>
-            </div>
-            <div className="divide-y divide-gray-100">
+            <button onClick={() => toggleSection('dash_alerts_open', setAlertsOpen)}
+              className="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-red-100 text-red-600 flex items-center justify-center text-xs">🚨</span>
+                Perlu Tindakan Segera
+                {!alertsOpen && <span className="text-[10px] font-normal text-gray-400 ml-1">— klik untuk expand</span>}
+              </h3>
+              <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${alertsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {alertsOpen && <div className="divide-y divide-gray-100">
               {(piutangAlerts?.count ?? 0) > 0 && (
                 <Link href="/finance" className="flex items-center gap-4 px-5 py-3 hover:bg-red-50 transition-colors group">
                   <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center text-lg shrink-0">📄</div>
@@ -658,10 +693,11 @@ export default function DashboardPage() {
                   </div>
                 </Link>
               )}
-            </div>
+            </div>}
           </div>
         )}
 
+        {/* Cash position — Owner / Finance / Finance Director only */}
         {/* Cash position — Owner / Finance / Finance Director only */}
         {cashPosition && <CashPositionCard data={cashPosition} />}
 
@@ -695,12 +731,48 @@ export default function DashboardPage() {
         )}
 
         {/* EO / Event division */}
-        <DivisionSection title="Event Organizer (EO)" projects={eoProjects} isPH={false}
-          onProjectUpdate={updated => setProjects(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))} />
+        <div className="card border-t-4 border-orange-400 overflow-hidden">
+          <button onClick={() => toggleSection('dash_eo_open', setEoOpen)}
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-xs">🎪</span>
+              Event Organizer (EO)
+              <span className="text-[10px] font-normal text-gray-400">({eoProjects.filter(p => ['PREPARATION','EVENT_DAY','PITCHING','WAITING_PITCH_RESULT','REPORTING','INVOICING'].includes(p.status)).length} aktif)</span>
+              {!eoOpen && <span className="text-[10px] font-normal text-gray-400 ml-1">— klik untuk expand</span>}
+            </h3>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${eoOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {eoOpen && (
+            <div className="border-t border-gray-100 p-5">
+              <DivisionSection title="Event Organizer (EO)" projects={eoProjects} isPH={false}
+                onProjectUpdate={updated => setProjects(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))} />
+            </div>
+          )}
+        </div>
 
         {/* Production House division */}
-        <DivisionSection title="Production House (PH)" projects={phProjects} isPH={true}
-          onProjectUpdate={updated => setProjects(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))} />
+        <div className="card border-t-4 border-blue-400 overflow-hidden">
+          <button onClick={() => toggleSection('dash_ph_open', setPhOpen)}
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xs">🎬</span>
+              Production House (PH)
+              <span className="text-[10px] font-normal text-gray-400">({phProjects.filter(p => ['PREPARATION','EVENT_DAY','PITCHING','WAITING_PITCH_RESULT','REPORTING','INVOICING','POST_PRODUCTION'].includes(p.status)).length} aktif)</span>
+              {!phOpen && <span className="text-[10px] font-normal text-gray-400 ml-1">— klik untuk expand</span>}
+            </h3>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${phOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {phOpen && (
+            <div className="border-t border-gray-100 p-5">
+              <DivisionSection title="Production House (PH)" projects={phProjects} isPH={true}
+                onProjectUpdate={updated => setProjects(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))} />
+            </div>
+          )}
+        </div>
 
       </main>
     </div>
@@ -1129,12 +1201,24 @@ function TrendChartsCollapsible({ trendsData, trendsYear, setTrendsYear }) {
 }
 
 function CashPositionCard({ data }) {
+  const [open, setOpen] = useState(() => { try { return localStorage.getItem('dash_cashpos_open') === 'true' } catch { return false } })
+  function toggle() { const next = !open; setOpen(next); try { localStorage.setItem('dash_cashpos_open', String(next)) } catch {} }
   return (
-    <div className="card p-5 border-t-4 border-purple-400">
-      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xs">💰</span>Posisi Kas</h3>
-        <Link href="/cashflow" className="text-xs font-medium text-brand hover:underline">Kelola Kas →</Link>
-      </div>
+    <div className="card border-t-4 border-purple-400 overflow-hidden">
+      <button onClick={toggle} className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <span className="w-6 h-6 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xs">💰</span>
+          Posisi Kas
+          {!open && <span className="text-[10px] font-normal text-gray-400 ml-1">— klik untuk expand</span>}
+        </h3>
+        <div className="flex items-center gap-3">
+          <Link href="/cashflow" onClick={e => e.stopPropagation()} className="text-xs font-medium text-brand hover:underline">Kelola Kas →</Link>
+          <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+      {open && <div className="px-5 pb-5 pt-4 border-t border-gray-100">
       <div className="mb-4 p-3 rounded-lg bg-gray-50 border border-gray-100">
         <p className="text-xs text-gray-500">Saldo Kas Saat Ini</p>
         <p className={`text-2xl font-bold ${data.cashBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>{formatRupiah(data.cashBalance)}</p>
@@ -1180,6 +1264,7 @@ function CashPositionCard({ data }) {
           </div>
         </div>
       )}
+      </div>}
     </div>
   )
 }
@@ -1229,20 +1314,35 @@ function DivisionSummaryCard({ title, projects }) {
 }
 
 function CashConditionCard({ data }) {
+  const [open, setOpen] = useState(() => { try { return localStorage.getItem('dash_cashcond_open') === 'true' } catch { return false } })
+  function toggle() { const next = !open; setOpen(next); try { localStorage.setItem('dash_cashcond_open', String(next)) } catch {} }
   return (
-    <div className="card p-5 border-t-4 border-pink-400">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-pink-100 text-pink-600 flex items-center justify-center text-xs">🏦</span>Kondisi Keuangan Watermark</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
-          <p className="text-xs text-gray-500">Saldo Kas Saat Ini</p>
-          <p className={`text-2xl font-bold ${data.cashBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>{formatRupiah(data.cashBalance)}</p>
+    <div className="card border-t-4 border-pink-400 overflow-hidden">
+      <button onClick={toggle} className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <span className="w-6 h-6 rounded-lg bg-pink-100 text-pink-600 flex items-center justify-center text-xs">🏦</span>
+          Kondisi Keuangan Watermark
+          {!open && <span className="text-[10px] font-normal text-gray-400 ml-1">— klik untuk expand</span>}
+        </h3>
+        <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="px-5 pb-5 pt-1 border-t border-gray-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+            <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
+              <p className="text-xs text-gray-500">Saldo Kas Saat Ini</p>
+              <p className={`text-2xl font-bold ${data.cashBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>{formatRupiah(data.cashBalance)}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-orange-50">
+              <p className="text-xs text-gray-500">Kebutuhan Dana Menunggu Cair</p>
+              <p className="text-2xl font-bold text-orange-600">{formatRupiah(data.pendingDisbursement)}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Pengajuan yang sudah disetujui/dalam proses approval</p>
+            </div>
+          </div>
         </div>
-        <div className="p-3 rounded-lg bg-orange-50">
-          <p className="text-xs text-gray-500">Kebutuhan Dana Menunggu Cair</p>
-          <p className="text-2xl font-bold text-orange-600">{formatRupiah(data.pendingDisbursement)}</p>
-          <p className="text-xs text-gray-400 mt-0.5">Pengajuan yang sudah disetujui/dalam proses approval</p>
-        </div>
-      </div>
+      )}
     </div>
   )
 }
