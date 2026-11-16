@@ -369,11 +369,15 @@ export default function ScoresPage() {
           )}
 
           {/* Berikan penilaian per project */}
-          <div className="card p-4 border-t-4 border-emerald-400">
-            <div className="mb-3">
-              <p className="text-sm font-semibold text-ink-800">⭐ Nilai Per Project / Event</p>
-              <p className="text-xs text-gray-500 mt-0.5">Pilih project → nilai anggota tim yang terlibat. Penilaian bersifat anonim untuk penerima.</p>
-            </div>
+          <details className="card border-t-4 border-emerald-400 overflow-hidden">
+            <summary className="px-4 py-3.5 flex items-center justify-between cursor-pointer select-none list-none hover:bg-gray-50 transition-colors">
+              <div>
+                <p className="text-sm font-semibold text-ink-800">⭐ Nilai Per Project / Event</p>
+                <p className="text-xs text-gray-500 mt-0.5">Pilih project → nilai anggota tim yang terlibat. Penilaian bersifat anonim untuk penerima.</p>
+              </div>
+              <span className="text-xs text-gray-400 ml-3 shrink-0">▼</span>
+            </summary>
+            <div className="p-4 pt-2 border-t border-gray-100">
             {myProjects.length === 0 ? (
               <p className="text-sm text-gray-400">Belum ada project WIN/DONE yang dapat dinilai.</p>
             ) : (
@@ -394,18 +398,25 @@ export default function ScoresPage() {
                 )}
               </>
             )}
-          </div>
+            </div>
+          </details>
 
           {/* Penilaian Bulanan (KPI) — Tim */}
           {team.length > 0 && (
-            <div className="card p-4 border-t-4 border-brand-400">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
+            <details className="card border-t-4 border-brand-400 overflow-hidden">
+              <summary className="px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer select-none list-none hover:bg-gray-50 transition-colors">
                 <div>
                   <p className="text-sm font-semibold text-ink-800">📊 KPI Bulanan — Tim Saya</p>
                   <p className="text-xs text-gray-500 mt-0.5">Isi penilaian KPI untuk anggota tim yang bisa Anda nilai.</p>
                 </div>
-                <input type="month" className="input w-auto" value={teamKpiPeriod} onChange={e => setTeamKpiPeriod(e.target.value)} />
-              </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <input type="month" className="input w-auto" value={teamKpiPeriod}
+                    onClick={e => e.stopPropagation()}
+                    onChange={e => { e.stopPropagation(); setTeamKpiPeriod(e.target.value) }} />
+                  <span className="text-xs text-gray-400">▼</span>
+                </div>
+              </summary>
+              <div className="p-4 pt-2 border-t border-gray-100">
               <p className="text-xs text-gray-400 mb-3">Periode {teamKpiPeriod} · Batas pengisian: akhir bulan pukul 23.59</p>
               {/* Penilaian Diri — tampil paling atas */}
               {team.filter(m => m.id === session.user.id).map(m => (
@@ -424,7 +435,8 @@ export default function ScoresPage() {
                   ))}
                 </div>
               )}
-            </div>
+              </div>
+            </details>
           )}
 
           {/* Disiplin Harian Tim (admin) */}

@@ -335,8 +335,12 @@ export default function WorkloadPage() {
         {activeTab === 'workload' && !loading && isManager && (
           <>
             {/* Summary heatmap */}
-            <div className="card p-5 border-t-4 border-blue-400">
-              <h2 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xs">📊</span>Distribusi Beban Kerja</h2>
+            <details className="card border-t-4 border-blue-400 overflow-hidden">
+              <summary className="px-5 py-3.5 flex items-center justify-between cursor-pointer select-none list-none hover:bg-gray-50 transition-colors border-b border-gray-100">
+                <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2"><span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xs">📊</span>Distribusi Beban Kerja</h2>
+                <span className="text-xs text-gray-400">▼</span>
+              </summary>
+              <div className="p-5">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {filtered.map(w => (
                   <button
@@ -395,6 +399,7 @@ export default function WorkloadPage() {
               <TeamColumn title="Divisi Event" members={eventTeam} onSelect={setSelectedUser} selectedId={selectedUser?.user.id} accentClass="border-emerald-400" />
               <TeamColumn title="Divisi Creative" members={creativeTeam} onSelect={setSelectedUser} selectedId={selectedUser?.user.id} accentClass="border-purple-400" />
             </div>
+            </details>
           </>
         )}
 

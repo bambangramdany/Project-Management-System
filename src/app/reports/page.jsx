@@ -318,12 +318,12 @@ export default function ReportsPage() {
           </div>
         ) : (
           Object.entries(grouped).map(([div, divUsers]) => (
-            <div key={div} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-              <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+            <details key={div} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+              <summary className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center gap-2 cursor-pointer select-none list-none hover:bg-gray-100 transition-colors">
                 <div className="w-1 h-4 rounded-full bg-violet-400" />
                 <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">{DIVISI_LABEL[div] || div}</span>
                 <span className="text-[11px] text-gray-400">{divUsers.length} orang</span>
-              </div>
+              </summary>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[700px]">
                   <thead>
@@ -347,7 +347,7 @@ export default function ReportsPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </details>
           ))
         )}
 
