@@ -109,8 +109,12 @@ export default function CashflowPage() {
           </div>
         )}
 
-        <div className="card p-5">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Tambah Catatan Kas</h3>
+        <details className="card overflow-hidden">
+          <summary className="px-5 py-3.5 flex items-center justify-between cursor-pointer select-none list-none hover:bg-gray-50 transition-colors">
+            <h3 className="text-sm font-semibold text-gray-700">+ Tambah Catatan Kas</h3>
+            <span className="text-xs text-gray-400">▼</span>
+          </summary>
+          <div className="p-5 pt-2 border-t border-gray-100">
           <form onSubmit={submit} className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
@@ -162,7 +166,8 @@ export default function CashflowPage() {
             {error && <p className="text-sm text-red-600">{error}</p>}
             <button className="btn-primary text-sm" disabled={submitting}>{submitting ? 'Menyimpan...' : 'Simpan'}</button>
           </form>
-        </div>
+          </div>
+        </details>
 
         <div className="card divide-y divide-gray-50">
           <h3 className="text-sm font-semibold text-gray-700 px-5 py-3">Riwayat Transaksi Kas</h3>

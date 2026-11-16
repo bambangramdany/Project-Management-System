@@ -2591,7 +2591,7 @@ function RevenuePerClientCard({ rows, rowsByDivision }) {
       </div>
 
       {/* Semua Divisi */}
-      <details open className="rounded-xl border border-violet-100 bg-gradient-to-r from-violet-50/50 to-white overflow-hidden shadow-sm">
+      <details className="rounded-xl border border-violet-100 bg-gradient-to-r from-violet-50/50 to-white overflow-hidden shadow-sm">
         <summary className="cursor-pointer select-none flex items-center justify-between gap-3 px-4 py-3 bg-gradient-to-r from-violet-600 to-purple-500 text-white list-none">
           <div className="flex items-center gap-2">
             <span className="w-6 h-6 rounded-md bg-white/20 flex items-center justify-center text-xs">📊</span>
