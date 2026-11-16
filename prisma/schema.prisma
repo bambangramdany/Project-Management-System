@@ -102,6 +102,7 @@ model User {
   eventIssues            EventIssue[]
   meetingNoteAuthored    MeetingNote[]         @relation("MeetingNoteAuthor")
   meetingActionItems     MeetingActionItem[]   @relation("ActionItemAssignee")
+  milestonesAssigned     MilestoneMember[]
   sopAgreedVersion       String?               // versi SOP terakhir yang disetujui user
   sopAgreedAt            DateTime?             // waktu persetujuan SOP terakhir
 }
@@ -759,6 +760,7 @@ model ProjectMilestone {
   id          String    @id @default(cuid())
   projectId   String
   title       String
+  startDate   DateTime?
   date        DateTime
   done        Boolean   @default(false)
   color       String    @default("violet")  // violet|blue|green|orange|red
@@ -768,9 +770,22 @@ model ProjectMilestone {
   updatedAt   DateTime  @updatedAt
 
   project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  members     MilestoneMember[]
 
   @@index([projectId])
   @@index([date])
+}
+
+model MilestoneMember {
+  milestoneId String
+  userId      String
+  createdAt   DateTime @default(now())
+
+  milestone   ProjectMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([milestoneId, userId])
+  @@index([userId])
 }
 
 model ProjectBriefItem {

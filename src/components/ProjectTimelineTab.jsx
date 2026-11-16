@@ -33,7 +33,7 @@ export default function ProjectTimelineTab({ project, session, team, onProjectUp
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [editItem, setEditItem] = useState(null)
-  const [form, setForm] = useState({ title: '', date: '', color: 'violet', note: '' })
+  const [form, setForm] = useState({ title: '', startDate: '', date: '', color: 'violet', note: '', memberIds: [] })
   const [saving, setSaving] = useState(false)
 
   // MoM state
@@ -130,7 +130,7 @@ export default function ProjectTimelineTab({ project, session, team, onProjectUp
           body: JSON.stringify(form),
         })
       }
-      setShowAdd(false); setEditItem(null); setForm({ title: '', date: '', color: 'violet', note: '' })
+      setShowAdd(false); setEditItem(null); setForm({ title: '', startDate: '', date: '', color: 'violet', note: '', memberIds: [] })
       load()
     } finally { setSaving(false) }
   }
@@ -152,7 +152,14 @@ export default function ProjectTimelineTab({ project, session, team, onProjectUp
 
   function openEdit(m) {
     setEditItem(m)
-    setForm({ title: m.title, date: isoDate(m.date), color: m.color || 'violet', note: m.note || '' })
+    setForm({
+      title: m.title,
+      startDate: m.startDate ? isoDate(m.startDate) : '',
+      date: isoDate(m.date),
+      color: m.color || 'violet',
+      note: m.note || '',
+      memberIds: (m.members || []).map(mm => mm.user?.id || mm.userId).filter(Boolean),
+    })
     setShowAdd(true)
   }
 
@@ -194,7 +201,7 @@ export default function ProjectTimelineTab({ project, session, team, onProjectUp
       {/* Add button */}
       <div className="flex justify-between items-center">
         <p className="text-sm font-semibold text-gray-700">Timeline Project</p>
-        <button onClick={() => { setShowAdd(true); setEditItem(null); setForm({ title: '', date: '', color: 'violet', note: '' }) }}
+        <button onClick={() => { setShowAdd(true); setEditItem(null); setForm({ title: '', startDate: '', date: '', color: 'violet', note: '', memberIds: [] }) }}
           className="btn-primary text-xs px-3 py-1.5">
           + Tambah Milestone
         </button>
@@ -210,8 +217,28 @@ export default function ProjectTimelineTab({ project, session, team, onProjectUp
               <input className="input" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="mis: Kirim Proposal Kreatif" />
             </div>
             <div>
-              <label className="label">Tanggal *</label>
+              <label className="label">Tanggal Mulai</label>
+              <input type="date" className="input" value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label">Due Date *</label>
               <input type="date" className="input" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} />
+            </div>
+            <div className="col-span-2">
+              <label className="label">Tim Terlibat</label>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {(team || []).map(u => {
+                  const selected = form.memberIds.includes(u.id)
+                  return (
+                    <button key={u.id} type="button"
+                      onClick={() => setForm(p => ({ ...p, memberIds: selected ? p.memberIds.filter(id => id !== u.id) : [...p.memberIds, u.id] }))}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${selected ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300'}`}>
+                      {u.name}
+                    </button>
+                  )
+                })}
+              </div>
+              {(!team || team.length === 0) && <p className="text-xs text-gray-400 mt-1">Data tim tidak tersedia</p>}
             </div>
             <div>
               <label className="label">Warna</label>
@@ -222,7 +249,7 @@ export default function ProjectTimelineTab({ project, session, team, onProjectUp
                 ))}
               </div>
             </div>
-            <div className="col-span-2">
+            <div>
               <label className="label">Catatan</label>
               <input className="input" value={form.note} onChange={e => setForm(p => ({ ...p, note: e.target.value }))} placeholder="Opsional" />
             </div>
@@ -269,8 +296,16 @@ export default function ProjectTimelineTab({ project, session, team, onProjectUp
                             {isNext && !isToday && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 font-bold">Berikutnya</span>}
                           </div>
                           <p className={`text-xs mt-0.5 ${past && !item.done ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
-                            {fmtDate(item.date)}{past && !item.done && !item.fixed ? ' · Terlewat' : ''}
+                            {item.startDate ? `${fmtDate(item.startDate)} – ` : ''}{fmtDate(item.date)}{past && !item.done && !item.fixed ? ' · Terlewat' : ''}
                           </p>
+                          {item.members?.length > 0 && (
+                            <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                              {item.members.slice(0, 5).map(mm => (
+                                <span key={mm.user?.id || mm.userId} className="text-[10px] bg-violet-50 text-violet-700 border border-violet-100 px-1.5 py-0.5 rounded-full">{mm.user?.name}</span>
+                              ))}
+                              {item.members.length > 5 && <span className="text-[10px] text-gray-400">+{item.members.length - 5}</span>}
+                            </div>
+                          )}
                           {item.note && <p className="text-xs text-gray-400 mt-0.5 truncate">{item.note}</p>}
                         </div>
                         {!item.fixed && (
