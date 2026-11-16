@@ -510,13 +510,7 @@ export default function DashboardPage() {
         )}
 
         {/* Trend Charts — Owner / Finance / Directors only */}
-        {trendsData && (
-          <RevenueTrendCharts
-            data={trendsData}
-            year={trendsYear}
-            onYearChange={setTrendsYear}
-          />
-        )}
+        {trendsData && <TrendChartsCollapsible trendsData={trendsData} trendsYear={trendsYear} setTrendsYear={setTrendsYear} />}
 
         {/* ── Overview panels — company-wide stats from dedicated endpoint ── */}
         {teamStats && (
@@ -1031,6 +1025,14 @@ function MonthYearSelect({ value, onChange }) {
 const DEBT_ROLES = ['OWNER', 'DIRECTOR', 'FINANCE'] // Hutang termasuk Finance (PPh 21)
 
 function FinanceOverviewCard({ data, range, setRange, role }) {
+  const [open, setOpen] = useState(() => {
+    try { return localStorage.getItem('dash_finance_open') === 'true' } catch { return false }
+  })
+  function toggle() {
+    const next = !open
+    setOpen(next)
+    try { localStorage.setItem('dash_finance_open', String(next)) } catch {}
+  }
   const showDebt = DEBT_ROLES.includes(role)
   const cards = [
     { key: 'omset', label: 'Total Omset', value: formatCompactRupiah(data.totalOmset), sub: `${MONTH_LABEL[Number(range.from.split('-')[1]) - 1]} ${range.from.split('-')[0]} – ${MONTH_LABEL[Number(range.to.split('-')[1]) - 1]} ${range.to.split('-')[0]}`, icon: '📈', color: 'blue', href: '/finance' },
@@ -1049,36 +1051,79 @@ function FinanceOverviewCard({ data, range, setRange, role }) {
     rose: { border: 'border-rose-400', bg: 'bg-rose-100', text: 'text-rose-600' },
   }
   return (
-    <div className="card p-5 border-t-4 border-indigo-400">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-2 border-b border-gray-100">
+    <div className="card border-t-4 border-indigo-400">
+      <button onClick={toggle} className="w-full flex flex-wrap items-center justify-between gap-3 px-5 py-4 hover:bg-gray-50 transition-colors">
         <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
           <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs">💼</span>
           Overview Keuangan Perusahaan
+          {!open && <span className="text-[10px] font-normal text-gray-400 ml-1">— klik untuk expand</span>}
         </h3>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-          <span>Dari</span>
-          <MonthYearSelect value={range.from} onChange={v => setRange(r => ({ ...r, from: v }))} />
-          <span>Sampai</span>
-          <MonthYearSelect value={range.to} onChange={v => setRange(r => ({ ...r, to: v }))} />
+        <div className="flex items-center gap-2">
+          {open && (
+            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500" onClick={e => e.stopPropagation()}>
+              <span>Dari</span>
+              <MonthYearSelect value={range.from} onChange={v => setRange(r => ({ ...r, from: v }))} />
+              <span>Sampai</span>
+              <MonthYearSelect value={range.to} onChange={v => setRange(r => ({ ...r, to: v }))} />
+            </div>
+          )}
+          <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {cards.map(c => {
-          const cm = colorMap[c.color]
-          return (
-            <Link key={c.key} href={c.href} className={`block p-3 rounded-xl border-t-4 ${cm.border} bg-gray-50 hover:bg-white hover:shadow-md transition-all duration-150 group`}>
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-500 group-hover:text-gray-700">{c.label}</p>
-                <span className={`w-5 h-5 rounded-full ${cm.bg} ${cm.text} flex items-center justify-center text-[10px]`}>{c.icon}</span>
-              </div>
-              <p className="text-base sm:text-lg font-bold text-gray-900 mt-1 break-words">{c.value}</p>
-              <p className="text-[11px] text-gray-400 mt-0.5 truncate group-hover:text-gray-500">{c.sub}</p>
-              <p className={`text-[10px] font-medium mt-1.5 ${cm.text} opacity-0 group-hover:opacity-100 transition-opacity`}>Lihat detail →</p>
-            </Link>
-          )
-        })}
-      </div>
-      <p className="text-[11px] text-gray-400 mt-3">Hanya terlihat oleh Direksi & Management.</p>
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {cards.map(c => {
+              const cm = colorMap[c.color]
+              return (
+                <Link key={c.key} href={c.href} className={`block p-3 rounded-xl border-t-4 ${cm.border} bg-gray-50 hover:bg-white hover:shadow-md transition-all duration-150 group`}>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500 group-hover:text-gray-700">{c.label}</p>
+                    <span className={`w-5 h-5 rounded-full ${cm.bg} ${cm.text} flex items-center justify-center text-[10px]`}>{c.icon}</span>
+                  </div>
+                  <p className="text-base sm:text-lg font-bold text-gray-900 mt-1 break-words">{c.value}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5 truncate group-hover:text-gray-500">{c.sub}</p>
+                  <p className={`text-[10px] font-medium mt-1.5 ${cm.text} opacity-0 group-hover:opacity-100 transition-opacity`}>Lihat detail →</p>
+                </Link>
+              )
+            })}
+          </div>
+          <p className="text-[11px] text-gray-400 mt-3">Hanya terlihat oleh Direksi & Management.</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TrendChartsCollapsible({ trendsData, trendsYear, setTrendsYear }) {
+  const [open, setOpen] = useState(() => {
+    try { return localStorage.getItem('dash_trends_open') === 'true' } catch { return false }
+  })
+  function toggle() {
+    const next = !open
+    setOpen(next)
+    try { localStorage.setItem('dash_trends_open', String(next)) } catch {}
+  }
+  return (
+    <div className="card border-t-4 border-violet-500">
+      <button onClick={toggle} className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <span className="w-6 h-6 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center text-xs">📈</span>
+          Tren Revenue &amp; Profit
+          {!open && <span className="text-[10px] font-normal text-gray-400 ml-1">— klik untuk expand</span>}
+        </h3>
+        <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="px-5 pb-5">
+          <RevenueTrendCharts data={trendsData} year={trendsYear} onYearChange={setTrendsYear} />
+        </div>
+      )}
     </div>
   )
 }
