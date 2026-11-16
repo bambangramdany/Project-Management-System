@@ -51,6 +51,7 @@ export default function ProjectDetailPage() {
   const [customCategory, setCustomCategory] = useState('')
   const [editingPic, setEditingPic] = useState(false)
   const [confirmDeleteTaskId, setConfirmDeleteTaskId] = useState(null)
+  const [linkedPersonalTasks, setLinkedPersonalTasks] = useState([])
   const addingMemberRef = useRef(false)
   const [addingMember, setAddingMember] = useState(false)
   const [confirmRemoveMemberId, setConfirmRemoveMemberId] = useState(null)
@@ -90,6 +91,7 @@ export default function ProjectDetailPage() {
       fetch('/api/team').then(r => r.json()).then(setTeam)
       fetch('/api/clients?simple=1').then(r => r.json()).then(setAllClients)
       fetch(`/api/projects/${id}/dates`).then(r => r.ok ? r.json() : []).then(setProjectDates)
+      fetch(`/api/projects/${id}/personal-tasks`).then(r => r.ok ? r.json() : []).then(setLinkedPersonalTasks)
     }
   }, [status, id])
 
@@ -204,6 +206,7 @@ export default function ProjectDetailPage() {
 
   async function addTask(e) {
     e.preventDefault()
+    if (!taskForm.openEnded && !taskForm.dueDate) { alert('Due date wajib diisi untuk task project'); return }
     const currentForm = { ...taskForm }
     const assigneeObj = currentForm.assigneeId
       ? [project.pic, ...(project.members?.map(m => m.user) || [])].find(u => u?.id === currentForm.assigneeId)
@@ -955,6 +958,31 @@ export default function ProjectDetailPage() {
               </div>
             ))}
 
+            {linkedPersonalTasks.length > 0 && (
+              <div className="mt-2 space-y-1">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1">Tugas Personal Tim</p>
+                {linkedPersonalTasks.map(pt => {
+                  const overdue = pt.dueDate && new Date(pt.dueDate) < new Date() && pt.status !== 'DONE'
+                  const fmtD = d => new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+                  return (
+                    <div key={pt.id} className="card px-4 py-2.5 flex items-start gap-3">
+                      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${pt.status === 'DONE' ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>
+                        {pt.status === 'DONE' && <span className="text-white text-[9px]">✓</span>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm ${pt.status === 'DONE' ? 'line-through text-gray-400' : 'text-gray-800'}`}>{pt.title}</p>
+                        <div className="flex flex-wrap gap-2 mt-0.5">
+                          <span className="text-xs text-violet-500">{pt.user?.name}</span>
+                          {pt.timing && <span className="text-[10px] bg-orange-50 text-orange-500 border border-orange-100 px-1.5 py-0.5 rounded-full">{{'daily':'Harian','weekly':'Mingguan','monthly':'Bulanan'}[pt.timing] || pt.timing}</span>}
+                          {pt.dueDate && <span className={`text-xs ${overdue ? 'text-red-500 font-medium' : 'text-gray-400'}`}>{overdue ? '⚠ Terlambat · ' : ''}{fmtD(pt.dueDate)}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
             {isManager && !showTaskForm && (
               <button onClick={() => setShowTaskForm(true)} className="w-full card px-4 py-3 text-sm text-gray-400 hover:text-brand-500 text-left hover:bg-brand-50 transition-colors">
                 + Tambah task...
@@ -989,7 +1017,7 @@ export default function ProjectDetailPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="flex-1">
-                    <label className="label">Deadline</label>
+                    <label className="label">Deadline {!taskForm.openEnded && <span className="text-red-500">*</span>}</label>
                     <input type="date" className="input" value={taskForm.dueDate} onChange={e => setTaskForm(f => ({...f, dueDate: e.target.value}))} disabled={taskForm.openEnded} />
                   </div>
                   <label className="flex items-center gap-2 text-sm text-gray-600 mt-5 cursor-pointer">

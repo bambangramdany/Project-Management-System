@@ -1729,6 +1729,30 @@ export default function MyTasksPage() {
             </div>
           )}
 
+          {/* ── Overdue task alert (owner) ── */}
+          {(() => {
+            const today2 = new Date(); today2.setHours(0,0,0,0)
+            const od = myItems.filter(t => !t.hasTodayUpdate && t.dueDate && new Date(t.dueDate) < today2)
+            if (!od.length) return null
+            return (
+              <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 space-y-1.5">
+                <p className="text-sm font-bold text-amber-800">⚠ {od.length} tugasmu sudah melewati tenggat waktu</p>
+                <div className="space-y-1">
+                  {od.slice(0, 3).map(t => {
+                    const days = Math.floor((Date.now() - new Date(t.dueDate)) / 86400000)
+                    return (
+                      <div key={t.id} className="flex items-center justify-between text-xs">
+                        <span className="text-amber-700 truncate flex-1 mr-2">{t.title}</span>
+                        <span className="text-red-500 font-semibold shrink-0">{days} hari lalu</span>
+                      </div>
+                    )
+                  })}
+                  {od.length > 3 && <p className="text-xs text-amber-500">+{od.length - 3} tugas lainnya</p>}
+                </div>
+              </div>
+            )
+          })()}
+
           {/* Personal task OWNER */}
           <PersonalTaskTabs tasks={myPersonalTasks} projectOptions={data.projectOptions} onSave={saveProgress} onDelete={removePersonalTask} onAdd={addPersonalTask} />
 
@@ -1894,6 +1918,31 @@ export default function MyTasksPage() {
             </div>
           )}
 
+          {/* ── Overdue task alert (team_lead) ── */}
+          {(() => {
+            const today2 = new Date(); today2.setHours(0,0,0,0)
+            const od = myItems.filter(t => !t.hasTodayUpdate && t.dueDate && new Date(t.dueDate) < today2)
+            if (!od.length) return null
+            return (
+              <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 space-y-1.5">
+                <p className="text-sm font-bold text-amber-800">⚠ {od.length} tugasmu sudah melewati tenggat waktu</p>
+                <div className="space-y-1">
+                  {od.slice(0, 3).map(t => {
+                    const days = Math.floor((Date.now() - new Date(t.dueDate)) / 86400000)
+                    return (
+                      <div key={t.id} className="flex items-center justify-between text-xs">
+                        <span className="text-amber-700 truncate flex-1 mr-2">{t.title}</span>
+                        <span className="text-red-500 font-semibold shrink-0">{days} hari lalu</span>
+                      </div>
+                    )
+                  })}
+                  {od.length > 3 && <p className="text-xs text-amber-500">+{od.length - 3} tugas lainnya</p>}
+                </div>
+                <p className="text-xs text-amber-600">Segera update status atau hubungi PM jika ada kendala.</p>
+              </div>
+            )
+          })()}
+
           {/* Personal tasks — team_lead */}
           <PersonalTaskTabs tasks={myPersonalTasks} projectOptions={data.projectOptions} onSave={saveProgress} onDelete={removePersonalTask} onAdd={addPersonalTask} />
 
@@ -2014,6 +2063,26 @@ export default function MyTasksPage() {
           <div className="rounded-2xl bg-red-50 border-2 border-red-200 px-4 py-3">
             <p className="text-sm font-bold text-red-700">Sudah lewat jam 20:00</p>
             <p className="text-xs text-red-500 mt-0.5">{pendingCount} tugas belum di-update — segera isi sebelum dicatat sebagai tidak hadir</p>
+          </div>
+        )}
+
+        {/* ── Overdue task alert ── */}
+        {overdueTasks.length > 0 && (
+          <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 space-y-1.5">
+            <p className="text-sm font-bold text-amber-800">⚠ {overdueTasks.length} tugas sudah melewati tenggat waktu</p>
+            <div className="space-y-1">
+              {overdueTasks.slice(0, 3).map(t => {
+                const days = Math.floor((Date.now() - new Date(t.dueDate)) / 86400000)
+                return (
+                  <div key={t.id} className="flex items-center justify-between text-xs">
+                    <span className="text-amber-700 truncate flex-1 mr-2">{t.title}</span>
+                    <span className="text-red-500 font-semibold shrink-0">{days} hari lalu</span>
+                  </div>
+                )
+              })}
+              {overdueTasks.length > 3 && <p className="text-xs text-amber-500">+{overdueTasks.length - 3} tugas lainnya</p>}
+            </div>
+            <p className="text-xs text-amber-600 mt-1">Segera update status atau hubungi PM jika ada kendala.</p>
           </div>
         )}
 
